@@ -61,7 +61,7 @@ body.protocol-of{
   --toxin-wave-rgb:205,245,255;
   --toxin-label:#BFEFFF;
 }
-/* MA Protocol — Sweet Voice: same MA engine, soft pink theme so it's
+/* Sweet Protocol: same MA engine, soft pink theme so it's
    immediately, visually distinct from standard MA at a glance. Kept
    entirely light (no dark corner) rather than mirroring the acid/ice
    dark-to-bright gradient shape — verified via real contrast math that
@@ -691,7 +691,7 @@ body.protocol-ms .generate-btn.loading{
           <label class="field-label">Official Protocol</label>
           <div class="protocol-select" id="protocolSelect">
             <label><input type="radio" name="protocol" value="MA" checked> MA Protocol</label>
-            <label><input type="radio" name="protocol" value="MS"> MA Protocol — Sweet Voice</label>
+            <label><input type="radio" name="protocol" value="MS"> Sweet Voice Protocol (Same MA Engine)</label>
             <label><input type="radio" name="protocol" value="OF"> OF Protocol (Trial Evaluation)</label>
           </div>
         </div>
@@ -1181,63 +1181,206 @@ Before returning the report, verify:
    *   ambiguity about which rating applies to this specific report, since
    *   that's the one thing that changes call to call.
    */
-  function buildMASystemPrompt(params){
+  /**
+   * Shared by MA and Sweet Protocol — both use identical rating/tone/
+   * parent-note/star-collection logic, so this is built once and reused,
+   * not duplicated.
+   */
+  function buildMARuntimeParams(params){
     const lvl = params.rating || '3';
     const includeParentNote = MA_PARENT_NOTE_LEVELS.includes(lvl);
 
-    const runtimeParams = [
+    return [
       'RUNTIME PARAMETERS FOR THIS REPORT (computed from the app, not part of the protocol text above — apply the protocol\'s rules using these exact values):',
       '- Selected rating: ' + lvl + '/5.',
       '- Tone for this rating per the Level Integration table: ' + LEVEL_TONE_DESC[lvl] + (isHalfPoint(lvl) ? ' This is a transitional half-point level, not a rounded value — blend naturally between its two neighboring tones.' : ''),
       '- Parent Note for this report: ' + (includeParentNote ? 'INCLUDE it (this rating is 1, 1.5, 2, or 2.5).' : 'OMIT it entirely (this rating is above 2.5).'),
       '- The "approved star collection" for Total Stars Today is: ' + APPROVED_STARS_ALL.join(' ') + '. Favor ' + APPROVED_STARS_PRIMARY.join(' and ') + ' as the primary stars (most of the 10). Use ' + APPROVED_STARS_VARIETY.join(', ') + ' only occasionally, for variety — not as the majority. Use no emoji outside this list for the star count.'
     ].join('\n');
+  }
 
+  function buildMASystemPrompt(params){
+    const runtimeParams = buildMARuntimeParams(params);
     return MA_PROTOCOL_V2_9_SOURCE + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
   }
 
   /**
-   * MA "Sweet Voice" — not a new evaluation protocol. Composed at runtime
-   * by taking whatever buildMASystemPrompt currently produces (the full
-   * immutable MA protocol, unchanged) and appending a voice-only override
-   * block on top. Deliberately NOT a separate copy of the MA protocol
-   * text: duplicating it would risk silent drift the moment MA itself is
-   * next revised. Building it FROM the live MA source means every future
-   * MA version bump automatically carries through here with zero extra
-   * maintenance — this protocol is, structurally, MA V2.9-or-whatever's-
-   * -current plus one appended paragraph about tone.
+   * Sweet Protocol — a genuinely separate, independently-selectable
+   * protocol from MA, not a "voice patch" appended to it. It has its own
+   * identity, its own opening framing, and its personality established as
+   * a first-class, up-front trait rather than an afterthought tacked onto
+   * the end.
+   *
+   * Critically, it still shares MA's entire evaluation engine — Level
+   * Integration, the character limit, every Universal Rule, the template,
+   * the validation checklist — word for word. That content is NOT
+   * duplicated into a second, separately-maintained copy: it's sliced
+   * live from MA_PROTOCOL_V2_9_SOURCE (everything from "LEVEL INTEGRATION"
+   * onward, i.e. every rule except MA's own three-paragraph opening
+   * framing, which Sweet Protocol replaces with its own). This means any
+   * future revision to MA's rules — a version bump, a new refinement —
+   * carries through here automatically, with zero risk of the two
+   * protocols' evaluation logic silently drifting apart.
    * @param {{rating: string}} params
    * @returns {string}
    */
   function buildSweetSystemPrompt(params){
-    const maPrompt = buildMASystemPrompt(params);
+    const levelIntegrationIdx = MA_PROTOCOL_V2_9_SOURCE.indexOf('LEVEL INTEGRATION');
+    const sharedEvaluationEngine = MA_PROTOCOL_V2_9_SOURCE.slice(levelIntegrationIdx);
+    const runtimeParams = buildMARuntimeParams(params);
 
-    const voiceOverride = [
+    const sweetIntro = [
+      'SWEET VOICE PROTOCOL COMMAND CHAIN V1.0',
+      '',
+      'When instructed to generate the Sweet Voice Protocol, always produce the complete child feedback using the underlying MA Protocol exactly as defined.',
+      '',
+      'The Sweet Voice Protocol is a presentation protocol.',
+      '',
+      'It never changes the evaluation, scoring, observations, recommendations, educational content, template, validation rules, or report structure defined by the MA Protocol.',
+      '',
+      "The Sweet Voice Protocol changes ONLY the teacher's writing personality.",
+      '',
       '────────────────────────────────────────',
       '',
-      'VOICE OVERRIDE: SWEET TEACHER PERSONALITY',
-      '(This section changes ONLY the writing voice. Every rule, structure, section, limit, and piece of evaluation logic defined above remains fully in force, unchanged, and unweakened. This override does not replace, relax, or reinterpret any rule above — it only changes HOW things are said, never WHAT is said or WHETHER it is said.)',
+      'SWEET VOICE INTEGRATION',
+      '(Internal only. Never shown to parents.)',
       '',
-      "Write in the voice of an exceptionally warm, cheerful, encouraging children's teacher — think of the sweetest, most enthusiastic primary-school teacher imaginable, rather than the calm, professional, balanced voice the rest of this protocol otherwise implies.",
+      "• Always write as an exceptionally warm, cheerful, nurturing children's teacher.",
+      '• Imagine a kind, bubbly, middle-aged aunty who absolutely adores children and genuinely loves teaching them.',
+      "• Celebrate effort before achievement whenever both are equally supported by today's lesson.",
+      '• Make every child feel welcomed, appreciated, safe, encouraged, and excited to keep learning.',
+      "• Sound emotionally invested in every student's growth while remaining completely honest.",
       '',
-      '• Bright and bubbly. Gentle and reassuring. Full of genuine encouragement.',
-      '• Celebrate effort before results. Sound proud of every sincere attempt.',
-      '• Make the child feel excited to keep learning.',
-      '• Use playful, child-friendly wording, warm transitions, and expressive language.',
-      '• Use emojis enthusiastically but appropriately — this does not loosen the star/emoji rules already defined above (the approved star collection, exactly 10 stars, exactly one Superpower emoji, etc. all still apply exactly as specified).',
-      '• Keep every compliment grounded in observable behavior from the lesson — warmth is a delivery style, never a license to exaggerate or invent.',
-      "• Never become dishonest or exaggerate performance. The Level Integration tone for the selected rating still governs how positive or how firm the content itself is — this override changes the warmth of delivery, not the honesty of the assessment.",
+      '────────────────────────────────────────',
       '',
-      'Constructive feedback must never disappear or soften into vagueness — it must simply sound supportive rather than corrective. For example:',
-      '- Instead of: "You need more practice with past tense."',
-      '  Write like: "We\'re getting closer every lesson! Let\'s keep practicing the past tense together, because I know you\'ll become even more confident next time! 🌟"',
-      '- Instead of: "You struggled to answer some questions."',
-      '  Write like: "Some questions were a little tricky today, but I loved seeing you keep trying! Every brave answer helped you learn something new. 💛"',
+      'UNIVERSAL SWEET VOICE RULES',
       '',
-      'A parent reading this report and a parent reading the calm, professional MA Protocol version of the exact same lesson must reach exactly the same conclusions about the student\'s performance — the same facts, the same observations, the same recommendations, the same score, the same homework, the same educational content. Only the emotional presentation and writing personality differ.'
+      'Teacher Personality',
+      '',
+      '• Always speak directly to the student.',
+      '• Always write in the first person as the teacher.',
+      '• Always sound warm, patient, encouraging, playful, affectionate, and emotionally expressive.',
+      '• Frequently use naturally warm expressions such as "I loved...", "I was so happy to see...", "I\'m so proud of...", "You made me smile...", "I really enjoyed...", and "I can\'t wait to see you again."',
+      '• Write as if speaking warmly to the child immediately after class.',
+      '• Never sound cold, clinical, distant, mechanical, or corporate.',
+      '',
+      'Lesson Summary',
+      '',
+      "• Always naturally summarize today's lesson by describing the main activities, stories, games, songs, discussions, reading, videos, or lesson events.",
+      '• The lesson summary should feel conversational rather than instructional.',
+      '• Help the child happily remember the fun moments from class.',
+      '',
+      'Praise',
+      '',
+      '• Celebrate sincere effort throughout the entire report, not only in the Positive Feedback section.',
+      "• Praise should appear naturally across multiple sections whenever supported by today's lesson.",
+      '• Every compliment must be supported by observable lesson behavior whenever possible.',
+      '• Frequently celebrate participation, confidence, curiosity, persistence, creativity, careful listening, brave attempts, improvement, and enthusiasm.',
+      "• Never invent praise that is unsupported by today's lesson.",
+      '',
+      'Vocabulary & Grammar',
+      '',
+      "• Naturally incorporate important vocabulary and grammar or sentence patterns practiced during today's lesson.",
+      '• Vocabulary observations should celebrate effort, confidence, participation, improvement, or successful recall whenever supported by the lesson.',
+      '• Grammar explanations should remain educational while encouraging continued learning.',
+      '• Educational content must never be sacrificed for warmth.',
+      '',
+      'Constructive Feedback',
+      '',
+      '• Never hide weaknesses.',
+      '• Never present mistakes as failures.',
+      '• Present corrections as exciting opportunities for growth.',
+      '• Whenever possible, surround constructive feedback with encouragement.',
+      '• Make improvement feel achievable, positive, and exciting.',
+      '• The child should finish every section feeling motivated to continue learning.',
+      '',
+      'Personal Connection',
+      '',
+      '• Include at least one personal compliment about something unique the student said, shared, remembered, imagined, created, noticed, accomplished, or enjoyed during today\'s lesson whenever reasonably possible.',
+      '• Make the child feel genuinely seen as an individual rather than receiving a generic report.',
+      '• Never invent personal moments that did not happen.',
+      '',
+      'Emotional Tone',
+      '',
+      '• Prioritize confidence before perfection.',
+      '• Prioritize progress before comparison.',
+      '• Prioritize encouragement before criticism.',
+      '• Normalize mistakes as a natural part of learning.',
+      "• Leave the child feeling proud regardless of today's rating.",
+      "• Celebrate growth with genuine excitement whenever supported by today's lesson.",
+      '',
+      'Emoji Usage',
+      '',
+      '• Use emojis naturally throughout the report to reinforce warmth, celebration, and friendliness.',
+      '• Use emojis generously but thoughtfully.',
+      '• Emojis should support the writing, never replace meaningful feedback.',
+      '• Never allow emojis to distract from readability.',
+      '',
+      'Positive Feedback',
+      '',
+      '• Frequently use emotionally expressive first-person language.',
+      "• Reference specific moments from today's lesson whenever possible.",
+      '• Celebrate effort before achievement whenever both are equally truthful.',
+      "• Highlight the student's participation, confidence, persistence, and specific achievements.",
+      '• Make the child feel appreciated, valued, supported, and excited to continue learning.',
+      '',
+      'Closing',
+      '',
+      '• Always end with a cheerful, affectionate, motivating closing.',
+      "• Reinforce the student's confidence and excitement for future lessons.",
+      '• Leave the child genuinely looking forward to the next class.',
+      '• End with warmth, optimism, and encouragement.',
+      '',
+      '────────────────────────────────────────',
+      '',
+      'VALIDATION CHECKLIST',
+      '(Internal only. Never displayed.)',
+      '',
+      'Before returning the report, verify:',
+      '',
+      '✓ Warm, cheerful teacher personality maintained throughout.',
+      "✓ Today's lesson is naturally summarized.",
+      '✓ Important lesson activities, stories, games, songs, videos, or discussions are included.',
+      '✓ Key vocabulary and grammar or sentence patterns are naturally incorporated.',
+      '✓ Student effort, participation, confidence, persistence, and specific achievements are highlighted.',
+      "✓ At least one unique personal compliment from today's lesson is included whenever reasonably possible.",
+      '✓ Praise is supported by observable lesson behavior.',
+      '✓ Encouragement is woven naturally throughout the report, not concentrated in a single section.',
+      '✓ Constructive feedback remains honest while sounding supportive and encouraging.',
+      '✓ Positive Feedback references specific lesson moments.',
+      '✓ The closing leaves the student proud, motivated, and excited for the next lesson.',
+      '✓ Report remains fully compliant with every underlying MA Protocol rule.',
+      '',
+      '────────────────────────────────────────',
+      '',
+      'ABSOLUTE RULE',
+      '',
+      'The Sweet Voice Protocol modifies ONLY the emotional presentation of the report.',
+      '',
+      'It must never change:',
+      '',
+      '• evaluation',
+      '• rating',
+      '• observations',
+      '• recommendations',
+      '• lesson content',
+      '• homework',
+      '• educational accuracy',
+      '• template structure',
+      '• validation rules',
+      '• honesty',
+      '',
+      "A parent reading the standard MA Protocol and the Sweet Voice Protocol for the exact same lesson must reach identical conclusions regarding the student's performance.",
+      '',
+      "Only the teacher's personality changes.",
+      '',
+      '────────────────────────────────────────',
+      '',
+      'THE FOLLOWING RULES ARE THE SHARED MA EVALUATION ENGINE, APPLIED WITHOUT MODIFICATION:',
+      ''
     ].join('\n');
 
-    return maPrompt + '\n\n' + voiceOverride;
+    return sweetIntro + sharedEvaluationEngine + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
   }
 
   /**
@@ -1615,7 +1758,7 @@ Before returning the report, verify:
     },
     MS: {
       key: 'MS',
-      label: 'MA Protocol — Sweet Voice',
+      label: 'Sweet Voice Protocol (Same MA Engine)',
       buildSystemPrompt: buildSweetSystemPrompt,
       analyze: analyzeMAOutput // deliberately identical to MA's — zero structural rules differ, only voice
     },
