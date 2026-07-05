@@ -61,6 +61,23 @@ body.protocol-of{
   --toxin-wave-rgb:205,245,255;
   --toxin-label:#BFEFFF;
 }
+/* MA Protocol — Sweet Voice: same MA engine, soft pink theme so it's
+   immediately, visually distinct from standard MA at a glance. Kept
+   entirely light (no dark corner) rather than mirroring the acid/ice
+   dark-to-bright gradient shape — verified via real contrast math that
+   an all-light gradient reads better with the button's dark text than
+   forcing a dark corner just for visual parity with the other themes. */
+body.protocol-ms{
+  --toxin-rgb:255,158,192;
+  --toxin:#FF9EC0;
+  --olive:#F76C93;
+  --toxin-bright:#FFF0F5;
+  --toxin-shadow-rgb:255,120,160;
+  --toxin-shadow2-rgb:220,80,130;
+  --toxin-focus-rgb:255,200,220;
+  --toxin-wave-rgb:255,225,235;
+  --toxin-label:#FFD6E5;
+}
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
@@ -143,7 +160,7 @@ body{
   border:1px solid var(--toxin-border);
   border-radius:var(--radius);
   padding:20px;
-  box-shadow:inset 0 1px 0 rgba(180,255,80,0.05), 0 0 22px -8px var(--toxin-glow);
+  box-shadow:inset 0 1px 0 rgba(var(--toxin-rgb),0.05), 0 0 22px -8px var(--toxin-glow);
   transition:opacity 0.15s ease;
 }
 .panel + .panel{margin-top:20px;}
@@ -420,6 +437,39 @@ body.protocol-of .generate-btn.loading{
   50%{ filter:brightness(1.08) saturate(1.18); box-shadow:0 0 22px rgba(140,225,255,0.45); }
 }
 
+/* MA Sweet Voice pink variant of the button — same self-contained-literal-
+   values structure as the ice-blue variant above, its own keyframe names
+   since @keyframes can't be selector-scoped. Kept fully light (no dark
+   corner) per the contrast reasoning above. */
+body.protocol-ms .generate-btn{
+  background:linear-gradient(135deg, #F76C93 0%, #FF9EC0 55%, #FFF0F5 100%);
+  box-shadow:0 0 16px 1px rgba(255,120,160,0.4), 0 0 32px 4px rgba(220,80,130,0.22), 0 4px 18px -4px rgba(0,0,0,0.25);
+  animation-name:btnGlowPulsePink;
+}
+@keyframes btnGlowPulsePink{
+  0%, 100%{ box-shadow:0 0 16px 1px rgba(255,120,160,0.4), 0 0 32px 4px rgba(220,80,130,0.22), 0 4px 18px -4px rgba(0,0,0,0.25); }
+  50%{ box-shadow:0 0 24px 3px rgba(255,120,160,0.55), 0 0 44px 8px rgba(220,80,130,0.34), 0 4px 18px -4px rgba(0,0,0,0.3); }
+}
+body.protocol-ms .generate-btn::after{
+  background-image:radial-gradient(ellipse 60% 140% at 50% 50%, rgba(255,225,235,0.6), rgba(255,158,192,0.28) 45%, rgba(255,158,192,0) 75%);
+}
+body.protocol-ms .generate-btn:hover:not(:disabled){
+  box-shadow:0 0 26px 4px rgba(255,120,160,0.6), 0 0 48px 10px rgba(220,80,130,0.4), 0 6px 22px -4px rgba(0,0,0,0.3);
+}
+body.protocol-ms .generate-btn:focus-visible{
+  outline-color:rgba(255,200,220,0.85);
+}
+@media (prefers-reduced-motion: reduce){
+  body.protocol-ms .generate-btn{box-shadow:0 0 20px 2px rgba(255,120,160,0.45), 0 0 36px 6px rgba(220,80,130,0.28), 0 4px 18px -4px rgba(0,0,0,0.25);}
+}
+body.protocol-ms .generate-btn.loading{
+  animation-name:toxinCommandPulsePink;
+}
+@keyframes toxinCommandPulsePink{
+  0%, 100%{ filter:brightness(0.95) saturate(1.05); box-shadow:0 0 12px rgba(255,120,160,0.28); }
+  50%{ filter:brightness(1.08) saturate(1.18); box-shadow:0 0 22px rgba(255,200,220,0.45); }
+}
+
 .output-box{
   min-height:180px;
   background:var(--surface-2);
@@ -641,6 +691,7 @@ body.protocol-of .generate-btn.loading{
           <label class="field-label">Official Protocol</label>
           <div class="protocol-select" id="protocolSelect">
             <label><input type="radio" name="protocol" value="MA" checked> MA Protocol</label>
+            <label><input type="radio" name="protocol" value="MS"> MA Protocol — Sweet Voice</label>
             <label><input type="radio" name="protocol" value="OF"> OF Protocol (Trial Evaluation)</label>
           </div>
         </div>
@@ -773,7 +824,7 @@ const KidbusterCore = (function(){
   // only a small block of runtime parameters (selected rating, computed
   // Parent Note flag) is appended after it at generation time.
   // ---------------------------------------------------------------------
-  const MA_PROTOCOL_V2_5_SOURCE = `MA PROTOCOL COMMAND CHAIN V2.5
+  const MA_PROTOCOL_V2_9_SOURCE = `MA PROTOCOL COMMAND CHAIN V2.9
 
 When instructed to generate "MA", always produce the complete Master Protocol child feedback using the IMMUTABLE MA TEMPLATE exactly as defined below.
 
@@ -825,20 +876,23 @@ Formatting
 Content
 
 • Always speak directly to the student.
+• Always speak in the first person as the teacher. Never refer to yourself in the third person anywhere in the body of the letter — phrases like "Teacher Layne cannot wait to see you again" or "Teacher Layne is proud of you" are forbidden. Write "I can't wait to see you again" or "I'm so proud of you" instead. The teacher's name and title appear exactly once in the entire report: the final signature line. Nowhere else.
 • Always incorporate any additional Teacher Notes supplied by Layne. Teacher Notes always override transcript interpretation.
 • Never invent lesson content, vocabulary, grammar, pronunciation issues or achievements that were not reasonably supported by the transcript or Teacher Notes.
 • When information is uncertain, write conservatively rather than fabricating details.
 • Keep vocabulary definitions short, simple and child-friendly.
 • Keep observations based on actual student performance whenever possible.
 • Match the writing tone precisely to the selected Level Integration score.
+• Use the actual lesson theme for Today's Lesson whenever possible — not a generic label like "English Practice." Name what the lesson was actually about.
+• Positive Feedback should reference observable behavior from today's specific lesson whenever possible, not generic encouragement that could apply to any student on any day.
 
 Template Rules
 
 • Parent Note appears ONLY for ratings 1, 1.5, 2 and 2.5.
 • Pronunciation Focus appears ONLY if pronunciation was meaningfully practiced or corrected.
-• Include up to 10 vocabulary items. If fewer meaningful words were taught, include only those actually covered. Never invent vocabulary to fill empty slots.
-• Include only grammar points genuinely covered during the lesson. Do not invent grammar topics simply to complete the template.
-• Choose exactly one Today's Superpower.
+• Include up to 10 vocabulary items. If fewer meaningful words were taught, include only those actually covered — omit the unused lines completely. Never leave a blank, placeholder, or "not covered" line where a vocabulary item would have gone, and never invent vocabulary to fill empty slots. A 6-word lesson produces exactly 6 vocabulary lines, not 10 lines with 4 left empty.
+• Include only grammar points genuinely covered during the lesson. Do not invent grammar topics simply to complete the template. If no meaningful grammar instruction occurred during the lesson, omit the entire "Grammar Points We Covered" section — heading and all — rather than including it empty or with invented content. The "Grammar & Sentence Practice" example sentences are independent of this: keep them if they occurred naturally in the lesson, even when there's no formal grammar point to report alongside them.
+• Choose exactly one Today's Superpower — the student's strongest demonstrated skill during today's specific lesson, not a generic or randomly-selected positive trait.
 • Every compliment should be supported by specific observations whenever possible.
 • Mini Homework must contain exactly one mission:
 
@@ -914,8 +968,6 @@ Grammar Points We Covered:
 Today's Superpower:
 🦸 [Listening / Speaking / Reading / Pronunciation / Confidence / Teamwork / Focus / Creativity]
 
-Positive Feedback:
-
 [Detailed encouragement with specific examples from today's lesson.]
 
 Parent Note: (Only for ratings 1, 1.5, 2 and 2.5)
@@ -963,7 +1015,13 @@ Before returning the report, verify:
 ✓ Parent Note only for ratings 1–2.5.
 ✓ Exactly one Superpower selected.
 ✓ Exactly one Homework Mission selected.
+✓ Vocabulary list contains no empty or placeholder lines — unused slots are omitted, not left blank.
+✓ Grammar Points We Covered is entirely omitted (heading included) if no meaningful grammar instruction occurred — Grammar & Sentence Practice examples kept independently if they occurred naturally.
+✓ Today's Lesson names the actual lesson theme, not a generic label.
+✓ Today's Superpower is the strongest demonstrated skill this lesson, not a random positive trait.
+✓ Positive Feedback references observable behavior from today's specific lesson, not generic encouragement.
 ✓ Exactly 10 star emojis displayed.
+✓ Teacher speaks in first person throughout — name/title appears only in the final signature, nowhere else in the body.
 ✓ Report is under the 4500 working target — and under absolutely no circumstance at or over the immutable 4800 ceiling.
 ✓ No markdown formatting.
 ✓ Closing exactly matches the protocol.`;
@@ -1135,7 +1193,51 @@ Before returning the report, verify:
       '- The "approved star collection" for Total Stars Today is: ' + APPROVED_STARS_ALL.join(' ') + '. Favor ' + APPROVED_STARS_PRIMARY.join(' and ') + ' as the primary stars (most of the 10). Use ' + APPROVED_STARS_VARIETY.join(', ') + ' only occasionally, for variety — not as the majority. Use no emoji outside this list for the star count.'
     ].join('\n');
 
-    return MA_PROTOCOL_V2_5_SOURCE + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
+    return MA_PROTOCOL_V2_9_SOURCE + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
+  }
+
+  /**
+   * MA "Sweet Voice" — not a new evaluation protocol. Composed at runtime
+   * by taking whatever buildMASystemPrompt currently produces (the full
+   * immutable MA protocol, unchanged) and appending a voice-only override
+   * block on top. Deliberately NOT a separate copy of the MA protocol
+   * text: duplicating it would risk silent drift the moment MA itself is
+   * next revised. Building it FROM the live MA source means every future
+   * MA version bump automatically carries through here with zero extra
+   * maintenance — this protocol is, structurally, MA V2.9-or-whatever's-
+   * -current plus one appended paragraph about tone.
+   * @param {{rating: string}} params
+   * @returns {string}
+   */
+  function buildSweetSystemPrompt(params){
+    const maPrompt = buildMASystemPrompt(params);
+
+    const voiceOverride = [
+      '────────────────────────────────────────',
+      '',
+      'VOICE OVERRIDE: SWEET TEACHER PERSONALITY',
+      '(This section changes ONLY the writing voice. Every rule, structure, section, limit, and piece of evaluation logic defined above remains fully in force, unchanged, and unweakened. This override does not replace, relax, or reinterpret any rule above — it only changes HOW things are said, never WHAT is said or WHETHER it is said.)',
+      '',
+      "Write in the voice of an exceptionally warm, cheerful, encouraging children's teacher — think of the sweetest, most enthusiastic primary-school teacher imaginable, rather than the calm, professional, balanced voice the rest of this protocol otherwise implies.",
+      '',
+      '• Bright and bubbly. Gentle and reassuring. Full of genuine encouragement.',
+      '• Celebrate effort before results. Sound proud of every sincere attempt.',
+      '• Make the child feel excited to keep learning.',
+      '• Use playful, child-friendly wording, warm transitions, and expressive language.',
+      '• Use emojis enthusiastically but appropriately — this does not loosen the star/emoji rules already defined above (the approved star collection, exactly 10 stars, exactly one Superpower emoji, etc. all still apply exactly as specified).',
+      '• Keep every compliment grounded in observable behavior from the lesson — warmth is a delivery style, never a license to exaggerate or invent.',
+      "• Never become dishonest or exaggerate performance. The Level Integration tone for the selected rating still governs how positive or how firm the content itself is — this override changes the warmth of delivery, not the honesty of the assessment.",
+      '',
+      'Constructive feedback must never disappear or soften into vagueness — it must simply sound supportive rather than corrective. For example:',
+      '- Instead of: "You need more practice with past tense."',
+      '  Write like: "We\'re getting closer every lesson! Let\'s keep practicing the past tense together, because I know you\'ll become even more confident next time! 🌟"',
+      '- Instead of: "You struggled to answer some questions."',
+      '  Write like: "Some questions were a little tricky today, but I loved seeing you keep trying! Every brave answer helped you learn something new. 💛"',
+      '',
+      'A parent reading this report and a parent reading the calm, professional MA Protocol version of the exact same lesson must reach exactly the same conclusions about the student\'s performance — the same facts, the same observations, the same recommendations, the same score, the same homework, the same educational content. Only the emotional presentation and writing personality differ.'
+    ].join('\n');
+
+    return maPrompt + '\n\n' + voiceOverride;
   }
 
   /**
@@ -1347,8 +1449,51 @@ Before returning the report, verify:
     if(missions.length > 1) warnings.push('Multiple homework missions found — should be exactly one.');
 
     // --- exact closing ---
-    if(!new RegExp('Cheers,\\s*\\n?\\s*Teacher ' + escapedName + '\\s*🐺\\s*$', 'i').test(text.trim())){
+    const signoffRegex = new RegExp('Cheers,\\s*\\n?\\s*Teacher ' + escapedName + '\\s*🐺\\s*$', 'i');
+    const signoffMatch = text.trim().match(signoffRegex);
+    if(!signoffMatch){
       warnings.push('Closing sign-off does not exactly match "Cheers, / Teacher ' + name + ' 🐺".');
+    }
+
+    // --- no third-person self-reference outside the signature ---
+    // The teacher's name/title should appear exactly once: the final
+    // signature line. Anywhere else, it signals the model slipped into
+    // writing about the teacher in the third person ("Teacher Layne
+    // cannot wait...") instead of speaking in first person throughout,
+    // as a direct-address letter to the student requires.
+    const bodyText = signoffMatch ? text.trim().slice(0, -signoffMatch[0].length) : text.trim();
+    if(new RegExp('Teacher\\s+' + escapedName, 'i').test(bodyText)){
+      warnings.push('Teacher is referred to in the third person in the body of the letter — should speak in first person throughout, with "Teacher ' + name + '" appearing only in the final signature.');
+    }
+
+    // --- no leaked template placeholders ---
+    // If the model leaves an unused vocabulary/grammar slot as a blank or
+    // literal placeholder instead of omitting the line entirely, the raw
+    // bracketed template text itself would leak straight into the output.
+    // This is a real, checkable structural fact, not a judgment call.
+    const placeholderPatterns = [
+      /\[Word\s*\d*\]/i, /\[Emoji\]/i, /\[Short definition\]/i, /\[phonetic form\]/i,
+      /\[observation\]/i, /\[Grammar Rule\]/i, /\[Optional Grammar Rule\]/i,
+      /\[Example sentence\s*\d*\]/i, /\[Task\]/i, /\[Student Name\]/i, /\[Lesson Topic\]/i
+    ];
+    const leakedPlaceholder = placeholderPatterns.some(re => re.test(text));
+    if(leakedPlaceholder){
+      warnings.push('Unfilled template placeholder text was left in the output — unused vocabulary/grammar slots must be omitted entirely, not left blank.');
+    }
+
+    // --- Grammar Points We Covered must not be left in empty ---
+    // If no grammar was actually taught, the whole heading should be
+    // omitted — not included with nothing (or non-numbered filler) under it.
+    const grammarHeaderMatch = text.match(/Grammar Points We Covered:?\s*\n/i);
+    if(grammarHeaderMatch){
+      const afterHeader = text.slice(grammarHeaderMatch.index + grammarHeaderMatch[0].length);
+      const nextSectionMatch = afterHeader.match(/Today's Superpower/i);
+      if(nextSectionMatch){
+        const between = afterHeader.slice(0, nextSectionMatch.index).trim();
+        if(!between || !/^\d+\./.test(between)){
+          warnings.push('"Grammar Points We Covered" heading is present but appears empty — omit the entire section if no meaningful grammar instruction occurred.');
+        }
+      }
     }
 
     return warnings;
@@ -1468,6 +1613,12 @@ Before returning the report, verify:
       buildSystemPrompt: buildMASystemPrompt,
       analyze: analyzeMAOutput
     },
+    MS: {
+      key: 'MS',
+      label: 'MA Protocol — Sweet Voice',
+      buildSystemPrompt: buildSweetSystemPrompt,
+      analyze: analyzeMAOutput // deliberately identical to MA's — zero structural rules differ, only voice
+    },
     OF: {
       key: 'OF',
       label: 'OF Protocol (Trial Evaluation)',
@@ -1482,7 +1633,7 @@ Before returning the report, verify:
     OF_TIERS,
     OF_QUALITATIVE_TIER_DESC,
     MA_PARENT_NOTE_LEVELS,
-    MA_PROTOCOL_V2_5_SOURCE,
+    MA_PROTOCOL_V2_9_SOURCE,
     OF_PROTOCOL_V1_4_SOURCE,
     isHalfPoint,
     ratingColor,
@@ -1490,6 +1641,7 @@ Before returning the report, verify:
     ofTierColor,
     ofTierFillFraction,
     buildMASystemPrompt,
+    buildSweetSystemPrompt,
     buildOFSystemPrompt,
     cleanTranscript,
     buildUserMessage,
@@ -1574,6 +1726,7 @@ function buildRatingTrack(){
 
   const isOF = currentProtocolKey() === 'OF';
   document.body.classList.toggle('protocol-of', isOF);
+  document.body.classList.toggle('protocol-ms', currentProtocolKey() === 'MS');
   const values = isOF ? KidbusterCore.OF_TIERS : KidbusterCore.LEVELS;
 
   track.classList.toggle('rating-track-of', isOF);
