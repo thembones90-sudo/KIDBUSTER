@@ -439,6 +439,71 @@ body.protocol-of .generate-btn.loading{
   gap:10px;
   margin-top:14px;
 }
+.feedback-card{
+  margin-top:14px;
+  padding:12px 14px;
+  border:1px solid var(--toxin-border);
+  border-radius:8px;
+  background:rgba(var(--toxin-rgb),0.04);
+}
+.feedback-card-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.feedback-card-label{
+  font-family:var(--font-mono);
+  font-size:12px;
+  letter-spacing:0.04em;
+  color:var(--text-dim);
+}
+.feedback-stars{
+  display:flex;
+  gap:2px;
+}
+.feedback-star{
+  background:none;
+  border:none;
+  cursor:pointer;
+  font-size:20px;
+  line-height:1;
+  padding:4px;
+  color:var(--border-strong);
+  transition:color 0.12s ease, transform 0.12s ease;
+}
+.feedback-star:hover,
+.feedback-star.filled{
+  color:var(--toxin);
+}
+.feedback-star:hover{ transform:scale(1.15); }
+.feedback-comment{
+  width:100%;
+  margin-top:10px;
+  padding:8px 10px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:6px;
+  color:var(--text);
+  font-family:var(--font-body);
+  font-size:13px;
+  resize:vertical;
+  min-height:44px;
+}
+.feedback-comment:focus{
+  outline:none;
+  border-color:var(--toxin);
+  box-shadow:0 0 0 3px var(--toxin-dim);
+}
+.feedback-status{
+  font-family:var(--font-mono);
+  font-size:11px;
+  color:var(--text-faint);
+  margin-top:8px;
+  min-height:14px;
+}
+.feedback-status.sent{ color:var(--toxin); }
 .btn-secondary{
   flex:1;
   background:transparent;
@@ -592,6 +657,20 @@ body.protocol-of .generate-btn.loading{
           <button class="btn-secondary" id="copyBtn" disabled>Copy</button>
           <button class="btn-secondary" id="clearBtn">Clear</button>
           <button class="btn-secondary" id="newStudentBtn" disabled>New Student</button>
+        </div>
+        <div id="feedbackCard" class="feedback-card" style="display:none;">
+          <div class="feedback-card-row">
+            <span class="feedback-card-label">How was this report?</span>
+            <div class="feedback-stars" id="feedbackStars">
+              <button type="button" class="feedback-star" data-score="1">★</button>
+              <button type="button" class="feedback-star" data-score="2">★</button>
+              <button type="button" class="feedback-star" data-score="3">★</button>
+              <button type="button" class="feedback-star" data-score="4">★</button>
+              <button type="button" class="feedback-star" data-score="5">★</button>
+            </div>
+          </div>
+          <textarea id="feedbackComment" class="feedback-comment" placeholder="Optional: what worked, what was missing, what should improve..." maxlength="1000"></textarea>
+          <div class="feedback-status" id="feedbackStatus"></div>
         </div>
         <div id="lintResults" style="display:none;"></div>
         <button id="prevReportToggle" class="prev-toggle" style="display:none;" type="button">◂ View previous report</button>
@@ -1713,6 +1792,94 @@ async function callClaude(systemPrompt, userMessage){
   return { text: data.text, usage: data.usage || null };
 }
 
+// ---------- field-test feedback card ----------
+// Lightweight, non-blocking feedback on Kidbuster's output quality — not a
+// rating of the student or lesson (that's the existing rating track/tier).
+// Deliberately: no modal, not mandatory, submits on a single star click so
+// the common case (just tap a star, move on) stays truly one-click. If a
+// teacher types a comment first, it's included in that same submission.
+const feedbackCard = document.getElementById('feedbackCard');
+const feedbackStars = document.getElementById('feedbackStars');
+const feedbackComment = document.getElementById('feedbackComment');
+const feedbackStatus = document.getElementById('feedbackStatus');
+let feedbackContext = null; // { protocol, ratingTier } for the report currently on screen
+
+function showFeedbackCard(protocol, ratingTier){
+  feedbackContext = { protocol, ratingTier };
+  feedbackComment.value = '';
+  feedbackStatus.textContent = '';
+  feedbackStatus.className = 'feedback-status';
+  feedbackStars.querySelectorAll('.feedback-star').forEach(s => s.classList.remove('filled'));
+  feedbackCard.style.display = '';
+}
+
+function hideFeedbackCard(){
+  feedbackCard.style.display = 'none';
+  feedbackContext = null;
+}
+
+feedbackStars.querySelectorAll('.feedback-star').forEach(starBtn => {
+  starBtn.addEventListener('mouseenter', () => {
+    const score = Number(starBtn.dataset.score);
+    feedbackStars.querySelectorAll('.feedback-star').forEach(s => {
+      s.classList.toggle('filled', Number(s.dataset.score) <= score);
+    });
+  });
+
+  starBtn.addEventListener('click', async () => {
+    const score = Number(starBtn.dataset.score);
+    feedbackStars.querySelectorAll('.feedback-star').forEach(s => {
+      s.classList.toggle('filled', Number(s.dataset.score) <= score);
+    });
+    await submitFeedback(score);
+  });
+});
+
+feedbackStars.addEventListener('mouseleave', () => {
+  // re-sync visual state to whatever was actually last submitted, if anything;
+  // handled by submitFeedback's own class updates, so nothing needed here
+  // beyond letting hover states fall back to the current .filled state.
+});
+
+async function submitFeedback(score){
+  if(!feedbackContext) return;
+  feedbackStatus.textContent = 'Sending...';
+  feedbackStatus.className = 'feedback-status';
+
+  let accessKey = getStoredAccessKey();
+  if(!accessKey){
+    accessKey = promptForAccessKey();
+    if(!accessKey){
+      feedbackStatus.textContent = 'Not sent — access key required.';
+      return;
+    }
+  }
+
+  const payload = {
+    teacherName: (document.getElementById('teacherName').value.trim() || 'Layne'),
+    protocol: feedbackContext.protocol,
+    ratingTier: feedbackContext.ratingTier,
+    score,
+    comment: feedbackComment.value.trim()
+  };
+
+  try{
+    const response = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-app-key': accessKey },
+      body: JSON.stringify(payload)
+    });
+    if(response.ok){
+      feedbackStatus.textContent = 'Thanks — feedback sent.';
+      feedbackStatus.className = 'feedback-status sent';
+    }else{
+      feedbackStatus.textContent = 'Could not send feedback. Your report is unaffected.';
+    }
+  }catch(e){
+    feedbackStatus.textContent = 'Could not send feedback (network). Your report is unaffected.';
+  }
+}
+
 function flashCopied(){
   copyBtn.classList.add('copied');
   copyBtn.textContent = 'Copied';
@@ -1834,6 +2001,7 @@ async function generate(){
     outputBox.textContent = text;
     copyBtn.disabled = false;
     newStudentBtn.disabled = false;
+    showFeedbackCard(form.protocol, form.rating);
     renderLint(lint);
     copyOutputToClipboard(); // instant copy — the report is ready to paste the moment it appears
     document.getElementById('krispNotes').value = ''; // clear for the next lesson's transcript
@@ -1862,6 +2030,7 @@ generateBtn.addEventListener('click', generate);
 // this student and move to the next one).
 function resetWorkspace(){
   generateClicksSinceReset = 0; // marks a new lesson boundary for regeneration tracking
+  hideFeedbackCard();
   document.getElementById('studentName').value = '';
   document.getElementById('krispNotes').value = '';
   document.getElementById('specialRemarks').value = '';

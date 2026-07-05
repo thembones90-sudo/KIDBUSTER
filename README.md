@@ -54,6 +54,20 @@ Click **Deploy**. Vercel gives you a URL like `https://kidbuster-yourname.vercel
 
 That's the entire experience for her — open a link, enter a password once, use the app exactly as you do.
 
+## Field-test feedback system
+
+After every generated report, an inline card appears (not a modal, not mandatory) letting a teacher tap 1-5 stars and optionally leave a short comment on how good *that report* was — not a rating of the student or lesson. Clicking a star submits immediately; typing a comment first includes it in that same submission.
+
+This is deliberately separate from the app's own localStorage stats (`kidbusterStats()`) — feedback needs to be visible to you centrally, not trapped in each teacher's browser, so it's sent to `/api/feedback`, which forwards it to a Google Sheet.
+
+**One-time setup**, in addition to the steps above:
+1. Follow the setup instructions at the top of `google-apps-script.js` — create a Google Sheet, paste that script into its Apps Script editor, deploy it as a Web App, and copy the resulting URL.
+2. Add `GOOGLE_SHEET_WEBHOOK_URL` to Vercel's environment variables with that URL.
+
+Every submission appends one row: timestamp, teacher name, protocol, rating tier, score, comment. If this variable isn't set, the feedback card still appears but shows "Could not send feedback" on submission — the report itself is never affected either way.
+
+Currently shows after every generation, by design, since field-test volume is low and the priority is signal over politeness. Worth throttling (e.g. every 5th generation) if it ever starts to feel like nagging — that's a one-line change whenever it's warranted, not before.
+
 ## Your workflow after every future update
 
 1. Make changes to `index.html` (or `api/generate.js`) locally, same as always.
