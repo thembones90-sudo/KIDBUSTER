@@ -904,6 +904,13 @@ body.protocol-blitz .generate-btn.loading{
           <label class="field-label" for="studentName">Student</label>
           <input type="text" id="studentName" placeholder="Kaya">
         </div>
+        <div class="field" id="studentGenderField" style="display:none;">
+          <label class="field-label">Student pronoun</label>
+          <div class="protocol-select" id="studentGenderSelect">
+            <label><input type="radio" name="studentGender" value="boy"> Boy (he/him)</label>
+            <label><input type="radio" name="studentGender" value="girl"> Girl (she/her)</label>
+          </div>
+        </div>
         <div class="field" id="ratingField" style="margin-bottom:0;">
           <label class="field-label">Performance rating</label>
           <div class="rating-track" id="ratingTrack"></div>
@@ -1276,6 +1283,7 @@ Transcript Processing
 Register and Audience
 
 • Write about the student in the third person. Never address the student directly ("you"). This report is read by adults who were not in the lesson — including the student's own parents, who care specifically about this child, and school staff who want an honest, human account, not a form filled in.
+• Use the exact pronoun specified in the "Student pronoun" line of the user message consistently throughout the report — never guess a pronoun from the student's name alone, since names are not a reliable signal of gender. If no pronoun was specified, use "they/them" rather than guessing "he" or "she".
 • Tone is professional, objective, and supportive — the voice of an experienced, caring teacher who actually taught this lesson and is describing a real student they just spent time with, not an automated system completing a template.
 • Never corporate. Never cold. Never robotic. Never generic. Avoid stock evaluation phrasing — things like "demonstrates proficiency in," "exhibits competency with," or "shows adequate mastery of" read as a form, not a person. Write the way a real teacher would actually describe what happened.
 • Every sentence should feel like it was written about this specific student. If a sentence could be copy-pasted into a different student's report without anyone noticing, it is too generic — replace it with something drawn from the actual transcript or Teacher Notes.
@@ -1717,8 +1725,24 @@ Before returning the report, verify:
     const remarks = (params.remarks || '').trim();
     const rating = params.rating || '3';
     const isBlitz = params.protocol === 'BLITZ';
+    const isOF = params.protocol === 'OF';
 
     let msg = `Student: ${name}\n`;
+    if(isOF){
+      // OF is the only protocol written entirely in the third person about
+      // the student, so it's the only one that actually needs a pronoun —
+      // supplied as a Fact here rather than guessed from the name, which
+      // is unreliable (especially for ambiguous or non-English names) and
+      // exactly the kind of guess this app avoids making elsewhere.
+      const pronounMap = {
+        boy:  'he/him/his',
+        girl: 'she/her/her'
+      };
+      const pronouns = pronounMap[params.studentGender] || null;
+      msg += pronouns
+        ? `Student pronoun: use ${pronouns} throughout — do not guess a different pronoun from the name.\n`
+        : `Student pronoun: not specified — default to "they/them" rather than guessing "he" or "she" from the name.\n`;
+    }
     msg += `Rating: ${rating}/5\n`;
     msg += isBlitz
       ? `Lesson notes (may be a full transcript or just a couple of hand-typed sentences — infer the lesson topic and details from whatever is given):\n${notes || '(no notes provided)'}\n`
@@ -1967,12 +1991,23 @@ Before returning the report, verify:
    *   of rating)
    * @returns {string[]} list of human-readable warnings, empty if all checks pass
    */
-  function analyzeOFOutput(text, lvl, teacherName){
+  function analyzeOFOutput(text, lvl, teacherName, gender){
     const name = (teacherName || 'Layne').trim();
     const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const warnings = [];
 
     warnings.push(...checkForbiddenFormatting(text));
+
+    // --- pronoun must match the specified Student pronoun, if one was given ---
+    // Only flags the WRONG gender's pronoun actually appearing — never
+    // requires a specific pronoun be present at all, since a report that
+    // leans on the student's name instead of pronouns is a style choice,
+    // not an error.
+    if(gender === 'boy' && /\b(she|her|hers)\b/i.test(text)){
+      warnings.push('Report uses "she"/"her" despite the student pronoun being specified as Boy (he/him) — check for an incorrect pronoun.');
+    }else if(gender === 'girl' && /\b(he|him|his)\b/i.test(text)){
+      warnings.push('Report uses "he"/"him"/"his" despite the student pronoun being specified as Girl (she/her) — check for an incorrect pronoun.');
+    }
 
     // --- internal qualitative tier must never leak into the output ---
     // Only the two compound, slash-joined tier names are checked here
@@ -2326,7 +2361,11 @@ VALIDATION CHECKLIST
       key: 'OF',
       label: 'OF Protocol (Trial Evaluation)',
       buildSystemPrompt: buildOFSystemPrompt,
-      analyze: analyzeOFOutput
+      // Wrapped (rather than referencing analyzeOFOutput directly) so the
+      // 5th positional arg — studentGender, meaningful only to OF — maps
+      // explicitly to analyzeOFOutput's own 4th parameter, regardless of
+      // what position 4 (lengthFormat) means for other protocols.
+      analyze: (text, lvl, teacherName, lengthFormat, studentGender) => analyzeOFOutput(text, lvl, teacherName, studentGender)
     }
   };
 
@@ -2497,6 +2536,11 @@ function buildRatingTrack(){
   document.body.classList.toggle('protocol-ms', protocolKey === 'MS');
   document.body.classList.toggle('protocol-blitz', isBlitz);
   document.getElementById('lengthFormatField').style.display = (isOF || isBlitz) ? 'none' : '';
+  // OF is the only protocol written entirely in the third person about the
+  // student (MA/Sugarcoat/Blitz all address the student directly or don't
+  // need a pronoun at all), so the pronoun toggle only matters — and only
+  // shows — for OF.
+  document.getElementById('studentGenderField').style.display = isOF ? '' : 'none';
   // The notes field works fine with a couple of hand-typed sentences —
   // it's only labeled "Krisp notes" because that's the common source for
   // MA/Sugarcoat's much more detailed vocabulary/grammar requirements.
@@ -2623,7 +2667,8 @@ function readFormState(){
     remarks: document.getElementById('specialRemarks').value,
     rating: state.rating,
     protocol: document.querySelector('input[name="protocol"]:checked').value,
-    lengthFormat: (document.querySelector('input[name="lengthFormat"]:checked') || {}).value || 'long'
+    lengthFormat: (document.querySelector('input[name="lengthFormat"]:checked') || {}).value || 'long',
+    studentGender: (document.querySelector('input[name="studentGender"]:checked') || {}).value || ''
   };
 }
 
@@ -2948,6 +2993,11 @@ async function generate(){
     outputBox.textContent = 'Select a quality rating before generating.';
     return;
   }
+  if(form.protocol === 'OF' && !form.studentGender){
+    outputBox.className = 'output-box error';
+    outputBox.textContent = 'Select the student\'s pronoun (Boy/Girl) before generating — OF is written entirely in the third person and needs to know which to use.';
+    return;
+  }
 
   const protocol = KidbusterCore.PROTOCOLS[form.protocol];
 
@@ -2987,7 +3037,7 @@ async function generate(){
     }else{
       recordGeneration(form.protocol, 0); // report still counts even if usage data wasn't returned
     }
-    const lint = protocol.analyze(text, form.rating, form.teacherName, form.lengthFormat);
+    const lint = protocol.analyze(text, form.rating, form.teacherName, form.lengthFormat, form.studentGender);
     setCurrentReport(text, lint);
     outputBox.className = 'output-box';
     outputBox.textContent = text;
@@ -3093,6 +3143,8 @@ document.getElementById('lengthFormatSelect').addEventListener('change', () => {
 });
 updateLengthFormatCaption();
 
+document.getElementById('studentGenderSelect').addEventListener('change', saveDraft);
+
 copyBtn.addEventListener('click', copyOutputToClipboard);
 
 clearBtn.addEventListener('click', resetWorkspace);
@@ -3170,6 +3222,7 @@ function collectDraft(){
     rating: state.rating,
     protocol: form.protocol,
     lengthFormat: form.lengthFormat,
+    studentGender: form.studentGender,
     teacherName: form.teacherName,
     studentName: form.studentName,
     krispNotes: form.notes,
@@ -3206,6 +3259,11 @@ function restoreDraft(){
     if(lengthRadio) lengthRadio.checked = true;
   }
   updateLengthFormatCaption();
+
+  if(draft.studentGender){
+    const genderRadio = document.querySelector('input[name="studentGender"][value="' + draft.studentGender + '"]');
+    if(genderRadio) genderRadio.checked = true;
+  }
 
   if(draft.rating){
     const btn = track.querySelector('button[data-lvl="'+draft.rating+'"]');
