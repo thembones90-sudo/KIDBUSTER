@@ -8,6 +8,37 @@
 // protocols, or validation — that logic stays entirely in KidbusterCore on
 // the frontend. This function's only job is: authenticate the request,
 // hide the key, proxy the call.
+//
+// Prompt caching: every protocol's buildXSystemPrompt() (see KidbusterCore
+// in index.html) assembles its prompt as
+//   <large, static protocol text> + '\n\n────────────────────────────────────────\n\n' + <small, per-request runtime params>
+// — the same divider MA/Sugarcoat/OF's own internal sections already use,
+// so it can appear multiple times; the LAST occurrence is always the one
+// separating the static bulk from the small per-generation tail (rating-
+// specific tone, length-tier target, etc). Splitting on that lets the
+// large, genuinely-repeated part (thousands of words, identical across
+// every generation for the same teacher+protocol) be marked cacheable,
+// while the small part that actually changes every request stays outside
+// the cache. Blitz doesn't use this divider (its variation — which of 10
+// writing models got picked — is threaded through the middle of its text,
+// not appended as a tail), so for Blitz the whole prompt is cached as one
+// block instead — still a real win whenever the same teacher gets the
+// same model again from the shuffle bag.
+const SYSTEM_PROMPT_DIVIDER = '\n\n────────────────────────────────────────\n\n';
+
+function buildCacheableSystemBlocks(systemPrompt) {
+  const splitIdx = systemPrompt.lastIndexOf(SYSTEM_PROMPT_DIVIDER);
+  if (splitIdx === -1) {
+    // No divider found (e.g. Blitz) — cache the whole thing as one block.
+    return [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }];
+  }
+  const staticPart = systemPrompt.slice(0, splitIdx);
+  const dynamicTail = systemPrompt.slice(splitIdx); // includes the divider itself
+  return [
+    { type: 'text', text: staticPart, cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: dynamicTail }
+  ];
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -54,7 +85,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1500,
-        system: systemPrompt,
+        system: buildCacheableSystemBlocks(systemPrompt),
         messages: [{ role: 'user', content: userMessage }]
       })
     });
@@ -80,5 +111,10 @@ export default async function handler(req, res) {
     return res.status(502).json({ error: 'Anthropic returned an empty response' });
   }
 
+  // data.usage now includes cache_creation_input_tokens / cache_read_input_tokens
+  // whenever caching was actually used — forwarded through as-is so the
+  // frontend's cost tracker (see kidbusterStats() in index.html) can price
+  // each token type correctly instead of treating everything as a normal
+  // input token.
   return res.status(200).json({ text, usage: data.usage || null });
 }

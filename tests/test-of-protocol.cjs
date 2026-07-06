@@ -135,6 +135,45 @@ module.exports = function run(){
     check('markdown bold -> flagged', warn.some(w => w.toLowerCase().includes('bold')));
   }
 
+  console.log('\n9) Student pronoun (Boy/Girl toggle): user message includes the correct Fact, only for OF');
+  {
+    const boyMsg = KidbusterCore.buildUserMessage({ studentName: 'Sam', notes: 'x', rating: '4', protocol: 'OF', studentGender: 'boy' });
+    check('OF + boy -> user message says "use he/him/his"', boyMsg.includes('use he/him/his'));
+
+    const girlMsg = KidbusterCore.buildUserMessage({ studentName: 'Sam', notes: 'x', rating: '4', protocol: 'OF', studentGender: 'girl' });
+    check('OF + girl -> user message says "use she/her/her"', girlMsg.includes('use she/her/her'));
+
+    const unspecifiedMsg = KidbusterCore.buildUserMessage({ studentName: 'Sam', notes: 'x', rating: '4', protocol: 'OF', studentGender: '' });
+    check('OF + unspecified -> defaults to they/them rather than guessing', unspecifiedMsg.includes('default to "they/them"'));
+
+    const maMsg = KidbusterCore.buildUserMessage({ studentName: 'Sam', notes: 'x', rating: '4', protocol: 'MA', studentGender: 'boy' });
+    check('MA (not OF) -> no "Student pronoun" line at all, even if studentGender was somehow set', !maMsg.includes('Student pronoun'));
+  }
+
+  console.log('\n10) Validator flags a pronoun mismatch, only when it actually occurs');
+  {
+    const withWrongPronounForBoy = baseReport().replace('The student showed strong listening skills', 'She showed strong listening skills');
+    const warnBoy = KidbusterCore.analyzeOFOutput(withWrongPronounForBoy, 'Medium', 'Layne', 'boy');
+    check('Boy specified but "She" used in text -> flagged', warnBoy.some(w => w.includes('despite the student pronoun being specified as Boy')));
+
+    const withWrongPronounForGirl = baseReport().replace('The student showed strong listening skills', 'He showed strong listening skills');
+    const warnGirl = KidbusterCore.analyzeOFOutput(withWrongPronounForGirl, 'Medium', 'Layne', 'girl');
+    check('Girl specified but "He" used in text -> flagged', warnGirl.some(w => w.includes('despite the student pronoun being specified as Girl')));
+
+    const consistentBoy = KidbusterCore.analyzeOFOutput(baseReport(), 'Medium', 'Layne', 'boy');
+    check('Boy specified, no opposite pronoun present -> not flagged', !consistentBoy.some(w => w.includes('pronoun being specified')));
+
+    const noGenderGiven = KidbusterCore.analyzeOFOutput(withWrongPronounForBoy, 'Medium', 'Layne', '');
+    check('No gender specified at all -> never flagged, regardless of pronouns used', !noGenderGiven.some(w => w.includes('pronoun being specified')));
+  }
+
+  console.log('\n11) PROTOCOLS.OF.analyze correctly threads studentGender through as its 5th positional arg');
+  {
+    const withWrongPronoun = baseReport().replace('The student showed strong listening skills', 'She showed strong listening skills');
+    const viaProtocol = KidbusterCore.PROTOCOLS.OF.analyze(withWrongPronoun, 'Medium', 'Layne', 'long', 'boy');
+    check('PROTOCOLS.OF.analyze(text, lvl, teacher, lengthFormat, gender) -> gender reaches the validator correctly', viaProtocol.some(w => w.includes('pronoun being specified as Boy')));
+  }
+
   return getFailures();
 };
 
