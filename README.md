@@ -75,6 +75,16 @@ Currently shows after every generation, by design, since field-test volume is lo
 3. That's it. Vercel is watching your GitHub repo — every push to the main branch automatically triggers a new deployment, live within about a minute, at the same URL.
 4. Nina doesn't do anything. She just refreshes the page next time she opens it and gets the newest version automatically. There's no separate "send Nina the update" step.
 
+## Automated tests
+
+```bash
+npm test
+```
+
+Runs a suite of automated checks (`tests/`) directly against the real logic in `index.html` — not a hand-maintained copy that could drift out of sync. It covers things like: the Short/Medium/Long length tiers hit the right character targets, the wolf-emoji sign-off only appears for Teacher Layne, Blitz's shuffle bag actually uses all 10 writing models before repeating, and the usage-stats tracker doesn't crash for any registered protocol (this last one exists because it actually broke once, when Blitz was added — see `tests/README.md`).
+
+If you add a new protocol or a meaningfully new rule to an existing one, add a test for it in `tests/` — `tests/README.md` explains the pattern and why it's built this way (spoiler: it extracts `KidbusterCore` straight out of this very file at test time, so it's testing what's actually here, not a snapshot).
+
 ## Local testing before deploying (optional)
 
 If you want to test changes before pushing, install the Vercel CLI:
