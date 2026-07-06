@@ -1727,6 +1727,33 @@ Before returning the report, verify:
             warnings.push('Short reports must omit Pronunciation Focus entirely, per the length-tier content rule — found present with content.');
           }
         }
+
+        // --- Key Vocabulary must drop the per-word "| Pronunciation: x" segment ---
+        // Bounded between the Key Vocabulary header and whichever section
+        // comes next (Pronunciation Focus if present despite the rule
+        // above, otherwise Grammar & Sentence Practice), so this doesn't
+        // accidentally scan unrelated later sections.
+        const vocabHeaderMatch = text.match(/Key Vocabulary[^\n]*\n/i);
+        if(vocabHeaderMatch){
+          const afterVocab = text.slice(vocabHeaderMatch.index + vocabHeaderMatch[0].length);
+          const vocabEndMatch = afterVocab.match(/Pronunciation Focus|Grammar (?:&|and) Sentence Practice/i);
+          const vocabBlock = vocabEndMatch ? afterVocab.slice(0, vocabEndMatch.index) : afterVocab;
+          if(/\|\s*Pronunciation:/i.test(vocabBlock)){
+            warnings.push('Short reports must drop the "| Pronunciation: ..." segment from every Key Vocabulary line, per the length-tier content rule — found present.');
+          }
+        }
+
+        // --- Grammar & Sentence Practice must be trimmed to 2 examples, not 3 ---
+        const practiceHeaderMatch = text.match(/Grammar (?:&|and) Sentence Practice:?\s*\n/i);
+        if(practiceHeaderMatch){
+          const afterPractice = text.slice(practiceHeaderMatch.index + practiceHeaderMatch[0].length);
+          const pointsMatch = afterPractice.match(/Grammar Points We Covered/i);
+          const practiceBlock = pointsMatch ? afterPractice.slice(0, pointsMatch.index) : afterPractice;
+          const exampleCount = (practiceBlock.match(/^["“][^\n]*["”]\s*$/gm) || []).length;
+          if(exampleCount > 2){
+            warnings.push('Report includes ' + exampleCount + ' Grammar & Sentence Practice examples — the length-tier content rule caps Short reports at 2.');
+          }
+        }
       }
 
       const grammarHeaderMatch2 = text.match(/Grammar Points We Covered:?\s*\n/i);
@@ -1739,7 +1766,7 @@ Before returning the report, verify:
         // count is format-agnostic across both).
         const pointerCount = (between2.match(/👉/g) || []).length;
         const pointCount = Math.round(pointerCount / 2);
-        const maxAllowed = tier.key === 'short' ? 2 : 3;
+        const maxAllowed = tier.key === 'short' ? 1 : 3;
         if(pointCount > maxAllowed){
           warnings.push('Report includes ' + pointCount + ' grammar points — the length-tier content rule caps ' + tier.label + ' reports at ' + maxAllowed + '.');
         }
@@ -1890,7 +1917,7 @@ Before returning the report, verify:
   const LENGTH_TIERS = {
     short: {
       key:'short', label:'Short', softTarget:2200, hardCeiling:2400,
-      trimRule: 'For the SHORT format, the following reductions are mandatory, not optional — they exist specifically to make this budget achievable, and they apply only to Short, never to Medium or Long. Omit the Pronunciation Focus section entirely, regardless of whether pronunciation was practiced during the lesson. Include at most 2 grammar points under "Grammar Points We Covered" — if more were genuinely covered, select only the 2 most important and omit the rest; if none apply, omit the entire section as usual. Keep every vocabulary Note to 4 words or fewer.'
+      trimRule: 'For the SHORT format, the following reductions are mandatory, not optional — they exist specifically to make this budget achievable, and they apply only to Short, never to Medium or Long. (1) Omit the Pronunciation Focus section entirely — no heading, no content — regardless of whether pronunciation was meaningfully practiced or corrected during the lesson; this is not a judgment call. (2) In Key Vocabulary, omit the "| Pronunciation: [phonetic form]" segment from every line — each line is only [Word] [Emoji] – [Short definition] | Note: [observation]. (3) Include at most 1 grammar point under "Grammar Points We Covered" — if more were genuinely covered, select only the single most important one and omit the rest; if none apply, omit the entire section as usual. (4) Include only 2 example sentences in "Grammar & Sentence Practice", not 3. (5) Keep every vocabulary Note to 4 words or fewer.'
     },
     medium: {
       key:'medium', label:'Medium', softTarget:2800, hardCeiling:3000,
