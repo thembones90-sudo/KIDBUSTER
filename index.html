@@ -187,6 +187,7 @@ body{
   background:var(--toxin);
   box-shadow:0 0 6px var(--toxin-glow);
   display:inline-block;
+  transition:background-color 0.45s ease, box-shadow 0.45s ease;
 }
 
 .grid{
@@ -204,7 +205,7 @@ body{
   border-radius:var(--radius);
   padding:20px;
   box-shadow:inset 0 1px 0 rgba(var(--toxin-rgb),0.05), 0 0 22px -8px var(--toxin-glow);
-  transition:opacity 0.15s ease;
+  transition:opacity 0.15s ease, border-color 0.45s ease, box-shadow 0.45s ease;
 }
 .panel + .panel{margin-top:20px;}
 .panel.disabled{opacity:0.45; pointer-events:none;}
@@ -217,6 +218,7 @@ label.field-label{
   text-transform:uppercase;
   color:var(--toxin-label);
   text-shadow:0 0 6px rgba(var(--toxin-rgb),0.25);
+  transition:color 0.45s ease, text-shadow 0.45s ease;
   margin-bottom:8px;
 }
 .field{margin-bottom:20px;}
@@ -681,6 +683,7 @@ body.protocol-ms .generate-btn.loading{
   border:1px solid var(--toxin-border);
   margin-left:8px;
   vertical-align:middle;
+  transition:background-color 0.45s ease, color 0.45s ease, border-color 0.45s ease;
 }
 
 .lint-box{
@@ -737,6 +740,15 @@ body.protocol-ms .generate-btn.loading{
             <label><input type="radio" name="protocol" value="MS"> Sugarcoat</label>
             <label><input type="radio" name="protocol" value="OF"> OF Protocol (Trial Evaluation)</label>
           </div>
+        </div>
+        <div class="field" id="lengthFormatField">
+          <label class="field-label">Report length</label>
+          <div class="protocol-select" id="lengthFormatSelect">
+            <label><input type="radio" name="lengthFormat" value="short"> Short</label>
+            <label><input type="radio" name="lengthFormat" value="medium"> Medium</label>
+            <label><input type="radio" name="lengthFormat" value="long" checked> Long</label>
+          </div>
+          <div class="rating-caption" id="lengthFormatCaption"></div>
         </div>
         <div class="field">
           <label class="field-label" for="teacherName">Teacher</label>
@@ -893,9 +905,9 @@ LEVEL INTEGRATION
 
 ABSOLUTE CHARACTER LIMIT (IMMUTABLE)
 
-4800 characters is the absolute, hard ceiling for the complete report — every section, every star, the sign-off, all of it, counted together. This is not a stylistic target. It is not negotiable based on rating, lesson richness, vocabulary count, or Teacher Notes length. The report must never reach or exceed 4800 characters, under any circumstance, for any reason, ever.
+__HARD_CEILING__ characters is the absolute, hard ceiling for the complete report — every section, every star, the sign-off, all of it, counted together. This is not a stylistic target. It is not negotiable based on rating, lesson richness, vocabulary count, or Teacher Notes length. The report must never reach or exceed __HARD_CEILING__ characters, under any circumstance, for any reason, ever.
 
-The working target is 4500 characters, which exists specifically to leave real safety margin below the absolute 4800 ceiling. Write toward 4500. If the lesson content is rich enough that a full report would otherwise run long, shorten the Positive Feedback paragraph and trim vocabulary notes to their most essential detail first — never shorten by cutting required sections, reducing the star count, or dropping the sign-off. But 4500 is the target to aim for; 4800 is the line that may never be crossed.
+The working target is __SOFT_TARGET__ characters, which exists specifically to leave real safety margin below the absolute __HARD_CEILING__ ceiling. Write toward __SOFT_TARGET__. If the lesson content is rich enough that a full report would otherwise run long, shorten the Positive Feedback paragraph and trim vocabulary notes to their most essential detail first — never shorten by cutting required sections, reducing the star count, or dropping the sign-off. But __SOFT_TARGET__ is the target to aim for; __HARD_CEILING__ is the line that may never be crossed.
 
 ────────────────────────────────────────
 
@@ -914,7 +926,7 @@ Formatting
 • Never use decorative symbols such as ⿡ ⿢ ⿣ ⿤ ⿥.
 • Use only normal text and appropriate emojis.
 • Preserve the exact section order of the template.
-• Respect the Absolute Character Limit defined above — never exceed 4800 characters, target 4500.
+• Respect the Absolute Character Limit defined above — never exceed __HARD_CEILING__ characters, target __SOFT_TARGET__.
 
 Content
 
@@ -1065,7 +1077,7 @@ Before returning the report, verify:
 ✓ Positive Feedback references observable behavior from today's specific lesson, not generic encouragement.
 ✓ Exactly 10 star emojis displayed.
 ✓ Teacher speaks in first person throughout — name/title appears only in the final signature, nowhere else in the body.
-✓ Report is under the 4500 working target — and under absolutely no circumstance at or over the immutable 4800 ceiling.
+✓ Report is under the __SOFT_TARGET__ working target — and under absolutely no circumstance at or over the immutable __HARD_CEILING__ ceiling.
 ✓ No markdown formatting.
 ✓ Closing exactly matches the protocol.`;
 
@@ -1244,7 +1256,8 @@ Before returning the report, verify:
 
   function buildMASystemPrompt(params){
     const runtimeParams = buildMARuntimeParams(params);
-    return MA_PROTOCOL_V2_9_SOURCE + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
+    const combined = MA_PROTOCOL_V2_9_SOURCE + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
+    return applyLengthTier(combined, params && params.lengthFormat);
   }
 
   /**
@@ -1423,7 +1436,7 @@ Before returning the report, verify:
       ''
     ].join('\n');
 
-    return sweetProtocol + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
+    return applyLengthTier(sweetProtocol + '\n\n────────────────────────────────────────\n\n' + runtimeParams, params && params.lengthFormat);
   }
 
   /**
@@ -1584,24 +1597,26 @@ Before returning the report, verify:
     return warnings;
   }
 
-  function analyzeMAOutput(text, lvl, teacherName, signoffPhrase, signoffEmoji){
+  function analyzeMAOutput(text, lvl, teacherName, signoffPhrase, signoffEmoji, lengthTier){
     const name = (teacherName || 'Layne').trim();
     const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const phrase = signoffPhrase || 'Cheers,';
     const emoji = signoffEmoji || '🐺';
     const escapedPhrase = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const warnings = [];
+    const tier = lengthTier || LENGTH_TIERS.long;
 
     // --- length: two tiers, matching the protocol's own two-tier rule ---
-    // 4500 is the working target — a normal, expected nudge when a report
-    // runs long. 4800 is the absolute, immutable ceiling; a report reaching
-    // or exceeding it is a critical failure, not a style note — it is not
-    // a report that can be sent, full stop.
+    // The soft target is a normal, expected nudge when a report runs long.
+    // The hard ceiling is absolute and immutable for whichever length
+    // format (short/medium/long) was selected; a report reaching or
+    // exceeding it is a critical failure, not a style note — it is not a
+    // report that can be sent, full stop.
     const charCount = text.trim().length;
-    if(charCount >= 4800){
-      warnings.push('CRITICAL: Report is ' + charCount + ' characters — at or over the absolute, immutable 4800-character limit. This cannot be sent as-is.');
-    }else if(charCount > 4500){
-      warnings.push('Report is ' + charCount + ' characters — over the 4500 working target. Trim before sending to stay safely under the 4800 absolute limit.');
+    if(charCount >= tier.hardCeiling){
+      warnings.push('CRITICAL: Report is ' + charCount + ' characters — at or over the absolute, immutable ' + tier.hardCeiling + '-character limit. This cannot be sent as-is.');
+    }else if(charCount > tier.softTarget){
+      warnings.push('Report is ' + charCount + ' characters — over the ' + tier.softTarget + ' working target. Trim before sending to stay safely under the ' + tier.hardCeiling + ' absolute limit.');
     }
 
     // --- exact star count (uses the same approved list sent to the model) ---
@@ -1804,7 +1819,8 @@ Before returning the report, verify:
       key: 'MA',
       label: 'Classic',
       buildSystemPrompt: buildMASystemPrompt,
-      analyze: analyzeMAOutput
+      analyze: (text, lvl, teacherName, lengthFormat) =>
+        analyzeMAOutput(text, lvl, teacherName, undefined, undefined, LENGTH_TIERS[lengthFormat] || LENGTH_TIERS.long)
     },
     MS: {
       key: 'MS',
@@ -1812,7 +1828,8 @@ Before returning the report, verify:
       buildSystemPrompt: buildSweetSystemPrompt,
       // Every check is the exact same shared function as MA's — only the
       // expected sign-off phrase/emoji differ, passed as extra arguments.
-      analyze: (text, lvl, teacherName) => analyzeMAOutput(text, lvl, teacherName, 'Love,', '💖')
+      analyze: (text, lvl, teacherName, lengthFormat) =>
+        analyzeMAOutput(text, lvl, teacherName, 'Love,', '💖', LENGTH_TIERS[lengthFormat] || LENGTH_TIERS.long)
     },
     OF: {
       key: 'OF',
@@ -1822,6 +1839,30 @@ Before returning the report, verify:
     }
   };
 
+  // Three selectable report-length formats for MA (Classic) and Sweet
+  // Voice (Sugarcoat) only — OF has its own separate per-section
+  // character-limit system and isn't affected by this at all. "Long" is
+  // the original, unchanged MA behavior (4500 soft / 4800 hard), kept as
+  // the default so nothing changes for existing use unless a teacher
+  // deliberately picks Short or Medium.
+  const LENGTH_TIERS = {
+    short:  { key:'short',  label:'Short',  softTarget:2200, hardCeiling:2400 },
+    medium: { key:'medium', label:'Medium', softTarget:2800, hardCeiling:3000 },
+    long:   { key:'long',   label:'Long',   softTarget:4500, hardCeiling:4800 }
+  };
+
+  // Substitutes the __SOFT_TARGET__ / __HARD_CEILING__ tokens embedded in
+  // MA_PROTOCOL_V2_9_SOURCE's character-limit language with the numbers for
+  // whichever tier was selected. Falls back to 'long' for any unknown or
+  // missing key, so old drafts / callers that never pass a lengthFormat at
+  // all keep behaving exactly as before this feature existed.
+  function applyLengthTier(promptText, lengthFormatKey){
+    const tier = LENGTH_TIERS[lengthFormatKey] || LENGTH_TIERS.long;
+    return promptText
+      .split('__SOFT_TARGET__').join(String(tier.softTarget))
+      .split('__HARD_CEILING__').join(String(tier.hardCeiling));
+  }
+
   return {
     LEVELS,
     LEVEL_TONE_DESC,
@@ -1830,6 +1871,7 @@ Before returning the report, verify:
     MA_PARENT_NOTE_LEVELS,
     MA_PROTOCOL_V2_9_SOURCE,
     OF_PROTOCOL_V1_4_SOURCE,
+    LENGTH_TIERS,
     isHalfPoint,
     ratingColor,
     ratingFillFraction,
@@ -1863,11 +1905,24 @@ const track = document.getElementById('ratingTrack');
 const caption = document.getElementById('ratingCaption');
 const kbLogo = document.getElementById('kbLogo');
 const LOGO_DEFAULT_SRC = kbLogo.src; // the original green lockup, captured before any swap
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function updateLogo(){
   const key = currentProtocolKey();
-  if(key === 'MS'){ kbLogo.src = kbLogo.dataset.logoMs; }
-  else if(key === 'OF'){ kbLogo.src = kbLogo.dataset.logoOf; }
-  else { kbLogo.src = LOGO_DEFAULT_SRC; }
+  const nextSrc = key === 'MS' ? kbLogo.dataset.logoMs
+                : key === 'OF' ? kbLogo.dataset.logoOf
+                : LOGO_DEFAULT_SRC;
+  if(nextSrc === kbLogo.src) return; // no actual change — skip the flourish
+  kbLogo.src = nextSrc;
+  if(prefersReducedMotion || typeof kbLogo.animate !== 'function') return;
+  // Soft "iris" bloom: logo dissolves in from a bright, slightly-scaled glow
+  // back to normal, echoing the coloration swap rather than a hard cut.
+  kbLogo.animate(
+    [
+      { opacity:0.15, filter:'brightness(2.4) saturate(1.6) blur(2px)', transform:'scale(0.96)' },
+      { opacity:1,    filter:'brightness(1) saturate(1) blur(0px)',     transform:'scale(1)' }
+    ],
+    { duration:480, easing:'ease-out' }
+  );
 }
 
 // Short verdict word shown above the full tone description — cosmetic
@@ -1930,6 +1985,7 @@ function buildRatingTrack(){
   const isOF = currentProtocolKey() === 'OF';
   document.body.classList.toggle('protocol-of', isOF);
   document.body.classList.toggle('protocol-ms', currentProtocolKey() === 'MS');
+  document.getElementById('lengthFormatField').style.display = isOF ? 'none' : '';
   updateLogo();
   const values = isOF ? KidbusterCore.OF_TIERS : KidbusterCore.LEVELS;
 
@@ -2037,7 +2093,8 @@ function readFormState(){
     notes: document.getElementById('krispNotes').value,
     remarks: document.getElementById('specialRemarks').value,
     rating: state.rating,
-    protocol: document.querySelector('input[name="protocol"]:checked').value
+    protocol: document.querySelector('input[name="protocol"]:checked').value,
+    lengthFormat: (document.querySelector('input[name="lengthFormat"]:checked') || {}).value || 'long'
   };
 }
 
@@ -2367,7 +2424,7 @@ async function generate(){
   console.log('[Kidbuster] transcript cleaning — raw:', form.notes.length, 'chars → cleaned:', cleanedNotes.length, 'chars');
 
   const systemPrompt = KidbusterCore.applyTeacherIdentity(
-    protocol.buildSystemPrompt({ rating: form.rating }),
+    protocol.buildSystemPrompt({ rating: form.rating, lengthFormat: form.lengthFormat }),
     form.teacherName
   );
   const userMessage = KidbusterCore.buildUserMessage({ ...form, notes: cleanedNotes });
@@ -2399,7 +2456,7 @@ async function generate(){
     }else{
       recordGeneration(form.protocol, 0); // report still counts even if usage data wasn't returned
     }
-    const lint = protocol.analyze(text, form.rating, form.teacherName);
+    const lint = protocol.analyze(text, form.rating, form.teacherName, form.lengthFormat);
     setCurrentReport(text, lint);
     outputBox.className = 'output-box';
     outputBox.textContent = text;
@@ -2483,6 +2540,18 @@ document.getElementById('protocolSelect').addEventListener('change', (e) => {
   buildRatingTrack();
 });
 
+function updateLengthFormatCaption(){
+  const key = (document.querySelector('input[name="lengthFormat"]:checked') || {}).value || 'long';
+  const tier = KidbusterCore.LENGTH_TIERS[key] || KidbusterCore.LENGTH_TIERS.long;
+  document.getElementById('lengthFormatCaption').textContent =
+    'Target ~' + tier.softTarget.toLocaleString() + ' characters (hard ceiling ' + tier.hardCeiling.toLocaleString() + ').';
+}
+document.getElementById('lengthFormatSelect').addEventListener('change', () => {
+  updateLengthFormatCaption();
+  saveDraft();
+});
+updateLengthFormatCaption();
+
 copyBtn.addEventListener('click', copyOutputToClipboard);
 
 clearBtn.addEventListener('click', resetWorkspace);
@@ -2555,6 +2624,7 @@ function collectDraft(){
   return {
     rating: state.rating,
     protocol: form.protocol,
+    lengthFormat: form.lengthFormat,
     teacherName: form.teacherName,
     studentName: form.studentName,
     krispNotes: form.notes,
@@ -2585,6 +2655,12 @@ function restoreDraft(){
       buildRatingTrack(); // rebuild with the correct button set before restoring the rating below
     }
   }
+
+  if(draft.lengthFormat){
+    const lengthRadio = document.querySelector('input[name="lengthFormat"][value="' + draft.lengthFormat + '"]');
+    if(lengthRadio) lengthRadio.checked = true;
+  }
+  updateLengthFormatCaption();
 
   if(draft.rating){
     const btn = track.querySelector('button[data-lvl="'+draft.rating+'"]');
