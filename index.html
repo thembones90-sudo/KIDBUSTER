@@ -268,6 +268,15 @@ label.field-label{
   gap:6px;
   cursor:pointer;
 }
+/* OF's label is much longer than the other three ("OF Protocol (Trial
+   Evaluation)" vs one word each) — forcing it to occupy the full row
+   width pushes it onto its own line in the wrapping flex layout,
+   regardless of exactly how much room the other three (plus their info
+   icons) take up first. Targeted by :has() rather than nth-child so this
+   stays correct even if the options are ever reordered. */
+.protocol-select label:has(input[value="OF"]){
+  flex-basis:100%;
+}
 .protocol-select input{accent-color:var(--toxin);}
 
 .info-icon{
@@ -377,6 +386,16 @@ textarea::placeholder, input::placeholder{color:var(--text-faint);}
   font-family:var(--font-mono);
   font-size:14px;
   font-weight:700;
+}
+/* OF's 5 tier labels ("Low/Medium", "Medium/High") are much longer than
+   MA/Sugarcoat's plain numbers, in the same button width — without this,
+   the longer two get clipped by .rating-btn's overflow:hidden instead of
+   actually fitting. */
+.rating-track-of .btn-label{
+  font-size:11px;
+  letter-spacing:-0.01em;
+  padding:0 2px;
+  white-space:nowrap;
 }
 .rating-btn .btn-fill{
   position:absolute;
