@@ -270,6 +270,69 @@ label.field-label{
 }
 .protocol-select input{accent-color:var(--toxin);}
 
+.info-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:16px;
+  height:16px;
+  margin-left:6px;
+  border-radius:50%;
+  border:1px solid var(--toxin-border);
+  background:var(--toxin-dim);
+  font-size:11px;
+  font-weight:700;
+  line-height:1;
+  color:var(--toxin);
+  cursor:help;
+  position:relative;
+  flex-shrink:0;
+  box-shadow:0 0 6px var(--toxin-glow);
+  animation:infoIconPulse 2.4s ease-in-out infinite;
+}
+@keyframes infoIconPulse{
+  0%, 100%{ box-shadow:0 0 5px var(--toxin-glow); }
+  50%{ box-shadow:0 0 11px 2px var(--toxin-glow); }
+}
+.info-icon:hover, .info-icon:focus-visible{
+  color:var(--bg);
+  background:var(--toxin);
+  outline:none;
+  box-shadow:0 0 14px 3px var(--toxin-glow);
+}
+.info-icon::after{
+  content:attr(data-tooltip);
+  position:absolute;
+  bottom:calc(100% + 8px);
+  left:0;
+  width:max-content;
+  max-width:220px;
+  background:var(--surface-2);
+  border:1px solid var(--toxin-border);
+  color:var(--text);
+  font-size:12px;
+  font-family:var(--font-body);
+  font-weight:400;
+  line-height:1.4;
+  padding:8px 10px;
+  border-radius:8px;
+  box-shadow:0 8px 24px -6px rgba(0,0,0,0.5), 0 0 16px -6px var(--toxin-glow);
+  opacity:0;
+  transform:translateY(4px);
+  pointer-events:none;
+  transition:opacity 0.15s ease, transform 0.15s ease;
+  z-index:50;
+  text-align:left;
+  white-space:normal;
+}
+.info-icon:hover::after, .info-icon:focus-visible::after{
+  opacity:1;
+  transform:translateY(0);
+}
+@media (prefers-reduced-motion: reduce){
+  .info-icon::after{transition:none;}
+}
+
 input[type=text], textarea, select{
   width:100%;
   background:var(--surface-2);
@@ -799,10 +862,10 @@ body.protocol-blitz .generate-btn.loading{
         <div class="field">
           <label class="field-label">Official Protocol</label>
           <div class="protocol-select" id="protocolSelect">
-            <label><input type="radio" name="protocol" value="MA" checked> Classic</label>
-            <label><input type="radio" name="protocol" value="MS"> Sugarcoat</label>
-            <label><input type="radio" name="protocol" value="BLITZ"> Blitz</label>
-            <label><input type="radio" name="protocol" value="OF"> OF Protocol (Trial Evaluation)</label>
+            <label><input type="radio" name="protocol" value="MA" checked> Classic<span class="info-icon" tabindex="0" data-tooltip="Full detailed report — vocabulary, grammar, homework. The standard format.">?</span></label>
+            <label><input type="radio" name="protocol" value="MS"> Sugarcoat<span class="info-icon" tabindex="0" data-tooltip="Same report as Classic, written in a warmer, parent-friendly voice.">?</span></label>
+            <label><input type="radio" name="protocol" value="BLITZ"> Blitz<span class="info-icon" tabindex="0" data-tooltip="Short, neutral comment for quick platform feedback. No rating-based tone shifts.">?</span></label>
+            <label><input type="radio" name="protocol" value="OF"> OF Protocol (Trial Evaluation)<span class="info-icon" tabindex="0" data-tooltip="3-section narrative for trial-lesson evaluations — not a regular lesson report.">?</span></label>
           </div>
         </div>
         <div class="field" id="lengthFormatField">
@@ -833,7 +896,7 @@ body.protocol-blitz .generate-btn.loading{
     <div>
       <div class="panel">
         <div class="field">
-          <label class="field-label" for="krispNotes">Krisp notes</label>
+          <label class="field-label" id="krispNotesLabel" for="krispNotes">Krisp notes</label>
           <textarea id="krispNotes" rows="6" placeholder="Paste the raw lesson summary or transcript here..."></textarea>
           <div class="field-counter" id="krispCounter">0 words · 0 characters</div>
         </div>
@@ -1000,7 +1063,7 @@ Content
 
 • Always speak directly to the student.
 • Always speak in the first person as the teacher. Never refer to yourself in the third person anywhere in the body of the letter — phrases like "Teacher Layne cannot wait to see you again" or "Teacher Layne is proud of you" are forbidden. Write "I can't wait to see you again" or "I'm so proud of you" instead. The teacher's name and title appear exactly once in the entire report: the final signature line. Nowhere else.
-• Always incorporate any additional Teacher Notes supplied by Layne. Teacher Notes always override transcript interpretation.
+• Always incorporate any additional Teacher Notes supplied by Layne — treat them as high-priority factual input, not optional color. Teacher Notes always override transcript interpretation when the two conflict. If Teacher Notes describe a behavioral concern, disciplinary issue, or something notable that happened during the lesson (for example, the student misbehaving, refusing to participate, or acting out), this must be clearly and specifically reflected in the report — most often within the Parent Note section when one is required (ratings 1, 1.5, 2, and 2.5) — never vaguely alluded to, softened into meaninglessness, or left out entirely. If no Parent Note applies at this rating, still incorporate it honestly within the relevant part of the report rather than dropping it.
 • Never invent lesson content, vocabulary, grammar, pronunciation issues or achievements that were not reasonably supported by the transcript or Teacher Notes.
 • When information is uncertain, write conservatively rather than fabricating details.
 • Keep vocabulary definitions short, simple and child-friendly.
@@ -1132,7 +1195,7 @@ Before returning the report, verify:
 
 ✓ Correct rating tone applied.
 ✓ Template order preserved.
-✓ Teacher Notes incorporated.
+✓ Teacher Notes incorporated — including any behavioral or disciplinary concern, clearly reflected (in the Parent Note when one is required).
 ✓ Transcript cleaned.
 ✓ No invented lesson content.
 ✓ Parent Note only for ratings 1–2.5.
@@ -1210,7 +1273,7 @@ Formatting
 
 Content
 
-• Always incorporate any additional Teacher Notes supplied by Layne. Teacher Notes always override transcript interpretation.
+• Always incorporate any additional Teacher Notes supplied by Layne — treat them as high-priority factual input, not optional color. Teacher Notes always override transcript interpretation when the two conflict. If Teacher Notes describe a behavioral concern or something notable that happened during the trial lesson (for example, the student misbehaving, refusing to participate, or acting out), this must be clearly and specifically reflected — most often within Areas for Improvement — never vaguely alluded to, softened into meaninglessness, or left out entirely.
 • Never invent lesson content, abilities, weaknesses, or achievements that were not reasonably supported by the transcript or Teacher Notes.
 • If something could not be assessed during the trial lesson, simply omit it rather than inventing content to fill space. Omission is always correct over fabrication.
 • Match the writing tone precisely to the selected qualitative guidance tier.
@@ -1244,7 +1307,7 @@ Before returning the report, verify:
 ✓ Correct qualitative tier tone applied.
 ✓ Exactly three sections present, in order: Strengths, Areas for Improvement, Learning Suggestions.
 ✓ Written in the third person throughout — never addressed to the student.
-✓ Teacher Notes incorporated.
+✓ Teacher Notes incorporated — including any behavioral or disciplinary concern, clearly reflected (most often within Areas for Improvement).
 ✓ Transcript cleaned.
 ✓ No invented content — anything unassessable was omitted, not fabricated.
 ✓ No level, CEFR label, qualitative tier name, or platform field restated anywhere in the text.
@@ -1391,7 +1454,7 @@ Before returning the report, verify:
       '• Never use decorative symbols such as ⿡ ⿢ ⿣ ⿤ ⿥.',
       '• Use only normal text and emojis.',
       '• Always speak directly to the student.',
-      '• Always use any extra information provided by Layne as a crucial part of the feedback.',
+      '• Always use any extra information provided by Layne as a crucial, high-priority part of the feedback — never optional color, and it always overrides transcript interpretation when the two conflict. If it describes a behavioral concern or something notable that happened during the lesson (for example, the student misbehaving, refusing to participate, or acting out), reflect this clearly and specifically — most often within the Parent Note section when one is required (ratings 1, 1.5, 2, and 2.5) — in the same warm-but-honest voice as the rest of the report, never vaguely alluded to or left out entirely.',
       '• Vocabulary definitions must remain short and child-friendly.',
       "• Notes should be based on the student's actual performance whenever possible.",
       '• Keep the tone appropriate to the selected Level Integration score.',
@@ -1634,11 +1697,26 @@ Before returning the report, verify:
     const notes = (params.notes || '').trim();
     const remarks = (params.remarks || '').trim();
     const rating = params.rating || '3';
+    const isBlitz = params.protocol === 'BLITZ';
 
     let msg = `Student: ${name}\n`;
     msg += `Rating: ${rating}/5\n`;
-    msg += `Krisp notes (infer the lesson topic from this transcript):\n${notes || '(no notes provided)'}\n`;
-    if(remarks) msg += `Special remarks to incorporate:\n${remarks}\n`;
+    msg += isBlitz
+      ? `Lesson notes (may be a full transcript or just a couple of hand-typed sentences — infer the lesson topic and details from whatever is given):\n${notes || '(no notes provided)'}\n`
+      : `Krisp notes (infer the lesson topic from this transcript):\n${notes || '(no notes provided)'}\n`;
+    if(remarks){
+      // MA/Sugarcoat/OF's own prompt text calls this input "Teacher Notes"
+      // (an established, deeply-embedded term across all three); the UI
+      // field is labeled "Special remarks". Bridging the two names
+      // explicitly here removes any ambiguity about whether they're the
+      // same thing — which matters because the instructions tell the
+      // model this input is high-priority and always overrides transcript
+      // interpretation. Blitz's own prompt already uses "Special remarks"
+      // verbatim, so no bridge is needed there.
+      msg += isBlitz
+        ? `Special remarks to incorporate:\n${remarks}\n`
+        : `Special remarks (these are the "Teacher Notes" referenced in your instructions) to incorporate:\n${remarks}\n`;
+    }
     return msg;
   }
 
@@ -2046,6 +2124,7 @@ Length target: 70-120 words. Hard limit: 150 words — the comment must never ex
 IMMUTABLE RULES
 
 • Use only information supported by the lesson transcript. Never invent achievements, activities, or vocabulary that don't appear in the notes.
+• If "Special remarks" are provided in the user message, treat them as high-priority factual input from the teacher — not optional color — and reflect them clearly. If they describe a behavioral concern or something notable that happened during the lesson (for example, the student misbehaving, refusing to participate, or acting out), state this plainly and professionally, most often as the "one area that still needs practice," rather than softening it into vagueness or leaving it out.
 • Never exaggerate praise beyond what the transcript actually supports.
 • Never use emojis, anywhere.
 • Never use bullet points.
@@ -2077,6 +2156,7 @@ VALIDATION CHECKLIST
 ✓ No emojis anywhere.
 ✓ No bullet points or headings.
 ✓ Every claim is grounded in the transcript — nothing invented or exaggerated.
+✓ Any "Special remarks" provided (including behavioral or disciplinary concerns) are clearly reflected, not omitted or softened into vagueness.
 ✓ Mentions what was practiced, participation or effort, one strength, and (if supported by the transcript) one area needing more practice.
 ✓ Ends with a short, professional closing sentence.
 ✓ Follows the tone and structure of the single selected writing model above, not a blend of several.
@@ -2398,6 +2478,21 @@ function buildRatingTrack(){
   document.body.classList.toggle('protocol-ms', protocolKey === 'MS');
   document.body.classList.toggle('protocol-blitz', isBlitz);
   document.getElementById('lengthFormatField').style.display = (isOF || isBlitz) ? 'none' : '';
+  // The notes field works fine with a couple of hand-typed sentences —
+  // it's only labeled "Krisp notes" because that's the common source for
+  // MA/Sugarcoat's much more detailed vocabulary/grammar requirements.
+  // Blitz needs far less real material (what was practiced, effort, one
+  // strength, one area to work on), so its own label/placeholder say that
+  // plainly rather than implying a full Krisp transcript is required.
+  const notesLabel = document.getElementById('krispNotesLabel');
+  const notesTextarea = document.getElementById('krispNotes');
+  if(isBlitz){
+    notesLabel.textContent = 'Quick notes';
+    notesTextarea.placeholder = 'A sentence or two is enough for Blitz — no transcript needed. e.g. "Practiced past tense and articles. Good participation, some struggle with articles."';
+  }else{
+    notesLabel.textContent = 'Krisp notes';
+    notesTextarea.placeholder = 'Paste the raw lesson summary or transcript here...';
+  }
   updateLogo();
   // Blitz uses the same 1-6 Performance Rating scale as MA/Sugarcoat (not
   // OF's qualitative tiers) — it just doesn't use Short/Medium/Long length
@@ -2824,7 +2919,9 @@ async function generate(){
 
   if(!form.notes.trim()){
     outputBox.className = 'output-box error';
-    outputBox.textContent = 'Add the Krisp notes for this lesson before generating.';
+    outputBox.textContent = form.protocol === 'BLITZ'
+      ? 'Add a few quick notes about this lesson before generating.'
+      : 'Add the Krisp notes for this lesson before generating.';
     return;
   }
   if(!form.rating){
@@ -2948,6 +3045,16 @@ function slowScrollToTop(duration){
 newStudentBtn.addEventListener('click', () => {
   resetWorkspace();
   slowScrollToTop(1600);
+});
+
+// Info icons sit inside the protocol <label>s (so hovering/focusing them
+// is easy to reach), but that also means a click on the icon itself would
+// normally activate the label's radio too — most noticeable on touch,
+// where there's no hover to reveal the tooltip first. Stop that single
+// side effect without otherwise interfering with the label's normal
+// click-to-select behavior.
+document.getElementById('protocolSelect').addEventListener('click', (e) => {
+  if(e.target.classList.contains('info-icon')) e.preventDefault();
 });
 
 document.getElementById('protocolSelect').addEventListener('change', (e) => {
