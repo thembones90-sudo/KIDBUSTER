@@ -2986,18 +2986,20 @@ const USAGE_STATS_KEY = 'kidbuster_usage_stats_v1';
 let generateClicksSinceReset = 0;
 
 function loadUsageStats(){
-  const defaults = { MA: { reports: 0, cost: 0 }, OF: { reports: 0, cost: 0 }, MS: { reports: 0, cost: 0 }, regenerationEvents: 0 };
+  const defaults = { MA: { reports: 0, cost: 0 }, OF: { reports: 0, cost: 0 }, MS: { reports: 0, cost: 0 }, BLITZ: { reports: 0, cost: 0 }, regenerationEvents: 0 };
   try{
     const raw = localStorage.getItem(USAGE_STATS_KEY);
     if(raw){
       const parsed = JSON.parse(raw);
       // Merge rather than return parsed directly — protects against stats
-      // saved before a protocol (like MS) existed, which would otherwise
-      // be missing that key entirely and crash the next recordGeneration.
+      // saved before a protocol (like MS, or later BLITZ) existed, which
+      // would otherwise be missing that key entirely and crash the next
+      // recordGeneration.
       return {
         MA: parsed.MA || defaults.MA,
         OF: parsed.OF || defaults.OF,
         MS: parsed.MS || defaults.MS,
+        BLITZ: parsed.BLITZ || defaults.BLITZ,
         regenerationEvents: parsed.regenerationEvents || 0
       };
     }
@@ -3019,16 +3021,18 @@ function recordGeneration(protocolKey, cost){
 // Callable from the browser console (F12) at any time: kidbusterStats()
 window.kidbusterStats = function(){
   const s = loadUsageStats();
-  const totalReports = s.MA.reports + s.OF.reports + s.MS.reports;
-  const totalCost = s.MA.cost + s.OF.cost + s.MS.cost;
+  const totalReports = s.MA.reports + s.OF.reports + s.MS.reports + s.BLITZ.reports;
+  const totalCost = s.MA.cost + s.OF.cost + s.MS.cost + s.BLITZ.cost;
   console.log('=== Kidbuster cumulative usage (this browser) ===');
   console.log('MA reports:', s.MA.reports, '| MA cost: $' + s.MA.cost.toFixed(4));
   console.log('MA Sweet Voice reports:', s.MS.reports, '| MS cost: $' + s.MS.cost.toFixed(4));
   console.log('OF reports:', s.OF.reports, '| OF cost: $' + s.OF.cost.toFixed(4));
+  console.log('Blitz reports:', s.BLITZ.reports, '| Blitz cost: $' + s.BLITZ.cost.toFixed(4));
   console.log('Total reports:', totalReports, '| Total cost: $' + totalCost.toFixed(4));
   console.log('MA share:', totalReports ? (s.MA.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('MA Sweet Voice share:', totalReports ? (s.MS.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('OF share:', totalReports ? (s.OF.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
+  console.log('Blitz share:', totalReports ? (s.BLITZ.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('Regeneration events (2nd+ generate before New Student/Clear):', s.regenerationEvents);
   console.log('Avg cost/report:', totalReports ? '$'+(totalCost/totalReports).toFixed(4) : 'n/a');
   return s;
