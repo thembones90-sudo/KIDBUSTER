@@ -909,6 +909,10 @@ __HARD_CEILING__ characters is the absolute, hard ceiling for the complete repor
 
 The working target is __SOFT_TARGET__ characters, which exists specifically to leave real safety margin below the absolute __HARD_CEILING__ ceiling. Write toward __SOFT_TARGET__. If the lesson content is rich enough that a full report would otherwise run long, shorten the Positive Feedback paragraph and trim vocabulary notes to their most essential detail first — never shorten by cutting required sections, reducing the star count, or dropping the sign-off. But __SOFT_TARGET__ is the target to aim for; __HARD_CEILING__ is the line that may never be crossed.
 
+LENGTH-TIER CONTENT RULE (IMMUTABLE)
+
+__LENGTH_TRIM_RULE__
+
 ────────────────────────────────────────
 
 UNIVERSAL RULES
@@ -1704,6 +1708,44 @@ Before returning the report, verify:
       }
     }
 
+    // --- Length-tier content trim rule compliance (Short/Medium) ---
+    // The prompt makes these reductions mandatory (not just suggested) so
+    // Short and Medium are actually achievable, rather than relying on the
+    // character ceiling alone to force compression. This checks the model
+    // actually followed that instruction, using "Mini Homework" as the
+    // bounding marker since — unlike "Today's Superpower" above — it's
+    // present, unconditional, and identically named in both the MA and
+    // Sweet Voice templates.
+    if(tier.key === 'short' || tier.key === 'medium'){
+      if(tier.key === 'short'){
+        const pronHeaderMatch = text.match(/Pronunciation Focus:?\s*(?:\(optional\))?\s*\n/i);
+        if(pronHeaderMatch){
+          const afterPron = text.slice(pronHeaderMatch.index + pronHeaderMatch[0].length);
+          const nextMatch = afterPron.match(/Grammar (?:&|and) Sentence Practice/i);
+          const between = (nextMatch ? afterPron.slice(0, nextMatch.index) : afterPron).trim();
+          if(between){
+            warnings.push('Short reports must omit Pronunciation Focus entirely, per the length-tier content rule — found present with content.');
+          }
+        }
+      }
+
+      const grammarHeaderMatch2 = text.match(/Grammar Points We Covered:?\s*\n/i);
+      if(grammarHeaderMatch2){
+        const afterHeader2 = text.slice(grammarHeaderMatch2.index + grammarHeaderMatch2[0].length);
+        const homeworkMatch = afterHeader2.match(/Mini Homework/i);
+        const between2 = homeworkMatch ? afterHeader2.slice(0, homeworkMatch.index) : afterHeader2;
+        // Each grammar point contributes two "👉" example lines in both
+        // templates (MA numbers its points, Sweet Voice doesn't — this
+        // count is format-agnostic across both).
+        const pointerCount = (between2.match(/👉/g) || []).length;
+        const pointCount = Math.round(pointerCount / 2);
+        const maxAllowed = tier.key === 'short' ? 2 : 3;
+        if(pointCount > maxAllowed){
+          warnings.push('Report includes ' + pointCount + ' grammar points — the length-tier content rule caps ' + tier.label + ' reports at ' + maxAllowed + '.');
+        }
+      }
+    }
+
     return warnings;
   }
 
@@ -1846,21 +1888,32 @@ Before returning the report, verify:
   // the default so nothing changes for existing use unless a teacher
   // deliberately picks Short or Medium.
   const LENGTH_TIERS = {
-    short:  { key:'short',  label:'Short',  softTarget:2200, hardCeiling:2400 },
-    medium: { key:'medium', label:'Medium', softTarget:2800, hardCeiling:3000 },
-    long:   { key:'long',   label:'Long',   softTarget:4500, hardCeiling:4800 }
+    short: {
+      key:'short', label:'Short', softTarget:2200, hardCeiling:2400,
+      trimRule: 'For the SHORT format, the following reductions are mandatory, not optional — they exist specifically to make this budget achievable, and they apply only to Short, never to Medium or Long. Omit the Pronunciation Focus section entirely, regardless of whether pronunciation was practiced during the lesson. Include at most 2 grammar points under "Grammar Points We Covered" — if more were genuinely covered, select only the 2 most important and omit the rest; if none apply, omit the entire section as usual. Keep every vocabulary Note to 4 words or fewer.'
+    },
+    medium: {
+      key:'medium', label:'Medium', softTarget:2800, hardCeiling:3000,
+      trimRule: 'For the MEDIUM format, include at most 3 grammar points under "Grammar Points We Covered" — if more were genuinely covered, select only the 3 most important. Keep every vocabulary Note to 6 words or fewer. Pronunciation Focus may be included if it applies, but keep it to at most 2 lines.'
+    },
+    long: {
+      key:'long', label:'Long', softTarget:4500, hardCeiling:4800,
+      trimRule: 'For the LONG format, no additional content reduction applies beyond the Universal Rules and Template above — include every applicable optional section in full.'
+    }
   };
 
-  // Substitutes the __SOFT_TARGET__ / __HARD_CEILING__ tokens embedded in
-  // MA_PROTOCOL_V2_9_SOURCE's character-limit language with the numbers for
-  // whichever tier was selected. Falls back to 'long' for any unknown or
+  // Substitutes the __SOFT_TARGET__ / __HARD_CEILING__ / __LENGTH_TRIM_RULE__
+  // tokens embedded in MA_PROTOCOL_V2_9_SOURCE's character-limit language
+  // with the numbers and mandatory content-reduction rule for whichever
+  // tier was selected. Falls back to 'long' for any unknown or
   // missing key, so old drafts / callers that never pass a lengthFormat at
   // all keep behaving exactly as before this feature existed.
   function applyLengthTier(promptText, lengthFormatKey){
     const tier = LENGTH_TIERS[lengthFormatKey] || LENGTH_TIERS.long;
     return promptText
       .split('__SOFT_TARGET__').join(String(tier.softTarget))
-      .split('__HARD_CEILING__').join(String(tier.hardCeiling));
+      .split('__HARD_CEILING__').join(String(tier.hardCeiling))
+      .split('__LENGTH_TRIM_RULE__').join(tier.trimRule);
   }
 
   return {
