@@ -1634,10 +1634,9 @@ Before returning the report, verify:
     const notes = (params.notes || '').trim();
     const remarks = (params.remarks || '').trim();
     const rating = params.rating || '3';
-    const isBlitz = params.protocol === 'BLITZ';
 
     let msg = `Student: ${name}\n`;
-    if(!isBlitz) msg += `Rating: ${rating}/5\n`;
+    msg += `Rating: ${rating}/5\n`;
     msg += `Krisp notes (infer the lesson topic from this transcript):\n${notes || '(no notes provided)'}\n`;
     if(remarks) msg += `Special remarks to incorporate:\n${remarks}\n`;
     return msg;
@@ -2399,9 +2398,10 @@ function buildRatingTrack(){
   document.body.classList.toggle('protocol-ms', protocolKey === 'MS');
   document.body.classList.toggle('protocol-blitz', isBlitz);
   document.getElementById('lengthFormatField').style.display = (isOF || isBlitz) ? 'none' : '';
-  document.getElementById('ratingField').style.display = isBlitz ? 'none' : '';
   updateLogo();
-  if(isBlitz) return; // Blitz has no rating concept at all — nothing to build
+  // Blitz uses the same 1-6 Performance Rating scale as MA/Sugarcoat (not
+  // OF's qualitative tiers) — it just doesn't use Short/Medium/Long length
+  // tiers, which is why only lengthFormatField is hidden above.
   const values = isOF ? KidbusterCore.OF_TIERS : KidbusterCore.LEVELS;
 
   track.classList.toggle('rating-track-of', isOF);
@@ -2827,7 +2827,7 @@ async function generate(){
     outputBox.textContent = 'Add the Krisp notes for this lesson before generating.';
     return;
   }
-  if(!form.rating && form.protocol !== 'BLITZ'){
+  if(!form.rating){
     outputBox.className = 'output-box error';
     outputBox.textContent = 'Select a quality rating before generating.';
     return;
