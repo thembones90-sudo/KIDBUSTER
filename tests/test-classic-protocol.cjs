@@ -146,6 +146,43 @@ module.exports = function run(){
     check('correct sign-off -> not flagged', !correct.some(w => w.includes('sign-off')));
   }
 
+  console.log('\n9) Star-count fallback scoping: works even with no "Total Stars Today" header at all (Sugarcoat\'s format)');
+  {
+    // Sugarcoat deliberately no longer prints a "Total Stars Today" header
+    // (see DECISIONS.md) — the validator falls back to scoping between
+    // "Mini Homework" and the sign-off phrase instead of failing outright.
+    function headerlessReport(stars){
+      return [
+        'Hi Kaya! 💖', '',
+        "You did such wonderful work today learning about animals!", '',
+        'Key Vocabulary with Pronunciation & Notes:', '',
+        'cat 🐱 – a small pet | Pronunciation: kat | Note: knew it well', '',
+        'Grammar & Sentence Practice:', '', '"I have a cat."', '"She likes dogs."', '"We saw a bird."', '',
+        'Grammar Points We Covered:', '', '1. Rule one', '   👉 Ex 1', '   👉 Ex 2', '',
+        'You showed such wonderful effort today, especially describing the animals so clearly!', '',
+        'Mini Homework', '',
+        'Vocabulary Mission 🎯', 'Practice three animal words at home.', '',
+        'OR', '',
+        'Speaking Mission 🎯', 'Tell someone at home about an animal.', '',
+        stars, '',
+        'What a joyful lesson — see you next time!', '',
+        'Love,', 'Teacher Layne 💖'
+      ].join('\n');
+    }
+
+    const tenStars = headerlessReport('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
+    const warnTen = KidbusterCore.PROTOCOLS.MS.analyze(tenStars, '4', 'Layne');
+    check('10 stars, no header at all -> NOT flagged', !warnTen.some(w => w.toLowerCase().includes('star')));
+
+    const eightStars = headerlessReport('⭐⭐⭐⭐⭐⭐⭐⭐');
+    const warnEight = KidbusterCore.PROTOCOLS.MS.analyze(eightStars, '4', 'Layne');
+    check('8 stars, no header at all -> flagged as wrong count (fallback scoping actually works, not just skipped)', warnEight.some(w => w.includes('Star count is 8')));
+
+    const noHomeworkAtAll = headerlessReport('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐').replace('Mini Homework', 'Something Else Entirely');
+    const warnNoAnchor = KidbusterCore.PROTOCOLS.MS.analyze(noHomeworkAtAll, '4', 'Layne');
+    check('neither header nor "Mini Homework" present -> falls back to "could not locate" rather than silently passing', warnNoAnchor.some(w => w.includes('Could not locate')));
+  }
+
   return getFailures();
 };
 

@@ -1486,7 +1486,7 @@ Before returning the report, verify:
       '• Vocabulary definitions must remain short and child-friendly.',
       "• Notes should be based on the student's actual performance whenever possible.",
       '• Keep the tone appropriate to the selected Level Integration score.',
-      '• Exactly 10 star emojis must appear in "Total stars today."',
+      '• Exactly 10 star emojis must appear together, on their own line near the end of the report, with no heading before them.',
       '• The educational framework is immutable. Grammar explanations, homework formats, vocabulary structure, pronunciation section, and overall report order must remain identical to the MA Protocol.',
       '• The only difference from the MA Protocol is the emotional narration, warmth, encouragement, and storytelling style.',
       '• Write as though Layne is speaking to a beloved child with endless patience, kindness, and genuine joy.',
@@ -1559,9 +1559,7 @@ Before returning the report, verify:
       '👉 [Example sentence]',
       '👉 [Example sentence]',
       '',
-      'Positive Feedback',
-      '',
-      '(Do not output this instruction. Simply write the section.)',
+      '(Do not output this instruction. Simply write the section below, with no heading before it.)',
       "Write warm, affectionate feedback that highlights specific moments from today's lesson. Celebrate effort first, progress second, and make the child feel genuinely proud.",
       '',
       'Parent Note (Only for ratings 1, 1.5, 2 and 2.5)',
@@ -1570,19 +1568,20 @@ Before returning the report, verify:
       '',
       'Mini Homework',
       '',
-      'Choose exactly one of the following formats:',
-      '',
       'Vocabulary Mission 🎯',
       '[Task]',
+      '',
+      'OR',
       '',
       'Grammar Mission 🎯',
       '[Task]',
       '',
+      'OR',
+      '',
       'Speaking Mission 🎯',
       '[Task]',
       '',
-      'Total stars today:',
-      '',
+      '(Do not print a heading before the stars — simply place the 10 star emojis on their own line.)',
       '[Exactly 10 star emojis.]',
       '',
       "[Write a sweet, uplifting closing that leaves the child smiling and excited for the next lesson.]",
@@ -1821,17 +1820,35 @@ Before returning the report, verify:
     }
 
     // --- exact star count (uses the same approved list sent to the model) ---
-    // Counting must be scoped to the "Total Stars Today" section only.
-    // Counting across the whole report is wrong: the protocol allows any
-    // approved star emoji to double as a decorative vocabulary icon (e.g.
-    // "Soul ✨ – ..."), which would otherwise inflate the count and flag a
-    // perfectly correct report as an error.
+    // Counting must be scoped, never done across the whole report — the
+    // protocol allows any approved star emoji to double as a decorative
+    // vocabulary icon (e.g. "Soul ✨ – ..."), which would otherwise inflate
+    // the count and flag a perfectly correct report as an error.
+    //
+    // Primary scope: the "Total Stars Today" header, when the protocol
+    // prints one (MA always does). Fallback scope: between "Mini Homework"
+    // and the sign-off phrase — used when no such header is present at all
+    // (Sugarcoat deliberately doesn't print one, so its report reads as
+    // continuous prose rather than a labeled form; see DECISIONS.md). This
+    // keeps the same star-count guarantee either way without requiring any
+    // specific header text to exist in the visible output.
     const starRegex = new RegExp('[' + APPROVED_STARS_ALL.join('') + ']', 'gu');
     const starsSectionMatch = text.match(/total stars today:?\s*([\s\S]*?)(?:\n\s*\n|$)/i);
-    if(!starsSectionMatch){
+    let starsScopeText = null;
+    if(starsSectionMatch){
+      starsScopeText = starsSectionMatch[1];
+    }else{
+      const homeworkIdx = text.search(/mini homework/i);
+      if(homeworkIdx !== -1){
+        const afterHomework = text.slice(homeworkIdx);
+        const signoffRelIdx = afterHomework.search(new RegExp(escapedPhrase, 'i'));
+        starsScopeText = signoffRelIdx !== -1 ? afterHomework.slice(0, signoffRelIdx) : afterHomework;
+      }
+    }
+    if(starsScopeText === null){
       warnings.push('Could not locate the "Total Stars Today" section to verify star count.');
     }else{
-      const stars = (starsSectionMatch[1].match(starRegex) || []).length;
+      const stars = (starsScopeText.match(starRegex) || []).length;
       if(stars !== 10) warnings.push('Star count is ' + stars + ', expected exactly 10.');
     }
 
