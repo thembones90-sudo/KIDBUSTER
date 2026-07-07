@@ -778,10 +778,11 @@ body.protocol-blitz .generate-btn.loading{
   font-family:var(--font-body);
   font-size:13px;
   cursor:pointer;
+  transition:color 0.2s ease, border-color 0.2s ease;
 }
 .btn-secondary:hover{border-color:var(--toxin); color:var(--text);}
 .btn-secondary:disabled{opacity:0.4;cursor:default;}
-.btn-secondary.copied{color:var(--accent); border-color:var(--accent);}
+.btn-secondary.copied{color:var(--toxin); border-color:var(--toxin);}
 
 .prev-toggle{
   display:block;
@@ -2632,6 +2633,23 @@ function updatePrevToggleUI(){
 // Call this whenever a new report becomes "current" — pushes whatever was
 // current into the single previous-report slot, overwriting anything that
 // was there before. Never more than one slot; nothing persisted to disk.
+// Soft fade-and-rise reveal for the output box — plays whenever new
+// report text actually lands in it (a successful generation, or toggling
+// to view the previous report), rather than the text just hard-cutting
+// into place. This is deliberately the single moment every use of the app
+// hits every time, so it's worth a small flourish even though everything
+// around it (the button's glow, the info-icon pulse) already has one.
+function playOutputRevealAnimation(){
+  if(prefersReducedMotion || typeof outputBox.animate !== 'function') return;
+  outputBox.animate(
+    [
+      { opacity: 0.35, transform: 'translateY(6px)' },
+      { opacity: 1, transform: 'translateY(0)' }
+    ],
+    { duration: 320, easing: 'ease-out' }
+  );
+}
+
 function setCurrentReport(text, lintWarnings){
   if(state.currentReportText !== null){
     state.previousReport = { text: state.currentReportText, lint: state.currentReportLint };
@@ -2655,6 +2673,7 @@ prevToggleBtn.addEventListener('click', () => {
     renderLint(state.currentReportLint);
     state.viewingPrevious = false;
   }
+  playOutputRevealAnimation();
   updatePrevToggleUI();
 });
 
@@ -2917,7 +2936,17 @@ async function submitFeedback(score){
 
 function flashCopied(){
   copyBtn.classList.add('copied');
-  copyBtn.textContent = 'Copied';
+  copyBtn.textContent = '✓ Copied';
+  if(!prefersReducedMotion && typeof copyBtn.animate === 'function'){
+    copyBtn.animate(
+      [
+        { transform: 'scale(1)', boxShadow: '0 0 0 rgba(var(--toxin-rgb),0)' },
+        { transform: 'scale(1.06)', boxShadow: '0 0 14px 1px rgba(var(--toxin-rgb),0.45)' },
+        { transform: 'scale(1)', boxShadow: '0 0 0 rgba(var(--toxin-rgb),0)' }
+      ],
+      { duration: 420, easing: 'ease-out' }
+    );
+  }
   setTimeout(() => { copyBtn.classList.remove('copied'); copyBtn.textContent = 'Copy'; }, 1500);
 }
 
@@ -3065,6 +3094,7 @@ async function generate(){
     setCurrentReport(text, lint);
     outputBox.className = 'output-box';
     outputBox.textContent = text;
+    playOutputRevealAnimation();
     copyBtn.disabled = false;
     newStudentBtn.disabled = false;
     showFeedbackCard(form.protocol, form.rating);
