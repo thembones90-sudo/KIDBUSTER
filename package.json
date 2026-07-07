@@ -9,5 +9,8 @@
   },
   "scripts": {
     "test": "node tests/run-all.cjs"
+  },
+  "devDependencies": {
+    "puppeteer": "^23.0.0"
   }
 }

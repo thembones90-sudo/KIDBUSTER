@@ -101,6 +101,25 @@ body.protocol-blitz{
   --toxin-border:rgba(255,253,11,0.28);
   --toxin-glow:rgba(255,253,11,0.18);
 }
+/* Beida: orange/white, per direct request rather than a single-hue
+   gradient like the other four — --toxin-bright is genuine white (not a
+   pale tint of the hue) so the "white" half of the combination actually
+   reads as white in the button gradient and glow, not just a lighter
+   orange. */
+body.protocol-beida{
+  --toxin-rgb:255,122,20;
+  --toxin:#FF7A14;
+  --olive:#3C1F09;
+  --toxin-bright:#FFFFFF;
+  --toxin-shadow-rgb:247,121,25;
+  --toxin-shadow2-rgb:184,90,18;
+  --toxin-focus-rgb:255,190,140;
+  --toxin-wave-rgb:255,250,245;
+  --toxin-label:#FFD4B2;
+  --toxin-dim:rgba(255,122,20,0.14);
+  --toxin-border:rgba(255,122,20,0.28);
+  --toxin-glow:rgba(255,122,20,0.18);
+}
 /* Redundant, JS-independent safety net: applies the exact same theme
    values directly from which radio is checked, via :has(). If the JS
    class-toggle mechanism above ever fails to apply for any reason (a
@@ -148,6 +167,20 @@ body:has(input[name="protocol"][value="BLITZ"]:checked){
   --toxin-dim:rgba(255,253,11,0.14);
   --toxin-border:rgba(255,253,11,0.28);
   --toxin-glow:rgba(255,253,11,0.18);
+}
+body:has(input[name="protocol"][value="BEIDA"]:checked){
+  --toxin-rgb:255,122,20;
+  --toxin:#FF7A14;
+  --olive:#3C1F09;
+  --toxin-bright:#FFFFFF;
+  --toxin-shadow-rgb:247,121,25;
+  --toxin-shadow2-rgb:184,90,18;
+  --toxin-focus-rgb:255,190,140;
+  --toxin-wave-rgb:255,250,245;
+  --toxin-label:#FFD4B2;
+  --toxin-dim:rgba(255,122,20,0.14);
+  --toxin-border:rgba(255,122,20,0.28);
+  --toxin-glow:rgba(255,122,20,0.18);
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
@@ -365,6 +398,11 @@ textarea::placeholder, input::placeholder{color:var(--text-faint);}
   display:grid;
   grid-template-columns:repeat(5, 1fr);
   gap:6px;
+}
+/* Beida has only 2 rating states — 5 equal columns would leave 3 empty
+   and squeeze both real buttons into a small corner. */
+.rating-track-beida{
+  grid-template-columns:repeat(2, 1fr);
 }
 .rating-btn{
   height:44px;
@@ -660,6 +698,38 @@ body.protocol-blitz .generate-btn.loading{
   50%{ filter:brightness(1.08) saturate(1.18); box-shadow:0 0 22px rgba(255,254,173,0.45); }
 }
 
+/* Beida orange/white variant — --toxin-bright is genuine white here
+   (see the theme variables above), so the gradient's top stop is real
+   white rather than a pale tint of the hue like the other four themes. */
+body.protocol-beida .generate-btn{
+  background:linear-gradient(135deg, #3C1F09 0%, #FF7A14 55%, #FFFFFF 100%);
+  box-shadow:0 0 16px 1px rgba(247,121,25,0.4), 0 0 32px 4px rgba(184,90,18,0.22), 0 4px 18px -4px rgba(0,0,0,0.35);
+  animation-name:btnGlowPulseOrange;
+}
+@keyframes btnGlowPulseOrange{
+  0%, 100%{ box-shadow:0 0 16px 1px rgba(247,121,25,0.4), 0 0 32px 4px rgba(184,90,18,0.22), 0 4px 18px -4px rgba(0,0,0,0.35); }
+  50%{ box-shadow:0 0 24px 3px rgba(247,121,25,0.55), 0 0 44px 8px rgba(184,90,18,0.34), 0 4px 18px -4px rgba(0,0,0,0.4); }
+}
+body.protocol-beida .generate-btn::after{
+  background-image:radial-gradient(ellipse 60% 140% at 50% 50%, rgba(255,255,255,0.65), rgba(255,122,20,0.28) 45%, rgba(255,122,20,0) 75%);
+}
+body.protocol-beida .generate-btn:hover:not(:disabled){
+  box-shadow:0 0 26px 4px rgba(247,121,25,0.6), 0 0 48px 10px rgba(184,90,18,0.4), 0 6px 22px -4px rgba(0,0,0,0.4);
+}
+body.protocol-beida .generate-btn:focus-visible{
+  outline-color:rgba(255,190,140,0.85);
+}
+@media (prefers-reduced-motion: reduce){
+  body.protocol-beida .generate-btn{box-shadow:0 0 20px 2px rgba(247,121,25,0.45), 0 0 36px 6px rgba(184,90,18,0.28), 0 4px 18px -4px rgba(0,0,0,0.35);}
+}
+body.protocol-beida .generate-btn.loading{
+  animation-name:toxinCommandPulseOrange;
+}
+@keyframes toxinCommandPulseOrange{
+  0%, 100%{ filter:brightness(0.95) saturate(1.05); box-shadow:0 0 12px rgba(247,121,25,0.28); }
+  50%{ filter:brightness(1.08) saturate(1.18); box-shadow:0 0 22px rgba(255,255,255,0.45); }
+}
+
 .output-box{
   min-height:180px;
   background:var(--surface-2);
@@ -885,6 +955,7 @@ body.protocol-blitz .generate-btn.loading{
             <label><input type="radio" name="protocol" value="MA" checked> Classic<span class="info-icon" tabindex="0" data-tooltip="Full detailed report — vocabulary, grammar, homework. The standard format.">?</span></label>
             <label><input type="radio" name="protocol" value="MS"> Sugarcoat<span class="info-icon" tabindex="0" data-tooltip="Same report as Classic, written in a warmer, parent-friendly voice.">?</span></label>
             <label><input type="radio" name="protocol" value="BLITZ"> Blitz<span class="info-icon" tabindex="0" data-tooltip="Short, neutral comment for quick platform feedback. No rating-based tone shifts.">?</span></label>
+            <label><input type="radio" name="protocol" value="BEIDA"> Beida<span class="info-icon" tabindex="0" data-tooltip="Two-field comment matching the BetaKid platform's own form: Learning Content + General Performance.">?</span></label>
             <label><input type="radio" name="protocol" value="OF"> OF Protocol (Trial Evaluation)<span class="info-icon" tabindex="0" data-tooltip="3-section narrative for trial-lesson evaluations — not a regular lesson report.">?</span></label>
           </div>
         </div>
@@ -939,10 +1010,15 @@ body.protocol-blitz .generate-btn.loading{
       </div>
 
       <div class="panel">
-        <label class="field-label">Output</label>
+        <label class="field-label" id="outputLabel">Output</label>
         <div class="output-box empty" id="outputBox">Protocol standing by.</div>
+        <div id="beidaPerformanceField" style="display:none; margin-top:14px;">
+          <label class="field-label">General and Detailed Performance</label>
+          <div class="output-box empty" id="beidaPerformanceBox"></div>
+        </div>
         <div class="action-row" id="actionRow">
           <button class="btn-secondary" id="copyBtn" disabled>Copy</button>
+          <button class="btn-secondary" id="copyBeidaPerformanceBtn" disabled style="display:none;">Copy Performance</button>
           <button class="btn-secondary" id="clearBtn">Clear</button>
           <button class="btn-secondary" id="newStudentBtn" disabled>New Student</button>
         </div>
@@ -1769,6 +1845,7 @@ Before returning the report, verify:
     const remarks = (params.remarks || '').trim();
     const rating = params.rating || '3';
     const isBlitz = params.protocol === 'BLITZ';
+    const isBeida = params.protocol === 'BEIDA';
     const isOF = params.protocol === 'OF';
 
     let msg = `Student: ${name}\n`;
@@ -1787,8 +1864,16 @@ Before returning the report, verify:
         ? `Student pronoun: use ${pronouns} throughout — do not guess a different pronoun from the name.\n`
         : `Student pronoun: not specified — default to "they/them" rather than guessing "he" or "she" from the name.\n`;
     }
-    msg += `Rating: ${rating}/5\n`;
-    msg += isBlitz
+    if(isBeida){
+      // Beida's rating is BetaKid's own real 2-tier field, not a /5 scale
+      // like every other protocol — forcing it into "Rating: excellent/5"
+      // would be nonsensical to read and to the model alike.
+      const beidaLabel = (BEIDA_RATING_TIERS[rating] || BEIDA_RATING_TIERS.excellent).label;
+      msg += `Selected rating: ${beidaLabel}\n`;
+    }else{
+      msg += `Rating: ${rating}/5\n`;
+    }
+    msg += (isBlitz || isBeida)
       ? `Lesson evidence (may be a full transcript, teacher notes, a short summary, bullet points, or any combination — treat this as the complete factual record of the lesson and infer the topic and details from it):\n${notes || '(no lesson evidence provided)'}\n`
       : `Krisp notes (infer the lesson topic from this transcript):\n${notes || '(no notes provided)'}\n`;
     if(remarks){
@@ -1798,9 +1883,9 @@ Before returning the report, verify:
       // explicitly here removes any ambiguity about whether they're the
       // same thing — which matters because the instructions tell the
       // model this input is high-priority and always overrides transcript
-      // interpretation. Blitz's own prompt already uses "Special remarks"
-      // verbatim, so no bridge is needed there.
-      msg += isBlitz
+      // interpretation. Blitz's and Beida's own prompts already use
+      // "Special remarks" verbatim, so no bridge is needed for either.
+      msg += (isBlitz || isBeida)
         ? `Special remarks to incorporate:\n${remarks}\n`
         : `Special remarks (these are the "Teacher Notes" referenced in your instructions) to incorporate:\n${remarks}\n`;
     }
@@ -2420,6 +2505,190 @@ VALIDATION CHECKLIST
     return warnings;
   }
 
+  // ---------- BEIDA PROTOCOL V1.0 ----------
+  // Built specifically to match an existing external platform's real
+  // comment form (BetaKid) — two genuinely separate fields, "Learning
+  // Content" and "General and Detailed Performance," submitted into two
+  // separate text boxes on that platform, not one combined report. This
+  // is why Beida's output format and validator are shaped so differently
+  // from every other protocol here: it's not our own invented structure,
+  // it's matching someone else's already-live form as closely as possible.
+  //
+  // Rating is the platform's own real 2-tier field ("Excellent" / "try
+  // harder please"), reused verbatim rather than inventing a new scale.
+  // Lesson evidence handling reuses Blitz's Lesson Evidence Rule / Safe
+  // Inference Principle philosophy, since the same problem — transcript,
+  // brief notes, or anything in between — applies equally here.
+  const BEIDA_RATING_TIERS = {
+    excellent:   { key: 'excellent',   label: 'Excellent' },
+    try_harder:  { key: 'try_harder',  label: 'try harder please' }
+  };
+
+  const BEIDA_PROTOCOL_V1_0_SOURCE = `BEIDA PROTOCOL COMMAND CHAIN V1.0
+
+PURPOSE
+
+Generate the two teacher-written fields required by the BetaKid platform's lesson comment form — "Learning Content" and "General and Detailed Performance" — as two genuinely separate pieces of text, submitted into two separate fields on that platform. Never combine them into one block, and never add anything else around them.
+
+LESSON EVIDENCE RULE (IMMUTABLE)
+
+The lesson evidence may come from:
+- a full transcript,
+- teacher notes,
+- a short lesson summary,
+- bullet points,
+- or any combination of these.
+
+Treat all supplied lesson evidence as the complete factual record of the lesson — sufficient on its own, regardless of length. Never invent lesson activities, vocabulary, grammar points, achievements, strengths, weaknesses, or behavioral observations that are not reasonably supported by the supplied evidence. When the lesson evidence is brief, generate naturally simpler fields rather than filling missing information with assumptions.
+
+SAFE INFERENCE PRINCIPLE
+
+Distinguish clearly between safe and unsafe inference from the supplied lesson evidence, the same way a careful teacher would. Only state what the evidence reasonably supports — never a specific skill, activity, vocabulary word, or improvement it doesn't mention, however plausible it might sound.
+
+STUDENT PERFORMANCE RATING (IMMUTABLE)
+
+This platform uses a simple internal rating with two options: "Excellent" or "try harder please." It is never shown to the student — it only shapes tone and whether an area for improvement belongs in "General and Detailed Performance."
+
+• Excellent: Both fields should be warm and genuinely positive. "General and Detailed Performance" may be entirely positive if the lesson evidence doesn't actually support any specific area needing work — never manufacture a criticism just to satisfy the field's own description; an honest, fully positive paragraph is correct when that's what really happened.
+• try harder please: "General and Detailed Performance" must include a clear, kind, specific area needing practice, grounded in the lesson evidence or in any Special Remarks provided — never vague, generic, or harsh.
+
+IMMUTABLE RULES
+
+FOR "LEARNING CONTENT":
+• Open with a direct, warm greeting naming the student and the teacher: "Hi [Student], teacher [Teacher] here!" — optionally followed by a single friendly emoji, never more than one here.
+• Briefly reference the lesson/unit topic in your own words, based on the lesson evidence.
+• Genuinely name the new/key vocabulary words or phrases actually covered in the lesson, woven naturally into a sentence — never as a bulleted or numbered list, and never invented beyond what the evidence supports.
+• Written in a warm, direct, personal voice — addressing the student and teacher together ("we") is natural here, the way a real tutor would write a quick note.
+• Length: 200-2000 characters (the platform's own hard limits) — aim for a natural, concise paragraph, not padding toward either end.
+
+FOR "GENERAL AND DETAILED PERFORMANCE":
+• Written in the third person about the student — this field is read by the student and by CC/CT staff reviewing the lesson, and should read as a genuine, considered account, not a message addressed directly to them.
+• Cover what the student is doing well, grounded in the lesson evidence.
+• Follow the Student Performance Rating guidance above for whether an area needing practice is included.
+• If "Special remarks" are provided, treat them as high-priority factual input — reflect a behavioral concern or something notable plainly and professionally, most often as the area needing practice.
+• Close with a short, warm exclamation of encouragement naming the student, optionally followed by a small handful of light, relevant emoji (no more than three or four) — never emoji scattered throughout the rest of the paragraph.
+• Length: 200-4000 characters (the platform's own hard limits) — aim for a genuine, detailed paragraph without padding.
+
+BOTH FIELDS:
+• Never use bullet points or numbered lists in either field.
+• Never use headings or labels inside the field content itself.
+• Never invent information beyond what the lesson evidence (and any Special Remarks) reasonably support.
+
+OUTPUT FORMAT (IMMUTABLE)
+
+Output exactly two sections, in this exact order, using exactly these two header lines so the app can tell them apart and route each one to its own field on the platform — nothing else before, between, or after them:
+
+LEARNING CONTENT:
+[the finished Learning Content field, as plain prose]
+
+GENERAL AND DETAILED PERFORMANCE:
+[the finished General and Detailed Performance field, as plain prose]
+
+VALIDATION CHECKLIST
+(Internal only. Never displayed.)
+
+✓ Output has exactly two sections, headed exactly "LEARNING CONTENT:" and "GENERAL AND DETAILED PERFORMANCE:", in that order, with nothing else outside them.
+✓ Learning Content opens with "Hi [Student], teacher [Teacher] here!", names real vocabulary from the lesson evidence, contains no bullet points, and is 200-2000 characters.
+✓ General and Detailed Performance is written in the third person, follows the Student Performance Rating guidance on whether to include an area needing practice, closes with a named encouragement, contains no bullet points, and is 200-4000 characters.
+✓ Every claim in both fields is grounded in the supplied lesson evidence — nothing invented or exaggerated.
+✓ Any Special Remarks provided are clearly reflected, not omitted.`;
+
+  /**
+   * Builds Beida's small per-request tail — same architectural pattern as
+   * MA/Sugarcoat/OF (large static protocol text + divider + a short
+   * dynamic tail), which means it automatically benefits from the same
+   * prompt-caching split already built into api/generate.js with zero
+   * extra work.
+   */
+  function buildBeidaRuntimeParams(params){
+    const ratingKey = (params && params.rating) || 'excellent';
+    const tier = BEIDA_RATING_TIERS[ratingKey] || BEIDA_RATING_TIERS.excellent;
+    const guidance = tier.key === 'try_harder'
+      ? 'General and Detailed Performance MUST include one clear, kind, specific area needing practice, grounded in the lesson evidence or Special Remarks — this is not optional for this rating.'
+      : 'General and Detailed Performance may be entirely positive if nothing specific to work on is actually supported by the evidence — do not invent one just to fill a slot.';
+    return `RUNTIME PARAMETERS FOR THIS REPORT (computed from the app, not part of the protocol text above — apply the protocol's rules using these exact values):
+- Selected rating: ${tier.label}
+- ${guidance}`;
+  }
+
+  function buildBeidaSystemPrompt(params){
+    const runtimeParams = buildBeidaRuntimeParams(params);
+    return BEIDA_PROTOCOL_V1_0_SOURCE + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
+  }
+
+  /**
+   * Splits Beida's raw output into its two constituent fields, stripping
+   * the two header lines themselves — those exist purely so the app can
+   * tell the sections apart; they must never be pasted into either of
+   * BetaKid's actual text fields, which are already labeled on the
+   * platform itself.
+   * @param {string} text - raw model output
+   * @returns {{learningContent: string, performance: string}|null} null if the expected headers aren't both found
+   */
+  function splitBeidaOutput(text){
+    const learningMatch = text.match(/LEARNING CONTENT:\s*\n?/i);
+    const performanceMatch = text.match(/GENERAL AND DETAILED PERFORMANCE:\s*\n?/i);
+    if(!learningMatch || !performanceMatch) return null;
+    if(learningMatch.index > performanceMatch.index) return null; // wrong order
+
+    const learningContent = text.slice(learningMatch.index + learningMatch[0].length, performanceMatch.index).trim();
+    const performance = text.slice(performanceMatch.index + performanceMatch[0].length).trim();
+    return { learningContent, performance };
+  }
+
+  /**
+   * Validates Beida's output: correct two-section structure, per-field
+   * length bounds (BetaKid's own real limits), the required greeting
+   * format, and the shared forbidden-formatting checks. Deliberately does
+   * NOT attempt to verify the rating-driven "includes an area needing
+   * practice" guidance mechanically — that's a semantic judgment call,
+   * the same category of thing left unchecked for Special Remarks
+   * elsewhere in this app.
+   * @param {string} text
+   * @param {string} rating - 'excellent' | 'try_harder'
+   * @param {string} teacherName
+   * @returns {string[]} warnings
+   */
+  function analyzeBeidaOutput(text, rating, teacherName){
+    const warnings = [];
+    const name = (teacherName || 'Layne').trim();
+    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const sections = splitBeidaOutput(text);
+    if(!sections){
+      warnings.push('Could not find both "LEARNING CONTENT:" and "GENERAL AND DETAILED PERFORMANCE:" headers, in that order — cannot verify either field.');
+      return warnings;
+    }
+
+    const { learningContent, performance } = sections;
+
+    // --- Learning Content ---
+    if(learningContent.length < 200 || learningContent.length > 2000){
+      warnings.push('Learning Content is ' + learningContent.length + ' characters — must be between 200 and 2000 (the platform\'s own hard limits).');
+    }
+    const greetingRegex = new RegExp('^Hi [^,]+,\\s*teacher ' + escapedName + ' here!', 'i');
+    if(!greetingRegex.test(learningContent)){
+      warnings.push('Learning Content does not open with "Hi [Student], teacher ' + name + ' here!" as required.');
+    }
+
+    // --- General and Detailed Performance ---
+    if(performance.length < 200 || performance.length > 4000){
+      warnings.push('General and Detailed Performance is ' + performance.length + ' characters — must be between 200 and 4000 (the platform\'s own hard limits).');
+    }
+
+    // --- shared checks, run on the combined text so a stray issue in
+    // either field is still caught ---
+    warnings.push(...checkForbiddenFormatting(learningContent + '\n' + performance));
+    if(/^\s*[•\-*]\s+/m.test(learningContent) || /^\s*\d+[.)]\s+/m.test(learningContent)){
+      warnings.push('Learning Content appears to contain a bullet point or numbered list — must be plain prose.');
+    }
+    if(/^\s*[•\-*]\s+/m.test(performance) || /^\s*\d+[.)]\s+/m.test(performance)){
+      warnings.push('General and Detailed Performance appears to contain a bullet point or numbered list — must be plain prose.');
+    }
+
+    return warnings;
+  }
+
   // ProtocolManager: both official protocols implement the same interface
   // (buildSystemPrompt, analyze), so the UI layer only ever needs to know
   // which key is selected — it never branches on protocol-specific logic
@@ -2459,6 +2728,12 @@ VALIDATION CHECKLIST
       buildSystemPrompt: buildBlitzSystemPrompt,
       analyze: (text) => analyzeBlitzOutput(text),
       models: BLITZ_MODEL_POOL
+    },
+    BEIDA: {
+      key: 'BEIDA',
+      label: 'Beida',
+      buildSystemPrompt: buildBeidaSystemPrompt,
+      analyze: (text, lvl, teacherName) => analyzeBeidaOutput(text, lvl, teacherName)
     },
     OF: {
       key: 'OF',
@@ -2517,6 +2792,8 @@ VALIDATION CHECKLIST
     OF_PROTOCOL_V1_4_SOURCE,
     BLITZ_PROTOCOL_V1_0_SOURCE,
     BLITZ_MODEL_POOL,
+    BEIDA_PROTOCOL_V1_0_SOURCE,
+    BEIDA_RATING_TIERS,
     LENGTH_TIERS,
     isHalfPoint,
     ratingColor,
@@ -2535,6 +2812,9 @@ VALIDATION CHECKLIST
     analyzeMAOutput,
     analyzeOFOutput,
     analyzeBlitzOutput,
+    buildBeidaSystemPrompt,
+    splitBeidaOutput,
+    analyzeBeidaOutput,
     checkForbiddenFormatting,
     PROTOCOLS
   };
@@ -2553,6 +2833,18 @@ let state = { rating: null, currentReportText: null, currentReportLint: null, pr
 // ---------- rating track ----------
 const track = document.getElementById('ratingTrack');
 const caption = document.getElementById('ratingCaption');
+// Declared here (not alongside generateBtn/outputBox/clearBtn/etc. further
+// down) specifically because buildRatingTrack() below references it
+// directly, and that function is called immediately at load time — a
+// `const` declared after that point would be in its temporal dead zone
+// and throw "Cannot access 'copyBtn' before initialization", silently
+// aborting the rest of this script's top-level execution (which is
+// exactly what happened here once before: it broke every 'change'
+// listener registered further down, including the one that updates the
+// header badge text and toggles each protocol's theme class — while the
+// CSS-only :has() fallback for panel/badge colors kept working
+// regardless, masking how broken the JS side actually was).
+const copyBtn = document.getElementById('copyBtn');
 const kbLogo = document.getElementById('kbLogo');
 const LOGO_DEFAULT_SRC = kbLogo.src; // the original green lockup, captured before any swap
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2636,10 +2928,12 @@ function buildRatingTrack(){
   const protocolKey = currentProtocolKey();
   const isOF = protocolKey === 'OF';
   const isBlitz = protocolKey === 'BLITZ';
+  const isBeida = protocolKey === 'BEIDA';
   document.body.classList.toggle('protocol-of', isOF);
   document.body.classList.toggle('protocol-ms', protocolKey === 'MS');
   document.body.classList.toggle('protocol-blitz', isBlitz);
-  document.getElementById('lengthFormatField').style.display = (isOF || isBlitz) ? 'none' : '';
+  document.body.classList.toggle('protocol-beida', isBeida);
+  document.getElementById('lengthFormatField').style.display = (isOF || isBlitz || isBeida) ? 'none' : '';
   // OF is the only protocol written entirely in the third person about the
   // student (MA/Sugarcoat/Blitz all address the student directly or don't
   // need a pronoun at all), so the pronoun toggle only matters — and only
@@ -2649,6 +2943,16 @@ function buildRatingTrack(){
   // protocol-level choice (never teacher-personal), OF never has one,
   // and Blitz has no signed-off "Teacher {name}" line at all.
   document.getElementById('signoffEmojiField').style.display = (protocolKey === 'MA') ? '' : 'none';
+  // Beida's second output field ("General and Detailed Performance") only
+  // ever makes sense while Beida is selected — for every other protocol
+  // there's nothing to show there, and the main output label/copy button
+  // revert to their generic wording rather than leaking Beida-specific
+  // labels ("Copy Learning Content") into an unrelated protocol's output.
+  document.getElementById('beidaPerformanceField').style.display = isBeida ? '' : 'none';
+  document.getElementById('copyBeidaPerformanceBtn').style.display = isBeida ? '' : 'none';
+  document.getElementById('outputLabel').textContent = isBeida ? 'Output — Learning Content' : 'Output';
+  copyBtn.textContent = isBeida ? 'Copy Learning Content' : 'Copy';
+  document.getElementById('copyBeidaPerformanceBtn').textContent = 'Copy Performance';
   // The notes field works fine with a couple of hand-typed sentences —
   // it's only labeled "Krisp notes" because that's the common source for
   // MA/Sugarcoat's much more detailed vocabulary/grammar requirements.
@@ -2657,9 +2961,9 @@ function buildRatingTrack(){
   // plainly rather than implying a full Krisp transcript is required.
   const notesLabel = document.getElementById('krispNotesLabel');
   const notesTextarea = document.getElementById('krispNotes');
-  if(isBlitz){
+  if(isBlitz || isBeida){
     notesLabel.textContent = 'Quick notes';
-    notesTextarea.placeholder = 'A sentence or two is enough for Blitz — no transcript needed. e.g. "Practiced past tense and articles. Good participation, some struggle with articles."';
+    notesTextarea.placeholder = 'A sentence or two is enough — no transcript needed. e.g. "Practiced past tense and articles. Good participation, some struggle with articles."';
   }else{
     notesLabel.textContent = 'Krisp notes';
     notesTextarea.placeholder = 'Paste the raw lesson summary or transcript here...';
@@ -2667,26 +2971,52 @@ function buildRatingTrack(){
   updateLogo();
   // Blitz uses the same 1-6 Performance Rating scale as MA/Sugarcoat (not
   // OF's qualitative tiers) — it just doesn't use Short/Medium/Long length
-  // tiers, which is why only lengthFormatField is hidden above.
-  const values = isOF ? KidbusterCore.OF_TIERS : KidbusterCore.LEVELS;
+  // tiers, which is why only lengthFormatField is hidden above. Beida uses
+  // its own 2-tier scale, matching BetaKid's real "How is student's
+  // performance?" field exactly (Excellent / try harder please) rather
+  // than either of the other two scales.
+  const values = isOF ? KidbusterCore.OF_TIERS
+    : isBeida ? Object.keys(KidbusterCore.BEIDA_RATING_TIERS)
+    : KidbusterCore.LEVELS;
 
   track.classList.toggle('rating-track-of', isOF);
+  track.classList.toggle('rating-track-beida', isBeida);
 
   values.forEach((value) => {
     const btn = document.createElement('button');
-    btn.className = 'rating-btn' + (!isOF && value === '6' ? ' beyond' : '');
+    btn.className = 'rating-btn' + (!isOF && !isBeida && value === '6' ? ' beyond' : '');
     btn.dataset.lvl = value;
-    btn.title = isOF ? value : value + '/5';
-    btn.style.background = isOF ? KidbusterCore.ofTierColor(value) : KidbusterCore.ratingColor(value);
+
+    let bg, fraction, labelText;
+    if(isOF){
+      bg = KidbusterCore.ofTierColor(value);
+      fraction = KidbusterCore.ofTierFillFraction(value);
+      labelText = OF_TIER_DISPLAY[value];
+      btn.title = value;
+    }else if(isBeida){
+      const tier = KidbusterCore.BEIDA_RATING_TIERS[value];
+      // Reuses the same green/orange scale MA's numeric ratings already
+      // use (via representative index values) rather than inventing a
+      // new color function for just two states.
+      bg = KidbusterCore.ratingColor(value === 'excellent' ? '5' : '2');
+      fraction = value === 'excellent' ? 1 : 0.35;
+      labelText = tier.label;
+      btn.title = tier.label;
+    }else{
+      bg = KidbusterCore.ratingColor(value);
+      fraction = KidbusterCore.ratingFillFraction(value);
+      labelText = value;
+      btn.title = value + '/5';
+    }
+    btn.style.background = bg;
 
     const fill = document.createElement('span');
     fill.className = 'btn-fill';
-    const fraction = isOF ? KidbusterCore.ofTierFillFraction(value) : KidbusterCore.ratingFillFraction(value);
     fill.style.width = (fraction * 100).toFixed(0) + '%';
 
     const label = document.createElement('span');
     label.className = 'btn-label';
-    label.textContent = isOF ? OF_TIER_DISPLAY[value] : value;
+    label.textContent = labelText;
 
     btn.appendChild(fill);
     btn.appendChild(label);
@@ -2695,7 +3025,14 @@ function buildRatingTrack(){
       state.rating = value;
       track.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      setCaption(value);
+      if(isBeida){
+        // Beida's tiers are self-explanatory labels already ("Excellent",
+        // "try harder please") — no separate caption needed the way MA's
+        // bare numbers or OF's tier names benefit from one.
+        caption.textContent = '';
+      }else{
+        setCaption(value);
+      }
       saveDraft();
     });
     track.appendChild(btn);
@@ -2725,7 +3062,6 @@ krispNotesEl.addEventListener('input', updateKrispCounter);
 const generateBtn = document.getElementById('generateBtn');
 const generateBtnLabel = generateBtn.querySelector('.btn-label');
 const outputBox = document.getElementById('outputBox');
-const copyBtn = document.getElementById('copyBtn');
 const clearBtn = document.getElementById('clearBtn');
 const newStudentBtn = document.getElementById('newStudentBtn');
 const prevToggleBtn = document.getElementById('prevReportToggle');
@@ -2755,6 +3091,16 @@ function playOutputRevealAnimation(){
     ],
     { duration: 320, easing: 'ease-out' }
   );
+  const performanceBox = document.getElementById('beidaPerformanceBox');
+  if(performanceBox && performanceBox.offsetParent !== null){
+    performanceBox.animate(
+      [
+        { opacity: 0.35, transform: 'translateY(6px)' },
+        { opacity: 1, transform: 'translateY(0)' }
+      ],
+      { duration: 320, easing: 'ease-out' }
+    );
+  }
 }
 
 function setCurrentReport(text, lintWarnings){
@@ -2767,16 +3113,42 @@ function setCurrentReport(text, lintWarnings){
   updatePrevToggleUI();
 }
 
+// Puts a report's text into the output area(s) — for every protocol
+// except Beida, that's just the single outputBox, same as always. Beida's
+// raw output is two fields glued together with internal header markers
+// (see splitBeidaOutput) meant for the app to parse, never to display —
+// this splits them apart and routes each into its own box, so what's
+// actually shown/copied never includes those markers. Used both by a
+// fresh generation and by the "View previous report" toggle, so both
+// paths render Beida identically.
+function renderReportToOutput(text){
+  outputBox.className = 'output-box';
+  if(currentProtocolKey() === 'BEIDA'){
+    const sections = KidbusterCore.splitBeidaOutput(text);
+    const performanceBox = document.getElementById('beidaPerformanceBox');
+    if(sections){
+      outputBox.textContent = sections.learningContent;
+      performanceBox.textContent = sections.performance;
+    }else{
+      // Shouldn't normally happen (the validator would already have
+      // flagged it) — fail visibly rather than silently dropping half
+      // the content.
+      outputBox.textContent = text;
+      performanceBox.textContent = '(Could not separate the two fields from this output — showing the raw text above instead.)';
+    }
+  }else{
+    outputBox.textContent = text;
+  }
+}
+
 prevToggleBtn.addEventListener('click', () => {
   if(!state.previousReport) return;
   if(!state.viewingPrevious){
-    outputBox.className = 'output-box';
-    outputBox.textContent = state.previousReport.text;
+    renderReportToOutput(state.previousReport.text);
     renderLint(state.previousReport.lint);
     state.viewingPrevious = true;
   }else{
-    outputBox.className = 'output-box';
-    outputBox.textContent = state.currentReportText;
+    renderReportToOutput(state.currentReportText);
     renderLint(state.currentReportLint);
     state.viewingPrevious = false;
   }
@@ -3042,11 +3414,13 @@ async function submitFeedback(score){
   }
 }
 
-function flashCopied(){
-  copyBtn.classList.add('copied');
-  copyBtn.textContent = '✓ Copied';
-  if(!prefersReducedMotion && typeof copyBtn.animate === 'function'){
-    copyBtn.animate(
+function flashCopied(btn){
+  const targetBtn = btn || copyBtn;
+  const defaultLabel = targetBtn === copyBtn ? 'Copy' : targetBtn.dataset.defaultLabel || 'Copy';
+  targetBtn.classList.add('copied');
+  targetBtn.textContent = '✓ Copied';
+  if(!prefersReducedMotion && typeof targetBtn.animate === 'function'){
+    targetBtn.animate(
       [
         { transform: 'scale(1)', boxShadow: '0 0 0 rgba(var(--toxin-rgb),0)' },
         { transform: 'scale(1.06)', boxShadow: '0 0 14px 1px rgba(var(--toxin-rgb),0.45)' },
@@ -3055,30 +3429,32 @@ function flashCopied(){
       { duration: 420, easing: 'ease-out' }
     );
   }
-  setTimeout(() => { copyBtn.classList.remove('copied'); copyBtn.textContent = 'Copy'; }, 1500);
+  setTimeout(() => { targetBtn.classList.remove('copied'); targetBtn.textContent = defaultLabel; }, 1500);
 }
 
 // Selects the full output text in the DOM so a manual Ctrl+C / Cmd+C works
 // even if no programmatic copy method is available in this environment.
-function selectOutputText(){
+function selectOutputText(el){
   try{
     const range = document.createRange();
-    range.selectNodeContents(outputBox);
+    range.selectNodeContents(el || outputBox);
     const sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
   }catch(e){ /* selection not available, nothing more we can do */ }
 }
 
-async function copyOutputToClipboard(){
-  const text = outputBox.textContent;
+async function copyOutputToClipboard(sourceEl, btnEl){
+  const source = sourceEl || outputBox;
+  const btn = btnEl || copyBtn;
+  const text = source.textContent;
 
   // 1) Modern Clipboard API — works in a normal browser tab, often blocked
   // inside sandboxed preview iframes without clipboard-write permission.
   try{
     if(navigator.clipboard && navigator.clipboard.writeText){
       await navigator.clipboard.writeText(text);
-      flashCopied();
+      flashCopied(btn);
       return true;
     }
   }catch(e){ /* fall through to legacy method */ }
@@ -3101,17 +3477,17 @@ async function copyOutputToClipboard(){
     const ok = document.execCommand('copy');
     document.body.removeChild(ta);
     if(ok){
-      flashCopied();
+      flashCopied(btn);
       return true;
     }
   }catch(e){ /* fall through to manual selection */ }
 
   // 3) Last resort: select the text in place so the person can press
   // Ctrl+C / Cmd+C themselves without hunting for the start/end of it.
-  selectOutputText();
-  copyBtn.classList.remove('copied');
-  copyBtn.textContent = 'Selected — press Ctrl+C';
-  setTimeout(() => { copyBtn.textContent = 'Copy'; }, 3000);
+  selectOutputText(source);
+  btn.classList.remove('copied');
+  btn.textContent = 'Selected — press Ctrl+C';
+  setTimeout(() => { btn.textContent = 'Copy'; }, 3000);
   return false;
 }
 
@@ -3216,15 +3592,24 @@ async function generate(){
     }
     const lint = protocol.analyze(text, form.rating, form.teacherName, form.lengthFormat, form.studentGender, form.signoffEmoji);
     setCurrentReport(text, lint);
-    outputBox.className = 'output-box';
-    outputBox.textContent = text;
+    renderReportToOutput(text);
     playOutputRevealAnimation();
     copyBtn.disabled = false;
+    const isBeidaOutput = form.protocol === 'BEIDA';
+    document.getElementById('copyBeidaPerformanceBtn').disabled = !isBeidaOutput;
     newStudentBtn.disabled = false;
     showFeedbackCard(form.protocol, form.rating);
     document.getElementById('actionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
     renderLint(lint);
-    copyOutputToClipboard(); // instant copy — the report is ready to paste the moment it appears
+    if(isBeidaOutput){
+      // Two separate fields need two separate copies — auto-copying just
+      // one would look like "the report" got copied when really only
+      // half of it did. The teacher copies each piece deliberately instead.
+      copyBtn.textContent = 'Copy Learning Content';
+      document.getElementById('copyBeidaPerformanceBtn').textContent = 'Copy Performance';
+    }else{
+      copyOutputToClipboard(outputBox, copyBtn); // instant copy — the report is ready to paste the moment it appears
+    }
     document.getElementById('krispNotes').value = ''; // clear for the next lesson's transcript
     updateKrispCounter();
     saveDraft();
@@ -3266,6 +3651,10 @@ function resetWorkspace(){
   updatePrevToggleUI();
   outputBox.className = 'output-box empty';
   outputBox.textContent = 'Protocol standing by.';
+  const beidaPerformanceBox = document.getElementById('beidaPerformanceBox');
+  beidaPerformanceBox.className = 'output-box empty';
+  beidaPerformanceBox.textContent = '';
+  document.getElementById('copyBeidaPerformanceBtn').disabled = true;
   copyBtn.disabled = true;
   newStudentBtn.disabled = true;
   renderLint(null);
@@ -3325,7 +3714,8 @@ updateLengthFormatCaption();
 
 document.getElementById('studentGenderSelect').addEventListener('change', saveDraft);
 
-copyBtn.addEventListener('click', copyOutputToClipboard);
+copyBtn.addEventListener('click', () => copyOutputToClipboard(outputBox, copyBtn));
+document.getElementById('copyBeidaPerformanceBtn').addEventListener('click', () => copyOutputToClipboard(document.getElementById('beidaPerformanceBox'), document.getElementById('copyBeidaPerformanceBtn')));
 
 clearBtn.addEventListener('click', resetWorkspace);
 
@@ -3404,20 +3794,21 @@ function appendGenerationHistory(entry){
 }
 
 function loadUsageStats(){
-  const defaults = { MA: { reports: 0, cost: 0 }, OF: { reports: 0, cost: 0 }, MS: { reports: 0, cost: 0 }, BLITZ: { reports: 0, cost: 0 }, regenerationEvents: 0 };
+  const defaults = { MA: { reports: 0, cost: 0 }, OF: { reports: 0, cost: 0 }, MS: { reports: 0, cost: 0 }, BLITZ: { reports: 0, cost: 0 }, BEIDA: { reports: 0, cost: 0 }, regenerationEvents: 0 };
   try{
     const raw = localStorage.getItem(USAGE_STATS_KEY);
     if(raw){
       const parsed = JSON.parse(raw);
       // Merge rather than return parsed directly — protects against stats
-      // saved before a protocol (like MS, or later BLITZ) existed, which
-      // would otherwise be missing that key entirely and crash the next
-      // recordGeneration.
+      // saved before a protocol (like MS, or later BLITZ/BEIDA) existed,
+      // which would otherwise be missing that key entirely and crash the
+      // next recordGeneration.
       return {
         MA: parsed.MA || defaults.MA,
         OF: parsed.OF || defaults.OF,
         MS: parsed.MS || defaults.MS,
         BLITZ: parsed.BLITZ || defaults.BLITZ,
+        BEIDA: parsed.BEIDA || defaults.BEIDA,
         regenerationEvents: parsed.regenerationEvents || 0
       };
     }
@@ -3472,18 +3863,20 @@ function recordFailedGeneration(protocolKey, durationMs, errorMessage){
 // Callable from the browser console (F12) at any time: kidbusterStats()
 window.kidbusterStats = function(){
   const s = loadUsageStats();
-  const totalReports = s.MA.reports + s.OF.reports + s.MS.reports + s.BLITZ.reports;
-  const totalCost = s.MA.cost + s.OF.cost + s.MS.cost + s.BLITZ.cost;
+  const totalReports = s.MA.reports + s.OF.reports + s.MS.reports + s.BLITZ.reports + s.BEIDA.reports;
+  const totalCost = s.MA.cost + s.OF.cost + s.MS.cost + s.BLITZ.cost + s.BEIDA.cost;
   console.log('=== Kidbuster cumulative usage (this browser) ===');
   console.log('MA reports:', s.MA.reports, '| MA cost: $' + s.MA.cost.toFixed(4));
   console.log('MA Sweet Voice reports:', s.MS.reports, '| MS cost: $' + s.MS.cost.toFixed(4));
   console.log('OF reports:', s.OF.reports, '| OF cost: $' + s.OF.cost.toFixed(4));
   console.log('Blitz reports:', s.BLITZ.reports, '| Blitz cost: $' + s.BLITZ.cost.toFixed(4));
+  console.log('Beida reports:', s.BEIDA.reports, '| Beida cost: $' + s.BEIDA.cost.toFixed(4));
   console.log('Total reports:', totalReports, '| Total cost: $' + totalCost.toFixed(4));
   console.log('MA share:', totalReports ? (s.MA.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('MA Sweet Voice share:', totalReports ? (s.MS.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('OF share:', totalReports ? (s.OF.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('Blitz share:', totalReports ? (s.BLITZ.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
+  console.log('Beida share:', totalReports ? (s.BEIDA.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('Regeneration events (2nd+ generate before New Student/Clear):', s.regenerationEvents);
   console.log('Avg cost/report:', totalReports ? '$'+(totalCost/totalReports).toFixed(4) : 'n/a');
   return s;

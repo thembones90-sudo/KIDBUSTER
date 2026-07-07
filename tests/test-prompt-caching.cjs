@@ -43,6 +43,10 @@ module.exports = function run(){
     const ofPrompt = KidbusterCore.buildOFSystemPrompt({ rating: 'Medium' });
     const ofBlocks = checkRoundTrip('OF', ofPrompt);
     check('OF -> exactly 2 blocks, static one cacheable', ofBlocks.length === 2 && ofBlocks[0].cache_control?.type === 'ephemeral');
+
+    const beidaPrompt = KidbusterCore.buildBeidaSystemPrompt({ rating: 'excellent' });
+    const beidaBlocks = checkRoundTrip('Beida', beidaPrompt);
+    check('Beida -> exactly 2 blocks, static one cacheable', beidaBlocks.length === 2 && beidaBlocks[0].cache_control?.type === 'ephemeral');
   }
 
   console.log('\n2) Blitz: no divider in its prompt, so the whole thing is cached as a single block');
@@ -73,6 +77,13 @@ module.exports = function run(){
     const blocks6 = buildCacheableSystemBlocks(promptRating6);
     check('rating 1 and rating 6 (same length tier) produce an IDENTICAL cacheable static block', blocks1[0].text === blocks6[0].text);
     check('...but genuinely different dynamic tails (proves this isn\'t a no-op check)', blocks1[1].text !== blocks6[1].text);
+
+    const beidaExcellent = KidbusterCore.buildBeidaSystemPrompt({ rating: 'excellent' });
+    const beidaTryHarder = KidbusterCore.buildBeidaSystemPrompt({ rating: 'try_harder' });
+    const beidaBlocks1 = buildCacheableSystemBlocks(beidaExcellent);
+    const beidaBlocks2 = buildCacheableSystemBlocks(beidaTryHarder);
+    check('Beida: "Excellent" and "try harder please" ratings share an IDENTICAL cacheable static block', beidaBlocks1[0].text === beidaBlocks2[0].text);
+    check('Beida: ...but genuinely different dynamic tails', beidaBlocks1[1].text !== beidaBlocks2[1].text);
   }
 
   return getFailures();
