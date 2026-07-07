@@ -3156,8 +3156,10 @@ async function generate(){
   copyBtn.disabled = true;
   renderLint(null);
 
+  const generationStartedAt = performance.now();
   try{
     const { text, usage } = await callClaude(systemPrompt, userMessage);
+    const durationMs = Math.round(performance.now() - generationStartedAt);
     if(usage){
       // Real, measured cost from Anthropic's own usage field — not an
       // estimate. claude-sonnet-4-6 standard rate: $3/MTok input, $15/MTok
@@ -3196,10 +3198,21 @@ async function generate(){
         cacheCreationTokens: cacheCreationTokens,
         cacheReadTokens: cacheReadTokens,
         outputTokens: usage.output_tokens,
-        reportChars: text.trim().length
+        reportChars: text.trim().length,
+        durationMs: durationMs
       });
     }else{
-      recordGeneration(form.protocol, 0); // report still counts even if usage data wasn't returned
+      // No usage data returned (an unusual response shape) — still a real
+      // successful generation, so it still gets a full history entry;
+      // just without token/cost figures we don't actually have.
+      recordGeneration(form.protocol, 0, {
+        teacherName: form.teacherName,
+        studentName: form.studentName,
+        rating: form.rating || null,
+        lengthFormat: form.lengthFormat || null,
+        reportChars: text.trim().length,
+        durationMs: durationMs
+      });
     }
     const lint = protocol.analyze(text, form.rating, form.teacherName, form.lengthFormat, form.studentGender, form.signoffEmoji);
     setCurrentReport(text, lint);
@@ -3222,6 +3235,8 @@ async function generate(){
     setStatusText(GENERATION_COMPLETE_MESSAGE);
     await new Promise(resolve => setTimeout(resolve, 700));
   }catch(err){
+    const durationMs = Math.round(performance.now() - generationStartedAt);
+    recordFailedGeneration(form.protocol, durationMs, err.message);
     outputBox.className = 'output-box error';
     outputBox.textContent = 'Could not generate feedback. ' + err.message;
   }finally{
@@ -3342,6 +3357,29 @@ let generateClicksSinceReset = 0;
 // localStorage doesn't grow unbounded over months of real use.
 const GENERATION_HISTORY_KEY = 'kidbuster_generation_history_v1';
 const GENERATION_HISTORY_MAX_ENTRIES = 500;
+const INSTALLATION_ID_KEY = 'kidbuster_installation_id_v1';
+
+// A random, anonymous per-browser identifier — not tied to any real
+// identity, account, or teacher name (a teacher can type any name into
+// the Teacher field, or share a browser with someone else). Exists
+// specifically so usage patterns can be grouped by "this browser" across
+// sessions for business metrics (reports per active install, retention,
+// etc.) without this app ever collecting or transmitting anything that
+// identifies a real person. Generated once and persisted; if localStorage
+// is unavailable, a fresh one is generated every call (falls back to
+// "can't distinguish installs" rather than crashing).
+function getInstallationId(){
+  try{
+    let id = localStorage.getItem(INSTALLATION_ID_KEY);
+    if(!id){
+      id = 'anon-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+      localStorage.setItem(INSTALLATION_ID_KEY, id);
+    }
+    return id;
+  }catch(e){
+    return 'anon-unavailable';
+  }
+}
 
 function loadGenerationHistory(){
   try{
@@ -3403,11 +3441,32 @@ function recordGeneration(protocolKey, cost, detail){
   if(detail){
     appendGenerationHistory({
       timestamp: Date.now(),
+      installationId: getInstallationId(),
+      status: 'success',
       protocol: protocolKey,
       ...detail,
       cost
     });
   }
+}
+
+// Records a generation ATTEMPT that failed — a network error, an API
+// error, or any other failure caught by generate()'s try/catch. This
+// deliberately does NOT touch loadUsageStats()'s report count or cost
+// (no report was actually produced or billed), but still gets its own
+// history entry with status:'error', since "how often do generations
+// fail" and "how long did they take before failing" are real business
+// metrics in their own right — success rate and reliability, not just
+// cost and volume.
+function recordFailedGeneration(protocolKey, durationMs, errorMessage){
+  appendGenerationHistory({
+    timestamp: Date.now(),
+    installationId: getInstallationId(),
+    status: 'error',
+    protocol: protocolKey,
+    durationMs: durationMs,
+    errorMessage: String(errorMessage || '').slice(0, 200) // capped — this is a log, not a place to dump arbitrary error payloads
+  });
 }
 
 // Callable from the browser console (F12) at any time: kidbusterStats()
@@ -3442,21 +3501,25 @@ window.kidbusterHistory = function(limit){
   const recent = history.slice(Math.max(0, history.length - n));
   const rows = recent.map(entry => ({
     when: new Date(entry.timestamp).toLocaleString(),
+    install: (entry.installationId || '').replace('anon-', ''),
+    status: entry.status || 'success', // older entries recorded before this field existed were all successes
     protocol: entry.protocol,
     teacher: entry.teacherName || '',
     student: entry.studentName || '',
     rating: entry.rating || '',
     length: entry.lengthFormat || '',
+    duration_ms: entry.durationMs ?? '',
     input_tok: entry.inputTokens ?? '',
     cache_write_tok: entry.cacheCreationTokens ?? '',
     cache_read_tok: entry.cacheReadTokens ?? '',
     output_tok: entry.outputTokens ?? '',
-    cost: '$' + entry.cost.toFixed(4),
-    chars: entry.reportChars ?? ''
+    cost: (typeof entry.cost === 'number') ? '$' + entry.cost.toFixed(4) : '',
+    chars: entry.reportChars ?? '',
+    error: entry.errorMessage || ''
   }));
   console.log('=== Kidbuster generation history (this browser) — showing ' + rows.length + ' of ' + history.length + ' stored ===');
   if(rows.length){ console.table(rows); }else{ console.log('(no history recorded yet)'); }
-  return history; // full raw array returned for programmatic filtering, e.g. kidbusterHistory().filter(e => e.protocol === 'BLITZ')
+  return history; // full raw array returned for programmatic filtering, e.g. kidbusterHistory().filter(e => e.status === 'error')
 };
 
 // Callable from the browser console: kidbusterExportHistoryCSV() logs a
@@ -3465,7 +3528,7 @@ window.kidbusterHistory = function(limit){
 // DevTools entirely.
 window.kidbusterExportHistoryCSV = function(){
   const history = loadGenerationHistory();
-  const headers = ['timestamp', 'protocol', 'teacherName', 'studentName', 'rating', 'lengthFormat', 'inputTokens', 'cacheCreationTokens', 'cacheReadTokens', 'outputTokens', 'cost', 'reportChars'];
+  const headers = ['timestamp', 'installationId', 'status', 'protocol', 'teacherName', 'studentName', 'rating', 'lengthFormat', 'durationMs', 'inputTokens', 'cacheCreationTokens', 'cacheReadTokens', 'outputTokens', 'cost', 'reportChars', 'errorMessage'];
   const csvEscape = (val) => {
     const str = String(val ?? '');
     return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
@@ -3477,6 +3540,55 @@ window.kidbusterExportHistoryCSV = function(){
   const csv = lines.join('\n');
   console.log(csv);
   return csv;
+};
+
+// Callable from the browser console: kidbusterAnalytics() summarizes the
+// business-relevant metrics that are actually computable from THIS
+// browser's own local history — reports per day, protocol mix, success
+// rate, average duration, and a rough peak-hour breakdown. Deliberately
+// does NOT claim to answer things like retention or free-to-paid
+// conversion — those require comparing behavior *across* installations
+// over time, which needs a real server-side store; this app has none
+// today (the Google Sheet only receives opt-in star-rating feedback, not
+// a full event log). This is single-browser-only, honestly labeled as such.
+window.kidbusterAnalytics = function(){
+  const history = loadGenerationHistory();
+  if(!history.length){
+    console.log('(no history recorded yet on this browser)');
+    return null;
+  }
+
+  const successEntries = history.filter(e => (e.status || 'success') === 'success');
+  const errorEntries = history.filter(e => e.status === 'error');
+  const successRate = history.length ? (successEntries.length / history.length * 100) : 0;
+
+  const durations = history.map(e => e.durationMs).filter(d => typeof d === 'number');
+  const avgDurationMs = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+
+  const byProtocol = {};
+  successEntries.forEach(e => { byProtocol[e.protocol] = (byProtocol[e.protocol] || 0) + 1; });
+
+  const byDay = {};
+  history.forEach(e => {
+    const day = new Date(e.timestamp).toISOString().slice(0, 10);
+    byDay[day] = (byDay[day] || 0) + 1;
+  });
+
+  const byHour = new Array(24).fill(0);
+  history.forEach(e => { byHour[new Date(e.timestamp).getHours()] += 1; });
+  const peakHour = byHour.indexOf(Math.max(...byHour));
+
+  console.log('=== Kidbuster local analytics (this browser only — NOT cross-user) ===');
+  console.log('Total generation attempts:', history.length, '| Successful:', successEntries.length, '| Failed:', errorEntries.length, '| Success rate:', successRate.toFixed(1) + '%');
+  console.log('Average duration:', avgDurationMs !== null ? avgDurationMs + ' ms' : 'n/a (no duration data recorded yet)');
+  console.log('Protocol mix (successful generations):');
+  console.table(byProtocol);
+  console.log('Reports per day:');
+  console.table(byDay);
+  console.log('Peak usage hour (0-23, local time):', peakHour + ':00', '(' + byHour[peakHour] + ' generations)');
+  console.log('\nNOTE: retention, conversion, and "average reports per active user across all teachers" are NOT computable from this — they require a real cross-installation server-side store, which this app doesn\'t have today. This is one browser\'s own local activity only.');
+
+  return { total: history.length, successful: successEntries.length, failed: errorEntries.length, successRate, avgDurationMs, byProtocol, byDay, byHour, peakHour };
 };
 
 function collectDraft(){

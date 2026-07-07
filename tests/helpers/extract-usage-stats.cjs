@@ -18,7 +18,7 @@ const path = require('path');
 
 const INDEX_HTML_PATH = path.join(__dirname, '..', '..', 'index.html');
 const START_MARKER = 'const USAGE_STATS_KEY';
-const END_MARKER = "\n  return csv;\n};";
+const END_MARKER = "\n  return { total: history.length, successful: successEntries.length, failed: errorEntries.length, successRate, avgDurationMs, byProtocol, byDay, byHour, peakHour };\n};";
 
 function extractUsageStatsModule(){
   const html = fs.readFileSync(INDEX_HTML_PATH, 'utf8');
@@ -59,7 +59,7 @@ function extractUsageStatsModule(){
     // pollution via a shared global.
     const run = new Function(
       'localStorage', 'window',
-      code + '\nreturn { loadUsageStats, recordGeneration, loadGenerationHistory, kidbusterStats: window.kidbusterStats, kidbusterHistory: window.kidbusterHistory, kidbusterExportHistoryCSV: window.kidbusterExportHistoryCSV };'
+      code + '\nreturn { loadUsageStats, recordGeneration, recordFailedGeneration, loadGenerationHistory, getInstallationId, kidbusterStats: window.kidbusterStats, kidbusterHistory: window.kidbusterHistory, kidbusterExportHistoryCSV: window.kidbusterExportHistoryCSV, kidbusterAnalytics: window.kidbusterAnalytics };'
     );
     result = run(localStorageStub, windowStub);
   } catch (err) {

@@ -135,8 +135,63 @@ module.exports = function run(){
     const csv = kidbusterExportHistoryCSV();
     const lines = csv.trim().split('\n');
     check('CSV has a header row plus one data row', lines.length === 2);
-    check('header row lists the expected fields', lines[0] === 'timestamp,protocol,teacherName,studentName,rating,lengthFormat,inputTokens,cacheCreationTokens,cacheReadTokens,outputTokens,cost,reportChars');
+    check('header row lists the expected fields', lines[0] === 'timestamp,installationId,status,protocol,teacherName,studentName,rating,lengthFormat,durationMs,inputTokens,cacheCreationTokens,cacheReadTokens,outputTokens,cost,reportChars,errorMessage');
     check('data row contains the actual recorded values', lines[1].includes('MS') && lines[1].includes('Nina') && lines[1].includes('Kaya') && lines[1].includes('0.0045'));
+  }
+
+  console.log('\n8) Anonymous installation ID: persists across calls, included in every history entry');
+  {
+    const { getInstallationId, recordGeneration, loadGenerationHistory } = extractUsageStatsModule();
+    const id1 = getInstallationId();
+    const id2 = getInstallationId();
+    check('same helper instance -> same ID on repeated calls', id1 === id2);
+    check('ID is a non-empty string', typeof id1 === 'string' && id1.length > 0);
+
+    recordGeneration('MA', 0.01, { teacherName:'Layne', studentName:'X', rating:'4', lengthFormat:'long', inputTokens:1, cacheCreationTokens:0, cacheReadTokens:0, outputTokens:1, reportChars:1, durationMs:100 });
+    const history = loadGenerationHistory();
+    check('history entry includes the installation ID', history[0].installationId === id1);
+    check('history entry includes status:"success"', history[0].status === 'success');
+    check('history entry includes durationMs', history[0].durationMs === 100);
+  }
+
+  console.log('\n9) Failed generation attempts get their own history entry, without touching aggregate stats');
+  {
+    const { recordFailedGeneration, loadGenerationHistory, kidbusterStats } = extractUsageStatsModule();
+    recordFailedGeneration('MA', 5000, 'Network error — check your connection and try again.');
+    const history = loadGenerationHistory();
+    check('failed attempt recorded to history', history.length === 1);
+    check('failed entry has status:"error"', history[0].status === 'error');
+    check('failed entry has the duration', history[0].durationMs === 5000);
+    check('failed entry has the (capped) error message', history[0].errorMessage === 'Network error — check your connection and try again.');
+    check('failed entry has no cost field at all', history[0].cost === undefined);
+
+    const stats = kidbusterStats();
+    check('a failed attempt does NOT increment MA\'s report count', stats.MA.reports === 0);
+    check('a failed attempt does NOT add to MA\'s cost', stats.MA.cost === 0);
+  }
+
+  console.log('\n10) kidbusterAnalytics(): correctly summarizes success rate, duration, protocol mix, and peak hour from local history');
+  {
+    const { recordGeneration, recordFailedGeneration, kidbusterAnalytics } = extractUsageStatsModule();
+    recordGeneration('MA', 0.02, { teacherName:'Layne', studentName:'A', rating:'4', lengthFormat:'long', inputTokens:1, cacheCreationTokens:0, cacheReadTokens:0, outputTokens:1, reportChars:1, durationMs:2000 });
+    recordGeneration('MA', 0.02, { teacherName:'Layne', studentName:'B', rating:'4', lengthFormat:'long', inputTokens:1, cacheCreationTokens:0, cacheReadTokens:0, outputTokens:1, reportChars:1, durationMs:4000 });
+    recordGeneration('BLITZ', 0.005, { teacherName:'Nina', studentName:'C', rating:'3', lengthFormat:null, inputTokens:1, cacheCreationTokens:0, cacheReadTokens:0, outputTokens:1, reportChars:1, durationMs:1000 });
+    recordFailedGeneration('MA', 6000, 'timeout');
+
+    const analytics = kidbusterAnalytics();
+    check('total counts all 4 attempts (3 success + 1 failure)', analytics.total === 4);
+    check('successful count is 3', analytics.successful === 3);
+    check('failed count is 1', analytics.failed === 1);
+    check('success rate is 75%', Math.abs(analytics.successRate - 75) < 0.01);
+    check('average duration includes ALL attempts, success and failure alike (2000+4000+1000+6000)/4 = 3250', analytics.avgDurationMs === 3250);
+    check('protocol mix only counts SUCCESSFUL generations (MA:2, BLITZ:1 — the failed MA attempt excluded)', analytics.byProtocol.MA === 2 && analytics.byProtocol.BLITZ === 1);
+  }
+
+  console.log('\n11) kidbusterAnalytics() with zero history returns null rather than crashing');
+  {
+    const { kidbusterAnalytics } = extractUsageStatsModule();
+    const result = kidbusterAnalytics();
+    check('empty history -> returns null, not an error', result === null);
   }
 
   return getFailures();
