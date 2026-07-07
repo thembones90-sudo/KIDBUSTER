@@ -150,6 +150,34 @@ module.exports = function run(){
     check('Special remarks use the plain (non-bridged) phrasing, matching Beida\'s own prompt wording', msgWithRemarks.includes('Special remarks to incorporate') && !msgWithRemarks.includes('Teacher Notes'));
   }
 
+  console.log('\n11) Regression: the model must actually be told the real teacher name — a real generation once hallucinated one entirely');
+  {
+    // Beida's greeting is a literal bracket placeholder ("teacher [Teacher]
+    // here!") in its own prompt text, unlike MA/Sugarcoat/OF, which hardcode
+    // the literal word "Layne" and rely on applyTeacherIdentity to swap it
+    // for the real name. Beida's prompt never contains "Layne" at all, so
+    // without an explicit Fact in the user message, the model has no real
+    // information to fill that placeholder with — confirmed by an actual
+    // generation that invented a teacher name having nothing to do with
+    // what was in the Teacher field.
+    const msg = KidbusterCore.buildUserMessage({ studentName: 'Momo', teacherName: 'Layne', notes: 'x', rating: 'excellent', protocol: 'BEIDA' });
+    check('user message explicitly states the real teacher name as a Fact', msg.includes('Teacher: Layne'));
+    check('explicitly instructs against inventing a different name', msg.includes('never invent or guess a different one'));
+
+    const msgOtherTeacher = KidbusterCore.buildUserMessage({ studentName: 'Momo', teacherName: 'Nina', notes: 'x', rating: 'excellent', protocol: 'BEIDA' });
+    check('works correctly for any teacher name, not just the default', msgOtherTeacher.includes('Teacher: Nina'));
+
+    const msgNoTeacherGiven = KidbusterCore.buildUserMessage({ studentName: 'Momo', notes: 'x', rating: 'excellent', protocol: 'BEIDA' });
+    check('falls back to Layne when no teacher name is given at all, matching every other protocol\'s default', msgNoTeacherGiven.includes('Teacher: Layne'));
+
+    check('this Fact is Beida-specific — MA\'s user message has no such line (it gets the name via prompt substitution instead)', !KidbusterCore.buildUserMessage({ studentName: 'Momo', teacherName: 'Layne', notes: 'x', rating: '4', protocol: 'MA' }).includes('Teacher: Layne'));
+
+    // The prompt's own instruction was strengthened too, not just the
+    // user message — confirm both landed.
+    const prompt = KidbusterCore.buildBeidaSystemPrompt({ rating: 'excellent' });
+    check('prompt explicitly says never invent/guess a name for either the student or teacher', prompt.includes('Never invent, guess, or default to any other name for either'));
+  }
+
   return getFailures();
 };
 
