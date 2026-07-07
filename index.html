@@ -1745,7 +1745,7 @@ Before returning the report, verify:
     }
     msg += `Rating: ${rating}/5\n`;
     msg += isBlitz
-      ? `Lesson notes (may be a full transcript or just a couple of hand-typed sentences — infer the lesson topic and details from whatever is given):\n${notes || '(no notes provided)'}\n`
+      ? `Lesson evidence (may be a full transcript, teacher notes, a short summary, bullet points, or any combination — treat this as the complete factual record of the lesson and infer the topic and details from it):\n${notes || '(no lesson evidence provided)'}\n`
       : `Krisp notes (infer the lesson topic from this transcript):\n${notes || '(no notes provided)'}\n`;
     if(remarks){
       // MA/Sugarcoat/OF's own prompt text calls this input "Teacher Notes"
@@ -2191,21 +2191,57 @@ Generate a short, professional lesson comment suitable for platforms where teach
 
 The comment should sound like it was written by a real teacher in under a minute. It should summarize the lesson naturally, without excessive praise or emotional language.
 
-Length target: 70-120 words. Hard limit: 150 words — the comment must never exceed this under any circumstance, for any reason. Some lessons genuinely don't justify 80+ words — staying concise and honest is better than padding a comment just to reach a higher number.
+Blitz works from whatever Lesson Evidence the teacher provides — see the LESSON EVIDENCE RULE below for exactly what that covers and how to handle it. There is no separate "manual mode" — the same rules apply whether the evidence is a full transcript or two hand-typed sentences.
+
+Length target: 70-120 words. Hard limit: 150 words — the comment must never exceed this under any circumstance, for any reason. Some lessons genuinely don't justify 80+ words — staying concise and honest is better than padding a comment just to reach a higher number. This is especially true when the lesson evidence itself is brief: a shorter, honest comment near the low end of the target is correct and expected in that case, not a shortfall to compensate for.
+
+LESSON EVIDENCE RULE (IMMUTABLE)
+
+The lesson evidence may come from:
+- a full transcript,
+- teacher notes,
+- a short lesson summary,
+- bullet points,
+- or any combination of these.
+
+Treat all supplied lesson evidence as the complete factual record of the lesson — sufficient on its own, regardless of length. Never invent lesson activities, grammar, vocabulary, achievements, strengths, weaknesses, or behavioral observations that are not reasonably supported by the supplied evidence. When the lesson evidence is brief, generate a naturally simpler comment rather than filling missing information with assumptions.
+
+SAFE INFERENCE PRINCIPLE
+
+Distinguish clearly between safe and unsafe inference from the supplied lesson evidence.
+
+Example lesson evidence: "Timmy was great today. We did a lesson about colors and animals. He was very interested and we had a lot of fun."
+
+Safe conclusions (directly supported by that evidence):
+- Timmy participated well.
+- Lesson topics were colors and animals.
+- The atmosphere was positive.
+- The student was engaged.
+
+Unsafe conclusions (not stated, and therefore never assumed):
+- Pronunciation improved.
+- Present Simple was practiced.
+- Reading exercises were completed.
+- Speaking confidence increased.
+- Vocabulary retention was excellent.
+
+Apply this same distinction to whatever lesson evidence is actually supplied for this generation, however much or little it is — only state what it reasonably supports, never a specific skill, activity, or improvement it doesn't mention.
 
 IMMUTABLE RULES
 
-• Use only information supported by the lesson transcript. Never invent achievements, activities, or vocabulary that don't appear in the notes.
+• Use only information supported by the supplied lesson evidence. Lesson evidence may consist of a transcript, teacher notes, a short lesson summary, bullet points, or any combination of these. Never invent information beyond what the supplied evidence reasonably supports.
+• When the lesson evidence is brief, expand the facts it does contain into natural, complete sentences rather than restating them tersely — but never introduce a new specific fact, number, or incident the evidence doesn't actually support. Turning "practiced past tense and articles" into a full sentence describing that focus is expanding phrasing, not inventing content; adding a specific detail the teacher never mentioned is not.
+• If the lesson evidence doesn't explicitly describe participation, effort, or a specific strength, use a general, honest, professionally-safe observation instead of fabricating a specific instance — for example "stayed engaged throughout the lesson" or "worked steadily through today's activities" are safe and appropriate when nothing more specific was given; a claim like "answered every question correctly" is not, unless the evidence actually said so.
 • If "Special remarks" are provided in the user message, treat them as high-priority factual input from the teacher — not optional color — and reflect them clearly. If they describe a behavioral concern or something notable that happened during the lesson (for example, the student misbehaving, refusing to participate, or acting out), state this plainly and professionally, most often as the "one area that still needs practice," rather than softening it into vagueness or leaving it out.
-• Never exaggerate praise beyond what the transcript actually supports.
+• Never exaggerate praise beyond what the lesson evidence actually supports.
 • Never use emojis, anywhere.
 • Never use bullet points.
 • Never use headings or labels of any kind.
 • Never sound robotic or templated — vary sentence rhythm naturally rather than mechanically following the writing model's exact sentence structure.
 • Never make every student sound exceptional — if effort was inconsistent or understanding was only partial, say so plainly and professionally rather than inflating it.
-• Mention what was practiced, described in your own words based on the transcript.
-• Mention participation or effort.
-• Mention one clear strength and, if the transcript supports it, one area that still needs practice.
+• Mention what was practiced, described in your own words based on the lesson evidence provided.
+• Mention participation or effort, using the guidance above when the lesson evidence doesn't state this explicitly.
+• Mention one clear strength and, if the lesson evidence supports it, one area that still needs practice.
 • Finish with a short, professional closing sentence.
 • Output only the finished comment itself as plain prose — no heading, no label, no surrounding quotation marks, nothing else before or after it.
 
@@ -2213,9 +2249,9 @@ WRITING MODEL (IMMUTABLE FOR THIS GENERATION)
 
 Exactly one writing model has been randomly selected for this generation, shown below. Follow this model's tone, structure, and voice closely — it defines how this specific comment should sound. Do not blend it with any other style, and do not let any other tone leak in.
 
-The bracketed placeholders in the model below, like [Student] and [topics], are illustrative only, showing where that kind of information goes — they are not the model's own content to copy. Replace [Student] with the actual student's name and [topics] with the actual topics genuinely covered, both drawn from the transcript and the Student field in the user message. Never output a literal bracket or placeholder text in the final comment. The model's sentences themselves are a style and structure guide, not a fill-in-the-blank template — the actual substance must come from this lesson's transcript, not from the model's own example wording.
+The bracketed placeholders in the model below, like [Student] and [topics], are illustrative only, showing where that kind of information goes — they are not the model's own content to copy. Replace [Student] with the actual student's name and [topics] with the actual topics genuinely covered, both drawn from the lesson evidence and the Student field in the user message. Never output a literal bracket or placeholder text in the final comment. The model's sentences themselves are a style and structure guide, not a fill-in-the-blank template — the actual substance must come from this lesson's evidence, not from the model's own example wording.
 
-Never copy the selected model verbatim. Treat the selected model strictly as a writing example, not as a script. Preserve its overall style, rhythm, and structure, while naturally rewriting every sentence using this lesson's own transcript. Every generated comment should feel newly written for this specific lesson, not copied or lightly reworded from the example.
+Never copy the selected model verbatim. Treat the selected model strictly as a writing example, not as a script. Preserve its overall style, rhythm, and structure, while naturally rewriting every sentence using this lesson's own evidence. Every generated comment should feel newly written for this specific lesson, not copied or lightly reworded from the example.
 
 Model: __BLITZ_MODEL_LABEL__
 
@@ -2227,12 +2263,14 @@ VALIDATION CHECKLIST
 ✓ Comment is 70-120 words, and never exceeds the 150-word hard limit.
 ✓ No emojis anywhere.
 ✓ No bullet points or headings.
-✓ Every claim is grounded in the transcript — nothing invented or exaggerated.
+✓ Every claim is grounded in the supplied lesson evidence — nothing invented or exaggerated, no matter how brief that evidence was.
+✓ Conclusions drawn are safe inferences from the supplied evidence, per the Safe Inference Principle — not unsupported claims about grammar, pronunciation, reading, or specific skill improvements that weren't actually stated.
+✓ If the lesson evidence was brief, participation/effort/strength are phrased as safe, general, honest observations rather than fabricated specifics — and the comment leans toward the lower end of the word target rather than being padded.
 ✓ Any "Special remarks" provided (including behavioral or disciplinary concerns) are clearly reflected, not omitted or softened into vagueness.
-✓ Mentions what was practiced, participation or effort, one strength, and (if supported by the transcript) one area needing more practice.
+✓ Mentions what was practiced, participation or effort, one strength, and (if supported by the evidence) one area needing more practice.
 ✓ Ends with a short, professional closing sentence.
 ✓ Follows the tone and structure of the single selected writing model above, not a blend of several.
-✓ Does not reuse the selected model's sentences verbatim or near-verbatim — every sentence is newly written from this lesson's transcript.
+✓ Does not reuse the selected model's sentences verbatim or near-verbatim — every sentence is newly written from this lesson's own evidence.
 ✓ No literal "[Student]", "[topics]", or other bracketed placeholder text remains in the output.`;
 
   /**

@@ -181,7 +181,7 @@ module.exports = function run(){
   {
     const prompt = KidbusterCore.buildBlitzSystemPrompt({ forcedModelKey: 'standard' });
     check('prompt contains "Never copy the selected model verbatim"', prompt.includes('Never copy the selected model verbatim'));
-    check('prompt tells the model to rewrite using the transcript', prompt.includes('naturally rewriting every sentence using this lesson\'s own transcript'));
+    check('prompt tells the model to rewrite using this lesson\'s own evidence', prompt.includes('naturally rewriting every sentence using this lesson\'s own evidence'));
 
     // A near-verbatim reproduction of the Standard model (only the bracketed
     // parts changed) should be caught by the shingle-matching safety net.
@@ -196,7 +196,42 @@ module.exports = function run(){
     check('genuinely rewritten comment (same topic, different wording) -> NOT flagged for copying', !warnRewritten.some(w => w.includes('reproduces wording')));
   }
 
-  return getFailures();
+  console.log('\n14) Lesson Evidence Rule: Blitz formally supports any evidence type, not just a full transcript');
+{
+  const prompt = KidbusterCore.buildBlitzSystemPrompt({ forcedModelKey: 'standard' });
+  check('has a named "LESSON EVIDENCE RULE (IMMUTABLE)" section', prompt.includes('LESSON EVIDENCE RULE (IMMUTABLE)'));
+  check('explicitly lists transcript/teacher notes/summary/bullet points/combination as valid evidence', prompt.includes('a full transcript,') && prompt.includes('teacher notes,') && prompt.includes('a short lesson summary,') && prompt.includes('bullet points,') && prompt.includes('or any combination of these'));
+  check('says to treat supplied evidence as the complete factual record of the lesson', prompt.includes('Treat all supplied lesson evidence as the complete factual record of the lesson'));
+  check('explicitly rules out inventing behavioral observations, not just activities/vocabulary', prompt.includes('achievements, strengths, weaknesses, or behavioral observations'));
+  check('says brief evidence should produce a naturally simpler comment, not filled-in assumptions', prompt.includes('generate a naturally simpler comment rather than filling missing information with assumptions'));
+  check('design goal: explicitly states there is no separate manual mode', prompt.includes('There is no separate "manual mode"'));
+  check('updated core rule uses the exact specified wording', prompt.includes('Use only information supported by the supplied lesson evidence. Lesson evidence may consist of a transcript, teacher notes, a short lesson summary, bullet points, or any combination of these. Never invent information beyond what the supplied evidence reasonably supports.'));
+}
+
+  console.log('\n15) Safe Inference Principle: the exact worked example is present, with correct safe/unsafe lists');
+{
+  const prompt = KidbusterCore.buildBlitzSystemPrompt({ forcedModelKey: 'standard' });
+  check('has a named "SAFE INFERENCE PRINCIPLE" section', prompt.includes('SAFE INFERENCE PRINCIPLE'));
+  check('includes the exact Timmy example evidence', prompt.includes('Timmy was great today. We did a lesson about colors and animals. He was very interested and we had a lot of fun.'));
+  check('lists all 4 safe conclusions', ['Timmy participated well.', 'Lesson topics were colors and animals.', 'The atmosphere was positive.', 'The student was engaged.'].every(s => prompt.includes(s)));
+  check('lists all 5 unsafe conclusions as things NOT to assume', ['Pronunciation improved.', 'Present Simple was practiced.', 'Reading exercises were completed.', 'Speaking confidence increased.', 'Vocabulary retention was excellent.'].every(s => prompt.includes(s)));
+  check('validation checklist has a matching Safe Inference line', prompt.includes('Conclusions drawn are safe inferences from the supplied evidence, per the Safe Inference Principle'));
+}
+
+  console.log('\n16) Terminology consistency: "lesson evidence" replaces bare "notes"/"transcript" framing throughout, in both the prompt and the outgoing user message');
+{
+  const prompt = KidbusterCore.buildBlitzSystemPrompt({ forcedModelKey: 'standard' });
+  check('no leftover "lesson transcript" phrasing implying evidence must be a full transcript', !prompt.includes('lesson transcript'));
+  check('no leftover "the transcript actually supports" phrasing', !prompt.includes('the transcript actually supports'));
+  check('safe-fallback phrasing for participation/effort still present', prompt.includes('stayed engaged throughout the lesson') || prompt.includes('worked steadily through today\'s activities'));
+  check('still permits leaning toward the low end of the word target for brief evidence', prompt.includes('a shorter, honest comment near the low end of the target is correct and expected'));
+
+  const msg = KidbusterCore.buildUserMessage({ studentName: 'Sam', notes: 'x', rating: '4', protocol: 'BLITZ' });
+  check('outgoing user message now labels this "Lesson evidence", not "Lesson notes"', msg.includes('Lesson evidence ('));
+  check('outgoing user message explains it may be transcript/notes/summary/bullet points/combination', msg.includes('teacher notes, a short summary, bullet points, or any combination'));
+}
+
+return getFailures();
 };
 
 if(require.main === module){
