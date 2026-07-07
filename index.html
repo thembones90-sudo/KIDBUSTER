@@ -901,6 +901,10 @@ body.protocol-blitz .generate-btn.loading{
           <label class="field-label" for="teacherName">Teacher</label>
           <input type="text" id="teacherName" placeholder="Layne" value="Layne">
         </div>
+        <div class="field" id="signoffEmojiField">
+          <label class="field-label" for="teacherSignoffEmoji">Sign-off emoji (optional)</label>
+          <input type="text" id="teacherSignoffEmoji" placeholder="e.g. 🐺 — leave blank for the default" maxlength="8">
+        </div>
         <div class="field">
           <label class="field-label" for="studentName">Student</label>
           <input type="text" id="studentName" placeholder="Kaya">
@@ -1630,28 +1634,68 @@ Before returning the report, verify:
    */
   /**
    * Substitutes the actual teacher's name into a fully-built system prompt.
-   * Both protocols' immutable text hardcodes "Layne" (in the sign-off
-   * instruction and the "Teacher Notes supplied by Layne" reference) —
-   * this is a pure, deterministic Facts-layer substitution, done client-side
-   * on the already-built prompt text, exactly like student name or rating
-   * are already threaded through buildUserMessage. The backend never needs
-   * to know anything about prompt structure; it only ever proxies whatever
+   * MA/Sugarcoat/OF's immutable text all hardcode "Layne" in various
+   * places (e.g. the "Teacher Notes supplied by Layne" reference; "Write
+   * as though Layne is speaking" in Sugarcoat) — this is a pure,
+   * deterministic Facts-layer substitution, done client-side on the
+   * already-built prompt text, exactly like student name or rating are
+   * already threaded through buildUserMessage. The backend never needs to
+   * know anything about prompt structure; it only ever proxies whatever
    * text it's given.
    *
-   * The wolf emoji (🐺) in the MA sign-off is specifically Teacher Layne's
-   * personal signature, not a generic decoration — so for any other
-   * teacher name, it's stripped from the prompt's own sign-off
-   * instructions entirely (the model is never told to include it in the
-   * first place). This doesn't touch Sweet Voice's 💖, which isn't
-   * teacher-specific.
-   * @param {string} promptText - a fully-built system prompt (MA or OF)
+   * Deliberately does nothing else — no emoji logic here at all. It's
+   * applied blanket to every protocol's prompt text, and Sugarcoat's own
+   * sign-off has a fixed, protocol-level 💖 that this must never touch.
+   * MA's sign-off emoji is a separate concern — see applyMASignoffEmoji,
+   * called only for MA specifically.
+   * @param {string} promptText - a fully-built system prompt (any protocol)
    * @param {string} teacherName - defaults to 'Layne' if empty/omitted
    * @returns {string}
    */
   function applyTeacherIdentity(promptText, teacherName){
     const name = (teacherName || '').trim();
     if(!name || name.toLowerCase() === 'layne') return promptText; // no-op, preserves exact existing behavior
-    return promptText.split('Layne').join(name).split(' 🐺').join('').split('🐺').join('');
+    return promptText.split('Layne').join(name);
+  }
+
+  /**
+   * MA-only: decides the sign-off emoji and rewrites "Teacher {name}" in
+   * the (already name-substituted) prompt text accordingly. Deliberately
+   * separate from applyTeacherIdentity — that function is applied blanket
+   * to every protocol's prompt text, and Sugarcoat's own sign-off already
+   * has a fixed, protocol-level 💖 that must never be touched; inserting
+   * an emoji unconditionally there would double up next to it. This is
+   * only ever called for MA specifically (see generate()).
+   *
+   * Default behavior (customEmoji left blank) is unchanged from before:
+   * Layne gets 🐺, any other teacher gets no emoji at all. If customEmoji
+   * is provided, ANY teacher — including Layne — can opt into their own
+   * sign-off emoji instead, which is exactly what this exists for: the
+   * wolf was never meant to be Layne-exclusive by design, just the
+   * default nobody had reason to change until asked.
+   * @param {string} promptText - MA's prompt, already name-substituted
+   * @param {string} teacherName
+   * @param {string} [customEmoji] - explicit override; blank means "use the default"
+   * @returns {string}
+   */
+  function applyMASignoffEmoji(promptText, teacherName, customEmoji){
+    const name = (teacherName || '').trim();
+    const isLayne = !name || name.toLowerCase() === 'layne';
+    const effectiveName = isLayne ? 'Layne' : name;
+
+    // Strip whatever's currently there (always the literal 🐺 in the raw
+    // template) so the correct final emoji — default or custom — can be
+    // (re)inserted in exactly one place, rather than trying to patch the
+    // existing one in place.
+    let result = promptText.split(' 🐺').join('').split('🐺').join('');
+
+    const trimmedCustomEmoji = (customEmoji || '').trim();
+    const finalEmoji = trimmedCustomEmoji || (isLayne ? '🐺' : '');
+
+    if(finalEmoji){
+      result = result.split('Teacher ' + effectiveName).join('Teacher ' + effectiveName + ' ' + finalEmoji);
+    }
+    return result;
   }
 
   function cleanTranscript(rawText){
@@ -2386,15 +2430,18 @@ VALIDATION CHECKLIST
       key: 'MA',
       label: 'Classic',
       buildSystemPrompt: buildMASystemPrompt,
-      // The wolf emoji sign-off is Teacher Layne's personal signature —
-      // any other teacher name means the model was never even told to
-      // include it (see applyTeacherIdentity), so the validator must not
-      // expect it either. Passing '' (not undefined) tells analyzeMAOutput
-      // "expect no emoji at all", vs. undefined which means "use the
-      // default" — see analyzeMAOutput's own comment on that distinction.
-      analyze: (text, lvl, teacherName, lengthFormat) => {
+      // The wolf emoji sign-off defaults to Teacher Layne's personal
+      // signature, but any teacher can now opt into their own via the
+      // signoffEmoji param (6th positional arg — the 5th, studentGender,
+      // is OF-specific and unused here). Passing '' (not undefined) tells
+      // analyzeMAOutput "expect no emoji at all", vs. undefined which
+      // means "use the default" — see analyzeMAOutput's own comment on
+      // that distinction.
+      analyze: (text, lvl, teacherName, lengthFormat, studentGender, signoffEmoji) => {
         const isLayne = !teacherName || teacherName.trim().toLowerCase() === 'layne';
-        return analyzeMAOutput(text, lvl, teacherName, undefined, isLayne ? undefined : '', LENGTH_TIERS[lengthFormat] || LENGTH_TIERS.long);
+        const trimmedCustomEmoji = (signoffEmoji || '').trim();
+        const expectedEmoji = trimmedCustomEmoji || (isLayne ? undefined : '');
+        return analyzeMAOutput(text, lvl, teacherName, undefined, expectedEmoji, LENGTH_TIERS[lengthFormat] || LENGTH_TIERS.long);
       }
     },
     MS: {
@@ -2484,6 +2531,7 @@ VALIDATION CHECKLIST
     cleanTranscript,
     buildUserMessage,
     applyTeacherIdentity,
+    applyMASignoffEmoji,
     analyzeMAOutput,
     analyzeOFOutput,
     analyzeBlitzOutput,
@@ -2597,6 +2645,10 @@ function buildRatingTrack(){
   // need a pronoun at all), so the pronoun toggle only matters — and only
   // shows — for OF.
   document.getElementById('studentGenderField').style.display = isOF ? '' : 'none';
+  // The sign-off emoji is MA-specific — Sugarcoat's 💖 is a fixed,
+  // protocol-level choice (never teacher-personal), OF never has one,
+  // and Blitz has no signed-off "Teacher {name}" line at all.
+  document.getElementById('signoffEmojiField').style.display = (protocolKey === 'MA') ? '' : 'none';
   // The notes field works fine with a couple of hand-typed sentences —
   // it's only labeled "Krisp notes" because that's the common source for
   // MA/Sugarcoat's much more detailed vocabulary/grammar requirements.
@@ -2652,7 +2704,7 @@ function buildRatingTrack(){
 buildRatingTrack();
 
 // ---------- text field persistence ----------
-['teacherName','studentName','krispNotes','specialRemarks'].forEach(id => {
+['teacherName','studentName','krispNotes','specialRemarks','teacherSignoffEmoji'].forEach(id => {
   document.getElementById(id).addEventListener('input', saveDraft);
 });
 
@@ -2742,7 +2794,8 @@ function readFormState(){
     rating: state.rating,
     protocol: document.querySelector('input[name="protocol"]:checked').value,
     lengthFormat: (document.querySelector('input[name="lengthFormat"]:checked') || {}).value || 'long',
-    studentGender: (document.querySelector('input[name="studentGender"]:checked') || {}).value || ''
+    studentGender: (document.querySelector('input[name="studentGender"]:checked') || {}).value || '',
+    signoffEmoji: document.getElementById('teacherSignoffEmoji').value.trim()
   };
 }
 
@@ -3088,10 +3141,13 @@ async function generate(){
   const cleanedNotes = KidbusterCore.cleanTranscript(form.notes);
   console.log('[Kidbuster] transcript cleaning — raw:', form.notes.length, 'chars → cleaned:', cleanedNotes.length, 'chars');
 
-  const systemPrompt = KidbusterCore.applyTeacherIdentity(
+  let systemPrompt = KidbusterCore.applyTeacherIdentity(
     protocol.buildSystemPrompt({ rating: form.rating, lengthFormat: form.lengthFormat }),
     form.teacherName
   );
+  if(form.protocol === 'MA'){
+    systemPrompt = KidbusterCore.applyMASignoffEmoji(systemPrompt, form.teacherName, form.signoffEmoji);
+  }
   const userMessage = KidbusterCore.buildUserMessage({ ...form, notes: cleanedNotes });
 
   setLoading(true);
@@ -3145,7 +3201,7 @@ async function generate(){
     }else{
       recordGeneration(form.protocol, 0); // report still counts even if usage data wasn't returned
     }
-    const lint = protocol.analyze(text, form.rating, form.teacherName, form.lengthFormat, form.studentGender);
+    const lint = protocol.analyze(text, form.rating, form.teacherName, form.lengthFormat, form.studentGender, form.signoffEmoji);
     setCurrentReport(text, lint);
     outputBox.className = 'output-box';
     outputBox.textContent = text;
@@ -3433,7 +3489,8 @@ function collectDraft(){
     teacherName: form.teacherName,
     studentName: form.studentName,
     krispNotes: form.notes,
-    specialRemarks: form.remarks
+    specialRemarks: form.remarks,
+    signoffEmoji: form.signoffEmoji
   };
 }
 
@@ -3450,6 +3507,7 @@ function restoreDraft(){
   document.getElementById('studentName').value = draft.studentName || '';
   document.getElementById('krispNotes').value = draft.krispNotes || '';
   document.getElementById('specialRemarks').value = draft.specialRemarks || '';
+  document.getElementById('teacherSignoffEmoji').value = draft.signoffEmoji || '';
   updateKrispCounter();
 
   if(draft.protocol){
