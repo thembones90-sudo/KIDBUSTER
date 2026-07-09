@@ -253,6 +253,91 @@ body{
   display:inline-block;
   transition:background-color 0.45s ease, box-shadow 0.45s ease;
 }
+.header-actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.account-btn{
+  width:auto;
+  min-height:34px;
+  padding:8px 14px;
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+}
+.account-panel{
+  background:var(--surface);
+  border:1px solid var(--toxin-border);
+  border-radius:var(--radius);
+  padding:16px;
+  margin:-10px 0 20px;
+  box-shadow:inset 0 1px 0 rgba(var(--toxin-rgb),0.05), 0 0 22px -12px var(--toxin-glow);
+}
+.account-panel-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:14px;
+}
+.account-title{
+  font-family:var(--font-display);
+  font-size:16px;
+  margin:0 0 4px;
+}
+.account-summary{
+  color:var(--text-dim);
+  font-size:12px;
+  line-height:1.45;
+  margin:0;
+}
+.account-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:10px;
+  margin-bottom:14px;
+}
+.account-metric{
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:12px;
+  min-width:0;
+  background:rgba(255,255,255,0.02);
+}
+.account-label{
+  color:var(--text-dim);
+  font-family:var(--font-mono);
+  font-size:10px;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  margin:0 0 6px;
+}
+.account-value{
+  color:var(--text);
+  font-size:13px;
+  line-height:1.35;
+  margin:0;
+  overflow-wrap:anywhere;
+}
+.account-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.account-actions .btn-secondary, .account-panel-head .btn-secondary{
+  width:auto;
+  padding:8px 14px;
+}
+@media (max-width:700px){
+  .header-actions{justify-content:flex-start;}
+  .account-grid{grid-template-columns:1fr;}
+  .account-panel-head{display:block;}
+  .account-panel-head .btn-secondary{margin-top:10px;}
+}
 
 .grid{
   display:grid;
@@ -300,6 +385,11 @@ label.field-label{
   align-items:center;
   gap:6px;
   cursor:pointer;
+}
+.protocol-lightning{
+  color:#fff700;
+  text-shadow:0 0 8px rgba(255,247,0,0.85);
+  line-height:1;
 }
 /* OF's label is much longer than the other three ("OF Protocol (Trial
    Evaluation)" vs one word each) — forcing it to occupy the full row
@@ -901,6 +991,19 @@ body.protocol-beida .generate-btn.loading{
   vertical-align:middle;
   transition:background-color 0.45s ease, color 0.45s ease, border-color 0.45s ease;
 }
+.blitz-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.blitz-bolt{
+  height:16px;
+  width:auto;
+  display:inline-block;
+  object-fit:contain;
+  pointer-events:none;
+  filter:drop-shadow(0 0 4px rgba(212,255,92,0.75));
+}
 
 .lint-box{
   margin-top:14px;
@@ -945,9 +1048,9 @@ body.protocol-beida .generate-btn.loading{
   border:1px solid var(--toxin-border);
   border-radius:var(--radius);
   box-shadow:0 0 40px -8px var(--toxin-glow), 0 20px 60px -20px rgba(0,0,0,0.7);
-  padding:32px;
+  padding:28px;
   width:100%;
-  max-width:420px;
+  max-width:560px;
   max-height:90vh;
   overflow-y:auto;
 }
@@ -965,10 +1068,50 @@ body.protocol-beida .generate-btn.loading{
   line-height:1.5;
 }
 .license-modal-section{
-  margin-bottom:18px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:16px;
+  margin-bottom:12px;
+  background:rgba(255,255,255,0.025);
 }
 .license-modal-section input{
   width:100%;
+}
+.license-modal-section.primary{
+  border-color:var(--toxin-border);
+  background:var(--toxin-dim);
+  box-shadow:0 0 24px -18px var(--toxin-glow);
+}
+.license-modal-plan-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+.license-modal-plan-name{
+  font-family:var(--font-display);
+  color:var(--text);
+  font-size:16px;
+  margin:0;
+}
+.license-modal-plan-note{
+  color:var(--text-dim);
+  font-family:var(--font-body);
+  font-size:12px;
+  line-height:1.45;
+  margin:4px 0 0;
+}
+.license-modal-pill{
+  border:1px solid var(--toxin-border);
+  border-radius:999px;
+  color:var(--toxin);
+  font-family:var(--font-mono);
+  font-size:10px;
+  letter-spacing:0.08em;
+  padding:4px 8px;
+  text-transform:uppercase;
+  white-space:nowrap;
 }
 .license-modal-divider{
   display:flex;
@@ -995,6 +1138,23 @@ body.protocol-beida .generate-btn.loading{
   margin-bottom:0;
   line-height:1.5;
 }
+.license-modal-actions{
+  display:grid;
+  gap:10px;
+}
+.license-modal-actions.two{
+  grid-template-columns:1fr 1fr;
+}
+.license-modal-recover{
+  border-top:1px solid var(--border);
+  margin-top:14px;
+  padding-top:14px;
+}
+@media (max-width:560px){
+  .license-modal-actions.two{
+    grid-template-columns:1fr;
+  }
+}
 </style>
 
 </head>
@@ -1008,7 +1168,42 @@ body.protocol-beida .generate-btn.loading{
         <h1 class="title"><span class="mode-badge" id="protocolBadge">Classic</span></h1>
       </div>
     </div>
-    <div class="status-dot"><span class="dot"></span>LOCAL MODE · NO STORAGE</div>
+    <div class="header-actions">
+      <button class="btn-secondary account-btn" id="accountBtn" type="button">Access</button>
+      <div class="status-dot"><span class="dot"></span>LOCAL MODE · NO STORAGE</div>
+    </div>
+  </div>
+
+  <div class="account-panel" id="accountPanel" style="display:none;">
+    <div class="account-panel-head">
+      <div>
+        <p class="account-title">Access status</p>
+        <p class="account-summary" id="accountSummary">No key checked yet.</p>
+      </div>
+      <button class="btn-secondary" id="accountRefreshBtn" type="button">Refresh</button>
+    </div>
+    <div class="account-grid">
+      <div class="account-metric">
+        <p class="account-label">Plan</p>
+        <p class="account-value" id="accountPlan">Not signed in</p>
+      </div>
+      <div class="account-metric">
+        <p class="account-label">Status</p>
+        <p class="account-value" id="accountStatus">No key</p>
+      </div>
+      <div class="account-metric">
+        <p class="account-label">Usage</p>
+        <p class="account-value" id="accountUsage">-</p>
+      </div>
+      <div class="account-metric">
+        <p class="account-label">Saved key</p>
+        <p class="account-value" id="accountKey">None</p>
+      </div>
+    </div>
+    <div class="account-actions">
+      <button class="btn-secondary" id="accountChangeKeyBtn" type="button">Change key</button>
+      <button class="btn-secondary" id="accountUpgradeBtn" type="button">Upgrade to Pro</button>
+    </div>
   </div>
 
   <div class="grid">
@@ -1020,7 +1215,7 @@ body.protocol-beida .generate-btn.loading{
           <div class="protocol-select" id="protocolSelect">
             <label><input type="radio" name="protocol" value="MA" checked> Classic<span class="info-icon" tabindex="0" data-tooltip="Full detailed report — vocabulary, grammar, homework. The standard format.">?</span></label>
             <label><input type="radio" name="protocol" value="MS"> Sugarcoat<span class="info-icon" tabindex="0" data-tooltip="Same report as Classic, written in a warmer, parent-friendly voice.">?</span></label>
-            <label><input type="radio" name="protocol" value="BLITZ"> Blitz<span class="info-icon" tabindex="0" data-tooltip="Short, neutral comment for quick platform feedback. No rating-based tone shifts.">?</span></label>
+            <label><input type="radio" name="protocol" value="BLITZ"> Blitz <span class="protocol-lightning" aria-hidden="true">&#9889;</span><span class="info-icon" tabindex="0" data-tooltip="Short, neutral comment for quick platform feedback. No rating-based tone shifts.">?</span></label>
             <label><input type="radio" name="protocol" value="BEIDA"> Beida<span class="info-icon" tabindex="0" data-tooltip="Two-field comment matching the BetaKid platform's own form: Learning Content + General Performance.">?</span></label>
             <label><input type="radio" name="protocol" value="OF"> OF Protocol (Trial Evaluation)<span class="info-icon" tabindex="0" data-tooltip="3-section narrative for trial-lesson evaluations — not a regular lesson report.">?</span></label>
           </div>
@@ -1116,21 +1311,52 @@ body.protocol-beida .generate-btn.loading{
 
 <div id="licenseModalOverlay" class="license-modal-overlay" style="display:none;">
   <div class="license-modal">
-    <h2 class="license-modal-title">Get started with Pathfinder</h2>
-    <p class="license-modal-subtitle">Free: 20 Classic reports/month. Pro: every protocol, unlimited.</p>
+    <h2 class="license-modal-title">Access Pathfinder</h2>
+    <p class="license-modal-subtitle">Use a saved key, start free, or prepare a Pro checkout when paid access opens.</p>
 
-    <div class="license-modal-section">
-      <label class="field-label" for="licenseModalEmail">New here? Get a free key</label>
-      <input type="email" id="licenseModalEmail" placeholder="your@email.com">
-      <button class="generate-btn" id="licenseModalFreeBtn" style="margin-top:10px;"><span class="btn-label" id="licenseModalFreeBtnLabel">Get my free key</span></button>
+    <div class="license-modal-section primary">
+      <div class="license-modal-plan-head">
+        <div>
+          <p class="license-modal-plan-name">Pro</p>
+          <p class="license-modal-plan-note">Unlimited reports, every current and future protocol.</p>
+        </div>
+        <span class="license-modal-pill">launch ready</span>
+      </div>
+      <label class="field-label" for="licenseModalProEmail">Email for Pro checkout</label>
+      <input type="email" id="licenseModalProEmail" placeholder="your@email.com">
+      <button class="generate-btn" id="licenseModalProBtn" style="margin-top:10px;"><span class="btn-label" id="licenseModalProBtnLabel">Continue to Pro</span></button>
     </div>
 
-    <div class="license-modal-divider"><span>or</span></div>
+    <div class="license-modal-actions two">
+      <div class="license-modal-section">
+        <div class="license-modal-plan-head">
+          <div>
+            <p class="license-modal-plan-name">Free</p>
+            <p class="license-modal-plan-note">20 Classic reports/month.</p>
+          </div>
+        </div>
+        <label class="field-label" for="licenseModalEmail">Email for free key</label>
+        <input type="email" id="licenseModalEmail" placeholder="your@email.com">
+        <button class="generate-btn" id="licenseModalFreeBtn" style="margin-top:10px;"><span class="btn-label" id="licenseModalFreeBtnLabel">Get my free key</span></button>
+      </div>
 
-    <div class="license-modal-section">
-      <label class="field-label" for="licenseModalKeyInput">Already have a key?</label>
-      <input type="text" id="licenseModalKeyInput" placeholder="kb_live_...">
-      <button class="btn-secondary" id="licenseModalKeyBtn" style="margin-top:10px; width:100%;">Continue</button>
+      <div class="license-modal-section">
+        <div class="license-modal-plan-head">
+          <div>
+            <p class="license-modal-plan-name">Already subscribed</p>
+            <p class="license-modal-plan-note">Paste your existing license or owner key.</p>
+          </div>
+        </div>
+        <label class="field-label" for="licenseModalKeyInput">License key</label>
+        <input type="text" id="licenseModalKeyInput" placeholder="kb_live_...">
+        <button class="btn-secondary" id="licenseModalKeyBtn" style="margin-top:10px; width:100%;">Continue</button>
+        <div class="license-modal-recover">
+          <label class="field-label" for="licenseModalRecoverEmail">Lost key?</label>
+          <p class="license-modal-plan-note">Enter the email used for Free or Pro and this browser will use that key again.</p>
+          <input type="email" id="licenseModalRecoverEmail" placeholder="your@email.com">
+          <button class="btn-secondary" id="licenseModalRecoverBtn" style="margin-top:10px; width:100%;"><span id="licenseModalRecoverBtnLabel">Recover and use key</span></button>
+        </div>
+      </div>
     </div>
 
     <p class="license-modal-error" id="licenseModalError" style="display:none;"></p>
@@ -1155,10 +1381,10 @@ const KidbusterCore = (function(){
   const LEVELS = ['1','1.5','2','2.5','3','3.5','4','4.5','5','6'];
 
   const LEVEL_TONE_DESC = {
-    '1':   'Complete shambles. Firm, improvement-focused, strong parental guidance.',
-    '1.5': 'Significant difficulties but genuine effort shown. Firm guidance with noticeable encouragement.',
-    '2':   'Below expectations. Encouraging but clear about the need for effort.',
-    '2.5': 'Improving but inconsistent. Balanced between constructive guidance and growing confidence.',
+    '1':   'Very poor performance. Direct, firm, improvement-focused, with strong parental guidance and no softening of the main concern.',
+    '1.5': 'Major difficulties with limited success. Firm and clear about weak performance, while acknowledging any genuine effort shown.',
+    '2':   'Below expectations. Sharper than neutral, honest about lack of effort or weak results, with clear next steps.',
+    '2.5': 'Inconsistent and not yet satisfactory. Balanced but still firm, making it clear that better focus, effort, or accuracy is needed.',
     '3':   'Neutral. Balanced, steady, light guidance.',
     '3.5': 'Mostly neutral with some warm praise.',
     '4':   'Better than expected. Warm, proud, highlighting growth.',
@@ -1185,6 +1411,7 @@ const KidbusterCore = (function(){
   // rating string through unchanged; never parse it to an integer.
 
   const MA_PARENT_NOTE_LEVELS = ['1','1.5','2','2.5'];
+  const MA_NO_STAR_LEVELS = ['1','1.5','2','2.5'];
 
   // The protocol text references "the approved star collection" for Total
   // Stars Today but never defines it. This closes that gap — it's a fact
@@ -1213,10 +1440,10 @@ The MA Protocol is the highest-priority instruction for report generation. It mu
 LEVEL INTEGRATION
 (Internal only. Never shown to parents.)
 
-• 1/5 = Complete shambles. Firm, improvement-focused, strong parental guidance.
-• 1.5/5 = Significant difficulties but genuine effort shown. Firm guidance with noticeable encouragement.
-• 2/5 = Below expectations. Encouraging but clear about the need for effort.
-• 2.5/5 = Improving but inconsistent. Balanced between constructive guidance and growing confidence.
+• 1/5 = Very poor performance. Direct, firm, improvement-focused, with strong parental guidance and no softening of the main concern.
+• 1.5/5 = Major difficulties with limited success. Firm and clear about weak performance, while acknowledging any genuine effort shown.
+• 2/5 = Below expectations. Sharper than neutral, honest about lack of effort or weak results, with clear next steps.
+• 2.5/5 = Inconsistent and not yet satisfactory. Balanced but still firm, making it clear that better focus, effort, or accuracy is needed.
 • 3/5 = Neutral. Balanced, steady, light guidance.
 • 3.5/5 = Mostly neutral with some warm praise.
 • 4/5 = Better than expected. Warm, proud, highlighting growth.
@@ -1265,6 +1492,7 @@ Content
 • Keep vocabulary definitions short, simple and child-friendly.
 • Keep observations based on actual student performance whenever possible.
 • Match the writing tone precisely to the selected Level Integration score.
+• For ratings 1, 1.5, 2, and 2.5, do not over-praise, sugarcoat, or make the report sound like a successful lesson. The tone must be noticeably firmer and more direct than rating 3, clearly stating that the student's performance, focus, effort, behavior, or accuracy was not good enough today while still remaining professional, constructive, and child-safe.
 • Use the actual lesson theme for Today's Lesson whenever possible — not a generic label like "English Practice." Name what the lesson was actually about.
 • Positive Feedback should reference observable behavior from today's specific lesson whenever possible, not generic encouragement that could apply to any student on any day.
 
@@ -1283,7 +1511,8 @@ Template Rules
 * Grammar Mission
   OR
 * Speaking Mission
-  • Total Stars Today must contain exactly 10 star emojis from the approved star collection.
+  • Total Stars Today appears for ratings 3 and above and must contain exactly 10 star emojis from the approved star collection.
+  • For ratings 1, 1.5, 2, and 2.5, omit the entire Total Stars Today section. These reports receive no stars.
   • End every report exactly with:
 
 Cheers,
@@ -1373,7 +1602,7 @@ OR
 Speaking Mission 🎯
 [Task]
 
-Total Stars Today:
+Total Stars Today: (Only for ratings 3 and above)
 
 [Exactly 10 approved star emojis]
 
@@ -1402,7 +1631,8 @@ Before returning the report, verify:
 ✓ Today's Lesson names the actual lesson theme, not a generic label.
 ✓ Today's Superpower is the strongest demonstrated skill this lesson, not a random positive trait.
 ✓ Positive Feedback references observable behavior from today's specific lesson, not generic encouragement.
-✓ Exactly 10 star emojis displayed.
+✓ Ratings 3 and above display exactly 10 star emojis.
+✓ Ratings 1, 1.5, 2, and 2.5 omit Total Stars Today entirely.
 ✓ Teacher speaks in first person throughout — name/title appears only in the final signature, nowhere else in the body.
 ✓ Report is under the __SOFT_TARGET__ working target — and under absolutely no circumstance at or over the immutable __HARD_CEILING__ ceiling.
 ✓ No markdown formatting.
@@ -1572,13 +1802,14 @@ Before returning the report, verify:
   function buildMARuntimeParams(params){
     const lvl = params.rating || '3';
     const includeParentNote = MA_PARENT_NOTE_LEVELS.includes(lvl);
+    const includeStars = !MA_NO_STAR_LEVELS.includes(lvl);
 
     return [
       'RUNTIME PARAMETERS FOR THIS REPORT (computed from the app, not part of the protocol text above — apply the protocol\'s rules using these exact values):',
       '- Selected rating: ' + lvl + '/5.',
       '- Tone for this rating per the Level Integration table: ' + LEVEL_TONE_DESC[lvl] + (isHalfPoint(lvl) ? ' This is a transitional half-point level, not a rounded value — blend naturally between its two neighboring tones.' : ''),
       '- Parent Note for this report: ' + (includeParentNote ? 'INCLUDE it (this rating is 1, 1.5, 2, or 2.5).' : 'OMIT it entirely (this rating is above 2.5).'),
-      '- The "approved star collection" for Total Stars Today is: ' + APPROVED_STARS_ALL.join(' ') + '. Favor ' + APPROVED_STARS_PRIMARY.join(' and ') + ' as the primary stars (most of the 10). Use ' + APPROVED_STARS_VARIETY.join(', ') + ' only occasionally, for variety — not as the majority. Use no emoji outside this list for the star count.'
+      '- Total Stars Today for this report: ' + (includeStars ? 'INCLUDE it with exactly 10 star emojis from this approved collection: ' + APPROVED_STARS_ALL.join(' ') + '. Favor ' + APPROVED_STARS_PRIMARY.join(' and ') + ' as the primary stars (most of the 10). Use ' + APPROVED_STARS_VARIETY.join(', ') + ' only occasionally, for variety — not as the majority. Use no emoji outside this list for the star count.' : 'OMIT the entire Total Stars Today section. Ratings 1, 1.5, 2, and 2.5 receive no stars.')
     ].join('\n');
   }
 
@@ -1655,7 +1886,9 @@ Before returning the report, verify:
       '• Vocabulary definitions must remain short and child-friendly.',
       "• Notes should be based on the student's actual performance whenever possible.",
       '• Keep the tone appropriate to the selected Level Integration score.',
-      '• Exactly 10 star emojis must appear together, on their own line near the end of the report, with no heading before them.',
+      '• For ratings 1, 1.5, 2, and 2.5, Sweet Voice must still be honest: do not over-praise, hide weak performance, or make the lesson sound successful. Keep the language gentle, but make the message clearly firmer than rating 3 and directly name the need for better focus, effort, behavior, or accuracy.',
+      '• Ratings 3 and above must include exactly 10 star emojis together, on their own line near the end of the report, with no heading before them.',
+      '• Ratings 1, 1.5, 2, and 2.5 receive no stars. Omit the star line entirely for those ratings.',
       '• The educational framework is immutable. Grammar explanations, homework formats, vocabulary structure, pronunciation section, and overall report order must remain identical to the MA Protocol.',
       '• The only difference from the MA Protocol is the emotional narration, warmth, encouragement, and storytelling style.',
       '• Write as though Layne is speaking to a beloved child with endless patience, kindness, and genuine joy.',
@@ -1750,8 +1983,8 @@ Before returning the report, verify:
       'Speaking Mission 🎯',
       '[Task]',
       '',
-      '(Do not print a heading before the stars — simply place the 10 star emojis on their own line.)',
-      '[Exactly 10 star emojis.]',
+      '(Only for ratings 3 and above. Do not print a heading before the stars — simply place the 10 star emojis on their own line. Omit this line entirely for ratings 1, 1.5, 2, and 2.5.)',
+      '[Exactly 10 star emojis, only when rating is 3 or above.]',
       '',
       "[Write a sweet, uplifting closing that leaves the child smiling and excited for the next lesson.]",
       '',
@@ -1808,11 +2041,8 @@ Before returning the report, verify:
    * know anything about prompt structure; it only ever proxies whatever
    * text it's given.
    *
-   * Deliberately does nothing else — no emoji logic here at all. It's
-   * applied blanket to every protocol's prompt text, and Sugarcoat's own
-   * sign-off has a fixed, protocol-level 💖 that this must never touch.
-   * MA's sign-off emoji is a separate concern — see applyMASignoffEmoji,
-   * called only for MA specifically.
+   * Deliberately does nothing else — hidden teacher signature emoji logic
+   * is handled after name substitution, once the protocol is known.
    * @param {string} promptText - a fully-built system prompt (any protocol)
    * @param {string} teacherName - defaults to 'Layne' if empty/omitted
    * @returns {string}
@@ -1821,6 +2051,14 @@ Before returning the report, verify:
     const name = (teacherName || '').trim();
     if(!name || name.toLowerCase() === 'layne') return promptText; // no-op, preserves exact existing behavior
     return promptText.split('Layne').join(name);
+  }
+
+  function defaultTeacherSignatureEmoji(teacherName, protocolKey){
+    const name = (teacherName || '').trim().toLowerCase();
+    if(name === 'faye') return '🧚';
+    if(name === 'sissy') return '🌻';
+    if((!name || name === 'layne') && protocolKey === 'MA') return '🐺';
+    return '';
   }
 
   /**
@@ -1832,12 +2070,10 @@ Before returning the report, verify:
    * an emoji unconditionally there would double up next to it. This is
    * only ever called for MA specifically (see generate()).
    *
-   * Default behavior (customEmoji left blank) is unchanged from before:
-   * Layne gets 🐺, any other teacher gets no emoji at all. If customEmoji
-   * is provided, ANY teacher — including Layne — can opt into their own
-   * sign-off emoji instead, which is exactly what this exists for: the
-   * wolf was never meant to be Layne-exclusive by design, just the
-   * default nobody had reason to change until asked.
+   * Default behavior (customEmoji left blank): Layne gets 🐺 (MA only),
+   * Faye gets 🧚, Sissy gets 🌻 (both MA and Sugarcoat for Faye/Sissy),
+   * and any other teacher gets no emoji at all. If customEmoji is
+   * provided, ANY teacher can opt into their own sign-off emoji instead.
    * @param {string} promptText - MA's prompt, already name-substituted
    * @param {string} teacherName
    * @param {string} [customEmoji] - explicit override; blank means "use the default"
@@ -1852,15 +2088,28 @@ Before returning the report, verify:
     // template) so the correct final emoji — default or custom — can be
     // (re)inserted in exactly one place, rather than trying to patch the
     // existing one in place.
-    let result = promptText.split(' 🐺').join('').split('🐺').join('');
+    let result = promptText.split(' 🐺').join('').split('🐺').join('').split(' 🧚').join('').split('🧚').join('');
 
     const trimmedCustomEmoji = (customEmoji || '').trim();
-    const finalEmoji = trimmedCustomEmoji || (isLayne ? '🐺' : '');
+    const finalEmoji = trimmedCustomEmoji || defaultTeacherSignatureEmoji(effectiveName, 'MA');
 
     if(finalEmoji){
       result = result.split('Teacher ' + effectiveName).join('Teacher ' + effectiveName + ' ' + finalEmoji);
     }
     return result;
+  }
+
+  function applyProtocolSignoffEmoji(promptText, teacherName, protocolKey){
+    const name = (teacherName || '').trim() || 'Layne';
+    const finalEmoji = defaultTeacherSignatureEmoji(name, protocolKey);
+    if(!finalEmoji) return promptText;
+    if(protocolKey === 'MS'){
+      return promptText.split('Teacher ' + name + ' 💖').join('Teacher ' + name + ' ' + finalEmoji + ' 💖');
+    }
+    if(protocolKey === 'OF'){
+      return promptText.split('Teacher ' + name).join('Teacher ' + name + ' ' + finalEmoji);
+    }
+    return promptText;
   }
 
   function cleanTranscript(rawText){
@@ -1953,6 +2202,10 @@ Before returning the report, verify:
       // explicit pronoun instead of guessing one from the student's name.
       const teacherName = (params.teacherName || '').trim() || 'Layne';
       msg += `Teacher: ${teacherName} — use exactly this name in the required greeting; never invent or guess a different one.\n`;
+      const hiddenBeidaEmoji = defaultTeacherSignatureEmoji(teacherName, 'BEIDA');
+      if(hiddenBeidaEmoji){
+        msg += `Immediately after the teacher's name in the greeting, include exactly this emoji: ${hiddenBeidaEmoji} (e.g. "teacher ${teacherName} ${hiddenBeidaEmoji} here!").\n`;
+      }
     }
     if(isOF){
       // OF is the only protocol written entirely in the third person about
@@ -2031,11 +2284,11 @@ Before returning the report, verify:
     const name = (teacherName || 'Layne').trim();
     const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const phrase = signoffPhrase || 'Cheers,';
-    // undefined means "use the protocol default" (🐺 for MA); an explicit
+    // undefined means "use the MA protocol default" (🐺 for Layne); an explicit
     // '' means "no emoji is expected at all" — used for MA when the
-    // teacher isn't Layne, since the wolf is her personal signature, not
+    // teacher has no hidden signature, since the wolf is Layne's personal signature, not
     // a generic decoration every teacher gets.
-    const emoji = signoffEmoji === undefined ? '🐺' : signoffEmoji;
+    const emoji = signoffEmoji === undefined ? defaultTeacherSignatureEmoji(name, 'MA') : signoffEmoji;
     const escapedPhrase = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const warnings = [];
     const tier = lengthTier || LENGTH_TIERS.long;
@@ -2053,7 +2306,7 @@ Before returning the report, verify:
       warnings.push('Report is ' + charCount + ' characters — over the ' + tier.softTarget + ' working target. Trim before sending to stay safely under the ' + tier.hardCeiling + ' absolute limit.');
     }
 
-    // --- exact star count (uses the same approved list sent to the model) ---
+    // --- rating-aware star rule (uses the same approved list sent to the model) ---
     // Counting must be scoped, never done across the whole report — the
     // protocol allows any approved star emoji to double as a decorative
     // vocabulary icon (e.g. "Soul ✨ – ..."), which would otherwise inflate
@@ -2080,10 +2333,16 @@ Before returning the report, verify:
       }
     }
     if(starsScopeText === null){
-      warnings.push('Could not locate the "Total Stars Today" section to verify star count.');
+      if(!MA_NO_STAR_LEVELS.includes(lvl)){
+        warnings.push('Could not locate the "Total Stars Today" section to verify star count.');
+      }
     }else{
       const stars = (starsScopeText.match(starRegex) || []).length;
-      if(stars !== 10) warnings.push('Star count is ' + stars + ', expected exactly 10.');
+      if(MA_NO_STAR_LEVELS.includes(lvl)){
+        if(starsSectionMatch || stars > 0) warnings.push('Total Stars Today should be omitted entirely at ratings below 3.');
+      }else if(stars !== 10){
+        warnings.push('Star count is ' + stars + ', expected exactly 10.');
+      }
     }
 
     warnings.push(...checkForbiddenFormatting(text));
@@ -2335,8 +2594,11 @@ Before returning the report, verify:
     }
 
     // --- exact closing ---
-    if(!new RegExp('Cheers,\\s*\\n?\\s*Teacher ' + escapedName + '\\s*$', 'i').test(text.trim())){
-      warnings.push('Closing sign-off does not exactly match "Cheers, / Teacher ' + name + '".');
+    const emoji = defaultTeacherSignatureEmoji(name, 'OF');
+    const escapedEmoji = emoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const emojiPart = emoji ? '\\s*' + escapedEmoji : '';
+    if(!new RegExp('Cheers,\\s*\\n?\\s*Teacher ' + escapedName + emojiPart + '\\s*$', 'i').test(text.trim())){
+      warnings.push('Closing sign-off does not exactly match "Cheers, / Teacher ' + name + (emoji ? ' ' + emoji : '') + '".');
     }
 
     return warnings;
@@ -2771,9 +3033,13 @@ VALIDATION CHECKLIST
     if(learningContent.length < 200 || learningContent.length > 2000){
       warnings.push('Learning Content is ' + learningContent.length + ' characters — must be between 200 and 2000 (the platform\'s own hard limits).');
     }
-    const greetingRegex = new RegExp('^Hi [^,]+,\\s*teacher ' + escapedName + ' here!', 'i');
+    const hiddenBeidaEmoji = defaultTeacherSignatureEmoji(name, 'BEIDA');
+    const escapedHiddenEmoji = hiddenBeidaEmoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const greetingRegex = hiddenBeidaEmoji
+      ? new RegExp('^Hi [^,]+,\\s*teacher ' + escapedName + ' ' + escapedHiddenEmoji + ' here!', 'i')
+      : new RegExp('^Hi [^,]+,\\s*teacher ' + escapedName + ' here!', 'i');
     if(!greetingRegex.test(learningContent)){
-      warnings.push('Learning Content does not open with "Hi [Student], teacher ' + name + ' here!" as required.');
+      warnings.push('Learning Content does not open with "Hi [Student], teacher ' + name + (hiddenBeidaEmoji ? ' ' + hiddenBeidaEmoji : '') + ' here!" as required.');
     }
 
     // --- General and Detailed Performance ---
@@ -2812,9 +3078,8 @@ VALIDATION CHECKLIST
       // means "use the default" — see analyzeMAOutput's own comment on
       // that distinction.
       analyze: (text, lvl, teacherName, lengthFormat, studentGender, signoffEmoji) => {
-        const isLayne = !teacherName || teacherName.trim().toLowerCase() === 'layne';
         const trimmedCustomEmoji = (signoffEmoji || '').trim();
-        const expectedEmoji = trimmedCustomEmoji || (isLayne ? undefined : '');
+        const expectedEmoji = trimmedCustomEmoji || defaultTeacherSignatureEmoji(teacherName || 'Layne', 'MA');
         return analyzeMAOutput(text, lvl, teacherName, undefined, expectedEmoji, LENGTH_TIERS[lengthFormat] || LENGTH_TIERS.long);
       }
     },
@@ -2824,12 +3089,14 @@ VALIDATION CHECKLIST
       buildSystemPrompt: buildSweetSystemPrompt,
       // Every check is the exact same shared function as MA's — only the
       // expected sign-off phrase/emoji differ, passed as extra arguments.
-      analyze: (text, lvl, teacherName, lengthFormat) =>
-        analyzeMAOutput(text, lvl, teacherName, 'Love,', '💖', LENGTH_TIERS[lengthFormat] || LENGTH_TIERS.long)
+      analyze: (text, lvl, teacherName, lengthFormat) => {
+        const hiddenEmoji = defaultTeacherSignatureEmoji(teacherName || 'Layne', 'MS');
+        return analyzeMAOutput(text, lvl, teacherName, 'Love,', hiddenEmoji ? hiddenEmoji + ' 💖' : '💖', LENGTH_TIERS[lengthFormat] || LENGTH_TIERS.long);
+      }
     },
     BLITZ: {
       key: 'BLITZ',
-      label: 'Blitz',
+      label: 'Blitz \u26A1',
       buildSystemPrompt: buildBlitzSystemPrompt,
       analyze: (text) => analyzeBlitzOutput(text),
       models: BLITZ_MODEL_POOL
@@ -2914,6 +3181,8 @@ VALIDATION CHECKLIST
     buildUserMessage,
     applyTeacherIdentity,
     applyMASignoffEmoji,
+    applyProtocolSignoffEmoji,
+    defaultTeacherSignatureEmoji,
     analyzeMAOutput,
     analyzeOFOutput,
     analyzeBlitzOutput,
@@ -3355,6 +3624,76 @@ function getStoredAccessKey(){
   try{ return localStorage.getItem(ACCESS_KEY_STORAGE); }catch(e){ return null; }
 }
 
+function maskAccessKey(key){
+  if(!key) return 'None';
+  if(key.length <= 12) return key;
+  return key.slice(0, 8) + '...' + key.slice(-4);
+}
+
+function getAccountEls(){
+  return {
+    btn: document.getElementById('accountBtn'),
+    panel: document.getElementById('accountPanel'),
+    summary: document.getElementById('accountSummary'),
+    plan: document.getElementById('accountPlan'),
+    status: document.getElementById('accountStatus'),
+    usage: document.getElementById('accountUsage'),
+    key: document.getElementById('accountKey'),
+    refreshBtn: document.getElementById('accountRefreshBtn'),
+    changeKeyBtn: document.getElementById('accountChangeKeyBtn'),
+    upgradeBtn: document.getElementById('accountUpgradeBtn')
+  };
+}
+
+function formatAccountStatus(status){
+  if(!status) return 'Unknown';
+  return String(status).replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+}
+
+function updateAccountSnapshot(summary, plan, status, usage, keyLabel, canUpgrade){
+  const els = getAccountEls();
+  if(!els.panel) return;
+  els.summary.textContent = summary;
+  els.plan.textContent = plan;
+  if(els.status) els.status.textContent = status;
+  els.usage.textContent = usage;
+  els.key.textContent = keyLabel;
+  if(els.btn) els.btn.textContent = plan === 'Not signed in' ? 'Access' : plan;
+  if(els.upgradeBtn) els.upgradeBtn.style.display = canUpgrade ? '' : 'none';
+}
+
+async function refreshAccountPanel(){
+  const key = getStoredAccessKey();
+  if(!key){
+    updateAccountSnapshot('No access key is saved in this browser yet.', 'Not signed in', 'No key', '-', 'None', false);
+    return;
+  }
+
+  updateAccountSnapshot('Checking this saved key...', 'Checking', 'Checking', '-', maskAccessKey(key), true);
+  try{
+    const res = await fetch('/api/license-status', {
+      method: 'GET',
+      headers: { 'x-app-key': key }
+    });
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok){
+      updateAccountSnapshot(data.error || 'This saved key was not accepted.', 'Needs attention', 'Invalid', '-', maskAccessKey(key), false);
+      return;
+    }
+
+    const isPro = data.plan === 'pro';
+    const planLabel = data.founder ? 'Owner Pro' : (isPro ? 'Pro' : 'Free');
+    const statusLabel = data.founder ? 'Full access forever' : formatAccountStatus(data.status || 'active');
+    const usageLabel = isPro
+      ? 'Unlimited'
+      : String(data.usageCount || 0) + ' used - ' + String(data.remainingFreeReports) + ' left this month';
+    const emailNote = data.email ? 'Signed in as ' + data.email + '.' : 'Saved key is active.';
+    updateAccountSnapshot(emailNote, planLabel, statusLabel, usageLabel, maskAccessKey(key), !isPro);
+  }catch(e){
+    updateAccountSnapshot('Saved key found. Status check needs the live app server.', 'Saved key', 'Unknown', 'Unable to refresh', maskAccessKey(key), true);
+  }
+}
+
 // Shows the license modal and resolves once the teacher has either
 // gotten a Free key or entered an existing one — used the first time the
 // app tries to generate with no stored key, replacing what used to be a
@@ -3363,10 +3702,16 @@ function promptForAccessKey(){
   return new Promise((resolve) => {
     const overlay = document.getElementById('licenseModalOverlay');
     const emailInput = document.getElementById('licenseModalEmail');
+    const proEmailInput = document.getElementById('licenseModalProEmail');
     const keyInput = document.getElementById('licenseModalKeyInput');
+    const proBtn = document.getElementById('licenseModalProBtn');
+    const proBtnLabel = document.getElementById('licenseModalProBtnLabel');
     const freeBtn = document.getElementById('licenseModalFreeBtn');
     const freeBtnLabel = document.getElementById('licenseModalFreeBtnLabel');
     const keyBtn = document.getElementById('licenseModalKeyBtn');
+    const recoverEmailInput = document.getElementById('licenseModalRecoverEmail');
+    const recoverBtn = document.getElementById('licenseModalRecoverBtn');
+    const recoverBtnLabel = document.getElementById('licenseModalRecoverBtnLabel');
     const errorEl = document.getElementById('licenseModalError');
 
     function showError(msg){
@@ -3377,9 +3722,39 @@ function promptForAccessKey(){
     function finish(key){
       try{ localStorage.setItem(ACCESS_KEY_STORAGE, key); }catch(e){ /* storage unavailable */ }
       overlay.style.display = 'none';
+      proBtn.removeEventListener('click', onProClick);
       freeBtn.removeEventListener('click', onFreeClick);
       keyBtn.removeEventListener('click', onKeyClick);
+      recoverBtn.removeEventListener('click', onRecoverClick);
+      refreshAccountPanel();
       resolve(key);
+    }
+
+    async function onProClick(){
+      const email = proEmailInput.value.trim();
+      if(!email){ showError('Please enter your email for checkout.'); return; }
+      errorEl.style.display = 'none';
+      proBtn.disabled = true;
+      proBtnLabel.textContent = 'Starting checkout...';
+      try{
+        const res = await fetch('/api/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json().catch(() => ({}));
+        if(!res.ok || !data.url){
+          showError(data.error || 'Could not start checkout right now. Please try again shortly.');
+          proBtn.disabled = false;
+          proBtnLabel.textContent = 'Continue to Pro';
+          return;
+        }
+        window.location.href = data.url;
+      }catch(e){
+        showError('Network error — check your connection and try again.');
+        proBtn.disabled = false;
+        proBtnLabel.textContent = 'Continue to Pro';
+      }
     }
 
     async function onFreeClick(){
@@ -3416,14 +3791,49 @@ function promptForAccessKey(){
       finish(key);
     }
 
+    async function onRecoverClick(){
+      const email = recoverEmailInput.value.trim();
+      if(!email){ showError('Please enter the email connected to your key.'); return; }
+      errorEl.style.display = 'none';
+      recoverBtn.disabled = true;
+      recoverBtnLabel.textContent = 'Recovering...';
+      try{
+        const res = await fetch('/api/license-recover', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json().catch(() => ({}));
+        if(!res.ok || !data.licenseKey){
+          showError(data.error || 'Could not recover a key for that email.');
+          recoverBtn.disabled = false;
+          recoverBtnLabel.textContent = 'Recover and use key';
+          return;
+        }
+        finish(data.licenseKey);
+      }catch(e){
+        showError('Network error - check your connection and try again.');
+        recoverBtn.disabled = false;
+        recoverBtnLabel.textContent = 'Recover and use key';
+      }
+    }
+
     errorEl.style.display = 'none';
     emailInput.value = '';
+    proEmailInput.value = '';
     keyInput.value = '';
+    recoverEmailInput.value = '';
+    proBtn.disabled = false;
+    proBtnLabel.textContent = 'Continue to Pro';
     freeBtn.disabled = false;
     freeBtnLabel.textContent = 'Get my free key';
+    recoverBtn.disabled = false;
+    recoverBtnLabel.textContent = 'Recover and use key';
     overlay.style.display = 'flex';
+    proBtn.addEventListener('click', onProClick);
     freeBtn.addEventListener('click', onFreeClick);
     keyBtn.addEventListener('click', onKeyClick);
+    recoverBtn.addEventListener('click', onRecoverClick);
   });
 }
 
@@ -3459,6 +3869,7 @@ async function callClaude(systemPrompt, userMessage, protocol){
 
     if(response.status === 401){
       try{ localStorage.removeItem(ACCESS_KEY_STORAGE); }catch(e){ /* storage unavailable */ }
+      refreshAccountPanel();
       throw new Error((detail || 'License key was rejected.') + ' Reload the page to enter a valid one.');
     }
     if(response.status === 402){
@@ -3705,6 +4116,8 @@ async function generate(){
   );
   if(form.protocol === 'MA'){
     systemPrompt = KidbusterCore.applyMASignoffEmoji(systemPrompt, form.teacherName, form.signoffEmoji);
+  }else{
+    systemPrompt = KidbusterCore.applyProtocolSignoffEmoji(systemPrompt, form.teacherName, form.protocol);
   }
   const userMessage = KidbusterCore.buildUserMessage({ ...form, notes: cleanedNotes });
 
@@ -3809,7 +4222,12 @@ async function generate(){
       // Free-limit-reached or protocol-requires-Pro — give a real,
       // clickable path to upgrade right where the block happened,
       // instead of just an error message with nowhere to go.
-      outputBox.innerHTML = escapeHtml(err.message) + '<br><br><button type="button" id="inlineChangeKeyBtn" class="btn-secondary" style="width:auto; padding:8px 16px; margin-right:8px;">Change key</button><button type="button" id="inlineUpgradeBtn" class="btn-secondary" style="width:auto; padding:8px 16px;">Upgrade to Pro</button>';
+      const notice = buildEntitlementNotice(err, form.protocol);
+      outputBox.innerHTML =
+        '<strong>' + escapeHtml(notice.title) + '</strong><br>' +
+        '<span>' + escapeHtml(notice.body) + '</span><br><br>' +
+        '<button type="button" id="inlineChangeKeyBtn" class="btn-secondary" style="width:auto; padding:8px 16px; margin-right:8px;">Change key</button>' +
+        '<button type="button" id="inlineUpgradeBtn" class="btn-secondary" style="width:auto; padding:8px 16px;">Upgrade to Pro</button>';
     }else{
       outputBox.textContent = 'Could not generate feedback. ' + err.message;
     }
@@ -3824,6 +4242,31 @@ function escapeHtml(str){
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+function getProtocolLabel(protocolKey){
+  const protocol = KidbusterCore.PROTOCOLS[protocolKey];
+  return protocol ? protocol.label : (protocolKey || 'This protocol');
+}
+
+function buildEntitlementNotice(err, protocolKey){
+  const protocolLabel = getProtocolLabel(protocolKey);
+  if(err.reason === 'protocol_requires_pro'){
+    return {
+      title: protocolLabel + ' needs Pro',
+      body: 'Your saved key is on the Free plan. Upgrade to Pro to unlock ' + protocolLabel + ', every current and future protocol, and unlimited reports.'
+    };
+  }
+  if(err.reason === 'free_limit_reached'){
+    return {
+      title: 'Free monthly limit reached',
+      body: 'This key has used all free Classic reports for this month. Upgrade to Pro for unlimited reports and every protocol.'
+    };
+  }
+  return {
+    title: 'Pro access needed',
+    body: err.message || 'This action needs Pro access. Upgrade to continue, or change key if you already have Pro.'
+  };
 }
 
 // Starts the Pro upgrade flow using whatever license key is already
@@ -3865,6 +4308,7 @@ outputBox.addEventListener('click', (e) => {
   }
   if(e.target && e.target.id === 'inlineChangeKeyBtn'){
     try{ localStorage.removeItem(ACCESS_KEY_STORAGE); }catch(err){ /* storage unavailable */ }
+    refreshAccountPanel();
     promptForAccessKey().then(() => {
       outputBox.className = 'output-box empty';
       outputBox.textContent = 'Key saved. Try Generate feedback again.';
@@ -3873,11 +4317,34 @@ outputBox.addEventListener('click', (e) => {
 });
 
 
-// Shared by both "New Student" and "Clear" — resets the workspace to a
-// blank slate. The only difference between the two buttons is *when* each
-// is enabled: Clear is always available (abandon what you're typing);
-// New Student only enables once a report exists (confirm you're done with
-// this student and move to the next one).
+// Header access panel wiring.
+const accountEls = getAccountEls();
+if(accountEls.btn){
+  accountEls.btn.addEventListener('click', () => {
+    const isOpen = accountEls.panel.style.display !== 'none';
+    accountEls.panel.style.display = isOpen ? 'none' : '';
+    if(!isOpen) refreshAccountPanel();
+  });
+}
+if(accountEls.refreshBtn){
+  accountEls.refreshBtn.addEventListener('click', refreshAccountPanel);
+}
+if(accountEls.changeKeyBtn){
+  accountEls.changeKeyBtn.addEventListener('click', () => {
+    try{ localStorage.removeItem(ACCESS_KEY_STORAGE); }catch(err){ /* storage unavailable */ }
+    refreshAccountPanel();
+    promptForAccessKey();
+  });
+}
+if(accountEls.upgradeBtn){
+  accountEls.upgradeBtn.addEventListener('click', startProUpgrade);
+}
+refreshAccountPanel();
+
+// Shared by both "New Student" and "Clear" - resets the workspace to a
+// blank slate. The only difference between the two buttons is when each
+// is enabled: Clear is always available; New Student only enables once a
+// report exists.
 function resetWorkspace(){
   generateClicksSinceReset = 0; // marks a new lesson boundary for regeneration tracking
   hideFeedbackCard();
@@ -3937,8 +4404,21 @@ document.getElementById('protocolSelect').addEventListener('click', (e) => {
   if(e.target.classList.contains('info-icon')) e.preventDefault();
 });
 
+function setProtocolBadge(protocolKey){
+  const badge = document.getElementById('protocolBadge');
+  const protocol = KidbusterCore.PROTOCOLS[protocolKey] || KidbusterCore.PROTOCOLS.MA;
+  if(!badge || !protocol) return;
+  if(protocolKey === 'BLITZ'){
+    badge.classList.add('blitz-badge');
+    badge.innerHTML = '<span>BLITZ</span><img src="/assets/blitz-bolt.png" alt="" class="blitz-bolt" aria-hidden="true">';
+    return;
+  }
+  badge.classList.remove('blitz-badge');
+  badge.textContent = protocol.label;
+}
+
 document.getElementById('protocolSelect').addEventListener('change', (e) => {
-  document.getElementById('protocolBadge').textContent = KidbusterCore.PROTOCOLS[e.target.value].label;
+  setProtocolBadge(e.target.value);
   buildRatingTrack();
 });
 
@@ -4261,7 +4741,7 @@ function restoreDraft(){
     const protocolRadio = document.querySelector('input[name="protocol"][value="' + draft.protocol + '"]');
     if(protocolRadio){
       protocolRadio.checked = true;
-      document.getElementById('protocolBadge').textContent = KidbusterCore.PROTOCOLS[draft.protocol].label;
+      setProtocolBadge(draft.protocol);
       buildRatingTrack(); // rebuild with the correct button set before restoring the rating below
     }
   }

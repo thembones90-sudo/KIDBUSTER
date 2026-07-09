@@ -78,6 +78,9 @@ module.exports = async function run(){
   page.on('pageerror', err => pageErrors.push(err.message));
 
   await page.goto(indexPath);
+  await page.evaluate(() => {
+    try{ localStorage.removeItem(ACCESS_KEY_STORAGE); }catch(e){ /* ignore */ }
+  });
   await new Promise(r => setTimeout(r, 150));
 
   console.log('\n1) Page loads with zero uncaught JavaScript errors');
@@ -88,7 +91,7 @@ module.exports = async function run(){
   const protocols = [
     { value: 'MA',    bodyClass: null, label: 'Classic' }, // MA is the default theme — no body class of its own
     { value: 'MS',    bodyClass: 'protocol-ms', label: 'Sugarcoat' },
-    { value: 'BLITZ', bodyClass: 'protocol-blitz', label: 'Blitz' },
+    { value: 'BLITZ', bodyClass: 'protocol-blitz', label: 'BLITZ', hasBolt: true },
     { value: 'BEIDA', bodyClass: 'protocol-beida', label: 'Beida' },
     { value: 'OF',    bodyClass: 'protocol-of', label: 'OF Protocol (Trial Evaluation)' }
   ];
@@ -103,7 +106,8 @@ module.exports = async function run(){
       return {
         bodyClassList: Array.from(document.body.classList),
         background: getComputedStyle(btn).backgroundImage,
-        badgeText: document.getElementById('protocolBadge').textContent
+        badgeText: document.getElementById('protocolBadge').textContent,
+        hasBolt: Boolean(document.querySelector('#protocolBadge .blitz-bolt'))
       };
     });
 
@@ -113,18 +117,37 @@ module.exports = async function run(){
       check(proto.value + ': body has no protocol-specific class (uses the default theme)', result.bodyClassList.every(c => !c.startsWith('protocol-')));
     }
     check(proto.value + ': header badge text updates to match ("' + proto.label + '")', result.badgeText === proto.label);
+    if(proto.hasBolt){
+      check(proto.value + ': header badge includes the Blitz bolt image', result.hasBolt);
+    }
     check(proto.value + ": Generate button's own background is a genuinely distinct gradient, not stuck on another theme's", !seenBackgrounds.has(result.background));
     seenBackgrounds.add(result.background);
   }
 
-  console.log('\n3) License modal: shows correctly, validates client-side, stores a pasted key without needing a live backend');
+  console.log('\n3) License modal: shows Pro/Free/existing-key paths, validates client-side, stores a pasted key without needing a live backend');
   {
     const modalShown = await page.evaluate(() => {
       window.__testModalPromise = promptForAccessKey();
       const overlay = document.getElementById('licenseModalOverlay');
-      return getComputedStyle(overlay).display !== 'none';
+      return {
+        visible: getComputedStyle(overlay).display !== 'none',
+        title: document.querySelector('.license-modal-title').textContent,
+        hasPro: !!document.getElementById('licenseModalProBtn'),
+        hasFree: !!document.getElementById('licenseModalFreeBtn'),
+        hasKey: !!document.getElementById('licenseModalKeyBtn'),
+        hasRecover: !!document.getElementById('licenseModalRecoverBtn')
+      };
     });
-    check('calling promptForAccessKey() shows the modal', modalShown);
+    check('calling promptForAccessKey() shows the modal', modalShown.visible);
+    check('modal is now the prepared access page', modalShown.title === 'Access Pathfinder' && modalShown.hasPro && modalShown.hasFree && modalShown.hasKey && modalShown.hasRecover);
+
+    await page.click('#licenseModalProBtn');
+    await new Promise(r => setTimeout(r, 80));
+    const emptyProEmailError = await page.evaluate(() => {
+      const err = document.getElementById('licenseModalError');
+      return { visible: err.style.display !== 'none', text: err.textContent };
+    });
+    check('empty Pro checkout email -> client-side validation error shown, no crash', emptyProEmailError.visible && emptyProEmailError.text.includes('checkout'));
 
     // Clicking "Get my free key" with no email entered should show a
     // client-side validation error WITHOUT attempting any network call
@@ -136,6 +159,14 @@ module.exports = async function run(){
       return { visible: err.style.display !== 'none', text: err.textContent };
     });
     check('empty email -> client-side validation error shown, no crash', emptyEmailError.visible && emptyEmailError.text.length > 0);
+
+    await page.click('#licenseModalRecoverBtn');
+    await new Promise(r => setTimeout(r, 80));
+    const emptyRecoverEmailError = await page.evaluate(() => {
+      const err = document.getElementById('licenseModalError');
+      return { visible: err.style.display !== 'none', text: err.textContent };
+    });
+    check('empty recover email -> client-side validation error shown, no crash', emptyRecoverEmailError.visible && emptyRecoverEmailError.text.includes('email'));
 
     // Pasting an existing key and clicking Continue should work entirely
     // client-side (no network call needed for this path at all) and
@@ -158,6 +189,20 @@ module.exports = async function run(){
     check('promptForAccessKey() resolves with the pasted key', afterPaste.resolvedKey === 'kb_live_test_pasted_key');
     check('modal hides itself after a successful entry', afterPaste.overlayHidden);
     check('the key is persisted to localStorage under ACCESS_KEY_STORAGE', afterPaste.stored === 'kb_live_test_pasted_key');
+
+    await page.click('#accountBtn');
+    await new Promise(r => setTimeout(r, 120));
+    const accountPanel = await page.evaluate(() => {
+      const panel = document.getElementById('accountPanel');
+      return {
+        visible: getComputedStyle(panel).display !== 'none',
+        keyText: document.getElementById('accountKey').textContent,
+        planText: document.getElementById('accountPlan').textContent
+      };
+    });
+    check('Access panel opens from the header', accountPanel.visible);
+    check('Access panel shows the saved key in masked form', accountPanel.keyText === 'kb_live_..._key');
+    check('Access panel renders a usable local/server status', accountPanel.planText.length > 0);
   }
 
   console.log('\n4) No new page errors accumulated from clicking through every protocol and the license modal');

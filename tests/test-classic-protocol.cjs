@@ -22,6 +22,7 @@ module.exports = function run(){
     const superpowerBlock = Array(superpowerCount).fill("Today's Superpower:\n🦸 Speaking\n\nGreat job today!").join('\n\n');
     const missions = ['Vocabulary Mission 🎯\nTask one.', 'Grammar Mission 🎯\nTask two.', 'Speaking Mission 🎯\nTask three.'].slice(0, missionCount).join('\n');
     const parentNoteBlock = parentNote ? 'Parent Note:\nA note for the parent about today.\n\n' : '';
+    const starsBlock = stars === null ? [] : ['Total Stars Today:', '', stars, ''];
     return [
       'Hi Kaya!', '',
       "Today's Lesson:", '📚 Animals', '',
@@ -45,7 +46,7 @@ module.exports = function run(){
       parentNoteBlock +
       'Mini Homework:', '',
       missions, '',
-      'Total Stars Today:', '', stars, '',
+      ...starsBlock,
       'Cheers,', 'Teacher Layne 🐺'
     ].join('\n');
   }
@@ -58,7 +59,7 @@ module.exports = function run(){
     if(warnings.length){ console.log('    (unexpected warnings:', warnings, ')'); }
   }
 
-  console.log('\n2) Star count must be exactly 10, scoped to "Total Stars Today" only');
+  console.log('\n2) Star rule: ratings 3 and above need exactly 10; ratings below 3 get none');
   {
     const nineStars = KidbusterCore.analyzeMAOutput(baseReport({ stars: '⭐⭐⭐⭐⭐⭐⭐⭐⭐' }), '4', 'Layne');
     check('9 stars -> flagged', nineStars.some(w => w.includes('Star count is 9')));
@@ -68,6 +69,52 @@ module.exports = function run(){
 
     const tenStars = KidbusterCore.analyzeMAOutput(baseReport({ stars: '⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐' }), '4', 'Layne');
     check('exactly 10 stars -> not flagged', !tenStars.some(w => w.includes('Star count')));
+
+    const tenStarsAtThree = KidbusterCore.analyzeMAOutput(baseReport({ parentNote: false }), '3', 'Layne');
+    check('rating 3 with exactly 10 stars -> not flagged', !tenStarsAtThree.some(w => w.toLowerCase().includes('star')));
+
+    const sweetTenStarsAtThree = KidbusterCore.PROTOCOLS.MS.analyze(baseReport({ parentNote: false }), '3', 'Layne');
+    check('Sugarcoat rating 3 with exactly 10 stars -> not flagged', !sweetTenStarsAtThree.some(w => w.toLowerCase().includes('star')));
+
+    const lowPrompt = KidbusterCore.buildMASystemPrompt({ rating: '2.5', lengthFormat: 'long' });
+    check('rating 2.5 prompt tells the model to omit Total Stars Today', lowPrompt.includes('OMIT the entire Total Stars Today section'));
+
+    const threePrompt = KidbusterCore.buildMASystemPrompt({ rating: '3', lengthFormat: 'long' });
+    check('rating 3 prompt tells the model to include exactly 10 stars', threePrompt.includes('INCLUDE it with exactly 10 star emojis'));
+
+    const highPrompt = KidbusterCore.buildMASystemPrompt({ rating: '4', lengthFormat: 'long' });
+    check('rating 4 prompt tells the model to include exactly 10 stars', highPrompt.includes('INCLUDE it with exactly 10 star emojis'));
+
+    const lowSweetPrompt = KidbusterCore.PROTOCOLS.MS.buildSystemPrompt({ rating: '2.5', lengthFormat: 'long' });
+    check('Sugarcoat rating 2.5 prompt also tells the model to omit stars', lowSweetPrompt.includes('OMIT the entire Total Stars Today section'));
+
+    const threeSweetPrompt = KidbusterCore.PROTOCOLS.MS.buildSystemPrompt({ rating: '3', lengthFormat: 'long' });
+    check('Sugarcoat rating 3 prompt also tells the model to include exactly 10 stars', threeSweetPrompt.includes('INCLUDE it with exactly 10 star emojis'));
+
+    const highSweetPrompt = KidbusterCore.PROTOCOLS.MS.buildSystemPrompt({ rating: '4', lengthFormat: 'long' });
+    check('Sugarcoat rating 4 prompt also tells the model to include exactly 10 stars', highSweetPrompt.includes('INCLUDE it with exactly 10 star emojis'));
+
+    ['1', '1.5', '2', '2.5'].forEach(lvl => {
+      const noStars = KidbusterCore.analyzeMAOutput(baseReport({ stars: null, parentNote: ['1', '1.5', '2', '2.5'].includes(lvl) }), lvl, 'Layne');
+      check('rating ' + lvl + ' with no stars -> not flagged for stars', !noStars.some(w => w.toLowerCase().includes('star')));
+
+      const hasStars = KidbusterCore.analyzeMAOutput(baseReport({ stars: '⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐', parentNote: ['1', '1.5', '2', '2.5'].includes(lvl) }), lvl, 'Layne');
+      check('rating ' + lvl + ' with stars -> flagged as omitted', hasStars.some(w => w.includes('Total Stars Today should be omitted')));
+
+      const sweetHasStars = KidbusterCore.PROTOCOLS.MS.analyze(baseReport({ stars: '⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐', parentNote: ['1', '1.5', '2', '2.5'].includes(lvl) }), lvl, 'Layne');
+      check('Sugarcoat rating ' + lvl + ' with stars -> flagged as omitted', sweetHasStars.some(w => w.includes('Total Stars Today should be omitted')));
+    });
+  }
+
+  console.log('\n2b) Low ratings require a firmer, sharper tone');
+  {
+    const lowPrompt = KidbusterCore.buildMASystemPrompt({ rating: '2', lengthFormat: 'long' });
+    check('Classic low-rating prompt says not to over-praise or sugarcoat', lowPrompt.includes('do not over-praise, sugarcoat'));
+    check('Classic low-rating prompt says weak performance must be named clearly', lowPrompt.includes('was not good enough today'));
+
+    const sweetLowPrompt = KidbusterCore.PROTOCOLS.MS.buildSystemPrompt({ rating: '2', lengthFormat: 'long' });
+    check('Sugarcoat low-rating prompt says not to over-praise', sweetLowPrompt.includes('do not over-praise'));
+    check('Sugarcoat low-rating prompt keeps a firmer message than rating 3', sweetLowPrompt.includes('clearly firmer than rating 3'));
   }
 
   console.log('\n3) Parent Note gating: required at 1/1.5/2/2.5, forbidden above 2.5');

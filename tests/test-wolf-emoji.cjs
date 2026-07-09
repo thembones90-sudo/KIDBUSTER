@@ -33,6 +33,12 @@ module.exports = function run(){
     const promptNina = KidbusterCore.applyTeacherIdentity(KidbusterCore.buildMASystemPrompt({ rating: '4', lengthFormat: 'long' }), 'Nina');
     const finalNina = KidbusterCore.applyMASignoffEmoji(promptNina, 'Nina');
     check('Nina, no custom emoji -> no emoji at all (default for non-Layne)', finalNina.includes('Teacher Nina') && !finalNina.includes('🐺'));
+    const promptFaye = KidbusterCore.applyTeacherIdentity(KidbusterCore.buildMASystemPrompt({ rating: '4', lengthFormat: 'long' }), 'Faye');
+    const finalFaye = KidbusterCore.applyMASignoffEmoji(promptFaye, 'Faye');
+    check('Faye, no custom emoji -> gets 🧚 by hidden default', finalFaye.includes('Teacher Faye 🧚') && !finalFaye.includes('ðŸº'));
+    const promptSissy = KidbusterCore.applyTeacherIdentity(KidbusterCore.buildMASystemPrompt({ rating: '4', lengthFormat: 'long' }), 'Sissy');
+    const finalSissy = KidbusterCore.applyMASignoffEmoji(promptSissy, 'Sissy');
+    check('Sissy, no custom emoji -> gets 🌻 by hidden default', finalSissy.includes('Teacher Sissy 🌻'));
   }
 
   console.log('\n3) applyMASignoffEmoji: any teacher can opt into their own custom sign-off emoji');
@@ -90,7 +96,15 @@ module.exports = function run(){
     check('Layne + custom "💜" override -> NOT flagged (Layne can override her own default too)', !warnLayneWithHeartAndOverride.some(w => w.includes('sign-off')));
   }
 
-  console.log('\n5) Sweet Voice (MS) is completely unaffected by any of this — always expects 💖 regardless of teacher or any signoffEmoji arg');
+  {
+    const warnFayeWithFairy = KidbusterCore.PROTOCOLS.MA.analyze(makeReport('Teacher Faye 🧚'), '4', 'Faye', 'long', '', '');
+    check('Faye, no override + "Teacher Faye 🧚" -> sign-off NOT flagged', !warnFayeWithFairy.some(w => w.includes('sign-off')));
+
+    const warnFayeNoFairy = KidbusterCore.PROTOCOLS.MA.analyze(makeReport('Teacher Faye'), '4', 'Faye', 'long', '', '');
+    check('Faye, no override + missing 🧚 -> sign-off IS flagged', warnFayeNoFairy.some(w => w.includes('sign-off')));
+  }
+
+  console.log('\n5) Sweet Voice (MS) keeps its heart and adds Faye hidden fairy before it');
   {
     const msPromptNina = KidbusterCore.applyTeacherIdentity(
       KidbusterCore.buildSweetSystemPrompt({ rating: '4', lengthFormat: 'long' }),
@@ -111,6 +125,27 @@ module.exports = function run(){
     const msReportNina = makeMSReport('Teacher Nina 💖');
     const warnMS = KidbusterCore.PROTOCOLS.MS.analyze(msReportNina, '4', 'Nina', 'long', '', '🦊');
     check('MS + Nina + "Teacher Nina 💖" (even with an unrelated signoffEmoji arg passed) -> sign-off NOT flagged', !warnMS.some(w => w.includes('sign-off')));
+    const msPromptFaye = KidbusterCore.applyProtocolSignoffEmoji(
+      KidbusterCore.applyTeacherIdentity(KidbusterCore.buildSweetSystemPrompt({ rating: '4', lengthFormat: 'long' }), 'Faye'),
+      'Faye',
+      'MS'
+    );
+    check('MS prompt for Faye includes "Teacher Faye 🧚 💖"', msPromptFaye.includes('Teacher Faye 🧚 💖'));
+
+    const msReportFaye = makeMSReport('Teacher Faye 🧚 💖');
+    const warnMSFaye = KidbusterCore.PROTOCOLS.MS.analyze(msReportFaye, '4', 'Faye', 'long', '', '');
+    check('MS + Faye + "Teacher Faye 🧚 💖" -> sign-off NOT flagged', !warnMSFaye.some(w => w.includes('sign-off')));
+
+    const msPromptSissy = KidbusterCore.applyProtocolSignoffEmoji(
+      KidbusterCore.applyTeacherIdentity(KidbusterCore.buildSweetSystemPrompt({ rating: '4', lengthFormat: 'long' }), 'Sissy'),
+      'Sissy',
+      'MS'
+    );
+    check('MS prompt for Sissy includes "Teacher Sissy 🌻 💖"', msPromptSissy.includes('Teacher Sissy 🌻 💖'));
+
+    const msReportSissy = makeMSReport('Teacher Sissy 🌻 💖');
+    const warnMSSissy = KidbusterCore.PROTOCOLS.MS.analyze(msReportSissy, '4', 'Sissy', 'long', '', '');
+    check('MS + Sissy + "Teacher Sissy 🌻 💖" -> sign-off NOT flagged', !warnMSSissy.some(w => w.includes('sign-off')));
   }
 
   return getFailures();
