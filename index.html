@@ -237,22 +237,6 @@ body{
   color:transparent;
   text-transform:uppercase;
 }
-.status-dot{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  font-family:var(--font-mono);
-  font-size:12px;
-  letter-spacing:0.05em;
-  color:var(--text-dim);
-}
-.status-dot span.dot{
-  width:7px;height:7px;border-radius:50%;
-  background:var(--toxin);
-  box-shadow:0 0 6px var(--toxin-glow);
-  display:inline-block;
-  transition:background-color 0.45s ease, box-shadow 0.45s ease;
-}
 .header-actions{
   display:flex;
   align-items:center;
@@ -260,15 +244,28 @@ body{
   flex-wrap:wrap;
   justify-content:flex-end;
 }
-.account-btn{
+button.account-btn{
+  flex:none;
   width:auto;
-  min-height:34px;
-  padding:8px 14px;
+  min-height:auto;
+  padding:6px 14px;
   font-family:var(--font-mono);
   font-size:11px;
   letter-spacing:0.06em;
   text-transform:uppercase;
+  background:var(--olive);
+  color:var(--toxin);
+  border:1px solid var(--toxin-border);
+  border-radius:999px;
+  transition:background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
+button.account-btn:hover{
+  background:var(--toxin-dim);
+  border-color:var(--toxin);
+  color:var(--toxin);
+  box-shadow:0 0 10px -2px var(--toxin-glow);
+}
+button.account-btn:disabled{opacity:0.5;cursor:default;}
 .account-panel{
   background:var(--surface);
   border:1px solid var(--toxin-border);
@@ -329,6 +326,7 @@ body{
   flex-wrap:wrap;
 }
 .account-actions .btn-secondary, .account-panel-head .btn-secondary{
+  flex:none;
   width:auto;
   padding:8px 14px;
 }
@@ -1170,7 +1168,6 @@ body.protocol-beida .generate-btn.loading{
     </div>
     <div class="header-actions">
       <button class="btn-secondary account-btn" id="accountBtn" type="button">Access</button>
-      <div class="status-dot"><span class="dot"></span>LOCAL MODE · NO STORAGE</div>
     </div>
   </div>
 
