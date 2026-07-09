@@ -389,6 +389,10 @@ label.field-label{
   text-shadow:0 0 8px rgba(255,247,0,0.85);
   line-height:1;
 }
+.protocol-lollipop{
+  text-shadow:0 0 8px rgba(255,11,237,0.85);
+  line-height:1;
+}
 /* OF's label is much longer than the other three ("OF Protocol (Trial
    Evaluation)" vs one word each) — forcing it to occupy the full row
    width pushes it onto its own line in the wrapping flex layout,
@@ -1211,7 +1215,7 @@ body.protocol-beida .generate-btn.loading{
           <label class="field-label">Official Protocol</label>
           <div class="protocol-select" id="protocolSelect">
             <label><input type="radio" name="protocol" value="MA" checked> Classic<span class="info-icon" tabindex="0" data-tooltip="Full detailed report — vocabulary, grammar, homework. The standard format.">?</span></label>
-            <label><input type="radio" name="protocol" value="MS"> Sugarcoat<span class="info-icon" tabindex="0" data-tooltip="Same report as Classic, written in a warmer, parent-friendly voice.">?</span></label>
+            <label><input type="radio" name="protocol" value="MS"> Sugarcoat <span class="protocol-lollipop" aria-hidden="true">&#127853;</span><span class="info-icon" tabindex="0" data-tooltip="Same report as Classic, written in a warmer, parent-friendly voice.">?</span></label>
             <label><input type="radio" name="protocol" value="BLITZ"> Blitz <span class="protocol-lightning" aria-hidden="true">&#9889;</span><span class="info-icon" tabindex="0" data-tooltip="Short, neutral comment for quick platform feedback. No rating-based tone shifts.">?</span></label>
             <label><input type="radio" name="protocol" value="BEIDA"> Beida<span class="info-icon" tabindex="0" data-tooltip="Two-field comment matching the BetaKid platform's own form: Learning Content + General Performance.">?</span></label>
             <label><input type="radio" name="protocol" value="OF"> OF Protocol (Trial Evaluation)<span class="info-icon" tabindex="0" data-tooltip="3-section narrative for trial-lesson evaluations — not a regular lesson report.">?</span></label>
@@ -4513,12 +4517,12 @@ function setProtocolBadge(protocolKey){
   const badge = document.getElementById('protocolBadge');
   const protocol = KidbusterCore.PROTOCOLS[protocolKey] || KidbusterCore.PROTOCOLS.MA;
   if(!badge || !protocol) return;
+  badge.classList.remove('blitz-badge');
   if(protocolKey === 'BLITZ'){
     badge.classList.add('blitz-badge');
     badge.innerHTML = '<span>BLITZ</span><img src="/assets/blitz-bolt.png" alt="" class="blitz-bolt" aria-hidden="true">';
     return;
   }
-  badge.classList.remove('blitz-badge');
   badge.textContent = protocol.label;
 }
 
