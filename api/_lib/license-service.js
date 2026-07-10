@@ -24,7 +24,8 @@ import {
   generateLicenseKey, currentUsagePeriod, evaluateEntitlement,
   getLicense, saveLicense, getLicenseKeyByEmail, saveEmailIndex,
   getLicenseKeyByPaymentCustomerId, savePaymentCustomerIndex,
-  getUsageCount, incrementUsage, normalizeEmail, isFounderLicenseKey
+  getUsageCount, incrementUsage, getTrialUsageCount, incrementTrialUsage,
+  normalizeEmail, isFounderLicenseKey, ALWAYS_FREE_PROTOCOLS
 } from './licensing.js';
 
 /**
@@ -158,9 +159,13 @@ export async function downgradeToFree({ licenseKey, paymentCustomerId }){
 
 /**
  * The single check api/generate.js calls before ever proxying to
- * Anthropic. Bundles the license lookup, current usage count, and the
- * pure entitlement decision into one call so the route handler doesn't
- * need to know about KV keys or usage-period formatting at all.
+ * Anthropic. Bundles the license lookup, both usage counters (Classic's
+ * monthly one, and this protocol's one-time trial one — only the
+ * relevant one actually matters for a given protocol, but fetching both
+ * unconditionally keeps this simple rather than branching on protocol
+ * here too), and the pure entitlement decision into one call, so the
+ * route handler doesn't need to know about KV keys or which counter
+ * applies to which protocol at all.
  * @param {string} licenseKey
  * @param {string} protocol
  * @returns {Promise<{allowed: boolean, reason: string|null, message: string|null, license: object|null}>}
@@ -188,25 +193,37 @@ export async function checkEntitlement(licenseKey, protocol){
   }
 
   const period = currentUsagePeriod();
-  const usageCount = await getUsageCount(licenseKey, period);
+  const monthlyUsageCount = await getUsageCount(licenseKey, period);
+  const trialUsageCount = await getTrialUsageCount(licenseKey, protocol);
   const result = evaluateEntitlement({
     plan: license.plan,
     status: license.status,
     protocol,
-    usageCount
+    monthlyUsageCount,
+    trialUsageCount
   });
 
   return { ...result, license };
 }
 
 /**
- * Records one generation against this license's usage for the current
- * period. Called only after a report has actually, successfully been
- * delivered — a failed or empty generation was never billed against the
- * teacher's Free allowance.
+ * Records one generation against this license's usage. Called only after
+ * a report has actually, successfully been delivered — a failed or empty
+ * generation was never billed against either allowance. Increments
+ * whichever counter actually applies to this protocol: Classic's
+ * recurring monthly one, or this protocol's one-time trial one — a
+ * founder/owner key skips both entirely, since it isn't tracked at all.
+ * Returns the new count (or null for a founder key, since nothing was
+ * incremented) so callers can report a remaining-generations figure
+ * without a second round-trip.
  * @param {string} licenseKey
+ * @param {string} protocol
+ * @returns {Promise<number|null>}
  */
-export async function recordUsage(licenseKey){
-  if(isFounderLicenseKey(licenseKey)) return;
-  await incrementUsage(licenseKey, currentUsagePeriod());
+export async function recordUsage(licenseKey, protocol){
+  if(isFounderLicenseKey(licenseKey)) return null;
+  if(ALWAYS_FREE_PROTOCOLS.includes(protocol)){
+    return await incrementUsage(licenseKey, currentUsagePeriod());
+  }
+  return await incrementTrialUsage(licenseKey, protocol);
 }

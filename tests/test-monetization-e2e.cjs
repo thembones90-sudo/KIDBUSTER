@@ -96,7 +96,7 @@ module.exports = async function run(){
     for(let i = 1; i <= 25; i++){
       const entitlement = await svc.checkEntitlement(licenseKey, 'MA');
       if(!entitlement.allowed){ blockedAt = i; break; }
-      await svc.recordUsage(licenseKey);
+      await svc.recordUsage(licenseKey, 'MA');
     }
     check('3: blocked at exactly report #21 (20 allowed, per FREE_MONTHLY_LIMIT default)', blockedAt === 21);
 

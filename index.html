@@ -120,6 +120,20 @@ body.protocol-beida{
   --toxin-border:rgba(246,141,13,0.28);
   --toxin-glow:rgba(246,141,13,0.18);
 }
+body.protocol-preply{
+  --toxin-rgb:178,102,255;
+  --toxin:#B266FF;
+  --olive:#2A1042;
+  --toxin-bright:#F0E0FF;
+  --toxin-shadow-rgb:190,110,255;
+  --toxin-shadow2-rgb:120,60,180;
+  --toxin-focus-rgb:220,180,255;
+  --toxin-wave-rgb:245,230,255;
+  --toxin-label:#E6C8FF;
+  --toxin-dim:rgba(178,102,255,0.14);
+  --toxin-border:rgba(178,102,255,0.28);
+  --toxin-glow:rgba(178,102,255,0.18);
+}
 /* Redundant, JS-independent safety net: applies the exact same theme
    values directly from which radio is checked, via :has(). If the JS
    class-toggle mechanism above ever fails to apply for any reason (a
@@ -181,6 +195,20 @@ body:has(input[name="protocol"][value="BEIDA"]:checked){
   --toxin-dim:rgba(246,141,13,0.14);
   --toxin-border:rgba(246,141,13,0.28);
   --toxin-glow:rgba(246,141,13,0.18);
+}
+body:has(input[name="protocol"][value="PREPLY"]:checked){
+  --toxin-rgb:178,102,255;
+  --toxin:#B266FF;
+  --olive:#2A1042;
+  --toxin-bright:#F0E0FF;
+  --toxin-shadow-rgb:190,110,255;
+  --toxin-shadow2-rgb:120,60,180;
+  --toxin-focus-rgb:220,180,255;
+  --toxin-wave-rgb:245,230,255;
+  --toxin-label:#E6C8FF;
+  --toxin-dim:rgba(178,102,255,0.14);
+  --toxin-border:rgba(178,102,255,0.28);
+  --toxin-glow:rgba(178,102,255,0.18);
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
@@ -325,6 +353,39 @@ button.account-btn:disabled{opacity:0.5;cursor:default;}
   gap:10px;
   flex-wrap:wrap;
 }
+.account-trials{
+  margin-bottom:14px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:12px;
+  background:rgba(255,255,255,0.02);
+}
+.account-trials-title{
+  color:var(--text-dim);
+  font-family:var(--font-mono);
+  font-size:10px;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  margin:0 0 8px;
+}
+.account-trial-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:5px 0;
+  font-size:13px;
+}
+.account-trial-row + .account-trial-row{
+  border-top:1px solid var(--border);
+}
+.account-trial-value{
+  font-family:var(--font-mono);
+  font-size:12px;
+  color:var(--text-dim);
+}
+.account-trial-row.exhausted .account-trial-value{
+  color:var(--warm);
+}
 .account-actions .btn-secondary, .account-panel-head .btn-secondary{
   flex:none;
   width:auto;
@@ -395,6 +456,10 @@ label.field-label{
 }
 .protocol-target{
   text-shadow:0 0 8px rgba(135,243,22,0.85);
+  line-height:1;
+}
+.protocol-preply-icon{
+  text-shadow:0 0 8px rgba(178,102,255,0.85);
   line-height:1;
 }
 /* OF's label is much longer than the other three ("OF Protocol (Trial
@@ -1033,6 +1098,22 @@ body.protocol-beida .generate-btn.loading{
   font-weight:600;
   margin-bottom:6px;
 }
+.trial-status-box{
+  margin-top:10px;
+  border-radius:8px;
+  padding:8px 12px;
+  font-size:12px;
+  font-family:var(--font-mono);
+  letter-spacing:0.02em;
+  background:var(--olive);
+  border:1px solid var(--toxin-border);
+  color:var(--toxin);
+}
+.trial-status-box.trial-status-exhausted{
+  color:var(--warm);
+  border-color:rgba(242,166,90,0.4);
+  background:var(--warm-dim);
+}
 .lint-box ul{
   margin:0;
   padding-left:18px;
@@ -1205,6 +1286,7 @@ body.protocol-beida .generate-btn.loading{
         <p class="account-value" id="accountKey">None</p>
       </div>
     </div>
+    <div class="account-trials" id="accountTrials" style="display:none;"></div>
     <div class="account-actions">
       <button class="btn-secondary" id="accountChangeKeyBtn" type="button">Change key</button>
       <button class="btn-secondary" id="accountUpgradeBtn" type="button">Upgrade to Pro</button>
@@ -1223,6 +1305,7 @@ body.protocol-beida .generate-btn.loading{
             <label><input type="radio" name="protocol" value="BLITZ"> Blitz <span class="protocol-lightning" aria-hidden="true">&#9889;</span><span class="info-icon" tabindex="0" data-tooltip="Short, neutral comment for quick platform feedback. No rating-based tone shifts.">?</span></label>
             <label><input type="radio" name="protocol" value="BEIDA"> Beida<span class="info-icon" tabindex="0" data-tooltip="Two-field comment matching the BetaKid platform's own form: Learning Content + General Performance.">?</span></label>
             <label><input type="radio" name="protocol" value="OF"> OF Protocol (Trial Evaluation)<span class="info-icon" tabindex="0" data-tooltip="3-section narrative for trial-lesson evaluations — not a regular lesson report.">?</span></label>
+            <label><input type="radio" name="protocol" value="PREPLY"> Preply <span class="protocol-preply-icon" aria-hidden="true">&#128172;</span><span class="info-icon" tabindex="0" data-tooltip="Personal messages for private tutors — Adult, Parent, or Trial follow-up. Not a lesson report.">?</span></label>
           </div>
         </div>
         <div class="field" id="lengthFormatField">
@@ -1240,6 +1323,14 @@ body.protocol-beida .generate-btn.loading{
             <option value="warm" selected>Warm</option>
             <option value="simple">Simple</option>
             <option value="polished">Polished</option>
+          </select>
+        </div>
+        <div class="field" id="preplyModuleField" style="display:none;">
+          <label class="field-label" for="preplyModuleSelect">Module</label>
+          <select id="preplyModuleSelect">
+            <option value="adult" selected>Adult</option>
+            <option value="parent">Parent</option>
+            <option value="trial">Trial</option>
           </select>
         </div>
         <div class="field">
@@ -1314,6 +1405,7 @@ body.protocol-beida .generate-btn.loading{
           </div>
         </div>
         <div id="lintResults" style="display:none;"></div>
+        <div id="trialStatusBox" style="display:none;"></div>
         <button id="prevReportToggle" class="prev-toggle" style="display:none;" type="button">◂ View previous report</button>
         <p class="small-note">Reports are copied to your clipboard automatically the moment they're generated. Draft fields are saved in this browser only — generated reports are never stored.</p>
       </div>
@@ -2235,16 +2327,21 @@ Before returning the report, verify:
         ? `Student pronoun: use ${pronouns} throughout — do not guess a different pronoun from the name.\n`
         : `Student pronoun: not specified — default to "they/them" rather than guessing "he" or "she" from the name.\n`;
     }
+    const isPreply = params.protocol === 'PREPLY';
     if(isBeida){
       // Beida's rating is BetaKid's own real 2-tier field, not a /5 scale
       // like every other protocol — forcing it into "Rating: excellent/5"
       // would be nonsensical to read and to the model alike.
       const beidaLabel = (BEIDA_RATING_TIERS[rating] || BEIDA_RATING_TIERS.excellent).label;
       msg += `Selected rating: ${beidaLabel}\n`;
-    }else{
+    }else if(!isPreply){
+      // Preply is purely evidence-driven by design (confirmed decision,
+      // not an oversight) — there's no rating dial in its UI at all, so
+      // sending a fabricated "Rating: 3/5" here would be actively
+      // misleading, not just unused. Every other protocol still gets one.
       msg += `Rating: ${rating}/5\n`;
     }
-    msg += (isBlitz || isBeida)
+    msg += (isBlitz || isBeida || isPreply)
       ? `Lesson evidence (may be a full transcript, teacher notes, a short summary, bullet points, or any combination — treat this as the complete factual record of the lesson and infer the topic and details from it):\n${notes || '(no lesson evidence provided)'}\n`
       : `Krisp notes (infer the lesson topic from this transcript):\n${notes || '(no notes provided)'}\n`;
     if(remarks){
@@ -2256,7 +2353,7 @@ Before returning the report, verify:
       // model this input is high-priority and always overrides transcript
       // interpretation. Blitz's and Beida's own prompts already use
       // "Special remarks" verbatim, so no bridge is needed for either.
-      msg += (isBlitz || isBeida)
+      msg += (isBlitz || isBeida || isPreply)
         ? `Special remarks to incorporate:\n${remarks}\n`
         : `Special remarks (these are the "Teacher Notes" referenced in your instructions) to incorporate:\n${remarks}\n`;
     }
@@ -3166,6 +3263,198 @@ VALIDATION CHECKLIST
     return warnings;
   }
 
+  // ---------- Preply Protocol V1.0 ----------
+  // Private-tutor communication, not institutional documentation. "Classic
+  // documents lessons. Preply builds relationships." — same evidence
+  // discipline as every other protocol, entirely different purpose: this
+  // is personal correspondence a tutor sends to the same student/parent
+  // they'll keep teaching for months or years, not a one-off report.
+  //
+  // One protocol, three Modules (Adult / Parent / Trial), explicitly
+  // designed so a future fourth Module (Homework Generator, Progress
+  // Report, etc.) is a new entry in PREPLY_MODULES and nothing else —
+  // no new protocol key, no new UI pattern, no change to how generation
+  // or validation is wired.
+  const PREPLY_SHARED_HEADER = `PREPLY PROTOCOL COMMAND CHAIN V1.0
+
+You are generating a private tutoring communication for Pathfinder, used
+by independent English tutors on platforms like Preply.
+
+CORE PHILOSOPHY
+Classic documents lessons. Preply builds relationships. This is not an
+institutional report — it is personal correspondence from a tutor to a
+student or parent they will keep teaching for months or years. Every
+message must feel like something an experienced, busy private tutor
+typed by hand right after class: professional, clear, authentic,
+personalized, natural. It must never sound corporate, robotic, overly
+enthusiastic, repetitive, or AI-generated.
+
+LESSON EVIDENCE RULE
+Base every observation only on what the transcript, lesson notes, or
+teacher input actually support. A couple of hand-typed sentences are a
+complete, sufficient record on their own — brevity is never a reason to
+invent detail. Reasonable educational inference is allowed (a student
+who corrected their own mistake after a prompt is reasonably "building
+self-correction skills"); outright hallucination — an activity, a
+mistake, or a quote that never happened — is forbidden.
+
+NATURAL LANGUAGE RULE
+Avoid corporate or AI-toned openers and closers — phrases like "We
+successfully covered...", "It was a pleasure...", "I am delighted...",
+or "Excellent work today!" — unless the evidence genuinely earns that
+specific enthusiasm. Prefer grounded, natural phrasing instead: "Today
+we focused on...", "We practiced...", "I noticed...", "Next time we'll
+continue...".
+
+PERSONALIZATION RULE
+Prioritize, in this order: the student's actual name, the specific
+lesson topic, specific activities from the lesson, specific mistakes
+corrected, specific progress observed, and a concrete focus for next
+time. Minimize generic praise — replace adjectives with evidence
+wherever possible. "You did great today" is weaker and less useful than
+naming the specific thing that happened.
+
+FORMAT
+Plain prose only — no bullet points, no numbered lists, no headings, no
+emoji anywhere. This is a message, not a report.
+
+QUALITY STANDARD
+Before finishing, check: would an experienced Preply tutor confidently
+press Send on this without editing a single word? If not, it has
+failed — rewrite it.`;
+
+  const PREPLY_MODULES = {
+    adult: {
+      label: 'Adult Lesson Feedback',
+      shortLabel: 'Adult',
+      minWords: 100,
+      maxWords: 170,
+      instructions: `MODULE: ADULT LESSON FEEDBACK
+
+Audience: the adult student, directly.
+Goal: summarize today's lesson professionally while encouraging
+continued learning.
+Tone: 90% professional, 10% friendly — closer to a respectful
+colleague's clear note than a warm personal letter.
+Length: 100-170 words.
+
+Write directly to the student, in second person ("you"). Reference what
+was practiced, one specific strength shown with evidence, and — only if
+the evidence supports it — one specific thing worth continuing to work
+on. Close with a brief, natural look ahead to the next lesson. No formal
+sign-off or teacher name needed — this is a continuing conversation
+between two people who already know each other, not a signed report.`
+    },
+    parent: {
+      label: 'Parent Feedback',
+      shortLabel: 'Parent',
+      minWords: 90,
+      maxWords: 150,
+      instructions: `MODULE: PARENT FEEDBACK
+
+Audience: the parent of a child student — not the child.
+Goal: a reassuring summary of today's lesson that highlights
+participation and progress.
+Tone: warm but professional — 70% professional, 30% warm. Never
+patronizing: a parent is an adult who deserves a clear, respectful
+update, not just reassurance.
+Length: 90-150 words.
+
+Refer to the child by name throughout, in third person ("Emma
+practiced...", not "you practiced..."), since this message is addressed
+to the parent about their child. Reference specific activities and
+specific participation or effort actually observed, not just a mood or
+a vague compliment. If there's a concrete way the parent could help at
+home, mention it briefly — only when the evidence genuinely supports it,
+never as generic filler.`
+    },
+    trial: {
+      label: 'Trial Follow-up',
+      shortLabel: 'Trial',
+      minWords: 100,
+      maxWords: 170,
+      instructions: `MODULE: TRIAL FOLLOW-UP
+
+Audience: a potential future student (or their parent, if the trial was
+for a child) who has not yet committed to ongoing lessons.
+Goal: summarize the trial lesson, acknowledge a genuine strength shown,
+mention what continued lessons would help with, and end with natural
+encouragement to continue — never salesy.
+Tone: 80% professional, 20% motivational. No pressure language, no
+urgency tactics, no mention of pricing or discounts — the lesson content
+itself should be the only reason to continue.
+Length: 100-170 words.
+
+Structure: what was covered in the trial, one specific strength with
+evidence, an honest note on what continued lessons would help develop,
+and a brief, low-pressure close that leaves the door open without
+pushing. If the evidence doesn't genuinely support strong enthusiasm,
+don't manufacture it — an honest summary of one lesson is more
+persuasive than inflated praise, which reads as insincere precisely
+because it's about a single lesson.`
+    }
+  };
+
+  /**
+   * Builds the Preply system prompt for a given Module. Unlike every
+   * other protocol, this never uses a rating/quality dial at all —
+   * Preply is purely evidence-driven by design (confirmed decision, not
+   * an oversight), so params.rating is simply never read.
+   * @param {object} [params]
+   * @param {string} [params.module] - 'adult' | 'parent' | 'trial', defaults to 'adult'
+   * @returns {string}
+   */
+  function buildPreplySystemPrompt(params){
+    const moduleKey = (params && PREPLY_MODULES[params.module]) ? params.module : 'adult';
+    const module = PREPLY_MODULES[moduleKey];
+    return PREPLY_SHARED_HEADER + '\n\n────────────────────────────────────────\n\n' + module.instructions;
+  }
+
+  /**
+   * Validates raw Preply output against its Module's own word-count
+   * range and the protocol's hard "no emoji, no lists" rules. Tone and
+   * vocabulary choices (the Natural Language Rule's banned phrases) are
+   * prompt-guided only, the same as every other protocol here — a
+   * mechanical banned-phrase check can't tell "It was a pleasure to see
+   * such genuine progress" (earned, evidence-backed) from "It was a
+   * pleasure teaching you today" (empty filler) apart, so enforcing it
+   * here would either miss real violations or wrongly flag honest ones.
+   * @param {string} text - raw model output
+   * @param {string} moduleKey - 'adult' | 'parent' | 'trial'
+   * @returns {string[]} warnings, empty array if none
+   */
+  function analyzePreplyOutput(text, moduleKey){
+    const warnings = [];
+    const trimmed = (text || '').trim();
+    const module = PREPLY_MODULES[moduleKey] || PREPLY_MODULES.adult;
+
+    if(!trimmed){
+      warnings.push('Output is empty.');
+      return warnings;
+    }
+
+    const wordCount = trimmed.split(/\s+/).filter(Boolean).length;
+    if(wordCount < module.minWords){
+      warnings.push('Message is ' + wordCount + ' words — under the ' + module.minWords + '-word target for ' + module.label + '. A short, honest message is fine when evidence is thin, but check nothing important was left out.');
+    }else if(wordCount > module.maxWords){
+      warnings.push('Message is ' + wordCount + ' words — over the ' + module.maxWords + '-word target for ' + module.label + '. Trim it — this should read like a real message, not a report.');
+    }
+
+    if(/\p{Extended_Pictographic}/u.test(trimmed)){
+      warnings.push('Message contains an emoji — Preply messages must never use emojis.');
+    }
+
+    if(/^\s*[•\-*]\s+/m.test(trimmed) || /^\s*\d+[.)]\s+/m.test(trimmed)){
+      warnings.push('Message appears to contain a bullet point or numbered list — must be plain prose.');
+    }
+
+    if(/\[[A-Za-z][^\]]*\]/.test(trimmed)){
+      warnings.push('Message contains an unfilled [placeholder] — replace it with the real name or detail before sending.');
+    }
+
+    return warnings;
+  }
+
   // ProtocolManager: both official protocols implement the same interface
   // (buildSystemPrompt, analyze), so the UI layer only ever needs to know
   // which key is selected — it never branches on protocol-specific logic
@@ -3222,6 +3511,17 @@ VALIDATION CHECKLIST
       // explicitly to analyzeOFOutput's own 4th parameter, regardless of
       // what position 4 (lengthFormat) means for other protocols.
       analyze: (text, lvl, teacherName, lengthFormat, studentGender) => analyzeOFOutput(text, lvl, teacherName, studentGender)
+    },
+    PREPLY: {
+      key: 'PREPLY',
+      label: 'Preply',
+      buildSystemPrompt: buildPreplySystemPrompt,
+      // The 7th positional arg — preplyModule, meaningful only here — maps
+      // explicitly to analyzePreplyOutput's own 2nd parameter. Preply never
+      // reads rating/teacherName/lengthFormat/studentGender/signoffEmoji at
+      // all (positions 2-6), consistent with it being purely evidence-driven
+      // by design, not an oversight.
+      analyze: (text, lvl, teacherName, lengthFormat, studentGender, signoffEmoji, preplyModule) => analyzePreplyOutput(text, preplyModule)
     }
   };
 
@@ -3298,6 +3598,9 @@ VALIDATION CHECKLIST
     splitBeidaOutput,
     analyzeBeidaOutput,
     checkForbiddenFormatting,
+    buildPreplySystemPrompt,
+    analyzePreplyOutput,
+    PREPLY_MODULES,
     PROTOCOLS
   };
 })();
@@ -3412,15 +3715,26 @@ function buildRatingTrack(){
   const isOF = protocolKey === 'OF';
   const isBlitz = protocolKey === 'BLITZ';
   const isBeida = protocolKey === 'BEIDA';
+  const isPreply = protocolKey === 'PREPLY';
   document.body.classList.toggle('protocol-of', isOF);
   document.body.classList.toggle('protocol-ms', protocolKey === 'MS');
   document.body.classList.toggle('protocol-blitz', isBlitz);
   document.body.classList.toggle('protocol-beida', isBeida);
-  document.getElementById('lengthFormatField').style.display = (isOF || isBlitz || isBeida) ? 'none' : '';
+  document.body.classList.toggle('protocol-preply', isPreply);
+  document.getElementById('lengthFormatField').style.display = (isOF || isBlitz || isBeida || isPreply) ? 'none' : '';
   // Voice is a Blitz-only concept — same Focus archetypes either way, just
   // a different writing voice (warm/simple/polished) selected explicitly
   // by the teacher rather than drawn from the shuffle bag like Focus is.
   document.getElementById('blitzVoiceField').style.display = isBlitz ? '' : 'none';
+  // Module is a Preply-only concept — which of the three (soon more)
+  // Modules this message is for. Explicitly does not reuse Voice's UI
+  // pattern despite looking similar, since Module changes the entire
+  // audience/goal/tone, not just how the same content sounds.
+  document.getElementById('preplyModuleField').style.display = isPreply ? '' : 'none';
+  // Preply is purely evidence-driven by design (confirmed decision, not
+  // an oversight) — no rating/quality dial at all, so the whole field is
+  // hidden rather than showing a scale that's simply never read.
+  document.getElementById('ratingField').style.display = isPreply ? 'none' : '';
   // OF is the only protocol written entirely in the third person about the
   // student (MA/Sugarcoat/Blitz all address the student directly or don't
   // need a pronoun at all), so the pronoun toggle only matters — and only
@@ -3451,6 +3765,9 @@ function buildRatingTrack(){
   if(isBlitz || isBeida){
     notesLabel.textContent = 'Quick notes';
     notesTextarea.placeholder = 'A sentence or two is enough — no transcript needed. e.g. "Practiced past tense and articles. Good participation, some struggle with articles."';
+  }else if(isPreply){
+    notesLabel.textContent = 'Lesson notes';
+    notesTextarea.placeholder = 'A sentence or two about what happened in the lesson is enough. e.g. "Worked on conditionals. Caught her own mistake twice without prompting. Still hesitant with 3rd conditional."';
   }else{
     notesLabel.textContent = 'Krisp notes';
     notesTextarea.placeholder = 'Paste the raw lesson summary or transcript here...';
@@ -3462,7 +3779,8 @@ function buildRatingTrack(){
   // its own 2-tier scale, matching BetaKid's real "How is student's
   // performance?" field exactly (Excellent / try harder please) rather
   // than either of the other two scales.
-  const values = isOF ? KidbusterCore.OF_TIERS
+  const values = isPreply ? []
+    : isOF ? KidbusterCore.OF_TIERS
     : isBeida ? Object.keys(KidbusterCore.BEIDA_RATING_TIERS)
     : KidbusterCore.LEVELS;
 
@@ -3526,6 +3844,7 @@ function buildRatingTrack(){
   });
 }
 buildRatingTrack();
+checkAndShowTrialStatus(document.querySelector('input[name="protocol"]:checked').value);
 
 // ---------- text field persistence ----------
 ['teacherName','studentName','krispNotes','specialRemarks','teacherSignoffEmoji'].forEach(id => {
@@ -3655,7 +3974,8 @@ function readFormState(){
     lengthFormat: (document.querySelector('input[name="lengthFormat"]:checked') || {}).value || 'long',
     studentGender: (document.querySelector('input[name="studentGender"]:checked') || {}).value || '',
     signoffEmoji: document.getElementById('teacherSignoffEmoji').value.trim(),
-    blitzVoice: document.getElementById('blitzVoiceSelect').value || 'warm'
+    blitzVoice: document.getElementById('blitzVoiceSelect').value || 'warm',
+    preplyModule: document.getElementById('preplyModuleSelect').value || 'adult'
   };
 }
 
@@ -3721,6 +4041,30 @@ function renderLint(warnings){
   }
 }
 
+// Shows the "X/5 remaining" line after a trial-based protocol's
+// generation, and the distinct "trial has ended" line once remaining
+// hits 0. Never shown for Classic (always-free) or for a Pro license —
+// trialStatus is simply null in both those cases (see api/generate.js),
+// so this function only ever needs to handle "null -> hide" and "a real
+// trial-based result -> show it".
+function renderTrialStatus(trialStatus){
+  const box = document.getElementById('trialStatusBox');
+  if(!trialStatus){
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  const label = getProtocolLabel(trialStatus.protocol);
+  box.style.display = 'block';
+  if(trialStatus.remaining > 0){
+    box.className = 'trial-status-box';
+    box.textContent = label + ' Trial: ' + trialStatus.remaining + '/' + trialStatus.limit + ' remaining';
+  }else{
+    box.className = 'trial-status-box trial-status-exhausted';
+    box.textContent = 'Your complimentary ' + label + ' trial has ended. Upgrade to Pathfinder Pro to continue using this protocol.';
+  }
+}
+
 // NOTE: this is the one function in this file that isn't portable as-is —
 // calling the Anthropic API directly from the browser only works because
 // this is a single-user local file. A hosted version MUST move this call
@@ -3775,10 +4119,48 @@ function updateAccountSnapshot(summary, plan, status, usage, keyLabel, canUpgrad
   if(els.upgradeBtn) els.upgradeBtn.style.display = canUpgrade ? '' : 'none';
 }
 
+// Shows every trial-eligible protocol's status at once in the account
+// panel — real transparency ("users understand exactly what they're
+// paying for"), not just whatever protocol happens to be selected right
+// now. Hidden entirely for Pro/founder (every protocol is simply
+// unlimited, nothing meaningful to show) and when there's no trials data
+// at all (not signed in, or the status check failed).
+function renderAccountTrials(trials){
+  const box = document.getElementById('accountTrials');
+  if(!trials){
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  const rows = Object.keys(trials).map(protocolKey => {
+    const t = trials[protocolKey];
+    // Pro/founder: remainingTrialGenerations is null for every protocol —
+    // nothing meaningful to show, so skip the whole section rather than
+    // render a confusing "null/5" row.
+    if(t.remainingTrialGenerations === null) return null;
+    const exhausted = t.remainingTrialGenerations === 0;
+    const label = getProtocolLabel(protocolKey);
+    const valueText = exhausted ? 'Used up' : (t.trialUsageCount + '/' + t.trialLimit + ' used');
+    return '<div class="account-trial-row' + (exhausted ? ' exhausted' : '') + '">' +
+      '<span>' + escapeHtml(label) + '</span>' +
+      '<span class="account-trial-value">' + valueText + '</span>' +
+      '</div>';
+  }).filter(Boolean);
+
+  if(rows.length === 0){
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  box.style.display = 'block';
+  box.innerHTML = '<p class="account-trials-title">Protocol trials (one-time, 5 each)</p>' + rows.join('');
+}
+
 async function refreshAccountPanel(){
   const key = getStoredAccessKey();
   if(!key){
     updateAccountSnapshot('No access key is saved in this browser yet.', 'Not signed in', 'No key', '-', 'None', false);
+    renderAccountTrials(null);
     return;
   }
 
@@ -3791,6 +4173,7 @@ async function refreshAccountPanel(){
     const data = await res.json().catch(() => ({}));
     if(!res.ok){
       updateAccountSnapshot(data.error || 'This saved key was not accepted.', 'Needs attention', 'Invalid', '-', maskAccessKey(key), false);
+      renderAccountTrials(null);
       return;
     }
 
@@ -3802,8 +4185,10 @@ async function refreshAccountPanel(){
       : String(data.usageCount || 0) + ' used - ' + String(data.remainingFreeReports) + ' left this month';
     const emailNote = data.email ? 'Signed in as ' + data.email + '.' : 'Saved key is active.';
     updateAccountSnapshot(emailNote, planLabel, statusLabel, usageLabel, maskAccessKey(key), !isPro);
+    renderAccountTrials(data.trials || null);
   }catch(e){
     updateAccountSnapshot('Saved key found. Status check needs the live app server.', 'Saved key', 'Unknown', 'Unable to refresh', maskAccessKey(key), true);
+    renderAccountTrials(null);
   }
 }
 
@@ -4009,7 +4394,7 @@ async function callClaude(systemPrompt, userMessage, protocol){
 
   const data = await response.json();
   if(!data.text) throw new Error('The server returned an empty response. Try regenerating.');
-  return { text: data.text, usage: data.usage || null };
+  return { text: data.text, usage: data.usage || null, trialStatus: data.trialStatus || null };
 }
 
 // ---------- field-test feedback card ----------
@@ -4202,12 +4587,12 @@ async function generate(){
 
   if(!form.notes.trim()){
     outputBox.className = 'output-box error';
-    outputBox.textContent = form.protocol === 'BLITZ'
+    outputBox.textContent = (form.protocol === 'BLITZ' || form.protocol === 'PREPLY')
       ? 'Add a few quick notes about this lesson before generating.'
       : 'Add the Krisp notes for this lesson before generating.';
     return;
   }
-  if(!form.rating){
+  if(!form.rating && form.protocol !== 'PREPLY'){
     outputBox.className = 'output-box error';
     outputBox.textContent = 'Select a quality rating before generating.';
     return;
@@ -4224,7 +4609,7 @@ async function generate(){
   console.log('[Kidbuster] transcript cleaning — raw:', form.notes.length, 'chars → cleaned:', cleanedNotes.length, 'chars');
 
   let systemPrompt = KidbusterCore.applyTeacherIdentity(
-    protocol.buildSystemPrompt({ rating: form.rating, lengthFormat: form.lengthFormat, voice: form.blitzVoice }),
+    protocol.buildSystemPrompt({ rating: form.rating, lengthFormat: form.lengthFormat, voice: form.blitzVoice, module: form.preplyModule }),
     form.teacherName
   );
   if(form.protocol === 'MA'){
@@ -4239,10 +4624,12 @@ async function generate(){
   outputBox.textContent = 'Generating...';
   copyBtn.disabled = true;
   renderLint(null);
+  renderTrialStatus(null);
 
   const generationStartedAt = performance.now();
   try{
-    const { text, usage } = await callClaude(systemPrompt, userMessage, form.protocol);
+    const { text, usage, trialStatus } = await callClaude(systemPrompt, userMessage, form.protocol);
+    renderTrialStatus(trialStatus);
     const durationMs = Math.round(performance.now() - generationStartedAt);
     if(usage){
       // Real, measured cost from Anthropic's own usage field — not an
@@ -4298,7 +4685,7 @@ async function generate(){
         durationMs: durationMs
       });
     }
-    const lint = protocol.analyze(text, form.rating, form.teacherName, form.lengthFormat, form.studentGender, form.signoffEmoji);
+    const lint = protocol.analyze(text, form.rating, form.teacherName, form.lengthFormat, form.studentGender, form.signoffEmoji, form.preplyModule);
     setCurrentReport(text, lint);
     renderReportToOutput(text);
     playOutputRevealAnimation();
@@ -4364,13 +4751,13 @@ function getProtocolLabel(protocolKey){
 
 function buildEntitlementNotice(err, protocolKey){
   const protocolLabel = getProtocolLabel(protocolKey);
-  if(err.reason === 'protocol_requires_pro'){
+  if(err.reason === 'trial_exhausted'){
     return {
-      title: protocolLabel + ' needs Pro',
-      body: 'Your saved key is on the Free plan. Upgrade to Pro to unlock ' + protocolLabel + ', every current and future protocol, and unlimited reports.'
+      title: protocolLabel + ' trial used up',
+      body: err.message || ('Your complimentary ' + protocolLabel + ' trial has ended. Upgrade to Pathfinder Pro to continue using this protocol.')
     };
   }
-  if(err.reason === 'free_limit_reached'){
+  if(err.reason === 'limit_reached'){
     return {
       title: 'Free monthly limit reached',
       body: 'This key has used all free Classic reports for this month. Upgrade to Pro for unlimited reports and every protocol.'
@@ -4480,6 +4867,7 @@ function resetWorkspace(){
   copyBtn.disabled = true;
   newStudentBtn.disabled = true;
   renderLint(null);
+  renderTrialStatus(null);
   try{ localStorage.removeItem(DRAFT_KEY); }catch(e){ /* storage unavailable, fail silently */ }
 }
 
@@ -4533,7 +4921,60 @@ function setProtocolBadge(protocolKey){
 document.getElementById('protocolSelect').addEventListener('change', (e) => {
   setProtocolBadge(e.target.value);
   buildRatingTrack();
+  checkAndShowTrialStatus(e.target.value);
 });
+
+// Shown when switching to a trial-based protocol (anything except
+// Classic): a real, live check against this license's actual trial
+// usage for that specific protocol — not a guess, and not just a
+// client-side "have I seen this before" flag, since the real count only
+// exists server-side. Silently does nothing on any failure (missing key,
+// network issue, etc.) — this is a helpful nicety, not something that
+// should ever block or show a scary error for what's ultimately a cosmetic
+// heads-up. The actual enforcement always happens for real at generation
+// time regardless of whether this check succeeded.
+async function checkAndShowTrialStatus(protocolKey){
+  if(protocolKey === 'MA'){
+    // Classic is the one ongoing Free protocol — no trial concept applies.
+    renderTrialStatus(null);
+    return;
+  }
+  const licenseKey = getStoredAccessKey();
+  if(!licenseKey){
+    renderTrialStatus(null);
+    return;
+  }
+  try{
+    const res = await fetch('/api/license-status', {
+      headers: { 'x-app-key': licenseKey }
+    });
+    if(!res.ok){ renderTrialStatus(null); return; }
+    const data = await res.json();
+    const trial = data.trials && data.trials[protocolKey];
+    if(data.plan === 'pro' || data.founder || !trial){
+      renderTrialStatus(null);
+      return;
+    }
+    const { trialUsageCount, trialLimit, remainingTrialGenerations } = trial;
+    const box = document.getElementById('trialStatusBox');
+    const label = getProtocolLabel(protocolKey);
+    if(trialUsageCount === 0){
+      box.style.display = 'block';
+      box.className = 'trial-status-box';
+      box.textContent = 'Welcome to ' + label + '! You have ' + trialLimit + ' complimentary generations to explore this protocol.';
+    }else if(remainingTrialGenerations > 0){
+      box.style.display = 'block';
+      box.className = 'trial-status-box';
+      box.textContent = label + ' Trial: ' + remainingTrialGenerations + '/' + trialLimit + ' remaining';
+    }else{
+      box.style.display = 'block';
+      box.className = 'trial-status-box trial-status-exhausted';
+      box.textContent = 'Your complimentary ' + label + ' trial has ended. Upgrade to Pathfinder Pro to continue using this protocol.';
+    }
+  }catch(e){
+    renderTrialStatus(null);
+  }
+}
 
 function updateLengthFormatCaption(){
   const key = (document.querySelector('input[name="lengthFormat"]:checked') || {}).value || 'long';
@@ -4549,6 +4990,7 @@ updateLengthFormatCaption();
 
 document.getElementById('studentGenderSelect').addEventListener('change', saveDraft);
 document.getElementById('blitzVoiceSelect').addEventListener('change', saveDraft);
+document.getElementById('preplyModuleSelect').addEventListener('change', saveDraft);
 
 copyBtn.addEventListener('click', () => copyOutputToClipboard(outputBox, copyBtn));
 document.getElementById('copyBeidaPerformanceBtn').addEventListener('click', () => copyOutputToClipboard(document.getElementById('beidaPerformanceBox'), document.getElementById('copyBeidaPerformanceBtn')));
@@ -4630,7 +5072,7 @@ function appendGenerationHistory(entry){
 }
 
 function loadUsageStats(){
-  const defaults = { MA: { reports: 0, cost: 0 }, OF: { reports: 0, cost: 0 }, MS: { reports: 0, cost: 0 }, BLITZ: { reports: 0, cost: 0 }, BEIDA: { reports: 0, cost: 0 }, regenerationEvents: 0 };
+  const defaults = { MA: { reports: 0, cost: 0 }, OF: { reports: 0, cost: 0 }, MS: { reports: 0, cost: 0 }, BLITZ: { reports: 0, cost: 0 }, BEIDA: { reports: 0, cost: 0 }, PREPLY: { reports: 0, cost: 0 }, regenerationEvents: 0 };
   try{
     const raw = localStorage.getItem(USAGE_STATS_KEY);
     if(raw){
@@ -4645,6 +5087,7 @@ function loadUsageStats(){
         MS: parsed.MS || defaults.MS,
         BLITZ: parsed.BLITZ || defaults.BLITZ,
         BEIDA: parsed.BEIDA || defaults.BEIDA,
+        PREPLY: parsed.PREPLY || defaults.PREPLY,
         regenerationEvents: parsed.regenerationEvents || 0
       };
     }
@@ -4699,20 +5142,22 @@ function recordFailedGeneration(protocolKey, durationMs, errorMessage){
 // Callable from the browser console (F12) at any time: kidbusterStats()
 window.kidbusterStats = function(){
   const s = loadUsageStats();
-  const totalReports = s.MA.reports + s.OF.reports + s.MS.reports + s.BLITZ.reports + s.BEIDA.reports;
-  const totalCost = s.MA.cost + s.OF.cost + s.MS.cost + s.BLITZ.cost + s.BEIDA.cost;
+  const totalReports = s.MA.reports + s.OF.reports + s.MS.reports + s.BLITZ.reports + s.BEIDA.reports + s.PREPLY.reports;
+  const totalCost = s.MA.cost + s.OF.cost + s.MS.cost + s.BLITZ.cost + s.BEIDA.cost + s.PREPLY.cost;
   console.log('=== Kidbuster cumulative usage (this browser) ===');
   console.log('MA reports:', s.MA.reports, '| MA cost: $' + s.MA.cost.toFixed(4));
   console.log('MA Sweet Voice reports:', s.MS.reports, '| MS cost: $' + s.MS.cost.toFixed(4));
   console.log('OF reports:', s.OF.reports, '| OF cost: $' + s.OF.cost.toFixed(4));
   console.log('Blitz reports:', s.BLITZ.reports, '| Blitz cost: $' + s.BLITZ.cost.toFixed(4));
   console.log('Beida reports:', s.BEIDA.reports, '| Beida cost: $' + s.BEIDA.cost.toFixed(4));
+  console.log('Preply reports:', s.PREPLY.reports, '| Preply cost: $' + s.PREPLY.cost.toFixed(4));
   console.log('Total reports:', totalReports, '| Total cost: $' + totalCost.toFixed(4));
   console.log('MA share:', totalReports ? (s.MA.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('MA Sweet Voice share:', totalReports ? (s.MS.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('OF share:', totalReports ? (s.OF.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('Blitz share:', totalReports ? (s.BLITZ.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('Beida share:', totalReports ? (s.BEIDA.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
+  console.log('Preply share:', totalReports ? (s.PREPLY.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('Regeneration events (2nd+ generate before New Student/Clear):', s.regenerationEvents);
   console.log('Avg cost/report:', totalReports ? '$'+(totalCost/totalReports).toFixed(4) : 'n/a');
   return s;
@@ -4832,7 +5277,8 @@ function collectDraft(){
     krispNotes: form.notes,
     specialRemarks: form.remarks,
     signoffEmoji: form.signoffEmoji,
-    blitzVoice: form.blitzVoice
+    blitzVoice: form.blitzVoice,
+    preplyModule: form.preplyModule
   };
 }
 
@@ -4851,6 +5297,7 @@ function restoreDraft(){
   document.getElementById('specialRemarks').value = draft.specialRemarks || '';
   document.getElementById('teacherSignoffEmoji').value = draft.signoffEmoji || '';
   document.getElementById('blitzVoiceSelect').value = draft.blitzVoice || 'warm';
+  document.getElementById('preplyModuleSelect').value = draft.preplyModule || 'adult';
   updateKrispCounter();
 
   if(draft.protocol){

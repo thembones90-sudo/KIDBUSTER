@@ -44,20 +44,29 @@ module.exports = async function run(){
     check('unknown email returns 404', missing.statusCode === 404);
   }
 
-  console.log('\n3) license-status: reports Free usage and remaining monthly allowance');
+  console.log('\n3) license-status: reports Free usage and remaining monthly allowance, plus every trial protocol\'s status');
   {
     __resetForTests();
     const key = await svc.getOrCreateFreeLicense('status@example.com');
-    await svc.recordUsage(key);
-    await svc.recordUsage(key);
+    await svc.recordUsage(key, 'MA');
+    await svc.recordUsage(key, 'MA');
+    await svc.recordUsage(key, 'BEIDA');
+    await svc.recordUsage(key, 'BEIDA');
+    await svc.recordUsage(key, 'BEIDA');
 
     const result = await send(statusHandler, { method: 'GET', headers: { 'x-app-key': key } });
     check('status returns 200 for a real license', result.statusCode === 200);
     check('status reports Free plan and active state', result.jsonBody.plan === 'free' && result.jsonBody.status === 'active');
     check('status includes usage and remaining free reports', result.jsonBody.usageCount === 2 && result.jsonBody.remainingFreeReports === licensing.FREE_MONTHLY_LIMIT - 2);
+
+    const trials = result.jsonBody.trials;
+    check('trials object is present and includes every trial-eligible protocol', trials && ['MS', 'BLITZ', 'BEIDA', 'OF', 'PREPLY'].every(p => p in trials));
+    check('trials object does NOT include MA (the one always-free protocol)', !('MA' in trials));
+    check('a fresh protocol (MS) reports 0 used, full remaining', trials.MS.trialUsageCount === 0 && trials.MS.remainingTrialGenerations === licensing.TRIAL_GENERATIONS_PER_PROTOCOL);
+    check('Beida, used 3 times, reports that correctly', trials.BEIDA.trialUsageCount === 3 && trials.BEIDA.remainingTrialGenerations === licensing.TRIAL_GENERATIONS_PER_PROTOCOL - 3);
   }
 
-  console.log('\n4) license-status: owner key is Pro forever and usage-free');
+  console.log('\n4) license-status: owner key is Pro forever and usage-free (including every protocol\'s trial)');
   {
     __resetForTests();
     const oldOwnerKeys = process.env.OWNER_LICENSE_KEYS;
@@ -67,6 +76,7 @@ module.exports = async function run(){
     check('owner key status returns 200', result.statusCode === 200);
     check('owner key reports Pro founder access', result.jsonBody.plan === 'pro' && result.jsonBody.founder === true);
     check('owner key has no Free remaining limit', result.jsonBody.remainingFreeReports === null);
+    check('owner key\'s trial protocols all report null remaining (unlimited, not a real count)', result.jsonBody.trials.BEIDA.remainingTrialGenerations === null);
 
     if(oldOwnerKeys === undefined) delete process.env.OWNER_LICENSE_KEYS;
     else process.env.OWNER_LICENSE_KEYS = oldOwnerKeys;

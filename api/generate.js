@@ -41,6 +41,7 @@ function buildCacheableSystemBlocks(systemPrompt) {
 }
 
 import { checkEntitlement, recordUsage } from './_lib/license-service.js';
+import { ALWAYS_FREE_PROTOCOLS, TRIAL_GENERATIONS_PER_PROTOCOL } from './_lib/licensing.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -144,8 +145,21 @@ export default async function handler(req, res) {
   // Anthropic has actually returned real content — a failed or empty
   // response was never a delivered report and shouldn't cost the teacher
   // part of their Free allowance.
+  let trialStatus = null;
   try {
-    await recordUsage(licenseKey);
+    const newCount = await recordUsage(licenseKey, protocol);
+    // newCount is null for founder/owner keys (nothing was ever
+    // incremented) and for Pro users there's no meaningful "remaining"
+    // concept either — trialStatus only makes sense for a real,
+    // trial-based generation that was actually just counted.
+    if(newCount !== null && !ALWAYS_FREE_PROTOCOLS.includes(protocol) && entitlement.license && entitlement.license.plan !== 'pro'){
+      trialStatus = {
+        protocol,
+        used: newCount,
+        limit: TRIAL_GENERATIONS_PER_PROTOCOL,
+        remaining: Math.max(0, TRIAL_GENERATIONS_PER_PROTOCOL - newCount)
+      };
+    }
   } catch (err) {
     console.error('generate.js: error recording usage (report still delivered):', err);
   }
@@ -155,5 +169,5 @@ export default async function handler(req, res) {
   // frontend's cost tracker (see kidbusterStats() in index.html) can price
   // each token type correctly instead of treating everything as a normal
   // input token.
-  return res.status(200).json({ text, usage: data.usage || null });
+  return res.status(200).json({ text, usage: data.usage || null, trialStatus });
 }

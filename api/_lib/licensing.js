@@ -24,10 +24,43 @@
 import crypto from 'crypto';
 import { kv } from './kv-client.js';
 
-// ---------- configuration (the only two things meant to be tunable) ----------
+// ---------- configuration ----------
 
 export const FREE_MONTHLY_LIMIT = parseInt(process.env.FREE_MONTHLY_LIMIT || '20', 10);
-export const FREE_PLAN_PROTOCOLS = ['MA']; // Free tier is Classic (MA) only, by design
+
+// Classic (MA) is the only protocol with a genuine, ongoing Free tier —
+// FREE_MONTHLY_LIMIT reports every calendar month, forever, never expires.
+// Every OTHER protocol (Sugarcoat, Blitz, Beida, Preply, and any future
+// one — nothing here needs to change when a new protocol is added) instead
+// gets a one-time trial allowance: TRIAL_GENERATIONS_PER_PROTOCOL free
+// generations, ever, per protocol, per license — not monthly, does not
+// reset. Once exhausted, that protocol requires Pro. This is the
+// "Protocol Trial Unlocks" model: every protocol is discoverable and
+// testable without paying, but permanent access stays a Pro feature.
+export const ALWAYS_FREE_PROTOCOLS = ['MA'];
+export const TRIAL_GENERATIONS_PER_PROTOCOL = parseInt(process.env.TRIAL_GENERATIONS_PER_PROTOCOL || '5', 10);
+
+// Display labels for teacher-facing messages only — evaluateEntitlement
+// only ever receives a raw protocol key (e.g. 'BEIDA', 'PREPLY') and has
+// no access to the frontend's own PROTOCOLS registry (a browser-side
+// object in index.html), so a small mapping lives here too. Falls back
+// to the raw key itself for anything not listed, so a new protocol added
+// to the frontend without updating this map degrades gracefully (a
+// slightly less polished message) rather than breaking.
+const PROTOCOL_LABELS = {
+  MA: 'Classic',
+  MS: 'Sugarcoat',
+  BLITZ: 'Blitz',
+  BEIDA: 'Beida',
+  OF: 'OF Protocol',
+  PREPLY: 'Preply'
+};
+
+export { PROTOCOL_LABELS };
+
+function protocolLabel(protocol){
+  return PROTOCOL_LABELS[protocol] || protocol;
+}
 
 // ---------- pure logic (unit-tested directly, no I/O) ----------
 
@@ -37,18 +70,29 @@ export const FREE_PLAN_PROTOCOLS = ['MA']; // Free tier is Classic (MA) only, by
  * treated as the more restrictive case rather than accidentally granting
  * unlimited access on a data bug or a typo.
  *
+ * Two completely independent Free-tier mechanisms, deliberately not
+ * unified into one, because they mean different things:
+ *   - Classic (MA): monthlyUsageCount vs. freeMonthlyLimit, resets every
+ *     calendar month, ongoing forever. This is "try the product."
+ *   - Every other protocol: trialUsageCount vs. trialLimit, a one-time,
+ *     permanent, never-resets allowance. This is "try this specific
+ *     protocol once, then decide."
+ *
  * @param {object} params
  * @param {string} params.plan - 'free' | 'pro' (anything else treated as 'free')
  * @param {string} params.status - 'active' | anything else (anything else = not allowed)
  * @param {string} params.protocol - the protocol key being requested (e.g. 'MA', 'BEIDA')
- * @param {number} params.usageCount - this license's generation count so far this month
+ * @param {number} params.monthlyUsageCount - Classic's usage count so far this month (ignored for other protocols)
+ * @param {number} params.trialUsageCount - this protocol's one-time trial usage so far (ignored for Classic)
  * @param {number} [params.freeMonthlyLimit] - defaults to FREE_MONTHLY_LIMIT
- * @param {string[]} [params.freeProtocols] - defaults to FREE_PLAN_PROTOCOLS
+ * @param {number} [params.trialLimit] - defaults to TRIAL_GENERATIONS_PER_PROTOCOL
+ * @param {string[]} [params.alwaysFreeProtocols] - defaults to ALWAYS_FREE_PROTOCOLS
  * @returns {{allowed: boolean, reason: string|null, message: string|null}}
  */
-export function evaluateEntitlement({ plan, status, protocol, usageCount, freeMonthlyLimit, freeProtocols }){
+export function evaluateEntitlement({ plan, status, protocol, monthlyUsageCount, trialUsageCount, freeMonthlyLimit, trialLimit, alwaysFreeProtocols }){
   const limit = typeof freeMonthlyLimit === 'number' ? freeMonthlyLimit : FREE_MONTHLY_LIMIT;
-  const allowedFreeProtocols = freeProtocols || FREE_PLAN_PROTOCOLS;
+  const trialCap = typeof trialLimit === 'number' ? trialLimit : TRIAL_GENERATIONS_PER_PROTOCOL;
+  const alwaysFree = alwaysFreeProtocols || ALWAYS_FREE_PROTOCOLS;
 
   if(status !== 'active'){
     return {
@@ -64,22 +108,25 @@ export function evaluateEntitlement({ plan, status, protocol, usageCount, freeMo
 
   // Anything that isn't exactly 'pro' (including 'free', missing, or an
   // unrecognized value) is treated as Free — the conservative default.
-  if(!allowedFreeProtocols.includes(protocol)){
-    return {
-      allowed: false,
-      reason: 'protocol_requires_pro',
-      message: 'The ' + protocol + ' protocol is a Pro feature. Upgrade to Pro to unlock every protocol.'
-    };
+  if(alwaysFree.includes(protocol)){
+    if((monthlyUsageCount || 0) >= limit){
+      return {
+        allowed: false,
+        reason: 'limit_reached',
+        message: 'You\'ve used all ' + limit + ' free reports this month. Upgrade to Pro for unlimited reports and every protocol.'
+      };
+    }
+    return { allowed: true, reason: null, message: null };
   }
 
-  if(usageCount >= limit){
+  // Every other protocol: one-time trial allowance, never resets.
+  if((trialUsageCount || 0) >= trialCap){
     return {
       allowed: false,
-      reason: 'limit_reached',
-      message: 'You\'ve used all ' + limit + ' free reports this month. Upgrade to Pro for unlimited reports and every protocol.'
+      reason: 'trial_exhausted',
+      message: 'Your complimentary ' + protocolLabel(protocol) + ' trial has ended. Upgrade to Pathfinder Pro to continue using this protocol.'
     };
   }
-
   return { allowed: true, reason: null, message: null };
 }
 
@@ -193,6 +240,27 @@ export async function incrementUsage(licenseKey, period){
   const newCount = await kv.incr(key);
   await kv.expire(key, 60 * 60 * 24 * 40);
   return newCount;
+}
+
+// ---------- one-time per-protocol trial usage (Protocol Trial Unlocks) ----------
+//
+// Deliberately a SEPARATE counter from the monthly usage above, with no
+// period component at all — this is a permanent, cumulative count of how
+// many times this license has ever used this specific protocol while not
+// on Pro. It never resets and never expires, unlike the monthly counter,
+// because the whole point is a one-time allowance per protocol, not a
+// recurring one. Adding a brand new protocol later needs zero changes
+// here — the key is just built from whatever protocol string is passed.
+
+const trialUsageKeyFor = (licenseKey, protocol) => 'trial:' + licenseKey + ':' + protocol;
+
+export async function getTrialUsageCount(licenseKey, protocol){
+  const count = await kv.get(trialUsageKeyFor(licenseKey, protocol));
+  return typeof count === 'number' ? count : 0;
+}
+
+export async function incrementTrialUsage(licenseKey, protocol){
+  return await kv.incr(trialUsageKeyFor(licenseKey, protocol));
 }
 
 // ---------- webhook duplicate/replay protection ----------

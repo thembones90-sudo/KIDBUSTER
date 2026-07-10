@@ -103,7 +103,7 @@ module.exports = async function run(){
     check('returns null rather than throwing for an unresolvable customer id', result === null);
   }
 
-  console.log('\n8) checkEntitlement: the full lifecycle a real license actually goes through');
+  console.log('\n8) checkEntitlement: the full lifecycle a real license actually goes through (two-tier model)');
   {
     __resetForTests();
     const key = await svc.getOrCreateFreeLicense('boyan@example.com');
@@ -112,36 +112,64 @@ module.exports = async function run(){
     check('fresh Free license, MA -> allowed', free1.allowed === true);
 
     const free2 = await svc.checkEntitlement(key, 'BEIDA');
-    check('fresh Free license, Beida -> blocked (Pro-only protocol)', free2.allowed === false && free2.reason === 'protocol_requires_pro');
+    check('fresh Free license, Beida -> allowed (trial available, not blocked outright)', free2.allowed === true);
+
+    // Actually exhaust Beida's one-time trial via real recordUsage calls,
+    // not just repeated checkEntitlement calls (which never increment
+    // anything on their own).
+    for(let i = 0; i < 5; i++){
+      await svc.recordUsage(key, 'BEIDA');
+    }
+    const exhausted = await svc.checkEntitlement(key, 'BEIDA');
+    check('after 5 real Beida generations, the 6th check -> blocked, reason trial_exhausted', exhausted.allowed === false && exhausted.reason === 'trial_exhausted');
+
+    // A DIFFERENT protocol's trial is completely independent — exhausting
+    // Beida must not affect Blitz at all.
+    const otherProtocolStillFresh = await svc.checkEntitlement(key, 'BLITZ');
+    check('a different protocol\'s trial is untouched by Beida\'s being exhausted', otherProtocolStillFresh.allowed === true);
 
     await svc.activateOrRenewPro({ licenseKey: key, paymentCustomerId: 'cust_6', paymentSubscriptionId: 'sub_6' });
     const pro1 = await svc.checkEntitlement(key, 'BEIDA');
-    check('after upgrading, same key can now use Beida', pro1.allowed === true);
+    check('after upgrading, same key can use Beida again even though its trial was exhausted', pro1.allowed === true);
 
     await svc.downgradeToFree({ paymentCustomerId: 'cust_6' });
     const free3 = await svc.checkEntitlement(key, 'BEIDA');
-    check('after downgrading, same key is blocked from Beida again', free3.allowed === false);
+    check('after downgrading, blocked from Beida again (trial usage was never reset by the upgrade/downgrade cycle)', free3.allowed === false && free3.reason === 'trial_exhausted');
 
     const invalid = await svc.checkEntitlement('kb_live_totally_made_up', 'MA');
     check('a nonexistent license key -> invalid_key, not a crash', invalid.allowed === false && invalid.reason === 'invalid_key');
   }
 
-  console.log('\n9) recordUsage: actually increments what checkEntitlement reads');
+  console.log('\n9) recordUsage: increments the correct counter depending on protocol, and only that one');
   {
     __resetForTests();
     const key = await svc.getOrCreateFreeLicense('faye@example.com');
     for(let i = 0; i < 19; i++){
-      await svc.recordUsage(key);
+      await svc.recordUsage(key, 'MA');
     }
     const stillOk = await svc.checkEntitlement(key, 'MA');
-    check('19 recorded generations -> still allowed (under the 20 limit)', stillOk.allowed === true);
+    check('19 recorded MA generations -> still allowed (under the 20 monthly limit)', stillOk.allowed === true);
 
-    await svc.recordUsage(key); // 20th
+    await svc.recordUsage(key, 'MA'); // 20th
     const nowBlocked = await svc.checkEntitlement(key, 'MA');
-    check('20th recorded generation -> now blocked (limit reached)', nowBlocked.allowed === false && nowBlocked.reason === 'limit_reached');
+    check('20th recorded MA generation -> now blocked (monthly limit reached)', nowBlocked.allowed === false && nowBlocked.reason === 'limit_reached');
+
+    // Recording MA usage 20 times must not have touched any other
+    // protocol's independent trial counter.
+    const blitzUnaffected = await svc.checkEntitlement(key, 'BLITZ');
+    check('MA\'s monthly usage never bleeds into a trial-based protocol\'s counter', blitzUnaffected.allowed === true);
+
+    for(let i = 0; i < 4; i++){
+      await svc.recordUsage(key, 'PREPLY');
+    }
+    const preplyStillOk = await svc.checkEntitlement(key, 'PREPLY');
+    check('4 recorded Preply trial generations -> still allowed (under the 5-cap)', preplyStillOk.allowed === true);
+    await svc.recordUsage(key, 'PREPLY'); // 5th
+    const preplyNowBlocked = await svc.checkEntitlement(key, 'PREPLY');
+    check('5th recorded Preply generation -> now blocked (trial exhausted)', preplyNowBlocked.allowed === false && preplyNowBlocked.reason === 'trial_exhausted');
   }
 
-  console.log('\n10) Founder/owner keys: private full-access keys bypass payment forever and do not consume usage');
+  console.log('\n10) Founder/owner keys: private full-access keys bypass payment forever and do not consume either usage counter');
   {
     __resetForTests();
     const oldOwnerKeys = process.env.OWNER_LICENSE_KEYS;
@@ -156,11 +184,11 @@ module.exports = async function run(){
     check('founder key can use Pro-only protocols', founderBeida.allowed === true && founderBeida.license.plan === 'pro' && founderBeida.license.founder === true);
 
     for(let i = 0; i < 50; i++){
-      await svc.recordUsage('test_owner_key');
-      await svc.recordUsage('test_founder_key');
+      await svc.recordUsage('test_owner_key', 'MA');
+      await svc.recordUsage('test_founder_key', 'BEIDA');
     }
     check('owner usage is never tracked against monthly limits', (await licensing.getUsageCount('test_owner_key')) === 0);
-    check('founder usage is never tracked against monthly limits', (await licensing.getUsageCount('test_founder_key')) === 0);
+    check('founder usage is never tracked against any protocol\'s trial counter', (await licensing.getTrialUsageCount('test_founder_key', 'BEIDA')) === 0);
 
     const invalid = await svc.checkEntitlement('test_non_founder_key', 'BEIDA');
     check('nearby non-founder password is still rejected', invalid.allowed === false && invalid.reason === 'invalid_key');

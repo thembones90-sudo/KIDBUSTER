@@ -25,12 +25,22 @@ delivery over the real network, real Vercel deployment.
 - [ ] Reload the page. Confirm the key is remembered (you're not asked again).
 - [ ] Enter the *same* email again via a different browser/incognito window (simulating "I forgot my key"). Confirm you get back the **same** key, not a new one.
 
-## 2. Free plan enforcement
+## 2. Free plan enforcement — Classic's monthly allowance AND every other protocol's one-time trial
 
+Two genuinely separate mechanisms now, worth testing both:
+
+**2a. Classic's ongoing monthly allowance (unchanged from before)**
 - [ ] With a Free key, select **Classic (MA)** and generate a report. Confirm it works normally.
-- [ ] Switch to any other protocol (Blitz, Sugarcoat, OF, Beida) and try to generate. Confirm it's blocked with a clear message naming that protocol and mentioning Pro — not a generic error.
-- [ ] Generate Classic reports until you hit your configured limit (2, or 20, whichever you set). Confirm the *last allowed* generation still works normally, and the *next* one is blocked.
-- [ ] Confirm the blocked message clearly states the limit and includes a working **Upgrade to Pro** button.
+- [ ] Generate Classic reports until you hit your configured monthly limit (2, or 20, whichever you set). Confirm the *last allowed* generation still works normally, and the *next* one is blocked.
+- [ ] Confirm the blocked message clearly states the monthly limit and includes a working **Upgrade to Pro** button.
+
+**2b. Every other protocol's one-time trial (new — 5 complimentary generations, ever, per protocol)**
+- [ ] With a Free key, switch to a protocol you haven't used yet (e.g. Beida). Confirm you see a **"Welcome to Beida! You have 5 complimentary generations..."** message, not a block.
+- [ ] Generate with that protocol. Confirm it works, and confirm the app shows a **"Beida Trial: 4/5 remaining"** style message afterward.
+- [ ] Repeat until you've generated 5 times with that protocol. Confirm the 5th one still works.
+- [ ] Try a 6th generation with that same protocol. Confirm it's now blocked, with a message like **"Your complimentary Beida trial has ended. Upgrade to Pathfinder Pro to continue using this protocol."**
+- [ ] Switch to a *different* untouched protocol (e.g. Blitz). Confirm it independently shows its own fresh "Welcome" message and full 5 generations — exhausting Beida must not have affected it at all.
+- [ ] Open the account panel (the badge/button near the top). Confirm it lists every protocol's trial status at a glance (e.g. "Beida: Used up", "Blitz: 1/5 used", "Sugarcoat: 0/5 used") — this is the one place a teacher can see everything without switching through each protocol individually.
 
 ## 3. Upgrading to Pro (the real checkout)
 
@@ -42,8 +52,9 @@ delivery over the real network, real Vercel deployment.
 
 ## 4. Immediate Pro access — no manual step
 
-- [ ] Back in the app (same browser, same stored key — don't re-enter anything), try a Pro-only protocol (e.g. Beida). Confirm it now works immediately.
-- [ ] Confirm Classic no longer shows any limit warning, even past whatever count you hit in step 2.
+- [ ] Back in the app (same browser, same stored key — don't re-enter anything), try a protocol whose trial you exhausted in step 2b (e.g. Beida). Confirm it now works immediately, with no trial-remaining message at all — Pro means every protocol is simply unlimited.
+- [ ] Confirm Classic no longer shows any limit warning, even past whatever count you hit in step 2a.
+- [ ] Open the account panel. Confirm the per-protocol trial list from step 2b is now gone entirely (nothing meaningful to show once every protocol is unlimited).
 - [ ] If it *doesn't* work immediately: check Vercel's function logs for `api/payment-webhook` around the time you completed checkout — this is the one step with a real network dependency (Lemon Squeezy → your server), so a few seconds of delay before Pro kicks in is normal; anything longer than ~30 seconds means check the webhook log in step 3 for a non-200 response.
 
 ## 5. Renewal
@@ -57,7 +68,7 @@ Real renewals happen monthly — too slow to wait for. Use Lemon Squeezy's **Sim
 ## 6. Cancellation
 
 - [ ] From the same test subscription, use **Simulate event** to trigger `subscription_cancelled` (or actually cancel it through the Lemon Squeezy Customer Portal link, if you have that enabled, for a more realistic test).
-- [ ] Back in the app, confirm Pro access is gone — a Pro-only protocol is blocked again, same as a fresh Free account.
+- [ ] Back in the app, confirm Pro access is gone — the protocol whose trial you exhausted in step 2b (e.g. Beida) is blocked again, exactly as it was right before you upgraded (trial usage is permanent and survives the upgrade/downgrade cycle — this is *not* a fresh account, don't expect a new 5 generations).
 - [ ] Confirm it's the **same license key** as before (check your browser's stored key, or just confirm you weren't asked to sign up again) — cancellation should fall back to Free, not wipe the account.
 - [ ] Confirm your report count from before the upgrade is still remembered (if you're near the Free limit again, you should be blocked again immediately, not given a fresh 20).
 

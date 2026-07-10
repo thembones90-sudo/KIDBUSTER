@@ -27,42 +27,59 @@ module.exports = async function run(){
   const licensing = await import('../api/_lib/licensing.js');
   const { __resetForTests } = await import('../api/_lib/kv-client.js');
 
-  console.log('\n1) evaluateEntitlement: the core Free/Pro decision logic');
+  console.log('\n1) evaluateEntitlement: the core Free/Pro decision logic (two-tier model)');
   {
-    check('Free + MA + under limit -> allowed', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', usageCount:5 }).allowed === true);
-    check('Free + MA + at limit (20) -> blocked, reason limit_reached', (() => {
-      const r = licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', usageCount:20 });
+    // --- Classic (MA): the one ongoing, monthly-resetting Free tier ---
+    check('Free + MA + under monthly limit -> allowed', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', monthlyUsageCount:5, trialUsageCount:0 }).allowed === true);
+    check('Free + MA + at monthly limit (20) -> blocked, reason limit_reached', (() => {
+      const r = licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', monthlyUsageCount:20, trialUsageCount:0 });
       return r.allowed === false && r.reason === 'limit_reached';
     })());
-    check('Free + MA + one under limit (19) -> still allowed', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', usageCount:19 }).allowed === true);
-    check('Free + non-MA protocol -> blocked, reason protocol_requires_pro', (() => {
-      const r = licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'BEIDA', usageCount:0 });
-      return r.allowed === false && r.reason === 'protocol_requires_pro';
-    })());
-    ['MS', 'OF', 'BLITZ', 'BEIDA'].forEach(protocol => {
-      check('Free + ' + protocol + ' -> blocked (Free is MA-only)', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol, usageCount:0 }).allowed === false);
-    });
+    check('Free + MA + one under limit (19) -> still allowed', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', monthlyUsageCount:19, trialUsageCount:0 }).allowed === true);
+    check('MA is never affected by trialUsageCount, no matter how high', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', monthlyUsageCount:0, trialUsageCount:999 }).allowed === true);
 
-    check('Pro + any protocol -> always allowed regardless of usage', licensing.evaluateEntitlement({ plan:'pro', status:'active', protocol:'BEIDA', usageCount:999999 }).allowed === true);
-    check('Pro + MA -> allowed too (Pro isn\'t restricted to non-MA)', licensing.evaluateEntitlement({ plan:'pro', status:'active', protocol:'MA', usageCount:999999 }).allowed === true);
+    // --- Every other protocol: one-time, permanent trial allowance ---
+    ['MS', 'OF', 'BLITZ', 'BEIDA', 'PREPLY', 'ANY_FUTURE_PROTOCOL'].forEach(protocol => {
+      check('Free + ' + protocol + ' + fresh (0 used) -> allowed, no code change needed for new protocols', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol, monthlyUsageCount:0, trialUsageCount:0 }).allowed === true);
+      check('Free + ' + protocol + ' + 4 used (under the 5-cap) -> still allowed', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol, monthlyUsageCount:0, trialUsageCount:4 }).allowed === true);
+      check('Free + ' + protocol + ' + exactly 5 used -> blocked, reason trial_exhausted', (() => {
+        const r = licensing.evaluateEntitlement({ plan:'free', status:'active', protocol, monthlyUsageCount:0, trialUsageCount:5 });
+        return r.allowed === false && r.reason === 'trial_exhausted';
+      })());
+    });
+    check('non-MA protocol is never affected by monthlyUsageCount, no matter how high', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'BEIDA', monthlyUsageCount:999, trialUsageCount:0 }).allowed === true);
+
+    check('Pro + any protocol -> always allowed regardless of either counter', licensing.evaluateEntitlement({ plan:'pro', status:'active', protocol:'BEIDA', monthlyUsageCount:999999, trialUsageCount:999999 }).allowed === true);
+    check('Pro + MA -> allowed too (Pro isn\'t restricted to non-MA)', licensing.evaluateEntitlement({ plan:'pro', status:'active', protocol:'MA', monthlyUsageCount:999999, trialUsageCount:999999 }).allowed === true);
 
     check('inactive status -> blocked regardless of plan (fails closed)', (() => {
-      const r = licensing.evaluateEntitlement({ plan:'pro', status:'canceled', protocol:'MA', usageCount:0 });
+      const r = licensing.evaluateEntitlement({ plan:'pro', status:'canceled', protocol:'MA', monthlyUsageCount:0, trialUsageCount:0 });
       return r.allowed === false && r.reason === 'inactive';
     })());
 
     check('unrecognized plan value -> treated as Free (fails closed, not open)', (() => {
-      const r = licensing.evaluateEntitlement({ plan:'something_unexpected', status:'active', protocol:'BEIDA', usageCount:0 });
-      return r.allowed === false && r.reason === 'protocol_requires_pro';
+      const r = licensing.evaluateEntitlement({ plan:'something_unexpected', status:'active', protocol:'BEIDA', monthlyUsageCount:0, trialUsageCount:5 });
+      return r.allowed === false && r.reason === 'trial_exhausted';
     })());
 
-    check('custom freeMonthlyLimit override respected', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', usageCount:5, freeMonthlyLimit: 5 }).allowed === false);
-    check('custom freeProtocols override respected', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'BEIDA', usageCount:0, freeProtocols: ['BEIDA'] }).allowed === true);
+    check('custom freeMonthlyLimit override respected', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', monthlyUsageCount:5, trialUsageCount:0, freeMonthlyLimit: 5 }).allowed === false);
+    check('custom trialLimit override respected', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'BEIDA', monthlyUsageCount:0, trialUsageCount:2, trialLimit: 2 }).allowed === false);
+    check('custom alwaysFreeProtocols override respected', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'BEIDA', monthlyUsageCount:5, trialUsageCount:0, alwaysFreeProtocols: ['BEIDA'] }).allowed === true);
 
     check('every rejection includes a non-empty, teacher-facing message', (() => {
-      const r = licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'BEIDA', usageCount:0 });
+      const r = licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'BEIDA', monthlyUsageCount:0, trialUsageCount:5 });
       return typeof r.message === 'string' && r.message.length > 10;
     })());
+    check('trial_exhausted message names the specific protocol', (() => {
+      const r = licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'PREPLY', monthlyUsageCount:0, trialUsageCount:5 });
+      return r.message.includes('Preply') || r.message.includes('PREPLY');
+    })());
+  }
+
+  console.log('\n1b) ALWAYS_FREE_PROTOCOLS and TRIAL_GENERATIONS_PER_PROTOCOL config');
+  {
+    check('ALWAYS_FREE_PROTOCOLS is exactly [\'MA\']', JSON.stringify(licensing.ALWAYS_FREE_PROTOCOLS) === JSON.stringify(['MA']));
+    check('TRIAL_GENERATIONS_PER_PROTOCOL defaults to 5', licensing.TRIAL_GENERATIONS_PER_PROTOCOL === 5);
   }
 
   console.log('\n2) generateLicenseKey: format and uniqueness');

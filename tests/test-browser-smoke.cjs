@@ -116,7 +116,7 @@ module.exports = async function run(){
     }else{
       check(proto.value + ': body has no protocol-specific class (uses the default theme)', result.bodyClassList.every(c => !c.startsWith('protocol-')));
     }
-    check(proto.value + ': header badge text updates to match ("' + proto.label + '")', result.badgeText === proto.label);
+    check(proto.value + ': header badge text updates to match ("' + proto.label + '")', result.badgeText.includes(proto.label));
     if(proto.hasBolt){
       check(proto.value + ': header badge includes the Blitz bolt image', result.hasBolt);
     }
