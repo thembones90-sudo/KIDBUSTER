@@ -891,6 +891,37 @@ body.protocol-beida .generate-btn.loading{
   50%{ filter:brightness(1.08) saturate(1.18); box-shadow:0 0 22px rgba(255,255,255,0.45); }
 }
 
+/* Preply violet variant — same self-contained-literal-values structure
+   as every other variant above. */
+body.protocol-preply .generate-btn{
+  background:linear-gradient(135deg, #2A1042 0%, #B266FF 55%, #F0E0FF 100%);
+  box-shadow:0 0 16px 1px rgba(178,102,255,0.4), 0 0 32px 4px rgba(120,60,180,0.22), 0 4px 18px -4px rgba(0,0,0,0.35);
+  animation-name:btnGlowPulsePreply;
+}
+@keyframes btnGlowPulsePreply{
+  0%, 100%{ box-shadow:0 0 16px 1px rgba(178,102,255,0.4), 0 0 32px 4px rgba(120,60,180,0.22), 0 4px 18px -4px rgba(0,0,0,0.35); }
+  50%{ box-shadow:0 0 24px 3px rgba(178,102,255,0.55), 0 0 44px 8px rgba(120,60,180,0.34), 0 4px 18px -4px rgba(0,0,0,0.4); }
+}
+body.protocol-preply .generate-btn::after{
+  background-image:radial-gradient(ellipse 60% 140% at 50% 50%, rgba(240,224,255,0.6), rgba(178,102,255,0.28) 45%, rgba(178,102,255,0) 75%);
+}
+body.protocol-preply .generate-btn:hover:not(:disabled){
+  box-shadow:0 0 26px 4px rgba(178,102,255,0.6), 0 0 48px 10px rgba(120,60,180,0.4), 0 6px 22px -4px rgba(0,0,0,0.4);
+}
+body.protocol-preply .generate-btn:focus-visible{
+  outline-color:rgba(220,180,255,0.85);
+}
+@media (prefers-reduced-motion: reduce){
+  body.protocol-preply .generate-btn{box-shadow:0 0 20px 2px rgba(178,102,255,0.45), 0 0 36px 6px rgba(120,60,180,0.28), 0 4px 18px -4px rgba(0,0,0,0.35);}
+}
+body.protocol-preply .generate-btn.loading{
+  animation-name:toxinCommandPulsePreply;
+}
+@keyframes toxinCommandPulsePreply{
+  0%, 100%{ filter:brightness(0.95) saturate(1.05); box-shadow:0 0 12px rgba(178,102,255,0.28); }
+  50%{ filter:brightness(1.08) saturate(1.18); box-shadow:0 0 22px rgba(220,180,255,0.45); }
+}
+
 .output-box{
   min-height:180px;
   background:var(--surface-2);
@@ -1328,9 +1359,9 @@ body.protocol-beida .generate-btn.loading{
         <div class="field" id="preplyModuleField" style="display:none;">
           <label class="field-label" for="preplyModuleSelect">Module</label>
           <select id="preplyModuleSelect">
-            <option value="adult" selected>Adult</option>
-            <option value="parent">Parent</option>
-            <option value="trial">Trial</option>
+            <option value="adult" selected>Lesson Feedback</option>
+            <option value="parent">Parent Feedback</option>
+            <option value="trial">Trial Follow-up</option>
           </select>
         </div>
         <div class="field">
@@ -1350,6 +1381,13 @@ body.protocol-beida .generate-btn.loading{
           <div class="protocol-select" id="studentGenderSelect">
             <label><input type="radio" name="studentGender" value="boy"> Boy (he/him)</label>
             <label><input type="radio" name="studentGender" value="girl"> Girl (she/her)</label>
+          </div>
+        </div>
+        <div class="field" id="preplyTrialPersonField" style="display:none;">
+          <label class="field-label">Trial student</label>
+          <div class="protocol-select" id="preplyTrialPersonSelect">
+            <label><input type="radio" name="preplyTrialPerson" value="adult" checked> Adult (write to them directly)</label>
+            <label><input type="radio" name="preplyTrialPerson" value="child"> Child (write to their parent)</label>
           </div>
         </div>
         <div class="field" id="ratingField" style="margin-bottom:0;">
@@ -2328,6 +2366,17 @@ Before returning the report, verify:
         : `Student pronoun: not specified — default to "they/them" rather than guessing "he" or "she" from the name.\n`;
     }
     const isPreply = params.protocol === 'PREPLY';
+    if(isPreply && params.preplyModule === 'trial'){
+      // Trial Follow-up's audience is genuinely ambiguous without this —
+      // "a potential future student, or their parent if the trial was for
+      // a child" doesn't tell the model which grammatical person to write
+      // in on its own. Supplied as an explicit Fact, the same reasoning as
+      // OF's pronoun above: this is exactly the kind of thing that
+      // shouldn't be guessed from context.
+      msg += params.preplyTrialPerson === 'child'
+        ? `Trial audience: this message is addressed to the PARENT of a child trial student — write about the child in third person by name, not "you".\n`
+        : `Trial audience: this message is addressed directly to an ADULT trial student — write to them in second person ("you"), not third person.\n`;
+    }
     if(isBeida){
       // Beida's rating is BetaKid's own real 2-tier field, not a /5 scale
       // like every other protocol — forcing it into "Rating: excellent/5"
@@ -3326,7 +3375,7 @@ failed — rewrite it.`;
   const PREPLY_MODULES = {
     adult: {
       label: 'Adult Lesson Feedback',
-      shortLabel: 'Adult',
+      shortLabel: 'Lesson Feedback',
       minWords: 100,
       maxWords: 170,
       instructions: `MODULE: ADULT LESSON FEEDBACK
@@ -3347,7 +3396,7 @@ between two people who already know each other, not a signed report.`
     },
     parent: {
       label: 'Parent Feedback',
-      shortLabel: 'Parent',
+      shortLabel: 'Parent Feedback',
       minWords: 90,
       maxWords: 150,
       instructions: `MODULE: PARENT FEEDBACK
@@ -3370,13 +3419,16 @@ never as generic filler.`
     },
     trial: {
       label: 'Trial Follow-up',
-      shortLabel: 'Trial',
+      shortLabel: 'Trial Follow-up',
       minWords: 100,
       maxWords: 170,
       instructions: `MODULE: TRIAL FOLLOW-UP
 
 Audience: a potential future student (or their parent, if the trial was
-for a child) who has not yet committed to ongoing lessons.
+for a child) who has not yet committed to ongoing lessons. Which of
+these two applies is specified explicitly as a Fact ("Trial audience:")
+below — follow it exactly and write in the correct grammatical person;
+never guess this from the notes.
 Goal: summarize the trial lesson, acknowledge a genuine strength shown,
 mention what continued lessons would help with, and end with natural
 encouragement to continue — never salesy.
@@ -3695,6 +3747,19 @@ function currentProtocolKey(){
   return document.querySelector('input[name="protocol"]:checked').value;
 }
 
+// Trial Follow-up is the one Preply Module where the model has to know
+// which grammatical person to write in — Adult writes "you", Parent
+// writes third-person about a named child, but Trial Follow-up's
+// audience is genuinely ambiguous ("a potential future student, or
+// their parent if the trial was for a child") without this. Shown only
+// when BOTH Preply is selected AND Trial is the active Module, so it
+// needs to react to changes in either one, not just protocol switches.
+function updatePreplyTrialPersonVisibility(){
+  const isPreply = currentProtocolKey() === 'PREPLY';
+  const isTrialModule = document.getElementById('preplyModuleSelect').value === 'trial';
+  document.getElementById('preplyTrialPersonField').style.display = (isPreply && isTrialModule) ? '' : 'none';
+}
+
 function setCaption(value){
   caption.style.opacity = '0';
   setTimeout(() => {
@@ -3731,6 +3796,7 @@ function buildRatingTrack(){
   // pattern despite looking similar, since Module changes the entire
   // audience/goal/tone, not just how the same content sounds.
   document.getElementById('preplyModuleField').style.display = isPreply ? '' : 'none';
+  updatePreplyTrialPersonVisibility();
   // Preply is purely evidence-driven by design (confirmed decision, not
   // an oversight) — no rating/quality dial at all, so the whole field is
   // hidden rather than showing a scale that's simply never read.
@@ -3975,7 +4041,8 @@ function readFormState(){
     studentGender: (document.querySelector('input[name="studentGender"]:checked') || {}).value || '',
     signoffEmoji: document.getElementById('teacherSignoffEmoji').value.trim(),
     blitzVoice: document.getElementById('blitzVoiceSelect').value || 'warm',
-    preplyModule: document.getElementById('preplyModuleSelect').value || 'adult'
+    preplyModule: document.getElementById('preplyModuleSelect').value || 'adult',
+    preplyTrialPerson: (document.querySelector('input[name="preplyTrialPerson"]:checked') || {}).value || 'adult'
   };
 }
 
@@ -4407,12 +4474,12 @@ const feedbackCard = document.getElementById('feedbackCard');
 const feedbackStars = document.getElementById('feedbackStars');
 const feedbackComment = document.getElementById('feedbackComment');
 const feedbackStatus = document.getElementById('feedbackStatus');
-let feedbackContext = null; // { protocol, ratingTier } for the report currently on screen
+let feedbackContext = null; // { protocol, ratingTier, preplyModule, preplyTrialPerson } for the report currently on screen
 let feedbackSelectedScore = null;
 const feedbackSubmitBtn = document.getElementById('feedbackSubmitBtn');
 
-function showFeedbackCard(protocol, ratingTier){
-  feedbackContext = { protocol, ratingTier };
+function showFeedbackCard(protocol, ratingTier, preplyModule, preplyTrialPerson){
+  feedbackContext = { protocol, ratingTier, preplyModule: preplyModule || null, preplyTrialPerson: preplyTrialPerson || null };
   feedbackSelectedScore = null;
   feedbackComment.value = '';
   feedbackStatus.textContent = '';
@@ -4482,6 +4549,8 @@ async function submitFeedback(score){
     teacherName: (document.getElementById('teacherName').value.trim() || 'Layne'),
     protocol: feedbackContext.protocol,
     ratingTier: feedbackContext.ratingTier,
+    preplyModule: feedbackContext.preplyModule,
+    preplyTrialPerson: feedbackContext.preplyTrialPerson,
     score,
     comment: feedbackComment.value.trim()
   };
@@ -4665,6 +4734,8 @@ async function generate(){
         studentName: form.studentName,
         rating: form.rating || null,
         lengthFormat: form.lengthFormat || null,
+        preplyModule: form.protocol === 'PREPLY' ? form.preplyModule : null,
+        preplyTrialPerson: (form.protocol === 'PREPLY' && form.preplyModule === 'trial') ? form.preplyTrialPerson : null,
         inputTokens: usage.input_tokens,
         cacheCreationTokens: cacheCreationTokens,
         cacheReadTokens: cacheReadTokens,
@@ -4681,6 +4752,8 @@ async function generate(){
         studentName: form.studentName,
         rating: form.rating || null,
         lengthFormat: form.lengthFormat || null,
+        preplyModule: form.protocol === 'PREPLY' ? form.preplyModule : null,
+        preplyTrialPerson: (form.protocol === 'PREPLY' && form.preplyModule === 'trial') ? form.preplyTrialPerson : null,
         reportChars: text.trim().length,
         durationMs: durationMs
       });
@@ -4693,7 +4766,7 @@ async function generate(){
     const isBeidaOutput = form.protocol === 'BEIDA';
     document.getElementById('copyBeidaPerformanceBtn').disabled = !isBeidaOutput;
     newStudentBtn.disabled = false;
-    showFeedbackCard(form.protocol, form.rating);
+    showFeedbackCard(form.protocol, form.rating, form.protocol === 'PREPLY' ? form.preplyModule : null, (form.protocol === 'PREPLY' && form.preplyModule === 'trial') ? form.preplyTrialPerson : null);
     document.getElementById('actionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
     renderLint(lint);
     if(isBeidaOutput){
@@ -4989,8 +5062,12 @@ document.getElementById('lengthFormatSelect').addEventListener('change', () => {
 updateLengthFormatCaption();
 
 document.getElementById('studentGenderSelect').addEventListener('change', saveDraft);
+document.getElementById('preplyTrialPersonSelect').addEventListener('change', saveDraft);
 document.getElementById('blitzVoiceSelect').addEventListener('change', saveDraft);
-document.getElementById('preplyModuleSelect').addEventListener('change', saveDraft);
+document.getElementById('preplyModuleSelect').addEventListener('change', () => {
+  updatePreplyTrialPersonVisibility();
+  saveDraft();
+});
 
 copyBtn.addEventListener('click', () => copyOutputToClipboard(outputBox, copyBtn));
 document.getElementById('copyBeidaPerformanceBtn').addEventListener('click', () => copyOutputToClipboard(document.getElementById('beidaPerformanceBox'), document.getElementById('copyBeidaPerformanceBtn')));
@@ -5278,7 +5355,8 @@ function collectDraft(){
     specialRemarks: form.remarks,
     signoffEmoji: form.signoffEmoji,
     blitzVoice: form.blitzVoice,
-    preplyModule: form.preplyModule
+    preplyModule: form.preplyModule,
+    preplyTrialPerson: form.preplyTrialPerson
   };
 }
 
@@ -5318,6 +5396,11 @@ function restoreDraft(){
   if(draft.studentGender){
     const genderRadio = document.querySelector('input[name="studentGender"][value="' + draft.studentGender + '"]');
     if(genderRadio) genderRadio.checked = true;
+  }
+
+  if(draft.preplyTrialPerson){
+    const trialPersonRadio = document.querySelector('input[name="preplyTrialPerson"][value="' + draft.preplyTrialPerson + '"]');
+    if(trialPersonRadio) trialPersonRadio.checked = true;
   }
 
   if(draft.rating){

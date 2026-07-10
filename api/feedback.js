@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Invalid or missing access key' });
   }
 
-  const { teacherName, protocol, ratingTier, score, comment } = req.body || {};
+  const { teacherName, protocol, ratingTier, score, comment, preplyModule, preplyTrialPerson } = req.body || {};
 
   const numericScore = Number(score);
   if (!Number.isInteger(numericScore) || numericScore < 1 || numericScore > 5) {
@@ -46,11 +46,17 @@ export default async function handler(req, res) {
 
   // Trim/cap everything — this is field-test telemetry, not a place for
   // arbitrarily large payloads to land in a spreadsheet cell.
+  // preplyModule/preplyTrialPerson are null for every non-Preply protocol
+  // (and for Preply modules other than Trial, in preplyTrialPerson's
+  // case) — sent through as empty strings rather than the literal text
+  // "null" landing in a spreadsheet cell.
   const payload = {
     timestamp: new Date().toISOString(),
     teacherName: String(teacherName || 'Unknown').slice(0, 100),
     protocol: String(protocol || '').slice(0, 20),
     ratingTier: String(ratingTier || '').slice(0, 30),
+    preplyModule: String(preplyModule || '').slice(0, 30),
+    preplyTrialPerson: String(preplyTrialPerson || '').slice(0, 30),
     score: numericScore,
     comment: String(comment || '').slice(0, 1000)
   };

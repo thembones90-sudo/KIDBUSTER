@@ -38,9 +38,15 @@ module.exports = async function run(){
     check('Free + MA + one under limit (19) -> still allowed', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', monthlyUsageCount:19, trialUsageCount:0 }).allowed === true);
     check('MA is never affected by trialUsageCount, no matter how high', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', monthlyUsageCount:0, trialUsageCount:999 }).allowed === true);
 
-    // --- Every other protocol: one-time, permanent trial allowance ---
-    ['MS', 'OF', 'BLITZ', 'BEIDA', 'PREPLY', 'ANY_FUTURE_PROTOCOL'].forEach(protocol => {
-      check('Free + ' + protocol + ' + fresh (0 used) -> allowed, no code change needed for new protocols', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol, monthlyUsageCount:0, trialUsageCount:0 }).allowed === true);
+    // --- Trial-eligible protocols: one-time, permanent trial allowance ---
+    // Deliberately iterates the REAL exported list, not a hand-typed
+    // duplicate of it — if a protocol is ever added or removed from
+    // TRIAL_ELIGIBLE_PROTOCOLS, this test automatically covers whatever
+    // the list actually says, rather than silently testing a stale copy.
+    check('TRIAL_ELIGIBLE_PROTOCOLS is exactly the explicit, hand-maintained list (not derived from anything else)', JSON.stringify(licensing.TRIAL_ELIGIBLE_PROTOCOLS.slice().sort()) === JSON.stringify(['BEIDA', 'BLITZ', 'MS', 'OF', 'PREPLY'].sort()));
+
+    licensing.TRIAL_ELIGIBLE_PROTOCOLS.forEach(protocol => {
+      check('Free + ' + protocol + ' + fresh (0 used) -> allowed', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol, monthlyUsageCount:0, trialUsageCount:0 }).allowed === true);
       check('Free + ' + protocol + ' + 4 used (under the 5-cap) -> still allowed', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol, monthlyUsageCount:0, trialUsageCount:4 }).allowed === true);
       check('Free + ' + protocol + ' + exactly 5 used -> blocked, reason trial_exhausted', (() => {
         const r = licensing.evaluateEntitlement({ plan:'free', status:'active', protocol, monthlyUsageCount:0, trialUsageCount:5 });
@@ -48,6 +54,23 @@ module.exports = async function run(){
       })());
     });
     check('non-MA protocol is never affected by monthlyUsageCount, no matter how high', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'BEIDA', monthlyUsageCount:999, trialUsageCount:0 }).allowed === true);
+
+    // --- The actual point of this review: a protocol in NEITHER list ---
+    // must require Pro outright, not silently fall into the trial branch
+    // just because it isn't in ALWAYS_FREE_PROTOCOLS. This is the exact
+    // behavior change the explicit-list redesign was for — a genuinely
+    // new/internal/not-yet-released protocol key defaults to the safe,
+    // restrictive outcome, not an accidentally-granted free trial.
+    check('Free + a protocol in NEITHER list -> blocked outright, reason protocol_requires_pro (not silently trial-eligible)', (() => {
+      const r = licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'SOME_FUTURE_INTERNAL_PROTOCOL', monthlyUsageCount:0, trialUsageCount:0 });
+      return r.allowed === false && r.reason === 'protocol_requires_pro';
+    })());
+    check('...even with a huge trialUsageCount passed in — an unlisted protocol was never trial-tracked to begin with', (() => {
+      const r = licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'SOME_FUTURE_INTERNAL_PROTOCOL', monthlyUsageCount:0, trialUsageCount:0 });
+      return r.allowed === false;
+    })());
+    check('Pro + a protocol in neither list -> still allowed (Pro bypasses this distinction entirely)', licensing.evaluateEntitlement({ plan:'pro', status:'active', protocol:'SOME_FUTURE_INTERNAL_PROTOCOL', monthlyUsageCount:0, trialUsageCount:0 }).allowed === true);
+    check('a custom trialEligibleProtocols override is respected, same pattern as alwaysFreeProtocols', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'SOME_FUTURE_INTERNAL_PROTOCOL', monthlyUsageCount:0, trialUsageCount:0, trialEligibleProtocols:['SOME_FUTURE_INTERNAL_PROTOCOL'] }).allowed === true);
 
     check('Pro + any protocol -> always allowed regardless of either counter', licensing.evaluateEntitlement({ plan:'pro', status:'active', protocol:'BEIDA', monthlyUsageCount:999999, trialUsageCount:999999 }).allowed === true);
     check('Pro + MA -> allowed too (Pro isn\'t restricted to non-MA)', licensing.evaluateEntitlement({ plan:'pro', status:'active', protocol:'MA', monthlyUsageCount:999999, trialUsageCount:999999 }).allowed === true);

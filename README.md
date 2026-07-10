@@ -1,4 +1,4 @@
-# Kidbuster
+# Pathfinder
 
 ESL teacher parent-feedback generator — MA Protocol (regular lessons) and OF Protocol (trial-lesson narratives), built on a shared Judgment Engine.
 
@@ -31,7 +31,7 @@ git push
 
 ### 2. Connect to Vercel
 1. Go to [vercel.com](https://vercel.com), sign in (GitHub login is easiest).
-2. **Add New → Project**, select your Kidbuster repository.
+2. **Add New → Project**, select your repository for this project.
 3. Vercel will auto-detect this as a static project with serverless functions — no build settings need to be changed. Don't set a build command or output directory; leave them blank/default.
 
 ### 3. Connect Vercel KV (required — this is where license/usage data lives)
@@ -60,7 +60,7 @@ Two plans, nothing more granular:
 The architecture is deliberately payment-provider-agnostic:
 
 ```
-Payment Provider  →  License Service  →  Kidbuster
+Payment Provider  →  License Service  →  Pathfinder
 ```
 
 `api/_lib/license-service.js` is the only thing that knows how to create, upgrade, downgrade, or check a license — it has zero knowledge of Lemon Squeezy, Paddle, or any other provider. Each payment provider's *only* job (see `api/_lib/providers/`) is to normalize its own webhook events into four plain notifications: payment succeeded, subscription renewed, subscription canceled, subscription expired. `api/generate.js` never imports a payment provider at all — it only ever talks to the License Service.
@@ -121,6 +121,6 @@ This runs both the static frontend and the serverless function locally, using a 
 ## Known limitations, on purpose
 
 - **Paddle is a documented stub, not a real integration.** `api/_lib/providers/paddle.js` implements the same interface as the Lemon Squeezy adapter but throws "not implemented" — it exists to prove the payment-provider abstraction is genuinely swappable, not to be used yet. Build it out (and flip `PAYMENT_PROVIDER=paddle`) whenever there's an actual reason to switch providers.
-- **No self-service billing portal.** A Pro subscriber can't currently view/cancel their own subscription from inside this app — that lives entirely on Lemon Squeezy's own hosted pages (which do have this), reached via the email receipt Lemon Squeezy sends, not a link inside Kidbuster itself.
+- **No self-service billing portal.** A Pro subscriber can't currently view/cancel their own subscription from inside this app — that lives entirely on Lemon Squeezy's own hosted pages (which do have this), reached via the email receipt Lemon Squeezy sends, not a link inside Pathfinder itself.
 - **Cancellation and expiration currently have identical effects** (both immediately fall back to Free) — there's no grace period modeled between "canceled, but paid through end of period" and "access actually ends." Simple on purpose, matching the product's own "just Free and Pro, nothing fancier" philosophy; worth revisiting if it ever actually annoys a real subscriber.
 - **Model, max_tokens, and API version are fixed server-side** in `api/generate.js` rather than sent from the browser — this is a deliberate security choice, not an oversight, so a request from the browser can't override which model gets called or its parameters.

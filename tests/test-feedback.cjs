@@ -142,6 +142,45 @@ module.exports = async function run(){
       const result = await callFeedback({ key: 'admin_test_key' });
       check('bad sheet response returns 502', result.statusCode === 502 && result.jsonBody.error === 'Failed to record feedback');
     }
+    console.log('\n6) Preply module info is actually forwarded to the sheet, not silently dropped');
+    {
+      __resetForTests();
+      process.env.APP_ACCESS_KEY = 'admin_test_key';
+      process.env.OWNER_LICENSE_KEYS = '';
+      process.env.FOUNDER_LICENSE_KEYS = '';
+      process.env.GOOGLE_SHEET_WEBHOOK_URL = 'https://example.test/feedback';
+      let capturedBody = null;
+      global.fetch = async (url, opts) => {
+        capturedBody = JSON.parse(opts.body);
+        return { ok: true };
+      };
+
+      await callFeedback({
+        key: 'admin_test_key',
+        body: {
+          teacherName: 'Teacher Devin',
+          protocol: 'PREPLY',
+          ratingTier: '',
+          preplyModule: 'trial',
+          preplyTrialPerson: 'child',
+          score: 4,
+          comment: 'Good trial follow-up'
+        }
+      });
+      check('preplyModule reaches the forwarded sheet payload', capturedBody && capturedBody.preplyModule === 'trial');
+      check('preplyTrialPerson reaches the forwarded sheet payload', capturedBody && capturedBody.preplyTrialPerson === 'child');
+
+      // A non-Preply protocol's feedback should still work cleanly with
+      // empty strings rather than the literal text "null" landing in a
+      // spreadsheet cell.
+      let capturedBody2 = null;
+      global.fetch = async (url, opts) => {
+        capturedBody2 = JSON.parse(opts.body);
+        return { ok: true };
+      };
+      await callFeedback({ key: 'admin_test_key' }); // default body: protocol MA, no preplyModule
+      check('non-Preply feedback sends empty string, not the literal "null"', capturedBody2 && capturedBody2.preplyModule === '' && capturedBody2.preplyTrialPerson === '');
+    }
   } finally {
     restoreEnv();
     global.fetch = originalFetch;

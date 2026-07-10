@@ -30,14 +30,26 @@ export const FREE_MONTHLY_LIMIT = parseInt(process.env.FREE_MONTHLY_LIMIT || '20
 
 // Classic (MA) is the only protocol with a genuine, ongoing Free tier —
 // FREE_MONTHLY_LIMIT reports every calendar month, forever, never expires.
-// Every OTHER protocol (Sugarcoat, Blitz, Beida, Preply, and any future
-// one — nothing here needs to change when a new protocol is added) instead
-// gets a one-time trial allowance: TRIAL_GENERATIONS_PER_PROTOCOL free
-// generations, ever, per protocol, per license — not monthly, does not
-// reset. Once exhausted, that protocol requires Pro. This is the
-// "Protocol Trial Unlocks" model: every protocol is discoverable and
-// testable without paying, but permanent access stays a Pro feature.
 export const ALWAYS_FREE_PROTOCOLS = ['MA'];
+
+// Every protocol that gets the one-time trial allowance (5 free
+// generations, ever, per protocol, per license — not monthly, does not
+// reset; once exhausted, that protocol requires Pro). This is the
+// "Protocol Trial Unlocks" model: every listed protocol is discoverable
+// and testable without paying, but permanent access stays a Pro feature.
+//
+// Deliberately an explicit, hand-maintained list — NOT derived from
+// "every protocol that exists and isn't in ALWAYS_FREE_PROTOCOLS". This
+// is a monetization decision, not a byproduct of which protocols happen
+// to have a display label somewhere. A protocol that exists in the app
+// but isn't listed in either this array or ALWAYS_FREE_PROTOCOLS is
+// simply not available on a Free/non-Pro plan at all — no trial, no
+// ongoing free tier — which has to be a real, visible decision made
+// right here, not something that falls out of a filter. Adding a future
+// protocol means adding one line here on purpose, not getting entitlement
+// behavior for free (in the wrong sense) just because it exists.
+export const TRIAL_ELIGIBLE_PROTOCOLS = ['MS', 'BLITZ', 'BEIDA', 'OF', 'PREPLY'];
+
 export const TRIAL_GENERATIONS_PER_PROTOCOL = parseInt(process.env.TRIAL_GENERATIONS_PER_PROTOCOL || '5', 10);
 
 // Display labels for teacher-facing messages only — evaluateEntitlement
@@ -89,10 +101,11 @@ function protocolLabel(protocol){
  * @param {string[]} [params.alwaysFreeProtocols] - defaults to ALWAYS_FREE_PROTOCOLS
  * @returns {{allowed: boolean, reason: string|null, message: string|null}}
  */
-export function evaluateEntitlement({ plan, status, protocol, monthlyUsageCount, trialUsageCount, freeMonthlyLimit, trialLimit, alwaysFreeProtocols }){
+export function evaluateEntitlement({ plan, status, protocol, monthlyUsageCount, trialUsageCount, freeMonthlyLimit, trialLimit, alwaysFreeProtocols, trialEligibleProtocols }){
   const limit = typeof freeMonthlyLimit === 'number' ? freeMonthlyLimit : FREE_MONTHLY_LIMIT;
   const trialCap = typeof trialLimit === 'number' ? trialLimit : TRIAL_GENERATIONS_PER_PROTOCOL;
   const alwaysFree = alwaysFreeProtocols || ALWAYS_FREE_PROTOCOLS;
+  const trialEligible = trialEligibleProtocols || TRIAL_ELIGIBLE_PROTOCOLS;
 
   if(status !== 'active'){
     return {
@@ -119,15 +132,30 @@ export function evaluateEntitlement({ plan, status, protocol, monthlyUsageCount,
     return { allowed: true, reason: null, message: null };
   }
 
-  // Every other protocol: one-time trial allowance, never resets.
-  if((trialUsageCount || 0) >= trialCap){
-    return {
-      allowed: false,
-      reason: 'trial_exhausted',
-      message: 'Your complimentary ' + protocolLabel(protocol) + ' trial has ended. Upgrade to Pathfinder Pro to continue using this protocol.'
-    };
+  if(trialEligible.includes(protocol)){
+    // One-time trial allowance, never resets.
+    if((trialUsageCount || 0) >= trialCap){
+      return {
+        allowed: false,
+        reason: 'trial_exhausted',
+        message: 'Your complimentary ' + protocolLabel(protocol) + ' trial has ended. Upgrade to Pathfinder Pro to continue using this protocol.'
+      };
+    }
+    return { allowed: true, reason: null, message: null };
   }
-  return { allowed: true, reason: null, message: null };
+
+  // A protocol that's in NEITHER list — not always-free, not trial-
+  // eligible — is simply not available on a Free/non-Pro plan at all.
+  // This is a deliberate, explicit outcome (e.g. an internal-only or
+  // not-yet-released protocol), not a bug: it means whoever added the
+  // protocol hasn't yet made the monetization decision for it, and the
+  // safe default is to require Pro rather than silently granting a
+  // trial nobody actually decided to offer.
+  return {
+    allowed: false,
+    reason: 'protocol_requires_pro',
+    message: 'The ' + protocolLabel(protocol) + ' protocol requires Pathfinder Pro.'
+  };
 }
 
 /**

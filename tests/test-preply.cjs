@@ -110,6 +110,28 @@ module.exports = function run(){
     check('same word count, module: adult -> no length warning (proves positions 2-6 are genuinely ignored, only 7 matters)', !resultAdult.some(w => w.includes('words')));
   }
 
+  console.log('\n8) Trial Follow-up: the audience person is an explicit Fact, never left for the model to guess');
+  {
+    const adultTrialMsg = KidbusterCore.buildUserMessage({ studentName: 'Marco', teacherName: 'Layne', notes: 'x', protocol: 'PREPLY', preplyModule: 'trial', preplyTrialPerson: 'adult' });
+    check('adult trial student -> Fact says second person, addressed directly', adultTrialMsg.includes('Trial audience') && adultTrialMsg.includes('ADULT trial student') && adultTrialMsg.includes('second person'));
+
+    const childTrialMsg = KidbusterCore.buildUserMessage({ studentName: 'Marco', teacherName: 'Layne', notes: 'x', protocol: 'PREPLY', preplyModule: 'trial', preplyTrialPerson: 'child' });
+    check('child trial student -> Fact says third person, addressed to the parent', childTrialMsg.includes('Trial audience') && childTrialMsg.includes('PARENT of a child') && childTrialMsg.includes('third person'));
+
+    check('missing preplyTrialPerson on a trial-module message -> still defaults to the adult phrasing, not a crash', (() => {
+      const msg = KidbusterCore.buildUserMessage({ studentName: 'Marco', teacherName: 'Layne', notes: 'x', protocol: 'PREPLY', preplyModule: 'trial' });
+      return msg.includes('ADULT trial student');
+    })());
+
+    const adultModuleMsg = KidbusterCore.buildUserMessage({ studentName: 'Marco', teacherName: 'Layne', notes: 'x', protocol: 'PREPLY', preplyModule: 'adult', preplyTrialPerson: 'adult' });
+    check('Adult MODULE (not Trial) never gets the Trial audience Fact at all', !adultModuleMsg.includes('Trial audience'));
+
+    const parentModuleMsg = KidbusterCore.buildUserMessage({ studentName: 'Marco', teacherName: 'Layne', notes: 'x', protocol: 'PREPLY', preplyModule: 'parent', preplyTrialPerson: 'child' });
+    check('Parent MODULE (not Trial) never gets the Trial audience Fact either', !parentModuleMsg.includes('Trial audience'));
+
+    check('the Trial module\'s own prompt instructions reference the Fact rather than leaving the audience ambiguous', KidbusterCore.PREPLY_MODULES.trial.instructions.includes('specified explicitly as a Fact'));
+  }
+
   return getFailures();
 };
 

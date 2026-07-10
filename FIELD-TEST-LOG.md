@@ -1,4 +1,4 @@
-# KIDBUSTER — Field Test Log
+# PATHFINDER — Field Test Log
 
 Tracks issues encountered during real daily use across **both** official protocols. Exists only to detect patterns — not a to-do list, not a feature backlog.
 

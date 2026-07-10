@@ -2,29 +2,25 @@
 // browser. This is deliberately read-only: it never creates, upgrades, or
 // downgrades anything.
 //
-// Reports trial usage for EVERY trial-eligible protocol (everything
-// except ALWAYS_FREE_PROTOCOLS) in one response, keyed by protocol —
-// deliberately not a single "?protocol=X" lookup, since the account
-// panel wants to show every protocol's status at once for real
-// transparency ("users understand exactly what they're paying for"),
-// and one call with a few extra cheap KV reads beats N round-trips.
-// The trial-eligible list is derived from PROTOCOL_LABELS itself, so
-// there's exactly one place (that map) to update when a new protocol
-// is added, not a second parallel list to keep in sync with it.
+// Reports trial usage for every protocol in TRIAL_ELIGIBLE_PROTOCOLS (an
+// explicit, hand-maintained business-rule list in licensing.js — not
+// derived from which protocols happen to have a display label) in one
+// response, keyed by protocol — deliberately not a single "?protocol=X"
+// lookup, since the account panel wants to show every protocol's status
+// at once for real transparency ("users understand exactly what they're
+// paying for"), and one call with a few extra cheap KV reads beats N
+// round-trips.
 
 import {
   FREE_MONTHLY_LIMIT,
   TRIAL_GENERATIONS_PER_PROTOCOL,
-  ALWAYS_FREE_PROTOCOLS,
-  PROTOCOL_LABELS,
+  TRIAL_ELIGIBLE_PROTOCOLS,
   currentUsagePeriod,
   getLicense,
   getUsageCount,
   getTrialUsageCount,
   isFounderLicenseKey
 } from './_lib/licensing.js';
-
-const TRIAL_ELIGIBLE_PROTOCOLS = Object.keys(PROTOCOL_LABELS).filter(p => !ALWAYS_FREE_PROTOCOLS.includes(p));
 
 async function buildTrialsObject(licenseKey, isFree){
   const entries = await Promise.all(TRIAL_ELIGIBLE_PROTOCOLS.map(async (protocol) => {
