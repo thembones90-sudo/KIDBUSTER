@@ -54,6 +54,20 @@ module.exports = function run(){
     check('includes the quality standard (\"press Send\")', /press send/i.test(prompt));
   }
 
+  console.log('\n3c) Coaching refinement: one central observation, and coaching-over-evaluation framing (added after real-usage review)');
+  {
+    const prompt = KidbusterCore.buildPreplySystemPrompt({});
+    check('CENTRAL OBSERVATION RULE section exists', prompt.includes('CENTRAL OBSERVATION RULE'));
+    check('explicitly says ONE observation, not several', /exactly ONE central observation/i.test(prompt));
+    check('COACHING RULE section exists', prompt.includes('COACHING RULE'));
+    check('instructs connected narrative over a list ("naturally moved from")', /naturally\s+moved from/i.test(prompt));
+    check('instructs reframing corrections as a development path, not a verdict', /development path, not a verdict/i.test(prompt));
+    check('instructs connecting strength to next step (not listing them separately)', prompt.includes('growing out of the strength'));
+    check('instructs occasional reference to the shared teacher/student moment', /collaborative\s+interaction/i.test(prompt));
+    check('instructs continuity in the ending, not a generic sign-off', prompt.includes('I\'d like to build on today\'s discussion') || prompt.includes('We can continue developing this next time'));
+    check('Personalization Rule reinforced with the specific evidence-vs-adjective example', /conversation going even when you couldn.t\s+immediately find the\s+vocabulary/i.test(prompt));
+  }
+
   console.log('\n4) buildUserMessage: Preply never gets a fabricated Rating line, and uses the sparse-evidence framing');
   {
     const msg = KidbusterCore.buildUserMessage({ studentName: 'Marco', teacherName: 'Layne', notes: 'Worked on conditionals. Caught his own mistake twice.', rating: null, protocol: 'PREPLY' });

@@ -10,7 +10,10 @@
  * 1. Go to sheets.google.com, create a new blank spreadsheet.
  *    Name it whatever you like, e.g. "Kidbuster Feedback".
  * 2. In that sheet, add a header row (row 1) with these exact columns:
- *    Timestamp | Teacher | Protocol | Rating Tier | Score | Comment
+ *    Timestamp | Teacher | Protocol | Rating Tier | Score | Comment | Preply Module | Preply Trial Person
+ *    (The last two are only ever populated for Preply feedback — Preply
+ *    Trial Person only for its Trial Follow-up module specifically. Every
+ *    other row leaves them blank, not the literal text "null".)
  * 3. Extensions menu → Apps Script. This opens a script editor tied to
  *    this specific sheet.
  * 4. Delete whatever placeholder code is there, and paste this entire
@@ -48,7 +51,9 @@ function doPost(e) {
     data.protocol || '',
     data.ratingTier || '',
     data.score || '',
-    data.comment || ''
+    data.comment || '',
+    data.preplyModule || '',
+    data.preplyTrialPerson || ''
   ]);
 
   return ContentService
