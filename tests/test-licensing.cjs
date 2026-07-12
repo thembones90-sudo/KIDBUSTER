@@ -43,7 +43,7 @@ module.exports = async function run(){
     // duplicate of it — if a protocol is ever added or removed from
     // TRIAL_ELIGIBLE_PROTOCOLS, this test automatically covers whatever
     // the list actually says, rather than silently testing a stale copy.
-    check('TRIAL_ELIGIBLE_PROTOCOLS is exactly the explicit, hand-maintained list (not derived from anything else)', JSON.stringify(licensing.TRIAL_ELIGIBLE_PROTOCOLS.slice().sort()) === JSON.stringify(['BEIDA', 'BLITZ', 'MS', 'OF', 'PREPLY'].sort()));
+    check('TRIAL_ELIGIBLE_PROTOCOLS is exactly the explicit, hand-maintained list (not derived from anything else)', JSON.stringify(licensing.TRIAL_ELIGIBLE_PROTOCOLS.slice().sort()) === JSON.stringify(['BEIDA', 'BLITZ', 'FAIRY', 'MS', 'OF', 'PREPLY'].sort()));
 
     licensing.TRIAL_ELIGIBLE_PROTOCOLS.forEach(protocol => {
       check('Free + ' + protocol + ' + fresh (0 used) -> allowed', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol, monthlyUsageCount:0, trialUsageCount:0 }).allowed === true);

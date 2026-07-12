@@ -1357,6 +1357,7 @@ body.protocol-preply .generate-btn.loading{
           <div class="protocol-select" id="protocolSelect">
             <label><input type="radio" name="protocol" value="MA" checked> Classic <span class="protocol-target" aria-hidden="true">&#127919;</span><span class="info-icon" tabindex="0" data-tooltip="Full detailed report — vocabulary, grammar, homework. The standard format.">?</span></label>
             <label><input type="radio" name="protocol" value="MS"> Sugarcoat <span class="protocol-lollipop" aria-hidden="true">&#127853;</span><span class="info-icon" tabindex="0" data-tooltip="Same report as Classic, written in a warmer, parent-friendly voice.">?</span></label>
+            <label><input type="radio" name="protocol" value="FAIRY"> Fairy <span class="protocol-lollipop" aria-hidden="true">&#129498;</span><span class="info-icon" tabindex="0" data-tooltip="Sugarcoat-family subprotocol using the older Fairy command chain.">?</span></label>
             <label><input type="radio" name="protocol" value="BLITZ"> Blitz <span class="protocol-lightning" aria-hidden="true">&#9889;</span><span class="info-icon" tabindex="0" data-tooltip="Short, neutral comment for quick platform feedback. No rating-based tone shifts.">?</span></label>
             <label><input type="radio" name="protocol" value="BEIDA"> Beida<span class="info-icon" tabindex="0" data-tooltip="Two-field comment matching the BetaKid platform's own form: Learning Content + General Performance.">?</span></label>
             <label><input type="radio" name="protocol" value="OF"> OF Protocol (Trial Evaluation)<span class="info-icon" tabindex="0" data-tooltip="3-section narrative for trial-lesson evaluations — not a regular lesson report.">?</span></label>
@@ -1962,6 +1963,76 @@ Before returning the report, verify:
     return idx / (OF_TIERS.length - 1);
   }
 
+  function buildFairySystemPrompt(){
+    return `MA PROTOCOL COMMAND CHAIN
+
+When I say “MA”, you must generate the full Master Protocol child feedback using your stored MA template. 
+
+Additionally:
+
+* Any prefix like “1/5 MA”, “2/5 MA”, “3/5 MA”, “4/5 MA”, “5/5 MA”, or “6/5 MA” automatically triggers the correct Level Integration tone:
+  • 1/5: Complete shambles. Tone: firm, improvement-focused, strong parental guidance.
+  • 2/5: Below expectations. Tone: encouraging but clear about need for effort.
+  • 3/5: Neutral. Tone: balanced, steady, light guidance.
+  • 4/5: Better than expected. Tone: warm, proud, highlighting growth.
+  • 5/5: Excellent. Tone: enthusiastic, glowing, joyful.
+  • 6/5: Exceptional. Above-excellent performance. Tone: celebratory, awe-struck, highlighting mastery beyond expectations.
+
+* 3.5/5 and 4.5/5 work as hybrids:
+  • 3.5/5 = mostly neutral tone with small warm/praise elements
+  • 4.5/5 = mostly warm/praise with small elements of excellence
+  (Never change structure — only tone shifts.)
+
+* If there is "Irrelevant" or "Speaker" name in the transcript, I will completely ignore those parts.
+* No weird glyphs, no decorative nonsense, no visual garbage
+* Never use ⿥ symbol.
+* Speak directly to the student, ALWAYS.
+
+* If Layne writes **any additional information next to the x/5 MA command**, I must ALWAYS use that information as a crucial part of generating the MA.
+
+The structure must always follow the immutable MA template (confirmed October 26, 2025):
+
+---
+
+Hi [Student Name]!
+
+[Short positive opening about student’s effort today. Mention focus of lesson.]
+Key Vocabulary with Pronunciation & Notes: *
+
+[Word 1] [Emoji] – [Short definition/explanation] | Pronunciation: [phonetic form] | Note: [strength/weakness observation]
+[Word 2] [Emoji] – [Short definition/explanation] | Pronunciation: [phonetic form] | Note: [strength/weakness observation]
+[Word 3] [Emoji] – [Short definition/explanation] | Pronunciation: [phonetic form] | Note: [strength/weakness observation]
+[Word 4] [Emoji] – [Short definition/explanation] | Pronunciation: [phonetic form] | Note: [strength/weakness observation]
+[Word 5] [Emoji] – [Short definition/explanation] | Pronunciation: [phonetic form] | Note: [strength/weakness observation]
+[Word 6] [Emoji] – [Short definition/explanation] | Pronunciation: [phonetic form] | Note: [strength/weakness observation]
+[Word 7] [Emoji] – [Short definition/explanation] | Pronunciation: [phonetic form] | Note: [strength/weakness observation]
+[Word 8] [Emoji] – [Short definition/explanation] | Pronunciation: [phonetic form] | Note: [strength/weakness observation]
+[Word 9] [Emoji] – [Short definition/explanation] | Pronunciation: [phonetic form] | Note: [strength/weakness observation]
+[Word 10] [Emoji] – [Short definition/explanation] | Pronunciation: [phonetic form] | Note: [strength/weakness observation]
+
+Grammar & Sentence Practice:
+
+"[Corrected/Example Sentence 1]"
+"[Corrected/Example Sentence 2]"
+"[Corrected/Example Sentence 3]"
+
+Grammar Points We Covered ⿡
+[Grammar Rule 1] – [Brief explanation of the rule]
+👉 [Two example sentences related to today’s lesson topic] ⿢
+[Grammar Rule 2] – [Brief explanation of the rule] 👉 [Two example sentences related to today’s lesson topic] ⿣
+[Grammar Rule 3] – [Brief explanation of the rule] 👉 [Two example sentences related to today’s lesson topic] ⿤
+[Grammar Rule 4] – [Brief explanation of the rule] 👉 [Two example sentences related to today’s lesson topic] ⿥
+[Grammar Rule 5] (optional) – [Brief explanation of the rule] 👉 [Two example sentences related to today’s lesson topic]
+
+Positive Feedback: [Encouragement with specific examples of progress, e.g. clear pronunciation, better sentence use, good listening, more confidence.] 👍👏
+
+Mini Homework: [Simple practice task: repeat new words, make 2-3 sentences, or short speaking drill.]
+Total stars today: [randomized 10 stars from preferred star set]
+[Closing line with encouragement and goodbye]
+
+Love, Teacher [Name]`;
+  }
+
   /**
    * @param {{rating: string}} params
    * @returns {string} system prompt — the immutable protocol text plus a
@@ -2361,8 +2432,13 @@ Before returning the report, verify:
     const isBlitz = params.protocol === 'BLITZ';
     const isBeida = params.protocol === 'BEIDA';
     const isOF = params.protocol === 'OF';
+    const isFairy = params.protocol === 'FAIRY';
 
     let msg = `Student: ${name}\n`;
+    if(isFairy){
+      const teacherName = (params.teacherName || '').trim() || 'Layne';
+      msg += `Teacher: ${teacherName} — use exactly this name in the final "Love, Teacher [Name]" sign-off; never invent or guess a different one.\n`;
+    }
     if(isBeida){
       // Beida's required greeting ("Hi [Student], teacher [Teacher] here!")
       // is a literal bracket placeholder in its own prompt, not a
@@ -2675,6 +2751,63 @@ Before returning the report, verify:
           warnings.push('Report includes ' + pointCount + ' grammar points — the length-tier content rule caps ' + tier.label + ' reports at ' + maxAllowed + '.');
         }
       }
+    }
+
+    return warnings;
+  }
+
+  function analyzeFairyOutput(text, lvl, teacherName, lengthTier){
+    const name = (teacherName || 'Layne').trim();
+    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const warnings = [];
+    const tier = lengthTier || LENGTH_TIERS.long;
+    const trimmed = (text || '').trim();
+
+    if(!trimmed){
+      warnings.push('Output is empty.');
+      return warnings;
+    }
+
+    const charCount = trimmed.length;
+    if(charCount >= tier.hardCeiling){
+      warnings.push('CRITICAL: Report is ' + charCount + ' characters â€” at or over the absolute, immutable ' + tier.hardCeiling + '-character limit. This cannot be sent as-is.');
+    }else if(charCount > tier.softTarget){
+      warnings.push('Report is ' + charCount + ' characters â€” over the ' + tier.softTarget + ' working target. Trim before sending to stay safely under the ' + tier.hardCeiling + ' absolute limit.');
+    }
+
+    warnings.push(...checkForbiddenFormatting(trimmed));
+
+    if(/\[[A-Za-z][^\]]*\]/.test(trimmed)){
+      warnings.push('Report contains an unfilled [placeholder] â€” replace it with the real student, vocabulary, grammar, or teacher detail before sending.');
+    }
+
+    const starsSectionMatch = trimmed.match(/total stars today:?\s*([\s\S]*?)(?:\n\s*\n|$)/i);
+    const starRegex = new RegExp('[' + APPROVED_STARS_ALL.join('') + ']', 'gu');
+    if(MA_NO_STAR_LEVELS.includes(lvl)){
+      if(starsSectionMatch){
+        warnings.push('Total stars today should be omitted at ratings below 3.');
+      }
+    }else{
+      const stars = starsSectionMatch ? (starsSectionMatch[1].match(starRegex) || []).length : 0;
+      if(stars !== 10) warnings.push('Star count is ' + stars + ', expected exactly 10.');
+    }
+
+    if(!/Key Vocabulary with Pronunciation & Notes/i.test(trimmed)){
+      warnings.push('Key Vocabulary with Pronunciation & Notes section is missing.');
+    }
+    if(!/Grammar & Sentence Practice/i.test(trimmed)){
+      warnings.push('Grammar & Sentence Practice section is missing.');
+    }
+    if(!/Grammar Points We Covered/i.test(trimmed)){
+      warnings.push('Grammar Points We Covered section is missing.');
+    }
+    if(!/Mini Homework/i.test(trimmed)){
+      warnings.push('Mini Homework section is missing.');
+    }
+
+    const signoffRegex = new RegExp('Love,\\s*\\n?\\s*Teacher\\s+' + escapedName + '\\s*$', 'i');
+    if(!signoffRegex.test(trimmed)){
+      warnings.push('Closing sign-off does not exactly match "Love, / Teacher ' + name + '".');
     }
 
     return warnings;
@@ -3618,6 +3751,12 @@ because it's about a single lesson.`
         return analyzeMAOutput(text, lvl, teacherName, 'Love,', hiddenEmoji ? hiddenEmoji + ' 💖' : '💖', LENGTH_TIERS[lengthFormat] || LENGTH_TIERS.long);
       }
     },
+    FAIRY: {
+      key: 'FAIRY',
+      label: 'Fairy',
+      buildSystemPrompt: buildFairySystemPrompt,
+      analyze: (text, lvl, teacherName, lengthFormat) => analyzeFairyOutput(text, lvl, teacherName, LENGTH_TIERS[lengthFormat] || LENGTH_TIERS.long)
+    },
     BLITZ: {
       key: 'BLITZ',
       label: 'Blitz \u26A1',
@@ -3712,6 +3851,7 @@ because it's about a single lesson.`
     ofTierFillFraction,
     buildMASystemPrompt,
     buildSweetSystemPrompt,
+    buildFairySystemPrompt,
     buildOFSystemPrompt,
     buildBlitzSystemPrompt,
     resetBlitzShuffleBag,
@@ -3722,6 +3862,7 @@ because it's about a single lesson.`
     applyProtocolSignoffEmoji,
     defaultTeacherSignatureEmoji,
     analyzeMAOutput,
+    analyzeFairyOutput,
     analyzeOFOutput,
     analyzeBlitzOutput,
     buildBeidaSystemPrompt,
@@ -3765,7 +3906,7 @@ const LOGO_DEFAULT_SRC = kbLogo.src; // the original green lockup, captured befo
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function updateLogo(){
   const key = currentProtocolKey();
-  const nextSrc = key === 'MS' ? kbLogo.dataset.logoMs
+  const nextSrc = (key === 'MS' || key === 'FAIRY') ? kbLogo.dataset.logoMs
                 : key === 'OF' ? kbLogo.dataset.logoOf
                 : key === 'BLITZ' ? kbLogo.dataset.logoBlitz
                 : key === 'BEIDA' ? kbLogo.dataset.logoBeida
@@ -3861,7 +4002,7 @@ function buildRatingTrack(){
   const isBeida = protocolKey === 'BEIDA';
   const isPreply = protocolKey === 'PREPLY';
   document.body.classList.toggle('protocol-of', isOF);
-  document.body.classList.toggle('protocol-ms', protocolKey === 'MS');
+  document.body.classList.toggle('protocol-ms', protocolKey === 'MS' || protocolKey === 'FAIRY');
   document.body.classList.toggle('protocol-blitz', isBlitz);
   document.body.classList.toggle('protocol-beida', isBeida);
   document.body.classList.toggle('protocol-preply', isPreply);
@@ -5259,7 +5400,7 @@ function appendGenerationHistory(entry){
 }
 
 function loadUsageStats(){
-  const defaults = { MA: { reports: 0, cost: 0 }, OF: { reports: 0, cost: 0 }, MS: { reports: 0, cost: 0 }, BLITZ: { reports: 0, cost: 0 }, BEIDA: { reports: 0, cost: 0 }, PREPLY: { reports: 0, cost: 0 }, regenerationEvents: 0 };
+  const defaults = { MA: { reports: 0, cost: 0 }, OF: { reports: 0, cost: 0 }, MS: { reports: 0, cost: 0 }, FAIRY: { reports: 0, cost: 0 }, BLITZ: { reports: 0, cost: 0 }, BEIDA: { reports: 0, cost: 0 }, PREPLY: { reports: 0, cost: 0 }, regenerationEvents: 0 };
   try{
     const raw = localStorage.getItem(USAGE_STATS_KEY);
     if(raw){
@@ -5272,6 +5413,7 @@ function loadUsageStats(){
         MA: parsed.MA || defaults.MA,
         OF: parsed.OF || defaults.OF,
         MS: parsed.MS || defaults.MS,
+        FAIRY: parsed.FAIRY || defaults.FAIRY,
         BLITZ: parsed.BLITZ || defaults.BLITZ,
         BEIDA: parsed.BEIDA || defaults.BEIDA,
         PREPLY: parsed.PREPLY || defaults.PREPLY,
@@ -5329,11 +5471,12 @@ function recordFailedGeneration(protocolKey, durationMs, errorMessage){
 // Callable from the browser console (F12) at any time: kidbusterStats()
 window.kidbusterStats = function(){
   const s = loadUsageStats();
-  const totalReports = s.MA.reports + s.OF.reports + s.MS.reports + s.BLITZ.reports + s.BEIDA.reports + s.PREPLY.reports;
-  const totalCost = s.MA.cost + s.OF.cost + s.MS.cost + s.BLITZ.cost + s.BEIDA.cost + s.PREPLY.cost;
+  const totalReports = s.MA.reports + s.OF.reports + s.MS.reports + s.FAIRY.reports + s.BLITZ.reports + s.BEIDA.reports + s.PREPLY.reports;
+  const totalCost = s.MA.cost + s.OF.cost + s.MS.cost + s.FAIRY.cost + s.BLITZ.cost + s.BEIDA.cost + s.PREPLY.cost;
   console.log('=== Kidbuster cumulative usage (this browser) ===');
   console.log('MA reports:', s.MA.reports, '| MA cost: $' + s.MA.cost.toFixed(4));
   console.log('MA Sweet Voice reports:', s.MS.reports, '| MS cost: $' + s.MS.cost.toFixed(4));
+  console.log('Fairy reports:', s.FAIRY.reports, '| Fairy cost: $' + s.FAIRY.cost.toFixed(4));
   console.log('OF reports:', s.OF.reports, '| OF cost: $' + s.OF.cost.toFixed(4));
   console.log('Blitz reports:', s.BLITZ.reports, '| Blitz cost: $' + s.BLITZ.cost.toFixed(4));
   console.log('Beida reports:', s.BEIDA.reports, '| Beida cost: $' + s.BEIDA.cost.toFixed(4));
@@ -5341,6 +5484,7 @@ window.kidbusterStats = function(){
   console.log('Total reports:', totalReports, '| Total cost: $' + totalCost.toFixed(4));
   console.log('MA share:', totalReports ? (s.MA.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('MA Sweet Voice share:', totalReports ? (s.MS.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
+  console.log('Fairy share:', totalReports ? (s.FAIRY.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('OF share:', totalReports ? (s.OF.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('Blitz share:', totalReports ? (s.BLITZ.reports/totalReports*100).toFixed(0)+'%' : 'n/a');
   console.log('Beida share:', totalReports ? (s.BEIDA.reports/totalReports*100).toFixed(0)+'%' : 'n/a');

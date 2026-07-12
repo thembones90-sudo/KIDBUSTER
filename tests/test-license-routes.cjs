@@ -60,7 +60,7 @@ module.exports = async function run(){
     check('status includes usage and remaining free reports', result.jsonBody.usageCount === 2 && result.jsonBody.remainingFreeReports === licensing.FREE_MONTHLY_LIMIT - 2);
 
     const trials = result.jsonBody.trials;
-    check('trials object is present and includes every trial-eligible protocol', trials && ['MS', 'BLITZ', 'BEIDA', 'OF', 'PREPLY'].every(p => p in trials));
+    check('trials object is present and includes every trial-eligible protocol', trials && ['MS', 'FAIRY', 'BLITZ', 'BEIDA', 'OF', 'PREPLY'].every(p => p in trials));
     check('trials object does NOT include MA (the one always-free protocol)', !('MA' in trials));
     check('a fresh protocol (MS) reports 0 used, full remaining', trials.MS.trialUsageCount === 0 && trials.MS.remainingTrialGenerations === licensing.TRIAL_GENERATIONS_PER_PROTOCOL);
     check('Beida, used 3 times, reports that correctly', trials.BEIDA.trialUsageCount === 3 && trials.BEIDA.remainingTrialGenerations === licensing.TRIAL_GENERATIONS_PER_PROTOCOL - 3);

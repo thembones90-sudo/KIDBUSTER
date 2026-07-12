@@ -48,7 +48,7 @@ export const ALWAYS_FREE_PROTOCOLS = ['MA'];
 // right here, not something that falls out of a filter. Adding a future
 // protocol means adding one line here on purpose, not getting entitlement
 // behavior for free (in the wrong sense) just because it exists.
-export const TRIAL_ELIGIBLE_PROTOCOLS = ['MS', 'BLITZ', 'BEIDA', 'OF', 'PREPLY'];
+export const TRIAL_ELIGIBLE_PROTOCOLS = ['MS', 'FAIRY', 'BLITZ', 'BEIDA', 'OF', 'PREPLY'];
 
 export const TRIAL_GENERATIONS_PER_PROTOCOL = parseInt(process.env.TRIAL_GENERATIONS_PER_PROTOCOL || '5', 10);
 
@@ -62,6 +62,7 @@ export const TRIAL_GENERATIONS_PER_PROTOCOL = parseInt(process.env.TRIAL_GENERAT
 const PROTOCOL_LABELS = {
   MA: 'Classic',
   MS: 'Sugarcoat',
+  FAIRY: 'Fairy',
   BLITZ: 'Blitz',
   BEIDA: 'Beida',
   OF: 'OF Protocol',
