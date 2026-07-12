@@ -48,6 +48,7 @@ export async function createCheckoutUrl({ email, licenseKey }){
   const apiKey = process.env.LEMONSQUEEZY_API_KEY;
   const storeId = process.env.LEMONSQUEEZY_STORE_ID;
   const variantId = process.env.LEMONSQUEEZY_PRO_VARIANT_ID;
+  const siteUrl = (process.env.SITE_URL || '').replace(/\/+$/, '');
   if(!apiKey || !storeId || !variantId){
     throw new Error('Missing LEMONSQUEEZY_API_KEY, LEMONSQUEEZY_STORE_ID, or LEMONSQUEEZY_PRO_VARIANT_ID');
   }
@@ -63,6 +64,9 @@ export async function createCheckoutUrl({ email, licenseKey }){
       data: {
         type: 'checkouts',
         attributes: {
+          product_options: siteUrl ? {
+            redirect_url: siteUrl + '/?checkout=success'
+          } : undefined,
           checkout_data: {
             email,
             custom: { license_key: licenseKey }

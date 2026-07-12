@@ -56,7 +56,7 @@ export default async function handler(req, res){
     const provider = getActiveProvider();
     const url = await provider.createCheckoutUrl({ email: resolvedEmail || '', licenseKey });
 
-    return res.status(200).json({ url });
+    return res.status(200).json({ url, licenseKey });
   }catch(err){
     console.error('create-checkout-session error:', err);
     return res.status(500).json({ error: 'Could not start checkout right now. Please try again shortly.' });

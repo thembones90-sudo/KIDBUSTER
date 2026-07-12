@@ -126,6 +126,18 @@ module.exports = async function run(){
 
   console.log('\n3) License modal: shows Pro/Free/existing-key paths, validates client-side, stores a pasted key without needing a live backend');
   {
+    await page.evaluate(() => {
+      window.fetch = async (url) => {
+        if(String(url).includes('/api/create-checkout-session')){
+          return new Response(JSON.stringify({
+            url: window.location.href.split('#')[0] + '#checkout',
+            licenseKey: 'kb_live_checkout_saved'
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        throw new Error('Unexpected browser-smoke fetch: ' + url);
+      };
+    });
+
     const modalShown = await page.evaluate(() => {
       window.__testModalPromise = promptForAccessKey();
       const overlay = document.getElementById('licenseModalOverlay');
@@ -139,7 +151,7 @@ module.exports = async function run(){
       };
     });
     check('calling promptForAccessKey() shows the modal', modalShown.visible);
-    check('modal is now the prepared access page', modalShown.title === 'Access Pathfinder' && modalShown.hasPro && modalShown.hasFree && modalShown.hasKey && modalShown.hasRecover);
+    check('modal shows the simplified access choices', modalShown.title === 'Choose your access' && modalShown.hasPro && modalShown.hasFree && modalShown.hasKey && modalShown.hasRecover);
 
     await page.click('#licenseModalProBtn');
     await new Promise(r => setTimeout(r, 80));
@@ -148,6 +160,12 @@ module.exports = async function run(){
       return { visible: err.style.display !== 'none', text: err.textContent };
     });
     check('empty Pro checkout email -> client-side validation error shown, no crash', emptyProEmailError.visible && emptyProEmailError.text.includes('checkout'));
+
+    await page.type('#licenseModalProEmail', 'buyer@example.com');
+    await page.click('#licenseModalProBtn');
+    await new Promise(r => setTimeout(r, 80));
+    const checkoutKeySaved = await page.evaluate(() => localStorage.getItem(ACCESS_KEY_STORAGE));
+    check('Pro checkout stores the generated key before redirecting to the provider', checkoutKeySaved === 'kb_live_checkout_saved');
 
     // Clicking "Get my free key" with no email entered should show a
     // client-side validation error WITHOUT attempting any network call
