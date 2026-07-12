@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pathfinder</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230A0A0B'/%3E%3Cpath d='M32 8 56 56H8L32 8Zm0 16L20 48h24L32 24Z' fill='%23D4FF3F'/%3E%3Cpath d='M32 8 56 56H8L32 8Z' fill='none' stroke='%23F4FF00' stroke-width='3'/%3E%3C/svg%3E">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600&family=Inter:wght@400&family=JetBrains+Mono:wght@400;600;700&display=swap');
 
@@ -1316,6 +1317,10 @@ body.protocol-preply .generate-btn.loading{
         <p class="account-label">Saved key</p>
         <p class="account-value" id="accountKey">None</p>
       </div>
+      <div class="account-metric">
+        <p class="account-label">Build</p>
+        <p class="account-value" id="accountBuild">2026.07.12.1</p>
+      </div>
     </div>
     <div class="account-trials" id="accountTrials" style="display:none;"></div>
     <div class="account-actions">
@@ -1519,6 +1524,8 @@ body.protocol-preply .generate-btn.loading{
    that should ever need a rewrite for that migration.
    ========================================================================= */
 const KidbusterCore = (function(){
+
+  const KIDBUSTER_BUILD_LABEL = '2026.07.12.1';
 
   // Canonical MA Protocol rating scale — used throughout the app, both modes.
   const LEVELS = ['1','1.5','2','2.5','3','3.5','4','4.5','5','6'];
@@ -3657,6 +3664,7 @@ because it's about a single lesson.`
   }
 
   return {
+    KIDBUSTER_BUILD_LABEL,
     LEVELS,
     LEVEL_TONE_DESC,
     OF_TIERS,
