@@ -59,7 +59,7 @@ module.exports = async function run(){
   const protocols = [
     { value: 'MA', label: 'Classic', bodyClass: null },
     { value: 'MS', label: 'Sugarcoat', bodyClass: 'protocol-ms' },
-    { value: 'FAIRY', label: 'Fairy', bodyClass: 'protocol-ms' },
+    { value: 'FAIRY', label: 'Fairy', bodyClass: 'protocol-fairy' },
     { value: 'BLITZ', label: 'BLITZ', bodyClass: 'protocol-blitz', selector: '#protocolBadge .blitz-bolt' },
     { value: 'BEIDA', label: 'Beida', bodyClass: 'protocol-beida' },
     { value: 'OF', label: 'OF Protocol (Trial Evaluation)', bodyClass: 'protocol-of' },

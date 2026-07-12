@@ -85,6 +85,23 @@ body.protocol-ms{
   --toxin-border:rgba(255,11,237,0.28);
   --toxin-glow:rgba(255,11,237,0.18);
 }
+/* Fairy: Sugarcoat-family protocol, but with a softer light-pink palette
+   so it reads like its own gentler subprotocol rather than the same hot
+   neon pink as Sugarcoat. */
+body.protocol-fairy{
+  --toxin-rgb:255,157,218;
+  --toxin:#FF9DDA;
+  --olive:#3A1530;
+  --toxin-bright:#FFE0F3;
+  --toxin-shadow-rgb:255,151,216;
+  --toxin-shadow2-rgb:232,111,191;
+  --toxin-focus-rgb:255,199,235;
+  --toxin-wave-rgb:255,224,243;
+  --toxin-label:#FFC7EB;
+  --toxin-dim:rgba(255,157,218,0.14);
+  --toxin-border:rgba(255,157,218,0.32);
+  --toxin-glow:rgba(255,157,218,0.22);
+}
 /* Blitz: fast, punchy yellow "lightning" theme so its quick, no-frills
    platform-comment identity is visually distinct at a glance from the
    other three protocols. Same variable-override structure as OF/MS. */
@@ -831,6 +848,38 @@ body.protocol-ms .generate-btn.loading{
 
 /* Blitz yellow "lightning" variant of the button — same self-contained-
    literal-values structure as the other two variants above. */
+body.protocol-fairy .generate-btn{
+  background:linear-gradient(135deg, #FF8FD3 0%, #FFB7E6 55%, #FFE0F3 100%);
+  box-shadow:0 0 16px 1px rgba(255,151,216,0.38), 0 0 32px 4px rgba(232,111,191,0.2), 0 4px 18px -4px rgba(0,0,0,0.22);
+  animation-name:btnGlowPulseFairy;
+}
+@keyframes btnGlowPulseFairy{
+  0%, 100%{ box-shadow:0 0 16px 1px rgba(255,151,216,0.38), 0 0 32px 4px rgba(232,111,191,0.2), 0 4px 18px -4px rgba(0,0,0,0.22); }
+  50%{ box-shadow:0 0 24px 3px rgba(255,199,235,0.55), 0 0 44px 8px rgba(255,151,216,0.32), 0 4px 18px -4px rgba(0,0,0,0.26); }
+}
+body.protocol-fairy .generate-btn::after{
+  background-image:radial-gradient(ellipse 60% 140% at 50% 50%, rgba(255,224,243,0.66), rgba(255,157,218,0.3) 45%, rgba(255,157,218,0) 75%);
+}
+body.protocol-fairy .generate-btn:hover:not(:disabled){
+  box-shadow:0 0 26px 4px rgba(255,199,235,0.62), 0 0 48px 10px rgba(255,151,216,0.36), 0 6px 22px -4px rgba(0,0,0,0.28);
+}
+body.protocol-fairy .generate-btn:focus-visible{
+  outline-color:rgba(255,199,235,0.9);
+}
+body.protocol-fairy #kbLogo{
+  filter:brightness(1.18) saturate(0.82);
+}
+@media (prefers-reduced-motion: reduce){
+  body.protocol-fairy .generate-btn{box-shadow:0 0 20px 2px rgba(255,151,216,0.38), 0 0 36px 6px rgba(232,111,191,0.22), 0 4px 18px -4px rgba(0,0,0,0.22);}
+}
+body.protocol-fairy .generate-btn.loading{
+  animation-name:toxinCommandPulseFairy;
+}
+@keyframes toxinCommandPulseFairy{
+  0%, 100%{ filter:brightness(0.98) saturate(1.02); box-shadow:0 0 12px rgba(255,151,216,0.3); }
+  50%{ filter:brightness(1.1) saturate(1.12); box-shadow:0 0 22px rgba(255,199,235,0.48); }
+}
+
 body.protocol-blitz .generate-btn{
   background:linear-gradient(135deg, #3C3B05 0%, #FFFD0B 55%, #FFFEB2 100%);
   box-shadow:0 0 16px 1px rgba(247,245,12,0.4), 0 0 32px 4px rgba(184,182,9,0.22), 0 4px 18px -4px rgba(0,0,0,0.35);
@@ -1985,19 +2034,19 @@ Additionally:
 
 * If there is "Irrelevant" or "Speaker" name in the transcript, I will completely ignore those parts.
 * No weird glyphs, no decorative nonsense, no visual garbage
-* Never use ⿥ symbol.
+* Never use ⿡, ⿢, ⿣, ⿤, or ⿥ symbols.
+* Never use horizontal divider lines such as "---".
+* Never use markdown bold, markdown italics, or decorative section separators.
 * Speak directly to the student, ALWAYS.
 
 * If Layne writes **any additional information next to the x/5 MA command**, I must ALWAYS use that information as a crucial part of generating the MA.
 
 The structure must always follow the immutable MA template (confirmed October 26, 2025):
 
----
-
 Hi [Student Name]!
 
 [Short positive opening about student’s effort today. Mention focus of lesson.]
-Key Vocabulary with Pronunciation & Notes: *
+Key Vocabulary with Pronunciation & Notes:
 
 [Word 1] [Emoji] – [Short definition/explanation] | Pronunciation: [phonetic form] | Note: [strength/weakness observation]
 [Word 2] [Emoji] – [Short definition/explanation] | Pronunciation: [phonetic form] | Note: [strength/weakness observation]
@@ -2016,12 +2065,12 @@ Grammar & Sentence Practice:
 "[Corrected/Example Sentence 2]"
 "[Corrected/Example Sentence 3]"
 
-Grammar Points We Covered ⿡
+Grammar Points We Covered
 [Grammar Rule 1] – [Brief explanation of the rule]
-👉 [Two example sentences related to today’s lesson topic] ⿢
-[Grammar Rule 2] – [Brief explanation of the rule] 👉 [Two example sentences related to today’s lesson topic] ⿣
-[Grammar Rule 3] – [Brief explanation of the rule] 👉 [Two example sentences related to today’s lesson topic] ⿤
-[Grammar Rule 4] – [Brief explanation of the rule] 👉 [Two example sentences related to today’s lesson topic] ⿥
+👉 [Two example sentences related to today’s lesson topic]
+[Grammar Rule 2] – [Brief explanation of the rule] 👉 [Two example sentences related to today’s lesson topic]
+[Grammar Rule 3] – [Brief explanation of the rule] 👉 [Two example sentences related to today’s lesson topic]
+[Grammar Rule 4] – [Brief explanation of the rule] 👉 [Two example sentences related to today’s lesson topic]
 [Grammar Rule 5] (optional) – [Brief explanation of the rule] 👉 [Two example sentences related to today’s lesson topic]
 
 Positive Feedback: [Encouragement with specific examples of progress, e.g. clear pronunciation, better sentence use, good listening, more confidence.] 👍👏
@@ -2776,6 +2825,13 @@ Love, Teacher [Name]`;
     }
 
     warnings.push(...checkForbiddenFormatting(trimmed));
+
+    if(/^\s*-{3,}\s*$/m.test(trimmed)){
+      warnings.push('Fairy output contains a horizontal divider line. Remove separator dashes.');
+    }
+    if(/[⿡⿢⿣⿤⿥]/u.test(trimmed)){
+      warnings.push('Fairy output contains decorative glyph markers such as ⿡/⿢/⿣/⿤/⿥. Remove them.');
+    }
 
     if(/\[[A-Za-z][^\]]*\]/.test(trimmed)){
       warnings.push('Report contains an unfilled [placeholder] â€” replace it with the real student, vocabulary, grammar, or teacher detail before sending.');
@@ -4002,7 +4058,8 @@ function buildRatingTrack(){
   const isBeida = protocolKey === 'BEIDA';
   const isPreply = protocolKey === 'PREPLY';
   document.body.classList.toggle('protocol-of', isOF);
-  document.body.classList.toggle('protocol-ms', protocolKey === 'MS' || protocolKey === 'FAIRY');
+  document.body.classList.toggle('protocol-ms', protocolKey === 'MS');
+  document.body.classList.toggle('protocol-fairy', protocolKey === 'FAIRY');
   document.body.classList.toggle('protocol-blitz', isBlitz);
   document.body.classList.toggle('protocol-beida', isBeida);
   document.body.classList.toggle('protocol-preply', isPreply);
