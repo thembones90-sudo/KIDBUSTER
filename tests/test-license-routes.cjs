@@ -12,6 +12,7 @@ module.exports = async function run(){
   const { __resetForTests } = await import('../api/_lib/kv-client.js');
   const statusHandler = await import('../api/license-status.js');
   const recoverHandler = await import('../api/license-recover.js');
+  const adminCreateLicenseHandler = await import('../api/admin-create-license.js');
 
   async function send(handler, { method = 'POST', headers = {}, body = {} } = {}){
     const req = { method, headers, body };
@@ -90,6 +91,37 @@ module.exports = async function run(){
 
     const invalid = await send(statusHandler, { method: 'GET', headers: { 'x-app-key': 'nope' } });
     check('invalid key returns 401', invalid.statusCode === 401);
+  }
+
+  console.log('\n6) admin-create-license: owner-only 30-day Pro key creation');
+  {
+    __resetForTests();
+    const oldOwnerKeys = process.env.OWNER_LICENSE_KEYS;
+    process.env.OWNER_LICENSE_KEYS = 'test_owner_key';
+
+    const missing = await send(adminCreateLicenseHandler, { body: { email: 'buyer@example.com' } });
+    check('creating a manual key without owner key is forbidden', missing.statusCode === 403);
+
+    const normalKey = await svc.getOrCreateFreeLicense('normal@example.com');
+    const normalUser = await send(adminCreateLicenseHandler, {
+      headers: { 'x-app-key': normalKey },
+      body: { email: 'buyer@example.com' }
+    });
+    check('creating a manual key with a normal key is forbidden', normalUser.statusCode === 403);
+
+    const created = await send(adminCreateLicenseHandler, {
+      headers: { 'x-app-key': 'test_owner_key' },
+      body: { email: 'Buyer@Example.com' }
+    });
+    check('owner can create a 30-day manual Pro key', created.statusCode === 200 && created.jsonBody.licenseKey.startsWith('kb_live_'));
+    check('manual route always returns 30 days', created.jsonBody.days === 30 && created.jsonBody.manual === true);
+
+    const status = await send(statusHandler, { method: 'GET', headers: { 'x-app-key': created.jsonBody.licenseKey } });
+    check('new manual key status is Pro and includes expiry', status.statusCode === 200 && status.jsonBody.plan === 'pro' && typeof status.jsonBody.expiresAt === 'string');
+    check('new manual key status shows normalized buyer email', status.jsonBody.email === 'buyer@example.com');
+
+    if(oldOwnerKeys === undefined) delete process.env.OWNER_LICENSE_KEYS;
+    else process.env.OWNER_LICENSE_KEYS = oldOwnerKeys;
   }
 
   return getFailures();

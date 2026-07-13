@@ -19,7 +19,8 @@ import {
   getLicense,
   getUsageCount,
   getTrialUsageCount,
-  isFounderLicenseKey
+  isFounderLicenseKey,
+  isLicenseExpired
 } from './_lib/licensing.js';
 
 async function buildTrialsObject(licenseKey, isFree){
@@ -70,12 +71,16 @@ export default async function handler(req, res){
     }
 
     const usageCount = await getUsageCount(licenseKey, period);
+    const expired = isLicenseExpired(license);
     const isFree = license.plan !== 'pro';
     const response = {
       plan: license.plan || 'free',
-      status: license.status || 'inactive',
+      status: expired ? 'expired' : (license.status || 'inactive'),
       founder: false,
+      manual: license.manual === true,
       email: license.email || '',
+      expiresAt: license.expiresAt || null,
+      expired,
       usagePeriod: period,
       usageCount,
       freeMonthlyLimit: FREE_MONTHLY_LIMIT,

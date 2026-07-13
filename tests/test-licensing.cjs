@@ -79,6 +79,30 @@ module.exports = async function run(){
       const r = licensing.evaluateEntitlement({ plan:'pro', status:'canceled', protocol:'MA', monthlyUsageCount:0, trialUsageCount:0 });
       return r.allowed === false && r.reason === 'inactive';
     })());
+    check('expired Pro license -> blocked, reason expired', (() => {
+      const r = licensing.evaluateEntitlement({
+        plan:'pro',
+        status:'active',
+        protocol:'BEIDA',
+        monthlyUsageCount:0,
+        trialUsageCount:0,
+        expiresAt:'2026-07-01T00:00:00.000Z',
+        now:new Date('2026-07-02T00:00:00.000Z')
+      });
+      return r.allowed === false && r.reason === 'expired';
+    })());
+    check('future-dated Pro license -> allowed until expiry', (() => {
+      const r = licensing.evaluateEntitlement({
+        plan:'pro',
+        status:'active',
+        protocol:'BEIDA',
+        monthlyUsageCount:0,
+        trialUsageCount:0,
+        expiresAt:'2026-08-01T00:00:00.000Z',
+        now:new Date('2026-07-02T00:00:00.000Z')
+      });
+      return r.allowed === true;
+    })());
 
     check('unrecognized plan value -> treated as Free (fails closed, not open)', (() => {
       const r = licensing.evaluateEntitlement({ plan:'something_unexpected', status:'active', protocol:'BEIDA', monthlyUsageCount:0, trialUsageCount:5 });
@@ -142,6 +166,15 @@ module.exports = async function run(){
     check('lowercases', licensing.normalizeEmail('Nina@Example.COM') === 'nina@example.com');
     check('trims whitespace', licensing.normalizeEmail('  nina@example.com  ') === 'nina@example.com');
     check('empty/undefined -> empty string, not a crash', licensing.normalizeEmail(undefined) === '' && licensing.normalizeEmail('') === '');
+  }
+
+  console.log('\n5b) expiring-license helpers');
+  {
+    const start = new Date('2026-07-13T10:00:00.000Z');
+    check('expiresInDays creates an ISO timestamp 30 days later', licensing.expiresInDays(30, start) === '2026-08-12T10:00:00.000Z');
+    check('isLicenseExpired returns false before expiry', licensing.isLicenseExpired({ expiresAt:'2026-08-12T10:00:00.000Z' }, new Date('2026-08-12T09:59:59.000Z')) === false);
+    check('isLicenseExpired returns true at/after expiry', licensing.isLicenseExpired({ expiresAt:'2026-08-12T10:00:00.000Z' }, new Date('2026-08-12T10:00:00.000Z')) === true);
+    check('missing expiry means no expiry', licensing.isLicenseExpired({}, new Date('2099-01-01T00:00:00.000Z')) === false);
   }
 
   console.log('\n6) KV-backed primitives (against the local test stub)');

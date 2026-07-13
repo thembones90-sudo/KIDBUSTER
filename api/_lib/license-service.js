@@ -25,7 +25,7 @@ import {
   getLicense, saveLicense, getLicenseKeyByEmail, saveEmailIndex,
   getLicenseKeyByPaymentCustomerId, savePaymentCustomerIndex,
   getUsageCount, incrementUsage, getTrialUsageCount, incrementTrialUsage,
-  normalizeEmail, isFounderLicenseKey, ALWAYS_FREE_PROTOCOLS
+  normalizeEmail, isFounderLicenseKey, ALWAYS_FREE_PROTOCOLS, expiresInDays
 } from './licensing.js';
 
 /**
@@ -128,6 +128,43 @@ export async function activateOrRenewPro({ licenseKey, email, paymentCustomerId,
 }
 
 /**
+ * Creates a manual, owner-issued Pro key for teachers who paid outside
+ * Lemon Squeezy. It behaves like Pro until expiresAt, then fails closed.
+ * @param {object} params
+ * @param {string} [params.email]
+ * @param {number} [params.days]
+ * @param {string} [params.note]
+ * @returns {Promise<{licenseKey: string, expiresAt: string, days: number}>}
+ */
+export async function createManualProLicense({ email = '', days = 30, note = '' } = {}){
+  const durationDays = Number.isInteger(days) && days > 0 ? days : 30;
+  const normalizedEmail = email ? normalizeEmail(email) : '';
+  const now = new Date();
+  const licenseKey = generateLicenseKey();
+  const expiresAt = expiresInDays(durationDays, now);
+
+  await saveLicense(licenseKey, {
+    email: normalizedEmail,
+    plan: 'pro',
+    status: 'active',
+    paymentCustomerId: null,
+    paymentSubscriptionId: null,
+    source: 'manual',
+    manual: true,
+    note: String(note || '').slice(0, 200),
+    durationDays,
+    createdAt: now.toISOString(),
+    expiresAt
+  });
+
+  if(normalizedEmail){
+    await saveEmailIndex(normalizedEmail, licenseKey);
+  }
+
+  return { licenseKey, expiresAt, days: durationDays };
+}
+
+/**
  * Ends Pro access, falling back to Free rather than deactivating the
  * license entirely — a lapsed or canceled subscription means losing Pro
  * perks, not losing the account. The teacher keeps the same key and their
@@ -200,7 +237,8 @@ export async function checkEntitlement(licenseKey, protocol){
     status: license.status,
     protocol,
     monthlyUsageCount,
-    trialUsageCount
+    trialUsageCount,
+    expiresAt: license.expiresAt
   });
 
   return { ...result, license };

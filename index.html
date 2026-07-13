@@ -409,6 +409,29 @@ button.account-btn:disabled{opacity:0.5;cursor:default;}
   width:auto;
   padding:8px 14px;
 }
+.account-owner-tools{
+  margin:0 0 14px;
+  border:1px solid var(--toxin-border);
+  border-radius:8px;
+  padding:12px;
+  background:rgba(var(--toxin-rgb),0.05);
+}
+.account-owner-tools .license-modal-inline{
+  margin-top:8px;
+}
+.account-owner-result{
+  margin:10px 0 0;
+  padding:10px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:rgba(0,0,0,0.18);
+  color:var(--text);
+  font-family:var(--font-mono);
+  font-size:12px;
+  line-height:1.5;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
 @media (max-width:700px){
   .header-actions{justify-content:flex-start;}
   .account-grid{grid-template-columns:1fr;}
@@ -1391,6 +1414,15 @@ body.protocol-preply .generate-btn.loading{
       </div>
     </div>
     <div class="account-trials" id="accountTrials" style="display:none;"></div>
+    <div class="account-owner-tools" id="accountOwnerTools" style="display:none;">
+      <p class="account-trials-title">Owner key tools</p>
+      <p class="account-summary">Create a 30-day Pro key for someone who paid you personally.</p>
+      <div class="license-modal-inline">
+        <input type="email" id="manualLicenseEmail" placeholder="buyer@email.com (optional)" aria-label="Buyer email for 30-day key">
+        <button class="btn-secondary" id="manualLicenseBtn" type="button">Create 30-day key</button>
+      </div>
+      <p class="account-owner-result" id="manualLicenseResult" style="display:none;"></p>
+    </div>
     <div class="account-actions">
       <button class="btn-secondary" id="accountChangeKeyBtn" type="button">Change key</button>
       <button class="btn-secondary" id="accountUpgradeBtn" type="button">Upgrade to Pro</button>
@@ -4442,7 +4474,11 @@ function getAccountEls(){
     key: document.getElementById('accountKey'),
     refreshBtn: document.getElementById('accountRefreshBtn'),
     changeKeyBtn: document.getElementById('accountChangeKeyBtn'),
-    upgradeBtn: document.getElementById('accountUpgradeBtn')
+    upgradeBtn: document.getElementById('accountUpgradeBtn'),
+    ownerTools: document.getElementById('accountOwnerTools'),
+    manualEmail: document.getElementById('manualLicenseEmail'),
+    manualBtn: document.getElementById('manualLicenseBtn'),
+    manualResult: document.getElementById('manualLicenseResult')
   };
 }
 
@@ -4451,7 +4487,14 @@ function formatAccountStatus(status){
   return String(status).replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
 }
 
-function updateAccountSnapshot(summary, plan, status, usage, keyLabel, canUpgrade){
+function formatExpiryDate(expiresAt){
+  if(!expiresAt) return '';
+  const date = new Date(expiresAt);
+  if(Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+}
+
+function updateAccountSnapshot(summary, plan, status, usage, keyLabel, canUpgrade, isFounder){
   const els = getAccountEls();
   if(!els.panel) return;
   els.summary.textContent = summary;
@@ -4461,6 +4504,7 @@ function updateAccountSnapshot(summary, plan, status, usage, keyLabel, canUpgrad
   els.key.textContent = keyLabel;
   if(els.btn) els.btn.textContent = plan === 'Not signed in' ? 'Access' : plan;
   if(els.upgradeBtn) els.upgradeBtn.style.display = canUpgrade ? '' : 'none';
+  if(els.ownerTools) els.ownerTools.style.display = isFounder ? '' : 'none';
 }
 
 // Shows every trial-eligible protocol's status at once in the account
@@ -4503,12 +4547,12 @@ function renderAccountTrials(trials){
 async function refreshAccountPanel(){
   const key = getStoredAccessKey();
   if(!key){
-    updateAccountSnapshot('No access key is saved in this browser yet.', 'Not signed in', 'No key', '-', 'None', false);
+    updateAccountSnapshot('No access key is saved in this browser yet.', 'Not signed in', 'No key', '-', 'None', false, false);
     renderAccountTrials(null);
     return;
   }
 
-  updateAccountSnapshot('Checking this saved key...', 'Checking', 'Checking', '-', maskAccessKey(key), true);
+  updateAccountSnapshot('Checking this saved key...', 'Checking', 'Checking', '-', maskAccessKey(key), true, false);
   try{
     const res = await fetch('/api/license-status', {
       method: 'GET',
@@ -4516,23 +4560,58 @@ async function refreshAccountPanel(){
     });
     const data = await res.json().catch(() => ({}));
     if(!res.ok){
-      updateAccountSnapshot(data.error || 'This saved key was not accepted.', 'Needs attention', 'Invalid', '-', maskAccessKey(key), false);
+      updateAccountSnapshot(data.error || 'This saved key was not accepted.', 'Needs attention', 'Invalid', '-', maskAccessKey(key), false, false);
       renderAccountTrials(null);
       return;
     }
 
-    const isPro = data.plan === 'pro';
-    const planLabel = data.founder ? 'Owner Pro' : (isPro ? 'Pro' : 'Free');
+    const isPro = data.plan === 'pro' && data.expired !== true;
+    const planLabel = data.founder ? 'Owner Pro' : (data.expired ? 'Expired' : (isPro ? 'Pro' : 'Free'));
     const statusLabel = data.founder ? 'Full access forever' : formatAccountStatus(data.status || 'active');
     const usageLabel = isPro
       ? 'Unlimited'
-      : String(data.usageCount || 0) + ' used - ' + String(data.remainingFreeReports) + ' left this month';
-    const emailNote = data.email ? 'Signed in as ' + data.email + '.' : 'Saved key is active.';
-    updateAccountSnapshot(emailNote, planLabel, statusLabel, usageLabel, maskAccessKey(key), !isPro);
+      : (data.expired ? 'Renew needed' : String(data.usageCount || 0) + ' used - ' + String(data.remainingFreeReports) + ' left this month');
+    const expiryLabel = data.expiresAt ? ' Expires ' + formatExpiryDate(data.expiresAt) + '.' : '';
+    const emailNote = data.email ? 'Signed in as ' + data.email + '.' + expiryLabel : 'Saved key is active.' + expiryLabel;
+    updateAccountSnapshot(emailNote, planLabel, statusLabel, usageLabel, maskAccessKey(key), !isPro, data.founder === true);
     renderAccountTrials(data.trials || null);
   }catch(e){
-    updateAccountSnapshot('Saved key found. Status check needs the live app server.', 'Saved key', 'Unknown', 'Unable to refresh', maskAccessKey(key), true);
+    updateAccountSnapshot('Saved key found. Status check needs the live app server.', 'Saved key', 'Unknown', 'Unable to refresh', maskAccessKey(key), true, false);
     renderAccountTrials(null);
+  }
+}
+
+async function createManualLicense(){
+  const els = getAccountEls();
+  const ownerKey = getStoredAccessKey();
+  if(!ownerKey || !els.manualBtn || !els.manualResult) return;
+
+  const email = els.manualEmail ? els.manualEmail.value.trim() : '';
+  els.manualBtn.disabled = true;
+  els.manualResult.style.display = 'block';
+  els.manualResult.textContent = 'Creating key...';
+  try{
+    const res = await fetch('/api/admin-create-license', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-app-key': ownerKey
+      },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok || !data.licenseKey){
+      els.manualResult.textContent = data.error || 'Could not create a 30-day key right now.';
+      return;
+    }
+    const expiry = formatExpiryDate(data.expiresAt) || data.expiresAt;
+    const text = '30-day Pro key:\n' + data.licenseKey + '\n\nExpires: ' + expiry;
+    els.manualResult.textContent = text;
+    try{ await navigator.clipboard.writeText(data.licenseKey); }catch(e){ /* clipboard may be unavailable */ }
+  }catch(e){
+    els.manualResult.textContent = 'Network error - could not create a 30-day key.';
+  }finally{
+    els.manualBtn.disabled = false;
   }
 }
 
@@ -5191,6 +5270,9 @@ if(accountEls.changeKeyBtn){
 }
 if(accountEls.upgradeBtn){
   accountEls.upgradeBtn.addEventListener('click', startProUpgrade);
+}
+if(accountEls.manualBtn){
+  accountEls.manualBtn.addEventListener('click', createManualLicense);
 }
 refreshAccountPanel();
 

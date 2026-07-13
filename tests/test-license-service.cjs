@@ -199,6 +199,25 @@ module.exports = async function run(){
     else process.env.FOUNDER_LICENSE_KEYS = oldFounderKeys;
   }
 
+  console.log('\n11) createManualProLicense: owner-issued 30-day Pro keys');
+  {
+    __resetForTests();
+    const result = await svc.createManualProLicense({ email: ' Buyer@Example.com ', days: 30, note: 'cash payment' });
+    check('manual key returns a normal license key and expiry date', result.licenseKey.startsWith('kb_live_') && typeof result.expiresAt === 'string');
+
+    const license = await licensing.getLicense(result.licenseKey);
+    check('manual license is Pro, active, and marked manual', license.plan === 'pro' && license.status === 'active' && license.manual === true);
+    check('manual license stores normalized email and 30-day duration', license.email === 'buyer@example.com' && license.durationDays === 30);
+    check('manual license can be recovered by buyer email', (await licensing.getLicenseKeyByEmail('buyer@example.com')) === result.licenseKey);
+
+    const allowed = await svc.checkEntitlement(result.licenseKey, 'OF');
+    check('fresh manual Pro key can use Pro protocols', allowed.allowed === true);
+
+    await licensing.saveLicense(result.licenseKey, { ...license, expiresAt: '2000-01-01T00:00:00.000Z' });
+    const expired = await svc.checkEntitlement(result.licenseKey, 'OF');
+    check('expired manual Pro key is blocked server-side', expired.allowed === false && expired.reason === 'expired');
+  }
+
   return getFailures();
 };
 

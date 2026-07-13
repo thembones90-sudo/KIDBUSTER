@@ -100,13 +100,23 @@ function protocolLabel(protocol){
  * @param {number} [params.freeMonthlyLimit] - defaults to FREE_MONTHLY_LIMIT
  * @param {number} [params.trialLimit] - defaults to TRIAL_GENERATIONS_PER_PROTOCOL
  * @param {string[]} [params.alwaysFreeProtocols] - defaults to ALWAYS_FREE_PROTOCOLS
+ * @param {string|null} [params.expiresAt] - ISO timestamp; expired licenses are blocked
+ * @param {Date} [params.now] - defaults to now; parameterized for tests
  * @returns {{allowed: boolean, reason: string|null, message: string|null}}
  */
-export function evaluateEntitlement({ plan, status, protocol, monthlyUsageCount, trialUsageCount, freeMonthlyLimit, trialLimit, alwaysFreeProtocols, trialEligibleProtocols }){
+export function evaluateEntitlement({ plan, status, protocol, monthlyUsageCount, trialUsageCount, freeMonthlyLimit, trialLimit, alwaysFreeProtocols, trialEligibleProtocols, expiresAt, now }){
   const limit = typeof freeMonthlyLimit === 'number' ? freeMonthlyLimit : FREE_MONTHLY_LIMIT;
   const trialCap = typeof trialLimit === 'number' ? trialLimit : TRIAL_GENERATIONS_PER_PROTOCOL;
   const alwaysFree = alwaysFreeProtocols || ALWAYS_FREE_PROTOCOLS;
   const trialEligible = trialEligibleProtocols || TRIAL_ELIGIBLE_PROTOCOLS;
+
+  if(isLicenseExpired({ expiresAt }, now)){
+    return {
+      allowed: false,
+      reason: 'expired',
+      message: 'This 30-day Pro license has expired. Please renew to continue using Pathfinder Pro.'
+    };
+  }
 
   if(status !== 'active'){
     return {
@@ -168,6 +178,34 @@ export function evaluateEntitlement({ plan, status, protocol, monthlyUsageCount,
  */
 export function generateLicenseKey(){
   return 'kb_live_' + crypto.randomBytes(24).toString('hex');
+}
+
+/**
+ * Returns an ISO expiry timestamp a fixed number of days from now.
+ * Manual/personal-payment Pro keys use this for the 30-day access window.
+ * @param {number} days
+ * @param {Date} [date]
+ * @returns {string}
+ */
+export function expiresInDays(days, date){
+  const start = date || new Date();
+  return new Date(start.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
+}
+
+/**
+ * True only when a license has a valid expiresAt timestamp that is in the
+ * past. Missing/invalid expiresAt means "no expiry" so existing Free,
+ * Lemon Squeezy Pro, and owner keys keep their current behavior.
+ * @param {object|null} license
+ * @param {Date} [date]
+ * @returns {boolean}
+ */
+export function isLicenseExpired(license, date){
+  if(!license || !license.expiresAt) return false;
+  const expiry = Date.parse(license.expiresAt);
+  if(!Number.isFinite(expiry)) return false;
+  const now = date || new Date();
+  return expiry <= now.getTime();
 }
 
 /**
