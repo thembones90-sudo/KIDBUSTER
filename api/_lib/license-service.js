@@ -170,6 +170,41 @@ function normalizeInstallationId(installationId){
   return id.slice(0, 120);
 }
 
+async function notifyManualLicenseClaim({ licenseKey, license, installationId }){
+  const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL;
+  if(!webhookUrl) return;
+
+  const comment = [
+    'Manual 30-day Pro key claimed.',
+    'Key: ' + licenseKey,
+    'Claimed browser: ' + installationId,
+    'Buyer email: ' + (license.email || '(none)'),
+    'Expires: ' + (license.expiresAt || '(none)')
+  ].join('\n');
+
+  try{
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        timestamp: new Date().toISOString(),
+        teacherName: 'License System',
+        protocol: 'LICENSE',
+        ratingTier: 'manual_key_claimed',
+        score: '',
+        comment,
+        preplyModule: '',
+        preplyTrialPerson: ''
+      })
+    });
+    if(!response.ok){
+      console.error('manual license claim notification failed:', response.status);
+    }
+  }catch(err){
+    console.error('manual license claim notification error:', err);
+  }
+}
+
 /**
  * Manual 30-day keys are single-claim: the first browser installation
  * that uses one binds it, and later attempts from another browser are
@@ -213,6 +248,11 @@ export async function claimManualLicenseForInstallation(licenseKey, license, ins
     claimedAt: new Date().toISOString()
   };
   await saveLicense(licenseKey, updated);
+  await notifyManualLicenseClaim({
+    licenseKey,
+    license: updated,
+    installationId: normalizedInstallationId
+  });
   return { allowed: true, reason: null, message: null, license: updated };
 }
 

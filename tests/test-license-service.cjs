@@ -202,6 +202,18 @@ module.exports = async function run(){
   console.log('\n11) createManualProLicense: owner-issued 30-day Pro keys');
   {
     __resetForTests();
+    const oldWebhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL;
+    const oldFetch = global.fetch;
+    const notifications = [];
+    process.env.GOOGLE_SHEET_WEBHOOK_URL = 'https://example.com/fake-sheet-webhook';
+    global.fetch = async (url, options) => {
+      notifications.push({
+        url,
+        payload: JSON.parse(options.body)
+      });
+      return { ok: true, status: 200 };
+    };
+
     const result = await svc.createManualProLicense({ email: ' Buyer@Example.com ', days: 30, note: 'cash payment' });
     check('manual key returns a normal license key and expiry date', result.licenseKey.startsWith('kb_live_') && typeof result.expiresAt === 'string');
 
@@ -212,9 +224,12 @@ module.exports = async function run(){
 
     const allowed = await svc.checkEntitlement(result.licenseKey, 'OF', 'anon-browser-one');
     check('fresh manual Pro key can use Pro protocols and is claimed by first browser', allowed.allowed === true && allowed.license.claimedInstallationId === 'anon-browser-one');
+    check('first manual key claim sends one Sheet notification', notifications.length === 1 && notifications[0].payload.protocol === 'LICENSE' && notifications[0].payload.ratingTier === 'manual_key_claimed');
+    check('notification identifies the exact claimed key', notifications[0].payload.comment.includes(result.licenseKey));
 
     const sameBrowser = await svc.checkEntitlement(result.licenseKey, 'BEIDA', 'anon-browser-one');
     check('claimed manual Pro key keeps working for the same browser', sameBrowser.allowed === true);
+    check('same browser does not send duplicate claim notifications', notifications.length === 1);
 
     const otherBrowser = await svc.checkEntitlement(result.licenseKey, 'BEIDA', 'anon-browser-two');
     check('claimed manual Pro key is blocked from a different browser', otherBrowser.allowed === false && otherBrowser.reason === 'key_already_claimed');
@@ -222,6 +237,10 @@ module.exports = async function run(){
     await licensing.saveLicense(result.licenseKey, { ...license, expiresAt: '2000-01-01T00:00:00.000Z' });
     const expired = await svc.checkEntitlement(result.licenseKey, 'OF', 'anon-browser-one');
     check('expired manual Pro key is blocked server-side', expired.allowed === false && expired.reason === 'expired');
+
+    if(oldWebhookUrl === undefined) delete process.env.GOOGLE_SHEET_WEBHOOK_URL;
+    else process.env.GOOGLE_SHEET_WEBHOOK_URL = oldWebhookUrl;
+    global.fetch = oldFetch;
   }
 
   return getFailures();

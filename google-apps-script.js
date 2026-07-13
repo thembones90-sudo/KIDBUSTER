@@ -3,8 +3,9 @@
  *
  * This is NOT part of the Vercel deployment. It runs inside Google's own
  * infrastructure, attached to a Google Sheet you create. It receives
- * feedback submissions from /api/feedback and appends one row per
- * submission.
+ * feedback submissions from /api/feedback and license notifications from
+ * the app, then appends one row per submission. Manual key claims also
+ * send an email to the Google account running this script.
  *
  * SETUP (one-time):
  * 1. Go to sheets.google.com, create a new blank spreadsheet.
@@ -44,6 +45,7 @@
 function doPost(e) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = JSON.parse(e.postData.contents);
+  var isLicenseClaim = data.protocol === 'LICENSE' && data.ratingTier === 'manual_key_claimed';
 
   sheet.appendRow([
     data.timestamp || new Date().toISOString(),
@@ -55,6 +57,14 @@ function doPost(e) {
     data.preplyModule || '',
     data.preplyTrialPerson || ''
   ]);
+
+  if (isLicenseClaim) {
+    MailApp.sendEmail({
+      to: Session.getEffectiveUser().getEmail(),
+      subject: 'Pathfinder key claimed',
+      body: data.comment || 'A manual Pathfinder key was claimed.'
+    });
+  }
 
   return ContentService
     .createTextOutput(JSON.stringify({ status: 'ok' }))
