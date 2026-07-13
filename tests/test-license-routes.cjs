@@ -13,6 +13,7 @@ module.exports = async function run(){
   const statusHandler = await import('../api/license-status.js');
   const recoverHandler = await import('../api/license-recover.js');
   const adminCreateLicenseHandler = await import('../api/admin-create-license.js');
+  const adminLicenseLookupHandler = await import('../api/admin-license-lookup.js');
 
   async function send(handler, { method = 'POST', headers = {}, body = {} } = {}){
     const req = { method, headers, body };
@@ -137,6 +138,43 @@ module.exports = async function run(){
       headers: { 'x-app-key': created.jsonBody.licenseKey, 'x-installation-id': 'anon-route-two' }
     });
     check('claimed manual key is rejected from a different browser', otherBrowser.statusCode === 403 && otherBrowser.jsonBody.reason === 'key_already_claimed');
+
+    if(oldOwnerKeys === undefined) delete process.env.OWNER_LICENSE_KEYS;
+    else process.env.OWNER_LICENSE_KEYS = oldOwnerKeys;
+  }
+
+  console.log('\n7) admin-license-lookup: owner-only read-only key inspection');
+  {
+    __resetForTests();
+    const oldOwnerKeys = process.env.OWNER_LICENSE_KEYS;
+    process.env.OWNER_LICENSE_KEYS = 'test_owner_key';
+
+    const created = await svc.createManualProLicense({ email: 'lookup@example.com', days: 30 });
+
+    const forbidden = await send(adminLicenseLookupHandler, {
+      body: { licenseKey: created.licenseKey }
+    });
+    check('lookup without owner key is forbidden', forbidden.statusCode === 403);
+
+    const beforeClaim = await send(adminLicenseLookupHandler, {
+      headers: { 'x-app-key': 'test_owner_key' },
+      body: { licenseKey: created.licenseKey }
+    });
+    check('owner can inspect an existing manual key', beforeClaim.statusCode === 200 && beforeClaim.jsonBody.exists === true);
+    check('lookup does not claim an unused key', beforeClaim.jsonBody.license.claimed === false && beforeClaim.jsonBody.license.claimedInstallationId === null);
+
+    await svc.checkEntitlement(created.licenseKey, 'OF', 'anon-lookup-owner');
+    const afterClaim = await send(adminLicenseLookupHandler, {
+      headers: { 'x-app-key': 'test_owner_key' },
+      body: { licenseKey: created.licenseKey }
+    });
+    check('lookup shows claimed status after first use', afterClaim.jsonBody.license.claimed === true && afterClaim.jsonBody.license.claimedInstallationId === 'anon-lookup-owner');
+
+    const missing = await send(adminLicenseLookupHandler, {
+      headers: { 'x-app-key': 'test_owner_key' },
+      body: { licenseKey: 'kb_live_missing' }
+    });
+    check('lookup for unknown key returns exists:false without throwing', missing.statusCode === 200 && missing.jsonBody.exists === false);
 
     if(oldOwnerKeys === undefined) delete process.env.OWNER_LICENSE_KEYS;
     else process.env.OWNER_LICENSE_KEYS = oldOwnerKeys;
