@@ -116,9 +116,27 @@ module.exports = async function run(){
     check('owner can create a 30-day manual Pro key', created.statusCode === 200 && created.jsonBody.licenseKey.startsWith('kb_live_'));
     check('manual route always returns 30 days', created.jsonBody.days === 30 && created.jsonBody.manual === true);
 
-    const status = await send(statusHandler, { method: 'GET', headers: { 'x-app-key': created.jsonBody.licenseKey } });
+    const missingInstall = await send(statusHandler, { method: 'GET', headers: { 'x-app-key': created.jsonBody.licenseKey } });
+    check('manual key status without browser installation id is rejected', missingInstall.statusCode === 403 && missingInstall.jsonBody.reason === 'missing_installation');
+
+    const status = await send(statusHandler, {
+      method: 'GET',
+      headers: { 'x-app-key': created.jsonBody.licenseKey, 'x-installation-id': 'anon-route-one' }
+    });
     check('new manual key status is Pro and includes expiry', status.statusCode === 200 && status.jsonBody.plan === 'pro' && typeof status.jsonBody.expiresAt === 'string');
     check('new manual key status shows normalized buyer email', status.jsonBody.email === 'buyer@example.com');
+
+    const sameBrowser = await send(statusHandler, {
+      method: 'GET',
+      headers: { 'x-app-key': created.jsonBody.licenseKey, 'x-installation-id': 'anon-route-one' }
+    });
+    check('claimed manual key keeps working for the same browser', sameBrowser.statusCode === 200);
+
+    const otherBrowser = await send(statusHandler, {
+      method: 'GET',
+      headers: { 'x-app-key': created.jsonBody.licenseKey, 'x-installation-id': 'anon-route-two' }
+    });
+    check('claimed manual key is rejected from a different browser', otherBrowser.statusCode === 403 && otherBrowser.jsonBody.reason === 'key_already_claimed');
 
     if(oldOwnerKeys === undefined) delete process.env.OWNER_LICENSE_KEYS;
     else process.env.OWNER_LICENSE_KEYS = oldOwnerKeys;

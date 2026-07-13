@@ -210,11 +210,17 @@ module.exports = async function run(){
     check('manual license stores normalized email and 30-day duration', license.email === 'buyer@example.com' && license.durationDays === 30);
     check('manual license can be recovered by buyer email', (await licensing.getLicenseKeyByEmail('buyer@example.com')) === result.licenseKey);
 
-    const allowed = await svc.checkEntitlement(result.licenseKey, 'OF');
-    check('fresh manual Pro key can use Pro protocols', allowed.allowed === true);
+    const allowed = await svc.checkEntitlement(result.licenseKey, 'OF', 'anon-browser-one');
+    check('fresh manual Pro key can use Pro protocols and is claimed by first browser', allowed.allowed === true && allowed.license.claimedInstallationId === 'anon-browser-one');
+
+    const sameBrowser = await svc.checkEntitlement(result.licenseKey, 'BEIDA', 'anon-browser-one');
+    check('claimed manual Pro key keeps working for the same browser', sameBrowser.allowed === true);
+
+    const otherBrowser = await svc.checkEntitlement(result.licenseKey, 'BEIDA', 'anon-browser-two');
+    check('claimed manual Pro key is blocked from a different browser', otherBrowser.allowed === false && otherBrowser.reason === 'key_already_claimed');
 
     await licensing.saveLicense(result.licenseKey, { ...license, expiresAt: '2000-01-01T00:00:00.000Z' });
-    const expired = await svc.checkEntitlement(result.licenseKey, 'OF');
+    const expired = await svc.checkEntitlement(result.licenseKey, 'OF', 'anon-browser-one');
     check('expired manual Pro key is blocked server-side', expired.allowed === false && expired.reason === 'expired');
   }
 

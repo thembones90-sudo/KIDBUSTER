@@ -4457,6 +4457,20 @@ function getStoredAccessKey(){
   try{ return localStorage.getItem(ACCESS_KEY_STORAGE); }catch(e){ return null; }
 }
 
+function getAccessInstallationId(){
+  try{
+    const storageKey = 'kidbuster_installation_id_v1';
+    let id = localStorage.getItem(storageKey);
+    if(!id){
+      id = 'anon-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+      localStorage.setItem(storageKey, id);
+    }
+    return id;
+  }catch(e){
+    return 'anon-unavailable';
+  }
+}
+
 function maskAccessKey(key){
   if(!key) return 'None';
   if(key.length <= 12) return key;
@@ -4556,7 +4570,7 @@ async function refreshAccountPanel(){
   try{
     const res = await fetch('/api/license-status', {
       method: 'GET',
-      headers: { 'x-app-key': key }
+      headers: { 'x-app-key': key, 'x-installation-id': getAccessInstallationId() }
     });
     const data = await res.json().catch(() => ({}));
     if(!res.ok){
@@ -4595,7 +4609,8 @@ async function createManualLicense(){
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-app-key': ownerKey
+        'x-app-key': ownerKey,
+        'x-installation-id': getAccessInstallationId()
       },
       body: JSON.stringify({ email })
     });
@@ -4774,7 +4789,8 @@ async function callClaude(systemPrompt, userMessage, protocol){
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-app-key': accessKey
+        'x-app-key': accessKey,
+        'x-installation-id': getAccessInstallationId()
       },
       body: JSON.stringify({ systemPrompt, userMessage, protocol })
     });
@@ -5409,7 +5425,7 @@ async function checkAndShowTrialStatus(protocolKey){
   }
   try{
     const res = await fetch('/api/license-status', {
-      headers: { 'x-app-key': licenseKey }
+      headers: { 'x-app-key': licenseKey, 'x-installation-id': getAccessInstallationId() }
     });
     if(!res.ok){ renderTrialStatus(null); return; }
     const data = await res.json();

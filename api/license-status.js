@@ -22,6 +22,7 @@ import {
   isFounderLicenseKey,
   isLicenseExpired
 } from './_lib/licensing.js';
+import { claimManualLicenseForInstallation } from './_lib/license-service.js';
 
 async function buildTrialsObject(licenseKey, isFree){
   const entries = await Promise.all(TRIAL_ELIGIBLE_PROTOCOLS.map(async (protocol) => {
@@ -47,6 +48,7 @@ export default async function handler(req, res){
   if(!licenseKey){
     return res.status(401).json({ error: 'A license key is required.' });
   }
+  const installationId = req.headers['x-installation-id'] || '';
 
   try{
     const period = currentUsagePeriod();
@@ -65,10 +67,16 @@ export default async function handler(req, res){
       });
     }
 
-    const license = await getLicense(licenseKey);
+    let license = await getLicense(licenseKey);
     if(!license){
       return res.status(401).json({ error: 'Invalid license key.' });
     }
+
+    const claim = await claimManualLicenseForInstallation(licenseKey, license, installationId);
+    if(!claim.allowed){
+      return res.status(403).json({ error: claim.message, reason: claim.reason });
+    }
+    license = claim.license;
 
     const usageCount = await getUsageCount(licenseKey, period);
     const expired = isLicenseExpired(license);

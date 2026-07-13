@@ -164,6 +164,58 @@ export async function createManualProLicense({ email = '', days = 30, note = '' 
   return { licenseKey, expiresAt, days: durationDays };
 }
 
+function normalizeInstallationId(installationId){
+  const id = String(installationId || '').trim();
+  if(!id || id === 'anon-unavailable') return '';
+  return id.slice(0, 120);
+}
+
+/**
+ * Manual 30-day keys are single-claim: the first browser installation
+ * that uses one binds it, and later attempts from another browser are
+ * rejected. This is intentionally limited to owner-issued manual keys,
+ * not Free, Lemon Squeezy Pro, or owner/founder keys.
+ * @param {string} licenseKey
+ * @param {object} license
+ * @param {string} installationId
+ * @returns {Promise<{allowed: boolean, reason: string|null, message: string|null, license: object}>}
+ */
+export async function claimManualLicenseForInstallation(licenseKey, license, installationId){
+  if(!license || license.manual !== true){
+    return { allowed: true, reason: null, message: null, license };
+  }
+
+  const normalizedInstallationId = normalizeInstallationId(installationId);
+  if(!normalizedInstallationId){
+    return {
+      allowed: false,
+      reason: 'missing_installation',
+      message: 'This 30-day key needs to be activated from a normal browser session. Please enable browser storage and try again.',
+      license
+    };
+  }
+
+  if(license.claimedInstallationId){
+    if(license.claimedInstallationId === normalizedInstallationId){
+      return { allowed: true, reason: null, message: null, license };
+    }
+    return {
+      allowed: false,
+      reason: 'key_already_claimed',
+      message: 'This 30-day key has already been activated on another browser.',
+      license
+    };
+  }
+
+  const updated = {
+    ...license,
+    claimedInstallationId: normalizedInstallationId,
+    claimedAt: new Date().toISOString()
+  };
+  await saveLicense(licenseKey, updated);
+  return { allowed: true, reason: null, message: null, license: updated };
+}
+
 /**
  * Ends Pro access, falling back to Free rather than deactivating the
  * license entirely — a lapsed or canceled subscription means losing Pro
@@ -207,7 +259,7 @@ export async function downgradeToFree({ licenseKey, paymentCustomerId }){
  * @param {string} protocol
  * @returns {Promise<{allowed: boolean, reason: string|null, message: string|null, license: object|null}>}
  */
-export async function checkEntitlement(licenseKey, protocol){
+export async function checkEntitlement(licenseKey, protocol, installationId){
   if(isFounderLicenseKey(licenseKey)){
     return {
       allowed: true,
@@ -229,19 +281,24 @@ export async function checkEntitlement(licenseKey, protocol){
     return { allowed: false, reason: 'invalid_key', message: 'Invalid license key.', license: null };
   }
 
+  const claim = await claimManualLicenseForInstallation(licenseKey, license, installationId);
+  if(!claim.allowed){
+    return claim;
+  }
+
   const period = currentUsagePeriod();
   const monthlyUsageCount = await getUsageCount(licenseKey, period);
   const trialUsageCount = await getTrialUsageCount(licenseKey, protocol);
   const result = evaluateEntitlement({
-    plan: license.plan,
-    status: license.status,
+    plan: claim.license.plan,
+    status: claim.license.status,
     protocol,
     monthlyUsageCount,
     trialUsageCount,
-    expiresAt: license.expiresAt
+    expiresAt: claim.license.expiresAt
   });
 
-  return { ...result, license };
+  return { ...result, license: claim.license };
 }
 
 /**

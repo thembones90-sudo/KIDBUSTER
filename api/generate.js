@@ -75,10 +75,11 @@ export default async function handler(req, res) {
   if (!licenseKey) {
     return res.status(401).json({ error: 'A license key is required.', reason: 'missing_key' });
   }
+  const installationId = req.headers['x-installation-id'] || '';
 
   let entitlement;
   try {
-    entitlement = await checkEntitlement(licenseKey, protocol);
+    entitlement = await checkEntitlement(licenseKey, protocol, installationId);
   } catch (err) {
     console.error('generate.js: error checking entitlement:', err);
     return res.status(500).json({ error: 'Could not verify your license right now. Please try again shortly.' });
