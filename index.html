@@ -1399,6 +1399,57 @@ body.protocol-preply .generate-btn.loading{
 .license-modal-section.pro .license-modal-inline .generate-btn .btn-label{
   color:#1F1500;
 }
+.license-modal-paypal{
+  border-top:1px solid rgba(255,204,64,0.26);
+  margin-top:10px;
+  padding-top:10px;
+}
+.license-modal-paypal-note{
+  color:var(--text-dim);
+  font-family:var(--font-body);
+  font-size:11px;
+  line-height:1.4;
+  margin:0 0 8px;
+}
+.paypal-btn{
+  appearance:none;
+  border:1px solid rgba(255,196,57,0.78);
+  border-radius:8px;
+  background:linear-gradient(135deg, #003087 0%, #0070E0 46%, #FFC439 100%);
+  color:#06121F;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  font-family:var(--font-display);
+  font-size:13px;
+  line-height:1;
+  min-height:42px;
+  padding:9px 16px;
+  text-align:center;
+  text-decoration:none;
+  text-shadow:none;
+  white-space:nowrap;
+  width:100%;
+  box-shadow:0 0 16px -4px rgba(255,196,57,0.58), 0 4px 16px -6px rgba(0,0,0,0.45);
+}
+.paypal-btn:focus-visible{
+  outline:2px solid #FFC439;
+  outline-offset:2px;
+}
+.paypal-btn[aria-disabled="true"]{
+  cursor:not-allowed;
+  filter:saturate(0.55) brightness(0.82);
+  opacity:0.72;
+}
+.paypal-mark{
+  color:#FFFFFF;
+  font-family:Arial, sans-serif;
+  font-size:15px;
+  font-weight:700;
+  letter-spacing:0;
+}
 .license-modal-crown{
   display:block;
   width:max-content;
@@ -1744,6 +1795,13 @@ body.protocol-preply .generate-btn.loading{
         <div class="license-modal-inline">
           <input type="email" id="licenseModalProEmail" placeholder="your@email.com" aria-label="Email for Pro checkout">
           <button class="generate-btn" id="licenseModalProBtn"><span class="btn-label" id="licenseModalProBtnLabel">Buy Pro</span></button>
+        </div>
+        <div class="license-modal-paypal">
+          <p class="license-modal-paypal-note">Prefer PayPal? Pay there, then you will receive a 30-day Pro code manually.</p>
+          <button class="paypal-btn" id="licenseModalPaypalBtn" type="button" aria-disabled="true">
+            <span class="paypal-mark">PayPal</span>
+            <span>Manual 30-day code</span>
+          </button>
         </div>
       </div>
 
@@ -4625,6 +4683,11 @@ function renderTrialStatus(trialStatus){
 // to spend API budget. Appropriate for a small private team; real auth is
 // a separate, later concern once this becomes a genuine multi-tenant SaaS.
 const ACCESS_KEY_STORAGE = 'kidbuster_access_key';
+const PAYPAL_PAYMENT_URL = '';
+
+function isPaypalPaymentConfigured(){
+  return /^https:\/\/(www\.)?(paypal\.me|paypal\.com)\//i.test(PAYPAL_PAYMENT_URL);
+}
 
 function getStoredAccessKey(){
   try{ return localStorage.getItem(ACCESS_KEY_STORAGE); }catch(e){ return null; }
@@ -4829,6 +4892,7 @@ function promptForAccessKey(){
     const freeBtn = document.getElementById('licenseModalFreeBtn');
     const freeBtnLabel = document.getElementById('licenseModalFreeBtnLabel');
     const keyBtn = document.getElementById('licenseModalKeyBtn');
+    const paypalBtn = document.getElementById('licenseModalPaypalBtn');
     const recoverEmailInput = document.getElementById('licenseModalRecoverEmail');
     const recoverBtn = document.getElementById('licenseModalRecoverBtn');
     const recoverBtnLabel = document.getElementById('licenseModalRecoverBtnLabel');
@@ -4845,6 +4909,7 @@ function promptForAccessKey(){
       proBtn.removeEventListener('click', onProClick);
       freeBtn.removeEventListener('click', onFreeClick);
       keyBtn.removeEventListener('click', onKeyClick);
+      paypalBtn.removeEventListener('click', onPaypalClick);
       recoverBtn.removeEventListener('click', onRecoverClick);
       refreshAccountPanel();
       resolve(key);
@@ -4914,6 +4979,15 @@ function promptForAccessKey(){
       finish(key);
     }
 
+    function onPaypalClick(){
+      if(!isPaypalPaymentConfigured()){
+        showError('PayPal is ready to connect, but the PayPal payment link has not been added yet.');
+        return;
+      }
+      errorEl.style.display = 'none';
+      window.open(PAYPAL_PAYMENT_URL, '_blank', 'noopener,noreferrer');
+    }
+
     async function onRecoverClick(){
       const email = recoverEmailInput.value.trim();
       if(!email){ showError('Please enter the email you used for Pathfinder.'); return; }
@@ -4948,6 +5022,8 @@ function promptForAccessKey(){
     recoverEmailInput.value = '';
     proBtn.disabled = false;
     proBtnLabel.textContent = 'Buy Pro';
+    paypalBtn.setAttribute('aria-disabled', isPaypalPaymentConfigured() ? 'false' : 'true');
+    paypalBtn.title = isPaypalPaymentConfigured() ? 'Pay with PayPal' : 'PayPal payment link not connected yet';
     freeBtn.disabled = false;
     freeBtnLabel.textContent = 'Start free';
     recoverBtn.disabled = false;
@@ -4956,6 +5032,7 @@ function promptForAccessKey(){
     proBtn.addEventListener('click', onProClick);
     freeBtn.addEventListener('click', onFreeClick);
     keyBtn.addEventListener('click', onKeyClick);
+    paypalBtn.addEventListener('click', onPaypalClick);
     recoverBtn.addEventListener('click', onRecoverClick);
   });
 }

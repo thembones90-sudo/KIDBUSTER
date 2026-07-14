@@ -185,6 +185,7 @@ module.exports = async function run(){
         title: document.querySelector('.license-modal-title').textContent,
         hasPro: !!document.getElementById('licenseModalProBtn'),
         hasFree: !!document.getElementById('licenseModalFreeBtn'),
+        hasPaypal: !!document.getElementById('licenseModalPaypalBtn'),
         hasKey: !!document.getElementById('licenseModalKeyBtn'),
         hasRecover: !!document.getElementById('licenseModalRecoverBtn'),
         recoverLabel: document.getElementById('licenseModalRecoverBtnLabel')?.textContent || '',
@@ -197,11 +198,20 @@ module.exports = async function run(){
       modalShown.title === 'Pathfinder access' &&
       modalShown.hasPro &&
       modalShown.hasFree &&
+      modalShown.hasPaypal &&
       modalShown.hasKey &&
       modalShown.hasRecover &&
       modalShown.recoverLabel === 'Find my code' &&
       modalShown.keyButtonLabel === 'Use code'
     );
+
+    await page.click('#licenseModalPaypalBtn');
+    await new Promise(r => setTimeout(r, 80));
+    const paypalNotConfiguredError = await page.evaluate(() => {
+      const err = document.getElementById('licenseModalError');
+      return { visible: err.style.display !== 'none', text: err.textContent };
+    });
+    check('PayPal manual payment option is visible and safely guarded until a payment link is connected', paypalNotConfiguredError.visible && paypalNotConfiguredError.text.includes('PayPal'));
 
     await page.click('#licenseModalProBtn');
     await new Promise(r => setTimeout(r, 80));
