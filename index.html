@@ -1162,6 +1162,22 @@ body.protocol-preply .generate-btn.loading{
 .btn-secondary:hover{border-color:var(--toxin); color:var(--text);}
 .btn-secondary:disabled{opacity:0.4;cursor:default;}
 .btn-secondary.copied{color:var(--toxin); border-color:var(--toxin);}
+.account-actions .account-change-key-btn{
+  min-width:170px;
+  padding:12px 20px;
+  font-family:var(--font-display);
+  font-size:14px;
+  letter-spacing:0.03em;
+  color:#DFFF9A;
+  border-color:rgba(170,255,78,0.7);
+  background:linear-gradient(135deg, rgba(var(--toxin-rgb),0.16), rgba(255,255,255,0.025));
+  box-shadow:0 0 18px -10px var(--toxin-glow), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.account-actions .account-change-key-btn:hover{
+  color:#FFFFFF;
+  border-color:var(--toxin);
+  box-shadow:0 0 22px -8px var(--toxin-glow), 0 4px 18px -12px rgba(0,0,0,0.75);
+}
 
 .prev-toggle{
   display:block;
@@ -1517,7 +1533,7 @@ body.protocol-preply .generate-btn.loading{
       <p class="account-owner-result" id="manualLicenseResult" style="display:none;"></p>
     </div>
     <div class="account-actions">
-      <button class="btn-secondary" id="accountChangeKeyBtn" type="button">Change key</button>
+      <button class="btn-secondary account-change-key-btn" id="accountChangeKeyBtn" type="button">Change key</button>
       <button class="btn-secondary" id="accountUpgradeBtn" type="button">Upgrade to Pro</button>
     </div>
   </div>
