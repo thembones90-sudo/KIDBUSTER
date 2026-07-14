@@ -87,6 +87,44 @@ module.exports = async function run(){
   check('no page errors on initial load', pageErrors.length === 0);
   if(pageErrors.length){ console.log('    errors seen:', pageErrors); }
 
+  console.log('\n1b) Pathfinder logo acts as a real reload/reset button');
+  {
+    const clickResult = await page.evaluate(() => {
+      window.__kidbusterReloadCalled = false;
+      window.__kidbusterReloadForTests = () => { window.__kidbusterReloadCalled = true; };
+      const logo = document.getElementById('kbLogo');
+      logo.click();
+      return {
+        reloadCalled: window.__kidbusterReloadCalled === true,
+        role: logo.getAttribute('role'),
+        tabindex: logo.getAttribute('tabindex'),
+        aria: logo.getAttribute('aria-label'),
+        title: logo.getAttribute('title')
+      };
+    });
+    check('logo click triggers the reload/reset path', clickResult.reloadCalled === true);
+    check(
+      'logo is exposed as an accessible reload button',
+      clickResult.role === 'button' &&
+      clickResult.tabindex === '0' &&
+      clickResult.aria === 'Reload Pathfinder' &&
+      clickResult.title === 'Reload Pathfinder'
+    );
+
+    const keyResult = await page.evaluate(() => {
+      window.__kidbusterReloadCalled = false;
+      const logo = document.getElementById('kbLogo');
+      logo.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+      const enterReloaded = window.__kidbusterReloadCalled === true;
+      window.__kidbusterReloadCalled = false;
+      logo.dispatchEvent(new KeyboardEvent('keydown', { key:' ', bubbles:true }));
+      const spaceReloaded = window.__kidbusterReloadCalled === true;
+      delete window.__kidbusterReloadForTests;
+      return { enterReloaded, spaceReloaded };
+    });
+    check('logo reload supports Enter and Space', keyResult.enterReloaded && keyResult.spaceReloaded);
+  }
+
   console.log('\n2) Every protocol correctly sets its own body class AND its own button gradient — not just its :has()-driven panel colors');
   const protocols = [
     { value: 'MA',    bodyClass: null, label: 'Classic' }, // MA is the default theme — no body class of its own

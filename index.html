@@ -265,6 +265,12 @@ body{
   max-width:408px;
   object-fit:contain;
   flex-shrink:0;
+  cursor:pointer;
+}
+.kb-logo:focus-visible{
+  outline:2px solid var(--toxin-bright);
+  outline-offset:6px;
+  border-radius:6px;
 }
 @media (max-width:520px){
   .kb-logo{height:58px;}
@@ -3996,6 +4002,24 @@ const copyBtn = document.getElementById('copyBtn');
 const kbLogo = document.getElementById('kbLogo');
 const LOGO_DEFAULT_SRC = kbLogo.src; // the original green lockup, captured before any swap
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+kbLogo.setAttribute('role', 'button');
+kbLogo.setAttribute('tabindex', '0');
+kbLogo.setAttribute('title', 'Reload Pathfinder');
+kbLogo.setAttribute('aria-label', 'Reload Pathfinder');
+function reloadPathfinder(){
+  if(typeof window.__kidbusterReloadForTests === 'function'){
+    window.__kidbusterReloadForTests();
+    return;
+  }
+  window.location.reload();
+}
+kbLogo.addEventListener('click', reloadPathfinder);
+kbLogo.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' || e.key === ' '){
+    e.preventDefault();
+    reloadPathfinder();
+  }
+});
 function updateLogo(){
   const key = currentProtocolKey();
   const nextSrc = (key === 'MS' || key === 'FAIRY') ? kbLogo.dataset.logoMs
