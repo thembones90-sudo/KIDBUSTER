@@ -186,11 +186,22 @@ module.exports = async function run(){
         hasPro: !!document.getElementById('licenseModalProBtn'),
         hasFree: !!document.getElementById('licenseModalFreeBtn'),
         hasKey: !!document.getElementById('licenseModalKeyBtn'),
-        hasRecover: !!document.getElementById('licenseModalRecoverBtn')
+        hasRecover: !!document.getElementById('licenseModalRecoverBtn'),
+        recoverLabel: document.getElementById('licenseModalRecoverBtnLabel')?.textContent || '',
+        keyButtonLabel: document.getElementById('licenseModalKeyBtn')?.textContent || ''
       };
     });
     check('calling promptForAccessKey() shows the modal', modalShown.visible);
-    check('modal shows the simplified access choices', modalShown.title === 'Choose your access' && modalShown.hasPro && modalShown.hasFree && modalShown.hasKey && modalShown.hasRecover);
+    check(
+      'modal shows the simplified access choices',
+      modalShown.title === 'Pathfinder access' &&
+      modalShown.hasPro &&
+      modalShown.hasFree &&
+      modalShown.hasKey &&
+      modalShown.hasRecover &&
+      modalShown.recoverLabel === 'Find my key' &&
+      modalShown.keyButtonLabel === 'Use key'
+    );
 
     await page.click('#licenseModalProBtn');
     await new Promise(r => setTimeout(r, 80));
@@ -246,6 +257,21 @@ module.exports = async function run(){
     check('promptForAccessKey() resolves with the pasted key', afterPaste.resolvedKey === 'kb_live_test_pasted_key');
     check('modal hides itself after a successful entry', afterPaste.overlayHidden);
     check('the key is persisted to localStorage under ACCESS_KEY_STORAGE', afterPaste.stored === 'kb_live_test_pasted_key');
+
+    const checkoutPanel = await page.evaluate(() => {
+      renderCheckoutSuccess('kb_live_checkout_visible');
+      const key = document.getElementById('checkoutSuccessKey');
+      const copyBtn = document.getElementById('checkoutCopyKeyBtn');
+      const continueBtn = document.getElementById('checkoutContinueBtn');
+      return {
+        outputText: document.getElementById('outputBox').textContent,
+        keyText: key ? key.textContent : '',
+        hasCopy: Boolean(copyBtn),
+        hasContinue: Boolean(continueBtn)
+      };
+    });
+    check('checkout success panel clearly shows the Pro key', checkoutPanel.keyText === 'kb_live_checkout_visible' && checkoutPanel.outputText.includes('Payment complete'));
+    check('checkout success panel offers Copy key and Continue actions', checkoutPanel.hasCopy && checkoutPanel.hasContinue);
 
     await page.click('#accountBtn');
     await new Promise(r => setTimeout(r, 120));
