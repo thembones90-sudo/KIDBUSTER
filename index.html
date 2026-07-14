@@ -1321,6 +1321,36 @@ body.protocol-preply .generate-btn.loading{
   background:rgba(var(--toxin-rgb),0.08);
   box-shadow:0 0 20px -18px var(--toxin-glow);
 }
+.license-modal-section.pro{
+  border-color:rgba(255,204,64,0.58);
+  background:linear-gradient(145deg, rgba(255,198,45,0.12), rgba(255,151,28,0.04) 58%, rgba(255,255,255,0.025));
+  box-shadow:0 0 24px -18px rgba(255,214,86,0.86), inset 0 1px 0 rgba(255,230,145,0.08);
+}
+.license-modal-section.pro .license-modal-plan-name{
+  color:#FFE28A;
+  text-shadow:0 0 10px rgba(255,204,64,0.22);
+}
+.license-modal-section.pro .license-modal-pill{
+  color:#FFE28A;
+  border-color:rgba(255,204,64,0.7);
+  background:rgba(255,204,64,0.08);
+}
+.license-modal-section.pro .license-modal-inline .generate-btn{
+  background:linear-gradient(135deg, #805000 0%, #FFD35A 55%, #FFF2B8 100%);
+  box-shadow:0 0 16px -4px rgba(255,211,90,0.78), 0 4px 16px -6px rgba(0,0,0,0.45);
+}
+.license-modal-section.pro .license-modal-inline .generate-btn .btn-label{
+  color:#1F1500;
+}
+.license-modal-crown{
+  display:block;
+  width:max-content;
+  margin:0 0 2px;
+  color:#FFD35A;
+  font-size:16px;
+  line-height:1;
+  filter:drop-shadow(0 0 5px rgba(255,211,90,0.5));
+}
 .license-modal-plan-head{
   display:flex;
   align-items:flex-start;
@@ -1641,9 +1671,10 @@ body.protocol-preply .generate-btn.loading{
         </div>
       </div>
 
-      <div class="license-modal-section">
+      <div class="license-modal-section pro">
         <div class="license-modal-plan-head">
           <div>
+            <span class="license-modal-crown" aria-hidden="true">♛</span>
             <p class="license-modal-plan-name">Buy Pro</p>
             <p class="license-modal-plan-note">Pay, return to Pathfinder, copy your Pro key, and continue.</p>
           </div>
