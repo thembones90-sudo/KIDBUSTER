@@ -199,8 +199,8 @@ module.exports = async function run(){
       modalShown.hasFree &&
       modalShown.hasKey &&
       modalShown.hasRecover &&
-      modalShown.recoverLabel === 'Find my key' &&
-      modalShown.keyButtonLabel === 'Use key'
+      modalShown.recoverLabel === 'Find my code' &&
+      modalShown.keyButtonLabel === 'Use code'
     );
 
     await page.click('#licenseModalProBtn');
@@ -270,8 +270,8 @@ module.exports = async function run(){
         hasContinue: Boolean(continueBtn)
       };
     });
-    check('checkout success panel clearly shows the Pro key', checkoutPanel.keyText === 'kb_live_checkout_visible' && checkoutPanel.outputText.includes('Payment complete'));
-    check('checkout success panel offers Copy key and Continue actions', checkoutPanel.hasCopy && checkoutPanel.hasContinue);
+    check('checkout success panel clearly shows the Pro access code', checkoutPanel.keyText === 'kb_live_checkout_visible' && checkoutPanel.outputText.includes('Payment complete'));
+    check('checkout success panel offers Copy code and Continue actions', checkoutPanel.hasCopy && checkoutPanel.hasContinue);
 
     await page.click('#accountBtn');
     await new Promise(r => setTimeout(r, 120));
@@ -284,7 +284,7 @@ module.exports = async function run(){
       };
     });
     check('Access panel opens from the header', accountPanel.visible);
-    check('Access panel shows the saved key in masked form', accountPanel.keyText === 'kb_live_..._key');
+    check('Access panel shows the saved access code in masked form', accountPanel.keyText === 'kb_live_..._key');
     check('Access panel renders a usable local/server status', accountPanel.planText.length > 0);
   }
 

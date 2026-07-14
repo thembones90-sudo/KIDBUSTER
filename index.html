@@ -1496,7 +1496,7 @@ body.protocol-preply .generate-btn.loading{
     <div class="account-panel-head">
       <div>
         <p class="account-title">Access status</p>
-        <p class="account-summary" id="accountSummary">No key checked yet.</p>
+        <p class="account-summary" id="accountSummary">No access code checked yet.</p>
       </div>
       <button class="btn-secondary" id="accountRefreshBtn" type="button">Refresh</button>
     </div>
@@ -1507,14 +1507,14 @@ body.protocol-preply .generate-btn.loading{
       </div>
       <div class="account-metric">
         <p class="account-label">Status</p>
-        <p class="account-value" id="accountStatus">No key</p>
+        <p class="account-value" id="accountStatus">No code</p>
       </div>
       <div class="account-metric">
         <p class="account-label">Usage</p>
         <p class="account-value" id="accountUsage">-</p>
       </div>
       <div class="account-metric">
-        <p class="account-label">Saved key</p>
+        <p class="account-label">Saved code</p>
         <p class="account-value" id="accountKey">None</p>
       </div>
       <div class="account-metric">
@@ -1524,16 +1524,16 @@ body.protocol-preply .generate-btn.loading{
     </div>
     <div class="account-trials" id="accountTrials" style="display:none;"></div>
     <div class="account-owner-tools" id="accountOwnerTools" style="display:none;">
-      <p class="account-trials-title">Owner key tools</p>
-      <p class="account-summary">Create a 30-day Pro key for someone who paid you personally.</p>
+      <p class="account-trials-title">Owner code tools</p>
+      <p class="account-summary">Create a 30-day Pro access code for someone who paid you personally.</p>
       <div class="license-modal-inline">
-        <input type="email" id="manualLicenseEmail" placeholder="buyer@email.com (optional)" aria-label="Buyer email for 30-day key">
-        <button class="btn-secondary" id="manualLicenseBtn" type="button">Create 30-day key</button>
+        <input type="email" id="manualLicenseEmail" placeholder="buyer@email.com (optional)" aria-label="Buyer email for 30-day access code">
+        <button class="btn-secondary" id="manualLicenseBtn" type="button">Create 30-day code</button>
       </div>
       <p class="account-owner-result" id="manualLicenseResult" style="display:none;"></p>
     </div>
     <div class="account-actions">
-      <button class="btn-secondary account-change-key-btn" id="accountChangeKeyBtn" type="button">Change key</button>
+      <button class="btn-secondary account-change-key-btn" id="accountChangeKeyBtn" type="button">Change code</button>
       <button class="btn-secondary" id="accountUpgradeBtn" type="button">Upgrade to Pro</button>
     </div>
   </div>
@@ -1692,7 +1692,7 @@ body.protocol-preply .generate-btn.loading{
           <div>
             <span class="license-modal-crown" aria-hidden="true">♛</span>
             <p class="license-modal-plan-name">Buy Pro</p>
-            <p class="license-modal-plan-note">Pay, return to Pathfinder, copy your Pro key, and continue.</p>
+            <p class="license-modal-plan-note">Pay, return to Pathfinder, copy your Pro access code, and continue.</p>
           </div>
           <span class="license-modal-pill">pro</span>
         </div>
@@ -1706,20 +1706,20 @@ body.protocol-preply .generate-btn.loading{
         <div class="license-modal-plan-head">
           <div>
             <p class="license-modal-plan-name">Already paid?</p>
-            <p class="license-modal-plan-note">Use the email from checkout to find your saved key.</p>
+            <p class="license-modal-plan-note">Use the email from checkout to find your saved access code.</p>
           </div>
         </div>
         <div class="license-modal-recover">
           <div class="license-modal-inline">
-            <input type="email" id="licenseModalRecoverEmail" placeholder="your@email.com" aria-label="Email to find existing key">
-            <button class="btn-secondary" id="licenseModalRecoverBtn"><span id="licenseModalRecoverBtnLabel">Find my key</span></button>
+            <input type="email" id="licenseModalRecoverEmail" placeholder="your@email.com" aria-label="Email to find existing access code">
+            <button class="btn-secondary" id="licenseModalRecoverBtn"><span id="licenseModalRecoverBtnLabel">Find my code</span></button>
           </div>
         </div>
         <div class="license-modal-advanced">
-          <p class="license-modal-plan-note">Paste a Pro key, owner key, or support code</p>
+          <p class="license-modal-plan-note">Paste a Pro access code, owner code, or support code</p>
           <div class="license-modal-inline">
-            <input type="text" id="licenseModalKeyInput" placeholder="kb_live_..." aria-label="Existing access key">
-            <button class="btn-secondary" id="licenseModalKeyBtn">Use key</button>
+            <input type="text" id="licenseModalKeyInput" placeholder="kb_live_..." aria-label="Existing access code">
+            <button class="btn-secondary" id="licenseModalKeyBtn">Use code</button>
           </div>
         </div>
       </div>
@@ -4689,12 +4689,12 @@ function renderAccountTrials(trials){
 async function refreshAccountPanel(){
   const key = getStoredAccessKey();
   if(!key){
-    updateAccountSnapshot('No access key is saved in this browser yet.', 'Not signed in', 'No key', '-', 'None', false, false);
+    updateAccountSnapshot('No access code is saved in this browser yet.', 'Not signed in', 'No code', '-', 'None', false, false);
     renderAccountTrials(null);
     return;
   }
 
-  updateAccountSnapshot('Checking this saved key...', 'Checking', 'Checking', '-', maskAccessKey(key), true, false);
+  updateAccountSnapshot('Checking this saved access code...', 'Checking', 'Checking', '-', maskAccessKey(key), true, false);
   try{
     const res = await fetch('/api/license-status', {
       method: 'GET',
@@ -4702,7 +4702,7 @@ async function refreshAccountPanel(){
     });
     const data = await res.json().catch(() => ({}));
     if(!res.ok){
-      updateAccountSnapshot(data.error || 'This saved key was not accepted.', 'Needs attention', 'Invalid', '-', maskAccessKey(key), false, false);
+      updateAccountSnapshot(data.error || 'This saved access code was not accepted.', 'Needs attention', 'Invalid', '-', maskAccessKey(key), false, false);
       renderAccountTrials(null);
       return;
     }
@@ -4714,11 +4714,11 @@ async function refreshAccountPanel(){
       ? 'Unlimited'
       : (data.expired ? 'Renew needed' : String(data.usageCount || 0) + ' used - ' + String(data.remainingFreeReports) + ' left this month');
     const expiryLabel = data.expiresAt ? ' Expires ' + formatExpiryDate(data.expiresAt) + '.' : '';
-    const emailNote = data.email ? 'Signed in as ' + data.email + '.' + expiryLabel : 'Saved key is active.' + expiryLabel;
+    const emailNote = data.email ? 'Signed in as ' + data.email + '.' + expiryLabel : 'Saved access code is active.' + expiryLabel;
     updateAccountSnapshot(emailNote, planLabel, statusLabel, usageLabel, maskAccessKey(key), !isPro, data.founder === true);
     renderAccountTrials(data.trials || null);
   }catch(e){
-    updateAccountSnapshot('Saved key found. Status check needs the live app server.', 'Saved key', 'Unknown', 'Unable to refresh', maskAccessKey(key), true, false);
+    updateAccountSnapshot('Saved access code found. Status check needs the live app server.', 'Saved code', 'Unknown', 'Unable to refresh', maskAccessKey(key), true, false);
     renderAccountTrials(null);
   }
 }
@@ -4748,7 +4748,7 @@ async function createManualLicense(){
       return;
     }
     const expiry = formatExpiryDate(data.expiresAt) || data.expiresAt;
-    const text = '30-day Pro key:\n' + data.licenseKey + '\n\nExpires: ' + expiry;
+    const text = '30-day Pro access code:\n' + data.licenseKey + '\n\nExpires: ' + expiry;
     els.manualResult.textContent = text;
     try{ await navigator.clipboard.writeText(data.licenseKey); }catch(e){ /* clipboard may be unavailable */ }
   }catch(e){
@@ -4853,7 +4853,7 @@ function promptForAccessKey(){
 
     function onKeyClick(){
       const key = keyInput.value.trim();
-      if(!key){ showError('Please paste your Pathfinder key.'); return; }
+      if(!key){ showError('Please paste your Pathfinder access code.'); return; }
       errorEl.style.display = 'none';
       finish(key);
     }
@@ -4874,14 +4874,14 @@ function promptForAccessKey(){
         if(!res.ok || !data.licenseKey){
           showError(data.error || 'No Pathfinder access was found for that email.');
           recoverBtn.disabled = false;
-          recoverBtnLabel.textContent = 'Find my key';
+          recoverBtnLabel.textContent = 'Find my code';
           return;
         }
         finish(data.licenseKey);
       }catch(e){
         showError('Network error - check your connection and try again.');
         recoverBtn.disabled = false;
-        recoverBtnLabel.textContent = 'Find my key';
+        recoverBtnLabel.textContent = 'Find my code';
       }
     }
 
@@ -4895,7 +4895,7 @@ function promptForAccessKey(){
     freeBtn.disabled = false;
     freeBtnLabel.textContent = 'Start free';
     recoverBtn.disabled = false;
-    recoverBtnLabel.textContent = 'Find my key';
+    recoverBtnLabel.textContent = 'Find my code';
     overlay.style.display = 'flex';
     proBtn.addEventListener('click', onProClick);
     freeBtn.addEventListener('click', onFreeClick);
@@ -4908,7 +4908,7 @@ async function callClaude(systemPrompt, userMessage, protocol){
   let accessKey = getStoredAccessKey();
   if(!accessKey){
     accessKey = await promptForAccessKey();
-    if(!accessKey) throw new Error('A license key is required to generate reports.');
+    if(!accessKey) throw new Error('An access code is required to generate reports.');
   }
 
   let response;
@@ -4938,7 +4938,7 @@ async function callClaude(systemPrompt, userMessage, protocol){
     if(response.status === 401){
       try{ localStorage.removeItem(ACCESS_KEY_STORAGE); }catch(e){ /* storage unavailable */ }
       refreshAccountPanel();
-      throw new Error((detail || 'License key was rejected.') + ' Reload the page to enter a valid one.');
+      throw new Error((detail || 'Access code was rejected.') + ' Reload the page to enter a valid one.');
     }
     if(response.status === 402){
       // Entitlement rejection (Free limit reached, or protocol requires
@@ -5042,7 +5042,7 @@ async function submitFeedback(score){
   if(!accessKey){
     accessKey = await promptForAccessKey();
     if(!accessKey){
-      feedbackStatus.textContent = 'Not sent — access key required.';
+      feedbackStatus.textContent = 'Not sent - access code required.';
       feedbackSubmitBtn.disabled = false;
       return;
     }
@@ -5302,7 +5302,7 @@ async function generate(){
       outputBox.innerHTML =
         '<strong>' + escapeHtml(notice.title) + '</strong><br>' +
         '<span>' + escapeHtml(notice.body) + '</span><br><br>' +
-        '<button type="button" id="inlineChangeKeyBtn" class="btn-secondary" style="width:auto; padding:8px 16px; margin-right:8px;">Change key</button>' +
+        '<button type="button" id="inlineChangeKeyBtn" class="btn-secondary" style="width:auto; padding:8px 16px; margin-right:8px;">Change code</button>' +
         '<button type="button" id="inlineUpgradeBtn" class="btn-secondary" style="width:auto; padding:8px 16px;">Upgrade to Pro</button>';
     }else{
       outputBox.textContent = 'Could not generate feedback. ' + err.message;
@@ -5336,12 +5336,12 @@ function buildEntitlementNotice(err, protocolKey){
   if(err.reason === 'limit_reached'){
     return {
       title: 'Free monthly limit reached',
-      body: 'This key has used all free Classic reports for this month. Upgrade to Pro for unlimited reports and every protocol.'
+      body: 'This access code has used all free Classic reports for this month. Upgrade to Pro for unlimited reports and every protocol.'
     };
   }
   return {
     title: 'Pro access needed',
-    body: err.message || 'This action needs Pro access. Upgrade to continue, or change key if you already have Pro.'
+    body: err.message || 'This action needs Pro access. Upgrade to continue, or change code if you already have Pro.'
   };
 }
 
@@ -5395,7 +5395,7 @@ outputBox.addEventListener('click', (e) => {
     refreshAccountPanel();
     promptForAccessKey().then(() => {
       outputBox.className = 'output-box empty';
-      outputBox.textContent = 'Key saved. Try Generate feedback again.';
+      outputBox.textContent = 'Access code saved. Try Generate feedback again.';
     });
   }
 });
@@ -5432,18 +5432,18 @@ function renderCheckoutSuccess(key){
   outputBox.className = key ? 'output-box' : 'output-box error';
   if(!key){
     outputBox.textContent =
-      'Payment complete, but this browser does not have the Pathfinder key saved.\n\n' +
+      'Payment complete, but this browser does not have the Pathfinder access code saved.\n\n' +
       'Open Access, choose Already paid?, and enter the same email you used at checkout.';
     return;
   }
 
   outputBox.innerHTML =
     '<div class="checkout-success-title">Payment complete. Pro is ready.</div>' +
-    '<div class="checkout-success-copy">Your Pathfinder Pro key is shown below and already saved in this browser.</div>' +
+    '<div class="checkout-success-copy">Your Pathfinder Pro access code is shown below and already saved in this browser.</div>' +
     '<code class="checkout-key" id="checkoutSuccessKey">' + escapeHtml(key) + '</code>' +
-    '<div class="checkout-success-copy">Keep this key if you want to use Pathfinder on another device.</div>' +
+    '<div class="checkout-success-copy">Keep this access code if you want to use Pathfinder on another device.</div>' +
     '<div class="checkout-actions">' +
-      '<button type="button" id="checkoutCopyKeyBtn" class="btn-secondary" data-default-label="Copy key">Copy key</button>' +
+      '<button type="button" id="checkoutCopyKeyBtn" class="btn-secondary" data-default-label="Copy code">Copy code</button>' +
       '<button type="button" id="checkoutContinueBtn" class="btn-secondary" data-default-label="Continue">Continue</button>' +
     '</div>';
 }
