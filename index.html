@@ -438,6 +438,20 @@ button.account-btn:disabled{opacity:0.5;cursor:default;}
   white-space:pre-wrap;
   overflow-wrap:anywhere;
 }
+.account-owner-copy-row{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.account-owner-copy-row .btn-secondary{
+  width:auto;
+  padding:9px 16px;
+}
+.account-owner-code{
+  margin:8px 0 10px;
+}
 @media (max-width:700px){
   .header-actions{justify-content:flex-start;}
   .account-grid{grid-template-columns:1fr;}
@@ -1536,7 +1550,10 @@ body.protocol-preply .generate-btn.loading{
         <input type="email" id="manualLicenseEmail" placeholder="buyer@email.com (optional)" aria-label="Buyer email for 30-day access code">
         <button class="btn-secondary" id="manualLicenseBtn" type="button">Create 30-day code</button>
       </div>
-      <p class="account-owner-result" id="manualLicenseResult" style="display:none;"></p>
+      <div class="account-owner-result" id="manualLicenseResult" style="display:none;"></div>
+      <div class="account-owner-copy-row" id="manualLicenseCopyRow" style="display:none;">
+        <button class="btn-secondary" id="manualLicenseCopyBtn" type="button" data-default-label="Copy code">Copy code</button>
+      </div>
     </div>
     <div class="account-actions">
       <button class="btn-secondary account-change-key-btn" id="accountChangeKeyBtn" type="button">Change code</button>
@@ -4627,7 +4644,9 @@ function getAccountEls(){
     ownerTools: document.getElementById('accountOwnerTools'),
     manualEmail: document.getElementById('manualLicenseEmail'),
     manualBtn: document.getElementById('manualLicenseBtn'),
-    manualResult: document.getElementById('manualLicenseResult')
+    manualResult: document.getElementById('manualLicenseResult'),
+    manualCopyRow: document.getElementById('manualLicenseCopyRow'),
+    manualCopyBtn: document.getElementById('manualLicenseCopyBtn')
   };
 }
 
@@ -4738,7 +4757,12 @@ async function createManualLicense(){
   const email = els.manualEmail ? els.manualEmail.value.trim() : '';
   els.manualBtn.disabled = true;
   els.manualResult.style.display = 'block';
-  els.manualResult.textContent = 'Creating key...';
+  els.manualResult.textContent = 'Creating access code...';
+  if(els.manualCopyRow) els.manualCopyRow.style.display = 'none';
+  if(els.manualCopyBtn){
+    els.manualCopyBtn.textContent = 'Copy code';
+    els.manualCopyBtn.classList.remove('copied');
+  }
   try{
     const res = await fetch('/api/admin-create-license', {
       method: 'POST',
@@ -4751,15 +4775,19 @@ async function createManualLicense(){
     });
     const data = await res.json().catch(() => ({}));
     if(!res.ok || !data.licenseKey){
-      els.manualResult.textContent = data.error || 'Could not create a 30-day key right now.';
+      els.manualResult.textContent = data.error || 'Could not create a 30-day access code right now.';
       return;
     }
     const expiry = formatExpiryDate(data.expiresAt) || data.expiresAt;
-    const text = '30-day Pro access code:\n' + data.licenseKey + '\n\nExpires: ' + expiry;
-    els.manualResult.textContent = text;
+    els.manualResult.innerHTML =
+      '<span>30-day Pro access code:</span>' +
+      '<code class="checkout-key account-owner-code" id="manualLicenseCode">' + escapeHtml(data.licenseKey) + '</code>' +
+      '<span>Expires: ' + escapeHtml(expiry || '30 days') + '</span>' +
+      '<span style="display:block; color:var(--text-dim); margin-top:8px;">Copied automatically. Use the button below if you need it again.</span>';
+    if(els.manualCopyRow) els.manualCopyRow.style.display = '';
     try{ await navigator.clipboard.writeText(data.licenseKey); }catch(e){ /* clipboard may be unavailable */ }
   }catch(e){
-    els.manualResult.textContent = 'Network error - could not create a 30-day key.';
+    els.manualResult.textContent = 'Network error - could not create a 30-day access code.';
   }finally{
     els.manualBtn.disabled = false;
   }
@@ -5432,6 +5460,12 @@ if(accountEls.upgradeBtn){
 }
 if(accountEls.manualBtn){
   accountEls.manualBtn.addEventListener('click', createManualLicense);
+}
+if(accountEls.manualCopyBtn){
+  accountEls.manualCopyBtn.addEventListener('click', () => {
+    const codeEl = document.getElementById('manualLicenseCode');
+    if(codeEl) copyOutputToClipboard(codeEl, accountEls.manualCopyBtn);
+  });
 }
 refreshAccountPanel();
 
