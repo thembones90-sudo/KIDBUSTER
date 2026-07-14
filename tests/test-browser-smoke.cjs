@@ -186,6 +186,7 @@ module.exports = async function run(){
         hasPro: !!document.getElementById('licenseModalProBtn'),
         hasFree: !!document.getElementById('licenseModalFreeBtn'),
         hasPaypal: !!document.getElementById('licenseModalPaypalBtn'),
+        paypalDisabled: document.getElementById('licenseModalPaypalBtn')?.getAttribute('aria-disabled') || '',
         hasKey: !!document.getElementById('licenseModalKeyBtn'),
         hasRecover: !!document.getElementById('licenseModalRecoverBtn'),
         recoverLabel: document.getElementById('licenseModalRecoverBtnLabel')?.textContent || '',
@@ -199,19 +200,28 @@ module.exports = async function run(){
       modalShown.hasPro &&
       modalShown.hasFree &&
       modalShown.hasPaypal &&
+      modalShown.paypalDisabled === 'false' &&
       modalShown.hasKey &&
       modalShown.hasRecover &&
       modalShown.recoverLabel === 'Find my code' &&
       modalShown.keyButtonLabel === 'Use code'
     );
 
+    await page.evaluate(() => {
+      window.__kidbusterPaypalOpened = null;
+      window.open = (url) => { window.__kidbusterPaypalOpened = url; return null; };
+    });
     await page.click('#licenseModalPaypalBtn');
     await new Promise(r => setTimeout(r, 80));
-    const paypalNotConfiguredError = await page.evaluate(() => {
+    const paypalClickResult = await page.evaluate(() => {
       const err = document.getElementById('licenseModalError');
-      return { visible: err.style.display !== 'none', text: err.textContent };
+      return {
+        opened: window.__kidbusterPaypalOpened,
+        errorVisible: err.style.display !== 'none',
+        errorText: err.textContent
+      };
     });
-    check('PayPal manual payment option is visible and safely guarded until a payment link is connected', paypalNotConfiguredError.visible && paypalNotConfiguredError.text.includes('PayPal'));
+    check('PayPal manual payment option opens the configured PayPal link without showing an error', paypalClickResult.opened === 'https://paypal.me/shadezyel' && !paypalClickResult.errorVisible);
 
     await page.click('#licenseModalProBtn');
     await new Promise(r => setTimeout(r, 80));
