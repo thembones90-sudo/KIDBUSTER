@@ -56,6 +56,39 @@ module.exports = async function run(){
   check('live build marker is present in the Access panel markup', initial.buildText === EXPECTED_BUILD);
   check('live core build marker matches expected build', initial.coreBuild === EXPECTED_BUILD);
 
+  const logoReload = await page.evaluate(() => {
+    window.__kidbusterReloadCalled = false;
+    window.__kidbusterReloadForTests = () => { window.__kidbusterReloadCalled = true; };
+    const logo = document.getElementById('kbLogo');
+    logo.click();
+    const clickReloaded = window.__kidbusterReloadCalled === true;
+    window.__kidbusterReloadCalled = false;
+    logo.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+    const enterReloaded = window.__kidbusterReloadCalled === true;
+    window.__kidbusterReloadCalled = false;
+    logo.dispatchEvent(new KeyboardEvent('keydown', { key:' ', bubbles:true }));
+    const spaceReloaded = window.__kidbusterReloadCalled === true;
+    delete window.__kidbusterReloadForTests;
+    return {
+      clickReloaded,
+      enterReloaded,
+      spaceReloaded,
+      role: logo.getAttribute('role'),
+      tabindex: logo.getAttribute('tabindex'),
+      aria: logo.getAttribute('aria-label'),
+      title: logo.getAttribute('title')
+    };
+  });
+  check('live logo click triggers reload/reset path', logoReload.clickReloaded);
+  check('live logo reload supports Enter and Space', logoReload.enterReloaded && logoReload.spaceReloaded);
+  check(
+    'live logo is exposed as an accessible reload button',
+    logoReload.role === 'button' &&
+    logoReload.tabindex === '0' &&
+    logoReload.aria === 'Reload Pathfinder' &&
+    logoReload.title === 'Reload Pathfinder'
+  );
+
   const protocols = [
     { value: 'MA', label: 'Classic', bodyClass: null },
     { value: 'MS', label: 'Sugarcoat', bodyClass: 'protocol-ms' },
