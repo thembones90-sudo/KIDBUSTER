@@ -1040,13 +1040,29 @@ body.protocol-preply .generate-btn.loading{
 .output-box.error{color:var(--danger); background:var(--danger-dim); border-color:var(--danger);}
 .checkout-success-title{
   font-family:var(--font-display);
-  font-size:18px;
+  font-size:22px;
   color:var(--toxin);
-  margin-bottom:8px;
+  margin-bottom:10px;
+}
+.checkout-success-card{
+  border:1px solid var(--toxin-border);
+  border-radius:8px;
+  background:linear-gradient(135deg, rgba(var(--toxin-rgb),0.12), rgba(255,255,255,0.03));
+  padding:16px;
+  margin-bottom:12px;
 }
 .checkout-success-copy{
   color:var(--text-dim);
   margin-bottom:12px;
+}
+.checkout-success-label{
+  display:block;
+  font-family:var(--font-mono);
+  font-size:12px;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--toxin);
+  margin-bottom:8px;
 }
 .checkout-key{
   display:block;
@@ -1071,6 +1087,11 @@ body.protocol-preply .generate-btn.loading{
 .checkout-actions .btn-secondary{
   width:auto;
   padding:9px 16px;
+}
+.checkout-actions .generate-btn{
+  width:auto;
+  min-width:190px;
+  padding:10px 18px;
 }
 
 .action-row{
@@ -1694,7 +1715,7 @@ body.protocol-preply .generate-btn.loading{
 <div id="licenseModalOverlay" class="license-modal-overlay" style="display:none;">
   <div class="license-modal">
     <h2 class="license-modal-title">Pathfinder access</h2>
-    <p class="license-modal-subtitle">Pick one option. If you already paid, find your key with the same email or paste the key directly.</p>
+    <p class="license-modal-subtitle">Start free, buy Pro, or enter a code you already have.</p>
 
     <div class="license-modal-options">
       <div class="license-modal-section primary">
@@ -1716,7 +1737,7 @@ body.protocol-preply .generate-btn.loading{
           <div>
             <span class="license-modal-crown" aria-hidden="true">♛</span>
             <p class="license-modal-plan-name">Buy Pro</p>
-            <p class="license-modal-plan-note">Pay, return to Pathfinder, copy your Pro access code, and continue.</p>
+            <p class="license-modal-plan-note">Pay securely. When you return, Pathfinder will show your Pro code with a Copy button.</p>
           </div>
           <span class="license-modal-pill">pro</span>
         </div>
@@ -1730,7 +1751,7 @@ body.protocol-preply .generate-btn.loading{
         <div class="license-modal-plan-head">
           <div>
             <p class="license-modal-plan-name">Already paid?</p>
-            <p class="license-modal-plan-note">Use the email from checkout to find your saved access code.</p>
+            <p class="license-modal-plan-note">Enter the checkout email and Pathfinder will find your Pro code.</p>
           </div>
         </div>
         <div class="license-modal-recover">
@@ -5473,19 +5494,21 @@ function renderCheckoutSuccess(key){
   outputBox.className = key ? 'output-box' : 'output-box error';
   if(!key){
     outputBox.textContent =
-      'Payment complete, but this browser does not have the Pathfinder access code saved.\n\n' +
-      'Open Access, choose Already paid?, and enter the same email you used at checkout.';
+      'Payment complete, but this browser does not have the Pro code saved.\n\n' +
+      'Open Access, choose Already paid?, and enter the checkout email. Pathfinder will find your Pro code.';
     return;
   }
 
   outputBox.innerHTML =
-    '<div class="checkout-success-title">Payment complete. Pro is ready.</div>' +
-    '<div class="checkout-success-copy">Your Pathfinder Pro access code is shown below and already saved in this browser.</div>' +
-    '<code class="checkout-key" id="checkoutSuccessKey">' + escapeHtml(key) + '</code>' +
-    '<div class="checkout-success-copy">Keep this access code if you want to use Pathfinder on another device.</div>' +
+    '<div class="checkout-success-card">' +
+      '<div class="checkout-success-title">Your Pro code is ready.</div>' +
+      '<div class="checkout-success-copy">Copy this code if you want to use Pathfinder on another device. It is already active in this browser.</div>' +
+      '<span class="checkout-success-label">Pathfinder Pro code</span>' +
+      '<code class="checkout-key" id="checkoutSuccessKey">' + escapeHtml(key) + '</code>' +
+    '</div>' +
     '<div class="checkout-actions">' +
       '<button type="button" id="checkoutCopyKeyBtn" class="btn-secondary" data-default-label="Copy code">Copy code</button>' +
-      '<button type="button" id="checkoutContinueBtn" class="btn-secondary" data-default-label="Continue">Continue</button>' +
+      '<button type="button" id="checkoutContinueBtn" class="generate-btn" data-default-label="Continue to app">Continue to app</button>' +
     '</div>';
 }
 

@@ -267,11 +267,12 @@ module.exports = async function run(){
         outputText: document.getElementById('outputBox').textContent,
         keyText: key ? key.textContent : '',
         hasCopy: Boolean(copyBtn),
-        hasContinue: Boolean(continueBtn)
+        hasContinue: Boolean(continueBtn),
+        continueText: continueBtn ? continueBtn.textContent : ''
       };
     });
-    check('checkout success panel clearly shows the Pro access code', checkoutPanel.keyText === 'kb_live_checkout_visible' && checkoutPanel.outputText.includes('Payment complete'));
-    check('checkout success panel offers Copy code and Continue actions', checkoutPanel.hasCopy && checkoutPanel.hasContinue);
+    check('checkout success panel clearly shows the Pro access code', checkoutPanel.keyText === 'kb_live_checkout_visible' && checkoutPanel.outputText.includes('Your Pro code is ready'));
+    check('checkout success panel offers Copy code and Continue to app actions', checkoutPanel.hasCopy && checkoutPanel.hasContinue && checkoutPanel.continueText === 'Continue to app');
 
     await page.click('#accountBtn');
     await new Promise(r => setTimeout(r, 120));
