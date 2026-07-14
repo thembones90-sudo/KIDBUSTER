@@ -605,6 +605,12 @@ input[type=text]:focus, input[type=email]:focus, textarea:focus, select:focus{
   box-shadow:0 0 0 3px var(--toxin-dim), 0 0 12px -2px var(--toxin-glow);
 }
 textarea::placeholder, input::placeholder{color:var(--text-faint);}
+.field-hint{
+  margin:-4px 0 8px;
+  color:var(--text-dim);
+  font-size:13px;
+  line-height:1.45;
+}
 
 .rating-track{
   display:grid;
@@ -1617,6 +1623,7 @@ body.protocol-preply .generate-btn.loading{
       <div class="panel">
         <div class="field">
           <label class="field-label" id="krispNotesLabel" for="krispNotes">Krisp notes</label>
+          <p class="field-hint">Paste the lesson notes, choose a protocol, pick a rating, then generate.</p>
           <textarea id="krispNotes" rows="6" placeholder="Paste the raw lesson summary or transcript here..."></textarea>
           <div class="field-counter" id="krispCounter">0 words · 0 characters</div>
         </div>
