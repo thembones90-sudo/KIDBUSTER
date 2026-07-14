@@ -499,6 +499,10 @@ label.field-label{
   text-shadow:0 0 8px rgba(135,243,22,0.85);
   line-height:1;
 }
+.protocol-lion{
+  text-shadow:0 0 8px rgba(255,174,66,0.85);
+  line-height:1;
+}
 .protocol-preply-icon{
   text-shadow:0 0 8px rgba(178,102,255,0.85);
   line-height:1;
@@ -1440,7 +1444,7 @@ body.protocol-preply .generate-btn.loading{
             <label><input type="radio" name="protocol" value="MS"> Sugarcoat <span class="protocol-lollipop" aria-hidden="true">&#127853;</span><span class="info-icon" tabindex="0" data-tooltip="Same report as Classic, written in a warmer, parent-friendly voice.">?</span></label>
             <label><input type="radio" name="protocol" value="FAIRY"> Fairy <span class="protocol-lollipop" aria-hidden="true">&#129498;</span><span class="info-icon" tabindex="0" data-tooltip="Sugarcoat-family subprotocol using the older Fairy command chain.">?</span></label>
             <label><input type="radio" name="protocol" value="BLITZ"> Blitz <span class="protocol-lightning" aria-hidden="true">&#9889;</span><span class="info-icon" tabindex="0" data-tooltip="Short, neutral comment for quick platform feedback. No rating-based tone shifts.">?</span></label>
-            <label><input type="radio" name="protocol" value="BEIDA"> Beida<span class="info-icon" tabindex="0" data-tooltip="Two-field comment matching the BetaKid platform's own form: Learning Content + General Performance.">?</span></label>
+            <label><input type="radio" name="protocol" value="BEIDA"> Beida <span class="protocol-lion" aria-hidden="true">&#129409;</span><span class="info-icon" tabindex="0" data-tooltip="Two-field comment matching the BetaKid platform's own form: Learning Content + General Performance.">?</span></label>
             <label><input type="radio" name="protocol" value="OF"> OF Protocol (Trial Evaluation)<span class="info-icon" tabindex="0" data-tooltip="3-section narrative for trial-lesson evaluations — not a regular lesson report.">?</span></label>
             <label><input type="radio" name="protocol" value="PREPLY"> Preply <span class="protocol-preply-icon" aria-hidden="true">&#128172;</span><span class="info-icon" tabindex="0" data-tooltip="Personal messages for private tutors — Adult, Parent, or Trial follow-up. Not a lesson report.">?</span></label>
           </div>
@@ -5392,6 +5396,10 @@ function setProtocolBadge(protocolKey){
   if(protocolKey === 'BLITZ'){
     badge.classList.add('blitz-badge');
     badge.innerHTML = '<span>BLITZ</span><img src="/assets/blitz-bolt.png" alt="" class="blitz-bolt" aria-hidden="true">';
+    return;
+  }
+  if(protocolKey === 'BEIDA'){
+    badge.innerHTML = '<span>Beida</span> <span class="protocol-lion" aria-hidden="true">&#129409;</span>';
     return;
   }
   badge.textContent = protocol.label;

@@ -93,7 +93,7 @@ module.exports = async function run(){
     { value: 'MS',    bodyClass: 'protocol-ms', label: 'Sugarcoat' },
     { value: 'FAIRY', bodyClass: 'protocol-fairy', label: 'Fairy' },
     { value: 'BLITZ', bodyClass: 'protocol-blitz', label: 'BLITZ', hasBolt: true },
-    { value: 'BEIDA', bodyClass: 'protocol-beida', label: 'Beida' },
+    { value: 'BEIDA', bodyClass: 'protocol-beida', label: 'Beida 🦁' },
     { value: 'OF',    bodyClass: 'protocol-of', label: 'OF Protocol (Trial Evaluation)' }
   ];
 
