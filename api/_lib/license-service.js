@@ -27,6 +27,7 @@ import {
   getUsageCount, incrementUsage, getTrialUsageCount, incrementTrialUsage,
   normalizeEmail, isFounderLicenseKey, ALWAYS_FREE_PROTOCOLS, expiresInDays
 } from './licensing.js';
+import { notifyAccessEvent } from './access-notifications.js';
 
 /**
  * Returns the existing license key for this email, or creates a new
@@ -124,6 +125,17 @@ export async function activateOrRenewPro({ licenseKey, email, paymentCustomerId,
     paymentSubscriptionId: paymentSubscriptionId || existing.paymentSubscriptionId
   });
 
+  await notifyAccessEvent({
+    type: 'pro_activated',
+    title: 'Pro access activated or renewed.',
+    email: normalizedEmail || existing.email || '',
+    licenseKey: resolvedKey,
+    details: [
+      'Customer ID: ' + (paymentCustomerId || existing.paymentCustomerId || '(none)'),
+      'Subscription ID: ' + (paymentSubscriptionId || existing.paymentSubscriptionId || '(none)')
+    ]
+  });
+
   return resolvedKey;
 }
 
@@ -161,6 +173,17 @@ export async function createManualProLicense({ email = '', days = 30, note = '' 
     await saveEmailIndex(normalizedEmail, licenseKey);
   }
 
+  await notifyAccessEvent({
+    type: 'manual_key_created',
+    title: durationDays + '-day manual Pro key created.',
+    email: normalizedEmail,
+    licenseKey,
+    details: [
+      'Expires: ' + expiresAt,
+      note ? 'Note: ' + String(note || '').slice(0, 200) : ''
+    ]
+  });
+
   return { licenseKey, expiresAt, days: durationDays };
 }
 
@@ -171,38 +194,16 @@ function normalizeInstallationId(installationId){
 }
 
 async function notifyManualLicenseClaim({ licenseKey, license, installationId }){
-  const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL;
-  if(!webhookUrl) return;
-
-  const comment = [
-    'Manual 30-day Pro key claimed.',
-    'Key: ' + licenseKey,
-    'Claimed browser: ' + installationId,
-    'Buyer email: ' + (license.email || '(none)'),
-    'Expires: ' + (license.expiresAt || '(none)')
-  ].join('\n');
-
-  try{
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        timestamp: new Date().toISOString(),
-        teacherName: 'License System',
-        protocol: 'LICENSE',
-        ratingTier: 'manual_key_claimed',
-        score: '',
-        comment,
-        preplyModule: '',
-        preplyTrialPerson: ''
-      })
-    });
-    if(!response.ok){
-      console.error('manual license claim notification failed:', response.status);
-    }
-  }catch(err){
-    console.error('manual license claim notification error:', err);
-  }
+  await notifyAccessEvent({
+    type: 'manual_key_claimed',
+    title: 'Manual 30-day Pro key claimed.',
+    email: license.email || '',
+    licenseKey,
+    details: [
+      'Claimed browser: ' + installationId,
+      'Expires: ' + (license.expiresAt || '(none)')
+    ]
+  });
 }
 
 /**
@@ -282,6 +283,15 @@ export async function downgradeToFree({ licenseKey, paymentCustomerId }){
     ...existing,
     plan: 'free',
     paymentSubscriptionId: null
+  });
+  await notifyAccessEvent({
+    type: 'pro_downgraded',
+    title: 'Pro access downgraded to Free.',
+    email: existing.email || '',
+    licenseKey: resolvedKey,
+    details: [
+      'Customer ID: ' + (paymentCustomerId || existing.paymentCustomerId || '(none)')
+    ]
   });
   return resolvedKey;
 }

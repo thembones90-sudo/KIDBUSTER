@@ -10,6 +10,7 @@ module.exports = async function run(){
   const svc = await import('../api/_lib/license-service.js');
   const licensing = await import('../api/_lib/licensing.js');
   const { __resetForTests } = await import('../api/_lib/kv-client.js');
+  const signupHandler = await import('../api/license-signup.js');
   const statusHandler = await import('../api/license-status.js');
   const recoverHandler = await import('../api/license-recover.js');
   const adminCreateLicenseHandler = await import('../api/admin-create-license.js');
@@ -46,7 +47,34 @@ module.exports = async function run(){
     check('unknown email returns 404', missing.statusCode === 404);
   }
 
-  console.log('\n3) license-status: reports Free usage and remaining monthly allowance, plus every trial protocol\'s status');
+  console.log('\n3) access notifications: signup and recovery email events are sent to the sheet webhook');
+  {
+    __resetForTests();
+    const originalWebhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL;
+    const originalFetch = global.fetch;
+    process.env.GOOGLE_SHEET_WEBHOOK_URL = 'https://example.test/access-events';
+    const captured = [];
+    global.fetch = async (url, opts) => {
+      captured.push({ url, body: JSON.parse(opts.body) });
+      return { ok: true };
+    };
+
+    const firstSignup = await send(signupHandler, { body: { email: 'Notify@Example.com' } });
+    const secondSignup = await send(signupHandler, { body: { email: 'notify@example.com' } });
+    const recovered = await send(recoverHandler, { body: { email: ' notify@example.com ' } });
+
+    check('notified signup/recovery routes still return successful responses', firstSignup.statusCode === 200 && secondSignup.statusCode === 200 && recovered.statusCode === 200);
+    check('new Free signup sends a notification row', captured[0]?.body?.protocol === 'LICENSE' && captured[0].body.ratingTier === 'free_signup_new');
+    check('repeat Free signup sends an existing-user notification row', captured[1]?.body?.ratingTier === 'free_signup_existing');
+    check('license recovery sends a notification row', captured[2]?.body?.ratingTier === 'license_recovered');
+    check('notification rows include the normalized email', captured.every(call => call.body.comment.includes('Email: notify@example.com')));
+
+    global.fetch = originalFetch;
+    if(originalWebhookUrl === undefined) delete process.env.GOOGLE_SHEET_WEBHOOK_URL;
+    else process.env.GOOGLE_SHEET_WEBHOOK_URL = originalWebhookUrl;
+  }
+
+  console.log('\n4) license-status: reports Free usage and remaining monthly allowance, plus every trial protocol\'s status');
   {
     __resetForTests();
     const key = await svc.getOrCreateFreeLicense('status@example.com');
@@ -68,7 +96,7 @@ module.exports = async function run(){
     check('Beida, used 3 times, reports that correctly', trials.BEIDA.trialUsageCount === 3 && trials.BEIDA.remainingTrialGenerations === licensing.TRIAL_GENERATIONS_PER_PROTOCOL - 3);
   }
 
-  console.log('\n4) license-status: owner key is Pro forever and usage-free (including every protocol\'s trial)');
+  console.log('\n5) license-status: owner key is Pro forever and usage-free (including every protocol\'s trial)');
   {
     __resetForTests();
     const oldOwnerKeys = process.env.OWNER_LICENSE_KEYS;
@@ -84,7 +112,7 @@ module.exports = async function run(){
     else process.env.OWNER_LICENSE_KEYS = oldOwnerKeys;
   }
 
-  console.log('\n5) license-status: missing or invalid key is rejected');
+  console.log('\n6) license-status: missing or invalid key is rejected');
   {
     __resetForTests();
     const missing = await send(statusHandler, { method: 'GET' });
@@ -94,7 +122,7 @@ module.exports = async function run(){
     check('invalid key returns 401', invalid.statusCode === 401);
   }
 
-  console.log('\n6) admin-create-license: owner-only 30-day Pro key creation');
+  console.log('\n7) admin-create-license: owner-only 30-day Pro key creation');
   {
     __resetForTests();
     const oldOwnerKeys = process.env.OWNER_LICENSE_KEYS;
@@ -143,7 +171,7 @@ module.exports = async function run(){
     else process.env.OWNER_LICENSE_KEYS = oldOwnerKeys;
   }
 
-  console.log('\n7) admin-license-lookup: owner-only read-only key inspection');
+  console.log('\n8) admin-license-lookup: owner-only read-only key inspection');
   {
     __resetForTests();
     const oldOwnerKeys = process.env.OWNER_LICENSE_KEYS;

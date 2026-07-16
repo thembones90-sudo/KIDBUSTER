@@ -221,15 +221,16 @@ module.exports = async function run(){
     check('manual license is Pro, active, and marked manual', license.plan === 'pro' && license.status === 'active' && license.manual === true);
     check('manual license stores normalized email and 30-day duration', license.email === 'buyer@example.com' && license.durationDays === 30);
     check('manual license can be recovered by buyer email', (await licensing.getLicenseKeyByEmail('buyer@example.com')) === result.licenseKey);
+    check('manual key creation sends one Sheet notification', notifications.length === 1 && notifications[0].payload.protocol === 'LICENSE' && notifications[0].payload.ratingTier === 'manual_key_created');
 
     const allowed = await svc.checkEntitlement(result.licenseKey, 'OF', 'anon-browser-one');
     check('fresh manual Pro key can use Pro protocols and is claimed by first browser', allowed.allowed === true && allowed.license.claimedInstallationId === 'anon-browser-one');
-    check('first manual key claim sends one Sheet notification', notifications.length === 1 && notifications[0].payload.protocol === 'LICENSE' && notifications[0].payload.ratingTier === 'manual_key_claimed');
-    check('notification identifies the exact claimed key', notifications[0].payload.comment.includes(result.licenseKey));
+    check('first manual key claim sends a second Sheet notification', notifications.length === 2 && notifications[1].payload.protocol === 'LICENSE' && notifications[1].payload.ratingTier === 'manual_key_claimed');
+    check('claim notification identifies the claimed key in masked form', notifications[1].payload.comment.includes(result.licenseKey.slice(0, 8)) && notifications[1].payload.comment.includes(result.licenseKey.slice(-4)));
 
     const sameBrowser = await svc.checkEntitlement(result.licenseKey, 'BEIDA', 'anon-browser-one');
     check('claimed manual Pro key keeps working for the same browser', sameBrowser.allowed === true);
-    check('same browser does not send duplicate claim notifications', notifications.length === 1);
+    check('same browser does not send duplicate claim notifications', notifications.length === 2);
 
     const otherBrowser = await svc.checkEntitlement(result.licenseKey, 'BEIDA', 'anon-browser-two');
     check('claimed manual Pro key is blocked from a different browser', otherBrowser.allowed === false && otherBrowser.reason === 'key_already_claimed');

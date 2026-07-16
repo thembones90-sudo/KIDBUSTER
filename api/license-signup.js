@@ -6,6 +6,7 @@
 
 import { getOrCreateFreeLicense } from './_lib/license-service.js';
 import { getLicenseKeyByEmail, normalizeEmail } from './_lib/licensing.js';
+import { notifyAccessEvent } from './_lib/access-notifications.js';
 
 function isValidEmail(email){
   // Deliberately simple — this is a signup gate, not full RFC 5322
@@ -27,6 +28,13 @@ export default async function handler(req, res){
     const normalized = normalizeEmail(email);
     const alreadyExisted = !!(await getLicenseKeyByEmail(normalized));
     const licenseKey = await getOrCreateFreeLicense(normalized);
+    await notifyAccessEvent({
+      type: alreadyExisted ? 'free_signup_existing' : 'free_signup_new',
+      title: alreadyExisted ? 'Existing Free user requested access again.' : 'New Free access started.',
+      email: normalized,
+      licenseKey,
+      details: ['Source: Start free']
+    });
     return res.status(200).json({ licenseKey, plan: 'free', alreadyExisted });
   }catch(err){
     console.error('license-signup error:', err);

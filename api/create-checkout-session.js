@@ -19,6 +19,7 @@
 import { getActiveProvider } from './_lib/providers/index.js';
 import { getOrCreateFreeLicense } from './_lib/license-service.js';
 import { getLicense, normalizeEmail } from './_lib/licensing.js';
+import { notifyAccessEvent } from './_lib/access-notifications.js';
 
 function isValidEmail(email){
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -55,6 +56,13 @@ export default async function handler(req, res){
 
     const provider = getActiveProvider();
     const url = await provider.createCheckoutUrl({ email: resolvedEmail || '', licenseKey });
+    await notifyAccessEvent({
+      type: 'pro_checkout_started',
+      title: 'Pro checkout started.',
+      email: resolvedEmail || '',
+      licenseKey,
+      details: ['Provider: ' + (process.env.PAYMENT_PROVIDER || 'lemonsqueezy')]
+    });
 
     return res.status(200).json({ url, licenseKey });
   }catch(err){

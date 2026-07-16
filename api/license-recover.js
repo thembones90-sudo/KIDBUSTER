@@ -3,6 +3,7 @@
 // email -> license key lookup in KV.
 
 import { getLicenseKeyByEmail, normalizeEmail } from './_lib/licensing.js';
+import { notifyAccessEvent } from './_lib/access-notifications.js';
 
 function isValidEmail(email){
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -24,6 +25,13 @@ export default async function handler(req, res){
     if(!licenseKey){
       return res.status(404).json({ error: 'No license key was found for that email.' });
     }
+    await notifyAccessEvent({
+      type: 'license_recovered',
+      title: 'Existing access code recovered by email.',
+      email: normalizedEmail,
+      licenseKey,
+      details: ['Source: Find my code']
+    });
     return res.status(200).json({ licenseKey });
   }catch(err){
     console.error('license-recover error:', err);
