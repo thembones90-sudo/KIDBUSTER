@@ -1894,6 +1894,14 @@ const KidbusterCore = (function(){
   const APPROVED_STARS_VARIETY = ['✨', '💫', '🌠'];
   const APPROVED_STARS_ALL = APPROVED_STARS_PRIMARY.concat(APPROVED_STARS_VARIETY);
 
+  const CLASSIC_STYLE_VARIANTS = {
+    standard: 'Use the normal Classic voice: clear, balanced, specific, and teacher-like. Keep the report polished without making it overly sweet or dramatic.',
+    warm: 'Use a slightly warmer Classic voice: a little more personal and encouraging, while staying more grounded and factual than Sugarcoat.',
+    crisp: 'Use a slightly crisper Classic voice: concise, direct, and efficient. Keep all required sections, but avoid padded transitions and generic praise.',
+    coach: 'Use a light coaching Classic voice: supportive, practical, and progress-focused, with gentle next-step language where appropriate.'
+  };
+  const CLASSIC_STYLE_VARIANT_KEYS = Object.keys(CLASSIC_STYLE_VARIANTS);
+
   // ---------------------------------------------------------------------
   // IMMUTABLE MA PROTOCOL SOURCE — V2.1, verbatim as supplied. Do not edit,
   // paraphrase, or reformat this text. It is passed to the model as-is;
@@ -2354,10 +2362,22 @@ Love, Teacher [Name]`;
     ].join('\n');
   }
 
+  function pickClassicStyleVariant(params){
+    const forced = params && params.forcedClassicStyleVariant;
+    if(forced && CLASSIC_STYLE_VARIANTS[forced]) return forced;
+    return CLASSIC_STYLE_VARIANT_KEYS[Math.floor(Math.random() * CLASSIC_STYLE_VARIANT_KEYS.length)];
+  }
+
   function buildMASystemPrompt(params){
     const runtimeParams = buildMARuntimeParams(params);
     const combined = MA_PROTOCOL_V2_9_SOURCE + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
-    return applyLengthTier(combined, params && params.lengthFormat);
+    const variantKey = pickClassicStyleVariant(params);
+    const classicStyleRuntime =
+      'CLASSIC STYLE VARIANT FOR THIS REPORT (hidden app choice; do not mention this to the user):\n' +
+      '- Selected Classic style: ' + variantKey + '.\n' +
+      '- ' + CLASSIC_STYLE_VARIANTS[variantKey] + '\n' +
+      '- This may vary phrasing only. It must never change section order, required sections, rating tone, Parent Note rules, star rules, character limits, or the final sign-off.';
+    return applyLengthTier(combined + '\n\n' + classicStyleRuntime, params && params.lengthFormat);
   }
 
   /**
@@ -4136,6 +4156,7 @@ because it's about a single lesson.`
     OF_TIERS,
     OF_QUALITATIVE_TIER_DESC,
     MA_PARENT_NOTE_LEVELS,
+    CLASSIC_STYLE_VARIANTS,
     MA_PROTOCOL_V2_9_SOURCE,
     OF_PROTOCOL_V1_4_SOURCE,
     BLITZ_PROTOCOL_V1_0_SOURCE,

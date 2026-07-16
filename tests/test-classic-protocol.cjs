@@ -117,6 +117,22 @@ module.exports = function run(){
     check('Sugarcoat low-rating prompt keeps a firmer message than rating 3', sweetLowPrompt.includes('clearly firmer than rating 3'));
   }
 
+  console.log('\n2c) Classic has hidden random style variants, without exposing a chooser or changing Sugarcoat');
+  {
+    Object.entries(KidbusterCore.CLASSIC_STYLE_VARIANTS).forEach(([key, text]) => {
+      const prompt = KidbusterCore.buildMASystemPrompt({ rating: '4', lengthFormat: 'long', forcedClassicStyleVariant: key });
+      check('Classic forced style variant "' + key + '" appears in the runtime tail', prompt.includes('Selected Classic style: ' + key) && prompt.includes(text));
+    });
+
+    const randomPrompt = KidbusterCore.buildMASystemPrompt({ rating: '4', lengthFormat: 'long' });
+    const selectedVariants = Object.keys(KidbusterCore.CLASSIC_STYLE_VARIANTS).filter(key => randomPrompt.includes('Selected Classic style: ' + key));
+    check('Classic with no forced variant still selects exactly one hidden style variant', selectedVariants.length === 1);
+    check('Classic variant explicitly cannot change structure/rules', randomPrompt.includes('must never change section order, required sections, rating tone, Parent Note rules, star rules, character limits, or the final sign-off'));
+
+    const sweetPrompt = KidbusterCore.PROTOCOLS.MS.buildSystemPrompt({ rating: '4', lengthFormat: 'long' });
+    check('Sugarcoat does not receive the Classic style variant block', !sweetPrompt.includes('CLASSIC STYLE VARIANT FOR THIS REPORT'));
+  }
+
   console.log('\n3) Parent Note gating: required at 1/1.5/2/2.5, forbidden above 2.5');
   {
     ['1', '1.5', '2', '2.5'].forEach(lvl => {
