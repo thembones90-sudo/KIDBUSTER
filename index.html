@@ -319,7 +319,45 @@ button.account-btn:hover{
 }
 button.account-btn:disabled{opacity:0.5;cursor:default;}
 button.help-btn{
-  background:rgba(255,255,255,0.035);
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:38px;
+  padding:9px 18px;
+  background:linear-gradient(135deg, #2B6600 0%, #8DFF1A 58%, #D9FF9A 100%);
+  border-color:rgba(var(--toxin-rgb),0.95);
+  color:#071000;
+  font-size:12px;
+  font-weight:800;
+  box-shadow:0 0 20px -4px var(--toxin-glow), 0 8px 24px -16px rgba(0,0,0,0.9);
+  text-shadow:none;
+  animation:helpPulse 2.8s ease-in-out infinite;
+}
+button.help-btn::before{
+  content:"?";
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:18px;
+  height:18px;
+  border-radius:999px;
+  background:#071000;
+  color:var(--toxin);
+  font-family:var(--font-display);
+  font-size:12px;
+  line-height:1;
+  box-shadow:0 0 10px -2px rgba(var(--toxin-rgb),0.9);
+}
+button.help-btn:hover{
+  background:linear-gradient(135deg, #397900 0%, #A7FF32 54%, #EDFFC9 100%);
+  border-color:var(--toxin);
+  color:#071000;
+  box-shadow:0 0 28px -2px var(--toxin-glow), 0 10px 28px -16px rgba(0,0,0,0.9);
+}
+@keyframes helpPulse{
+  0%, 100%{transform:translateY(0); box-shadow:0 0 18px -5px var(--toxin-glow), 0 8px 24px -16px rgba(0,0,0,0.9);}
+  50%{transform:translateY(-1px); box-shadow:0 0 30px -1px var(--toxin-glow), 0 10px 28px -16px rgba(0,0,0,0.9);}
 }
 .account-panel{
   background:var(--surface);
@@ -457,6 +495,11 @@ button.help-btn{
 }
 @media (max-width:700px){
   .header-actions{justify-content:flex-start;}
+  button.help-btn{
+    min-height:42px;
+    padding:10px 18px;
+    font-size:13px;
+  }
   .account-grid{grid-template-columns:1fr;}
   .account-panel-head{display:block;}
   .account-panel-head .btn-secondary{margin-top:10px;}
@@ -1680,7 +1723,7 @@ body.protocol-preply .generate-btn.loading{
       </div>
     </div>
     <div class="header-actions">
-      <button class="btn-secondary account-btn help-btn" id="helpBtn" type="button">Help</button>
+      <button class="btn-secondary account-btn help-btn" id="helpBtn" type="button" aria-label="Start here: open Pathfinder help guide">Start here</button>
       <button class="btn-secondary account-btn" id="accountBtn" type="button">Access</button>
     </div>
   </div>
