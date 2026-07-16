@@ -46,12 +46,14 @@ module.exports = async function run(){
   const initial = await page.evaluate(() => ({
     title: document.title,
     hasLogo: Boolean(document.getElementById('kbLogo')),
+    hasHelpButton: Boolean(document.getElementById('helpBtn')),
     hasAccountButton: Boolean(document.getElementById('accountBtn')),
     buildText: document.getElementById('accountBuild')?.textContent || '',
     coreBuild: typeof KidbusterCore !== 'undefined' ? KidbusterCore.KIDBUSTER_BUILD_LABEL : ''
   }));
   check('live page title contains Pathfinder', /Pathfinder/i.test(initial.title));
   check('live page renders the Pathfinder logo', initial.hasLogo);
+  check('live page renders Help button', initial.hasHelpButton);
   check('live page renders Access button', initial.hasAccountButton);
   check('live build marker is present in the Access panel markup', initial.buildText === EXPECTED_BUILD);
   check('live core build marker matches expected build', initial.coreBuild === EXPECTED_BUILD);

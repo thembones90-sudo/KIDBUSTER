@@ -126,6 +126,34 @@ module.exports = async function run(){
   }
 
   console.log('\n2) Every protocol correctly sets its own body class AND its own button gradient — not just its :has()-driven panel colors');
+  console.log('\n1c) Help modal explains the app and closes cleanly');
+  await page.click('#helpBtn');
+  await new Promise(r => setTimeout(r, 80));
+  const helpOpen = await page.evaluate(() => {
+    const overlay = document.getElementById('helpModalOverlay');
+    const text = overlay ? overlay.textContent : '';
+    return {
+      visible: overlay && getComputedStyle(overlay).display !== 'none',
+      hasTitle: text.includes('How to use Pathfinder'),
+      hasSteps: text.includes('Pick a protocol') && text.includes('Paste your lesson notes') && text.includes('Generate, read, send'),
+      hasAccess: text.includes('Free') && text.includes('Pro') && text.includes('Manual code')
+    };
+  });
+  check('Help button opens the onboarding guide', helpOpen.visible);
+  check('Help guide includes the basic workflow steps', helpOpen.hasTitle && helpOpen.hasSteps);
+  check('Help guide explains Free, Pro, and manual code access', helpOpen.hasAccess);
+
+  await page.click('#helpModalCloseBtn');
+  await new Promise(r => setTimeout(r, 80));
+  const helpClosedByButton = await page.evaluate(() => getComputedStyle(document.getElementById('helpModalOverlay')).display === 'none');
+  check('Help modal closes from the Close button', helpClosedByButton);
+
+  await page.click('#helpBtn');
+  await page.keyboard.press('Escape');
+  await new Promise(r => setTimeout(r, 80));
+  const helpClosedByEscape = await page.evaluate(() => getComputedStyle(document.getElementById('helpModalOverlay')).display === 'none');
+  check('Help modal closes with Escape', helpClosedByEscape);
+
   const protocols = [
     { value: 'MA',    bodyClass: null, label: 'Classic' }, // MA is the default theme — no body class of its own
     { value: 'MS',    bodyClass: 'protocol-ms', label: 'Sugarcoat' },
@@ -182,7 +210,7 @@ module.exports = async function run(){
       const overlay = document.getElementById('licenseModalOverlay');
       return {
         visible: getComputedStyle(overlay).display !== 'none',
-        title: document.querySelector('.license-modal-title').textContent,
+        title: overlay.querySelector('.license-modal-title').textContent,
         hasPro: !!document.getElementById('licenseModalProBtn'),
         hasFree: !!document.getElementById('licenseModalFreeBtn'),
         hasPaypal: !!document.getElementById('licenseModalPaypalBtn'),
