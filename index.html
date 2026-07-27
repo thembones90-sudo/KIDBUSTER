@@ -6408,5 +6408,17 @@ function restoreDraft(){
 
 restoreDraft();
 </script>
+
+<script>
+(function(){
+  var upgradeBtn = document.getElementById('accountUpgradeBtn');
+  var overlay = document.getElementById('licenseModalOverlay');
+  if (upgradeBtn && overlay) {
+    upgradeBtn.addEventListener('click', function(){
+      overlay.style.display = 'flex';
+    });
+  }
+})();
+</script>
 </body>
 </html>
