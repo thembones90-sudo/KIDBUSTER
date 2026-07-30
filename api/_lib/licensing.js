@@ -127,6 +127,16 @@ export function evaluateEntitlement({ plan, status, protocol, monthlyUsageCount,
   }
 
   if(plan === 'pro'){
+    // Only time-limited Pro grants (e.g. a 30-day manual code) ever set
+    // expiresAt at all -- an ordinary paying customer's record never has
+    // this field, so this check is a no-op for them.
+    if(expiresAt && new Date(expiresAt).getTime() <= Date.now()){
+      return {
+        allowed: false,
+        reason: 'pro_expired',
+        message: 'Your temporary Pro access has expired. Contact your teacher/admin for a new code, or upgrade to a full Pro subscription to continue.'
+      };
+    }
     return { allowed: true, reason: null, message: null };
   }
 
