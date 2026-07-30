@@ -4893,7 +4893,9 @@ function setLoading(loading){
   }
 }
 
+let currentUserIsFounder = false;
 function renderLint(warnings){
+  if(!currentUserIsFounder) return;
   const box = document.getElementById('lintResults');
   if(warnings === null){
     box.style.display = 'none';
@@ -5081,7 +5083,8 @@ async function refreshAccountPanel(){
     }
 
     const isPro = data.plan === 'pro' && data.expired !== true;
-    const planLabel = data.founder ? 'Owner Pro' : (data.expired ? 'Expired' : (isPro ? 'Pro' : 'Free'));
+    currentUserIsFounder = !!data.founder;
+  const planLabel = data.founder ? 'Owner Pro' : (data.expired ? 'Expired' : (isPro ? 'Pro' : 'Free'));
     const statusLabel = data.founder ? 'Full access forever' : formatAccountStatus(data.status || 'active');
     const usageLabel = isPro
       ? 'Unlimited'
