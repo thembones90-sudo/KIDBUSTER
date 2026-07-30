@@ -4797,6 +4797,7 @@ function setCurrentReport(text, lintWarnings){
 // paths render Beida identically.
 function renderReportToOutput(text){
   outputBox.className = 'output-box';
+  outputBox.contentEditable = 'true';
   if(currentProtocolKey() === 'BEIDA'){
     const sections = KidbusterCore.splitBeidaOutput(text);
     const performanceBox = document.getElementById('beidaPerformanceBox');
