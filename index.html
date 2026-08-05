@@ -6485,18 +6485,25 @@ restoreDraft();
   async function claimPending(meetingId){
     var key = getSavedKey();
     if(!key) return;
+    var statusEl = document.getElementById('krispWaitStatus');
     try{
       var res = await fetch('/api/krisp-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-app-key': key },
         body: JSON.stringify({ action: 'claim', meetingId: meetingId })
       });
-      var json = await res.json();
-      if(res.ok && json.claimed){
+      var json = null;
+      try{ json = await res.json(); }catch(parseErr){ json = null; }
+      if(res.ok && json && json.claimed){
         applyTranscript(json.claimed);
+      } else if(!res.ok){
+        var message = (json && json.error) ? json.error : 'Something went wrong inserting that transcript. Please try again.';
+        if(statusEl) statusEl.textContent = '⚠️ ' + message;
       }
       refreshKrispSession();
-    }catch(e){ /* network hiccup -- the item just stays in the pending list, nothing lost */ }
+    }catch(e){
+      if(statusEl) statusEl.textContent = '⚠️ Could not reach the server. Please try again.';
+    }
   }
 
   async function refreshKrispSession(){
