@@ -6478,6 +6478,7 @@ restoreDraft();
     var mins = record.durationSeconds ? Math.round(record.durationSeconds / 60) : null;
     var status = document.getElementById('krispWaitStatus');
     if(status){
+      status.style.color = '';
       status.textContent = 'Transcript received \u2713' + (record.title ? ' \u2014 ' + record.title : '') + (mins ? ' \u2014 ' + mins + ' min' : '');
     }
   }
@@ -6485,24 +6486,35 @@ restoreDraft();
   async function claimPending(meetingId){
     var key = getSavedKey();
     if(!key) return;
-    var statusEl = document.getElementById('krispWaitStatus');
+    var status = document.getElementById('krispWaitStatus');
     try{
       var res = await fetch('/api/krisp-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-app-key': key },
         body: JSON.stringify({ action: 'claim', meetingId: meetingId })
       });
-      var json = null;
-      try{ json = await res.json(); }catch(parseErr){ json = null; }
-      if(res.ok && json && json.claimed){
-        applyTranscript(json.claimed);
-      } else if(!res.ok){
-        var message = (json && json.error) ? json.error : 'Something went wrong inserting that transcript. Please try again.';
-        if(statusEl) statusEl.textContent = '⚠️ ' + message;
+      if(res.ok){
+        var json = await res.json();
+        if(json.claimed){
+          applyTranscript(json.claimed);
+        }
+      } else {
+        var errorMsg = 'Could not insert that transcript. Please try again.';
+        try{
+          var errJson = await res.json();
+          if(errJson && errJson.error){ errorMsg = errJson.error; }
+        }catch(parseErr){ /* body wasn't JSON -- keep the generic fallback */ }
+        if(status){
+          status.style.color = '#E5484D';
+          status.textContent = errorMsg;
+        }
       }
       refreshKrispSession();
     }catch(e){
-      if(statusEl) statusEl.textContent = '⚠️ Could not reach the server. Please try again.';
+      if(status){
+        status.style.color = '#E5484D';
+        status.textContent = 'Could not reach Pathfinder to insert that transcript. Check your connection and try again.';
+      }
     }
   }
 
@@ -6533,7 +6545,7 @@ restoreDraft();
     var btn = document.getElementById('krispWaitBtn');
     var status = document.getElementById('krispWaitStatus');
     if(btn) btn.textContent = 'Stop waiting';
-    if(status) status.textContent = '\uD83D\uDFE2 Waiting for Krisp transcript...';
+    if(status){ status.style.color = ''; status.textContent = '\uD83D\uDFE2 Waiting for Krisp transcript...'; }
     if(pollTimer) clearInterval(pollTimer);
     pollTimer = setInterval(refreshKrispSession, 5000);
   }
