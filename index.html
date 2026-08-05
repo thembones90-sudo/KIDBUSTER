@@ -1860,6 +1860,16 @@ body.protocol-preply .generate-btn.loading{
           <textarea id="krispNotes" rows="6" placeholder="Paste the raw lesson summary or transcript here..."></textarea>
           <div class="field-counter" id="krispCounter">0 words · 0 characters</div>
         </div>
+        <div class="field" id="krispIntegrationPanel" style="display:none">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <button type="button" id="krispWaitBtn" class="btn-secondary">Wait for next Krisp transcript</button>
+            <span id="krispWaitStatus" style="font-size:13px;opacity:0.8;"></span>
+          </div>
+          <div id="krispPendingWrap" style="display:none;margin-top:10px;">
+            <div style="font-size:13px;opacity:0.8;margin-bottom:4px;">Unclaimed Krisp imports:</div>
+            <div id="krispPendingItems"></div>
+          </div>
+        </div>
         <div class="field">
           <label class="field-label" for="specialRemarks">Special remarks (optional)</label>
           <textarea id="specialRemarks" rows="2" placeholder="Please review TH pronunciation. Homework: pages 12-14."></textarea>
@@ -6421,6 +6431,151 @@ restoreDraft();
     upgradeBtn.addEventListener('click', function(){
       overlay.style.display = 'flex';
     });
+  }
+})();
+</script>
+<script>
+(function(){
+  var ACCESS_KEY_STORAGE_KEY = 'kidbuster_access_key';
+  var pollTimer = null;
+
+  function getSavedKey(){
+    try{ return localStorage.getItem(ACCESS_KEY_STORAGE_KEY); }catch(e){ return null; }
+  }
+
+  function renderPending(items){
+    var wrap = document.getElementById('krispPendingWrap');
+    var list = document.getElementById('krispPendingItems');
+    if(!wrap || !list) return;
+    list.innerHTML = '';
+    if(!items || items.length === 0){
+      wrap.style.display = 'none';
+      return;
+    }
+    wrap.style.display = '';
+    items.forEach(function(item){
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;';
+      var label = document.createElement('span');
+      var mins = item.durationSeconds ? Math.round(item.durationSeconds / 60) : null;
+      label.textContent = (item.title || 'Untitled meeting') + (mins ? ' · ' + mins + ' min' : '');
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = 'Insert';
+      btn.className = 'btn-secondary';
+      btn.addEventListener('click', function(){ claimPending(item.meetingId); });
+      row.appendChild(label);
+      row.appendChild(btn);
+      list.appendChild(row);
+    });
+  }
+
+  function applyTranscript(record){
+    var box = document.getElementById('krispNotes');
+    if(!box || !record) return;
+    box.value = record.transcript || '';
+    box.dispatchEvent(new Event('input', {bubbles:true}));
+    var mins = record.durationSeconds ? Math.round(record.durationSeconds / 60) : null;
+    var status = document.getElementById('krispWaitStatus');
+    if(status){
+      status.textContent = 'Transcript received \u2713' + (record.title ? ' \u2014 ' + record.title : '') + (mins ? ' \u2014 ' + mins + ' min' : '');
+    }
+  }
+
+  async function claimPending(meetingId){
+    var key = getSavedKey();
+    if(!key) return;
+    try{
+      var res = await fetch('/api/krisp-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-app-key': key },
+        body: JSON.stringify({ action: 'claim', meetingId: meetingId })
+      });
+      var json = await res.json();
+      if(res.ok && json.claimed){
+        applyTranscript(json.claimed);
+      }
+      refreshKrispSession();
+    }catch(e){ /* network hiccup -- the item just stays in the pending list, nothing lost */ }
+  }
+
+  async function refreshKrispSession(){
+    var key = getSavedKey();
+    if(!key) return null;
+    try{
+      var res = await fetch('/api/krisp-session', { headers: { 'x-app-key': key } });
+      if(!res.ok) return null;
+      var json = await res.json();
+      renderPending(json.pending);
+      if(json.matched){
+        applyTranscript(json.matched);
+        stopWaiting(false);
+      }
+      return json;
+    }catch(e){ return null; }
+  }
+
+  function startWaiting(){
+    var key = getSavedKey();
+    if(!key) return;
+    fetch('/api/krisp-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-app-key': key },
+      body: JSON.stringify({ action: 'wait' })
+    }).catch(function(){});
+    var btn = document.getElementById('krispWaitBtn');
+    var status = document.getElementById('krispWaitStatus');
+    if(btn) btn.textContent = 'Stop waiting';
+    if(status) status.textContent = '\uD83D\uDFE2 Waiting for Krisp transcript...';
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(refreshKrispSession, 5000);
+  }
+
+  function stopWaiting(callServer){
+    if(callServer !== false){
+      var key = getSavedKey();
+      if(key){
+        fetch('/api/krisp-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-app-key': key },
+          body: JSON.stringify({ action: 'cancel-wait' })
+        }).catch(function(){});
+      }
+    }
+    var btn = document.getElementById('krispWaitBtn');
+    if(btn) btn.textContent = 'Wait for next Krisp transcript';
+    if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  function wireButtons(){
+    var btn = document.getElementById('krispWaitBtn');
+    if(!btn) return;
+    var waiting = false;
+    btn.addEventListener('click', function(){
+      waiting = !waiting;
+      if(waiting){ startWaiting(); } else { stopWaiting(true); var status = document.getElementById('krispWaitStatus'); if(status) status.textContent = ''; }
+    });
+  }
+
+  async function initKrispPanel(){
+    var key = getSavedKey();
+    if(!key) return; // fail-safe hidden, same as the lint panel: no key, no panel
+    try{
+      var res = await fetch('/api/license-status', { headers: { 'x-app-key': key } });
+      if(!res.ok) return;
+      var json = await res.json();
+      if(!json.founder) return;
+      var panel = document.getElementById('krispIntegrationPanel');
+      if(panel) panel.style.display = '';
+      wireButtons();
+      refreshKrispSession();
+    }catch(e){ /* stays hidden on any error -- fail safe, not fail open */ }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initKrispPanel);
+  } else {
+    initKrispPanel();
   }
 })();
 </script>
