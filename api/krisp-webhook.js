@@ -58,14 +58,32 @@ function redactHeaders(headers){
 function normalizeKrispPayload(body){
   if(!body || typeof body !== 'object' || Array.isArray(body)) return null;
 
-  const meetingId = body.meeting_id || body.meetingId || (body.meeting && body.meeting.id) || null;
-  const eventId = body.event_id || body.eventId || body.id || null;
-  const title = body.title || (body.meeting && body.meeting.title) || '';
-  const url = body.url || body.link || (body.meeting && body.meeting.url) || '';
-  const startTime = body.start_time || body.startTime || null;
-  const endTime = body.end_time || body.endTime || null;
-  const durationSeconds = body.duration_seconds ?? body.duration ?? null;
-  const transcript = body.transcript || body.transcript_text || body.transcriptText || '';
+  // A real captured Krisp delivery (via webhook.site, 2026-08-06) confirmed
+  // the actual shape: everything meeting-related sits under body.data.meeting,
+  // the event id is the top-level body.id, and there's no field literally
+  // called "transcript" -- the closest equivalent is body.data.raw_content
+  // (a bulleted key-points summary). The field-name guesses this function
+  // started with never matched that real shape, which is why real
+  // deliveries were reaching this endpoint and returning 200 (no error) but
+  // never actually storing anything -- normalized.transcript was always
+  // empty under the old guesses, so the "no transcript content" branch
+  // correctly (if unhelpfully) fired every time.
+  //
+  // Real shape checked first; every original guess kept as a fallback in
+  // case Krisp changes shapes again or delivers a different event type.
+  const data = (body.data && typeof body.data === 'object') ? body.data : {};
+  const meeting = (data.meeting && typeof data.meeting === 'object') ? data.meeting
+    : (body.meeting && typeof body.meeting === 'object') ? body.meeting
+    : {};
+
+  const meetingId = meeting.id || body.meeting_id || body.meetingId || null;
+  const eventId = body.id || body.event_id || body.eventId || null;
+  const title = meeting.title || body.title || '';
+  const url = meeting.url || body.url || body.link || '';
+  const startTime = meeting.start_date || body.start_time || body.startTime || null;
+  const endTime = meeting.end_date || body.end_time || body.endTime || null;
+  const durationSeconds = meeting.duration ?? body.duration_seconds ?? body.duration ?? null;
+  const transcript = data.raw_content || body.transcript || body.transcript_text || body.transcriptText || '';
 
   return { meetingId, eventId, title, url, startTime, endTime, durationSeconds, transcript };
 }
