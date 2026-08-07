@@ -1887,6 +1887,53 @@ body.protocol-preply .generate-btn.loading{
         </div>
 
 
+        <div class="field">
+          <label class="field-label" for="specialRemarks">Special remarks (optional)</label>
+          <textarea id="specialRemarks" rows="2" placeholder="Please review TH pronunciation. Homework: pages 12-14."></textarea>
+        </div>
+        <button class="generate-btn" id="generateBtn"><span class="btn-label">Generate feedback</span></button>
+      </div>
+
+      <div class="panel">
+        <label class="field-label" id="outputLabel">Output</label>
+        <div class="output-box empty" id="outputBox">Protocol standing by.</div>
+        <div id="beidaPerformanceField" style="display:none; margin-top:14px;">
+          <label class="field-label">General and Detailed Performance</label>
+          <div class="output-box empty" id="beidaPerformanceBox"></div>
+        </div>
+        <div class="action-row" id="actionRow">
+          <button class="btn-secondary" id="copyBtn" disabled>Copy</button>
+          <button class="btn-secondary" id="copyBeidaPerformanceBtn" disabled style="display:none;">Copy Performance</button>
+          <button class="btn-secondary" id="clearBtn">Clear</button>
+          <button class="btn-secondary" id="newStudentBtn" disabled>New Student</button>
+        </div>
+        <div id="feedbackCard" class="feedback-card" style="display:none;">
+          <div class="feedback-card-row">
+            <span class="feedback-card-label">How was this report?</span>
+            <div class="feedback-stars" id="feedbackStars">
+              <button type="button" class="feedback-star" data-score="1">★</button>
+              <button type="button" class="feedback-star" data-score="2">★</button>
+              <button type="button" class="feedback-star" data-score="3">★</button>
+              <button type="button" class="feedback-star" data-score="4">★</button>
+              <button type="button" class="feedback-star" data-score="5">★</button>
+            </div>
+          </div>
+          <textarea id="feedbackComment" class="feedback-comment" placeholder="Optional: what worked, what was missing, what should improve..." maxlength="1000"></textarea>
+          <div class="feedback-submit-row">
+            <button type="button" id="feedbackSubmitBtn" class="feedback-submit-btn" disabled>Submit</button>
+            <div class="feedback-status" id="feedbackStatus"></div>
+          </div>
+        </div>
+        <div id="lintResults" style="display:none;"></div>
+        <div id="trialStatusBox" style="display:none;"></div>
+        <button id="prevReportToggle" class="prev-toggle" style="display:none;" type="button">◂ View previous report</button>
+        <p class="small-note">Reports are copied to your clipboard automatically the moment they're generated. Draft fields are saved in this browser only — generated reports are never stored.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <div id="helpModalOverlay" class="license-modal-overlay" style="display:none;">
   <div class="license-modal help-modal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
     <div class="help-modal-head">
