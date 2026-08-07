@@ -6623,7 +6623,7 @@ restoreDraft();
 
     var headerEl = document.createElement('div');
     headerEl.style.cssText = 'font-weight:700;font-size:14.5px;color:#fff;margin-bottom:5px;';
-    headerEl.textContent = display.headerLine;
+    if(display.headerLine.indexOf('\ud83d\udce5 ') === 0){ var emojiSpan = document.createElement('span'); emojiSpan.style.cssText = 'display:inline-block;vertical-align:-1px;'; emojiSpan.textContent = '\ud83d\udce5'; headerEl.appendChild(emojiSpan); headerEl.appendChild(document.createTextNode(display.headerLine.slice(2))); } else { headerEl.textContent = display.headerLine; }
     textWrap.appendChild(headerEl);
 
     if(display.contextLine){
@@ -6652,14 +6652,14 @@ restoreDraft();
     var importBtn = document.createElement('button');
     importBtn.type = 'button';
     importBtn.textContent = 'Import Comment';
-    importBtn.className = 'btn-secondary krisp-insert-btn'; importBtn.style.border = '1px solid rgba(133,247,12,0.55)';
+    importBtn.className = 'btn-secondary krisp-insert-btn'; importBtn.style.border = '1px solid rgba(133,247,12,0.55)'; importBtn.style.width = '100%';
     importBtn.addEventListener('click', function(){ handleImportClick(item.meetingId, importBtn, card); });
 
     var dismissBtn = document.createElement('button');
     dismissBtn.type = 'button';
     dismissBtn.textContent = 'Dismiss';
     dismissBtn.className = 'btn-secondary';
-    dismissBtn.style.cssText = 'opacity:0.65;border:1px solid rgba(255,255,255,0.22);';
+    dismissBtn.style.cssText = 'opacity:0.65;border:1px solid rgba(255,255,255,0.22);width:100%;';
     dismissBtn.addEventListener('click', function(){ handleDismissClick(item.meetingId, dismissBtn, card); });
 
     btnWrap.appendChild(importBtn);
