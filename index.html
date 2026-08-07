@@ -1863,7 +1863,7 @@ body.protocol-preply .generate-btn.loading{
                             <div id="krispImportStatus" aria-live="polite" style="display:none;font-size:13px;margin-top:6px;color:rgb(133,247,12);transition:opacity 0.4s ease;"></div>
         <div class="field" id="krispIntegrationPanel" style="display:none">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <button type="button" id="krispWaitBtn" class="btn-secondary">Wait for next Krisp transcript</button>
+            <button type="button" id="krispWaitBtn" class="btn-secondary" style="border:1px solid rgba(133,247,12,0.4);">Wait for next Krisp transcript</button>
             <span id="krispWaitDotWrap" style="display:none;align-items:center;gap:6px;">
               <span class="krisp-heartbeat-dot" aria-hidden="true"></span>
               <span id="krispWaitStatus" aria-live="polite" style="font-size:13px;opacity:0.85;"></span>
@@ -1872,9 +1872,9 @@ body.protocol-preply .generate-btn.loading{
           <div style="margin-top:10px;font-size:12px;opacity:0.7;">Your personal Krisp webhook URL (paste into Krisp's Settings &rarr; Integrations &rarr; Webhook):</div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;">
             <input type="text" id="krispWebhookUrlField" readonly style="flex:1;min-width:220px;font-size:12px;padding:6px 8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:inherit;">
-            <button type="button" id="krispCopyUrlBtn" class="btn-secondary">Copy</button>
-            <button type="button" id="krispRegenerateBtn" class="btn-secondary">Regenerate</button>
-            <button type="button" id="krispDisconnectBtn" class="btn-secondary">Disconnect</button>
+            <button type="button" id="krispCopyUrlBtn" class="btn-secondary" style="border:1px solid rgba(133,247,12,0.4);">Copy</button>
+            <button type="button" id="krispRegenerateBtn" class="btn-secondary" style="border:1px solid rgba(133,247,12,0.4);">Regenerate</button>
+            <button type="button" id="krispDisconnectBtn" class="btn-secondary" style="border:1px solid rgba(133,247,12,0.4);">Disconnect</button>
           </div>
           <div id="krispPendingWrap" style="display:none;margin-top:20px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
@@ -6652,14 +6652,14 @@ restoreDraft();
     var importBtn = document.createElement('button');
     importBtn.type = 'button';
     importBtn.textContent = 'Import Comment';
-    importBtn.className = 'btn-secondary krisp-insert-btn';
+    importBtn.className = 'btn-secondary krisp-insert-btn'; importBtn.style.border = '1px solid rgba(133,247,12,0.55)';
     importBtn.addEventListener('click', function(){ handleImportClick(item.meetingId, importBtn, card); });
 
     var dismissBtn = document.createElement('button');
     dismissBtn.type = 'button';
     dismissBtn.textContent = 'Dismiss';
     dismissBtn.className = 'btn-secondary';
-    dismissBtn.style.cssText = 'opacity:0.55;';
+    dismissBtn.style.cssText = 'opacity:0.65;border:1px solid rgba(255,255,255,0.22);';
     dismissBtn.addEventListener('click', function(){ handleDismissClick(item.meetingId, dismissBtn, card); });
 
     btnWrap.appendChild(importBtn);
