@@ -9,11 +9,12 @@
 // Pathfinder user is this," so the URL itself carries that information,
 // the same way Slack/Stripe incoming-webhook URLs work per-account.
 //
-// Every piece of storage this file touches is namespaced under that
-// token (krisp:<token>:pending, krisp:<token>:matched, etc.) -- there is
-// no code path anywhere that reads or writes a key shared between two
-// users' data. This is the actual privacy boundary, not an
-// access-control check layered on top of shared storage.
+// Storage is namespaced by the user's STABLE license identity (resolved
+// from the token at request time), not by the token itself. A webhook
+// URL is a rotatable/revocable credential -- regenerating or
+// disconnecting it must never lose pending imports, so the data lives
+// one level below the token's own lifecycle. See _lib/krisp-token.js
+// for the token<->identity mapping this resolves against.
 //
 // This is a one-way inbound integration only -- we never call out to
 // Krisp. Deliberately does NOT implement Krisp's OAuth Platform API;
@@ -24,22 +25,40 @@ import { resolveKrispToken } from './_lib/krisp-token.js';
 
 const DEDUPE_TTL_SECONDS = 60 * 60 * 24 * 7; // one week is far more than enough to catch retries
 const PENDING_LIST_MAX = 20; // cap so this never grows unbounded if imports go unclaimed
+const CONTENT_PREVIEW_MAX_CHARS = 140;
+
+function dataKeyPrefix(userIdentity){
+  return 'krisp:data:' + userIdentity + ':';
+}
 
 // --- Student name detection (deterministic, no AI) ----------------------
-// Applied to the Krisp meeting title. Deliberately conservative: it's
-// far better to leave the Student field blank than to fill it with
+// Three sources, tried in priority order (title, then participant
+// metadata, then transcript text). Deliberately conservative throughout:
+// it's far better to leave the Student field blank than to fill it with
 // something wrong, since a wrong auto-fill is a silent error a teacher
-// might not notice before generating a report. Every rejection path
-// here is intentional, not a gap to be "improved" without evidence a
-// real title needs it.
+// might not notice before generating a report.
+const GENERIC_NAME_WORDS = /^(today|yesterday|tomorrow|teacher|student|chrome|meeting|krisp|zoom|call|broadcast|conference|webinar|preply|lingo|lesson|class|session|hey|getting|started)$/i;
 const GENERIC_TITLE_MARKERS = /\b(meeting|chrome|zoom|call|broadcast|getting started|hey|krisp|conference|webinar)\b/i;
 const TIME_PATTERN = /\d{1,2}:\d{2}\s*(AM|PM)?/i;
-const TRAILING_GENERIC_SUFFIX = /\s+(lesson|class|session|meeting|call)$/i;
-const NAME_SHAPE = /^[A-Za-z][A-Za-z\s'-]*$/;
 
-function detectStudentInfoFromTitle(title){
+function isValidNameCandidate(candidate){
+  if(!candidate || typeof candidate !== 'string') return false;
+  const trimmed = candidate.trim();
+  if(trimmed.length === 0 || trimmed.length > 24) return false;
+  if(TIME_PATTERN.test(trimmed)) return false;
+  if(/\d/.test(trimmed)) return false;
+  if(trimmed.includes(':')) return false;
+  if(!/^[A-Za-z][A-Za-z\s'-]*$/.test(trimmed)) return false;
+  const words = trimmed.split(/\s+/);
+  if(words.length > 2) return false;
+  for(const w of words){
+    if(GENERIC_NAME_WORDS.test(w)) return false;
+  }
+  return true;
+}
+
+function extractFromTitle(title){
   if(!title || typeof title !== 'string') return { name: null, context: null };
-
   let candidate = null;
   let context = null;
   const separators = [' - ', ' \u2013 ', ' | ', ': '];
@@ -47,26 +66,80 @@ function detectStudentInfoFromTitle(title){
     if(title.includes(sep)){
       const parts = title.split(sep);
       candidate = parts[0].trim();
-      // The segment after the separator (e.g. "Preply" in "Amy - Preply")
-      // is a natural byproduct of the same split -- surfaced as an
-      // optional display label, not used in any confidence check.
       context = parts.slice(1).join(sep).trim() || null;
       break;
     }
   }
-  if(!candidate && TRAILING_GENERIC_SUFFIX.test(title)){
-    candidate = title.replace(TRAILING_GENERIC_SUFFIX, '').trim();
+  if(!candidate){
+    // "Kaya lesson" / "Kaya's lesson" / "Kaya class" / "Kaya session" / "Kaya meeting" / "Kaya call"
+    const suffixMatch = title.match(/^([A-Za-z][A-Za-z\s'-]*?)('s)?\s+(lesson|class|session|meeting|call)$/i);
+    if(suffixMatch) candidate = suffixMatch[1].trim();
   }
   if(!candidate) return { name: null, context: null };
-
-  if(candidate.length === 0 || candidate.length > 24) return { name: null, context: null };
-  if(TIME_PATTERN.test(candidate)) return { name: null, context: null };
-  if(/\d/.test(candidate)) return { name: null, context: null };
   if(GENERIC_TITLE_MARKERS.test(candidate)) return { name: null, context: null };
-  if(candidate.split(/\s+/).length > 2) return { name: null, context: null };
-  if(!NAME_SHAPE.test(candidate)) return { name: null, context: null };
-
+  if(!isValidNameCandidate(candidate)) return { name: null, context: null };
   return { name: candidate, context };
+}
+
+// Only confident when participants/speakers metadata names exactly ONE
+// distinct person. With two or more listed people there's no reliable
+// way here to tell which one is the student and which is the teacher
+// (Pathfinder doesn't track the teacher's own name/email to exclude
+// them) -- so this deliberately detects nothing rather than guess.
+function extractFromParticipants(meeting){
+  if(!meeting || typeof meeting !== 'object') return { name: null };
+  const lists = [];
+  if(Array.isArray(meeting.participants)) lists.push(meeting.participants);
+  if(Array.isArray(meeting.speakers)) lists.push(meeting.speakers);
+  const candidates = new Set();
+  for(const list of lists){
+    for(const person of list){
+      if(person && typeof person.first_name === 'string' && person.first_name.trim()){
+        candidates.add(person.first_name.trim());
+      }
+    }
+  }
+  if(candidates.size !== 1) return { name: null };
+  const only = [...candidates][0];
+  if(!isValidNameCandidate(only)) return { name: null };
+  return { name: only };
+}
+
+const TRANSCRIPT_NAME_PATTERNS = [
+  /today'?s lesson with ([A-Za-z][A-Za-z'-]*)/i,
+  /([A-Za-z][A-Za-z'-]*) and i discussed/i,
+  /([A-Za-z][A-Za-z'-]*) practiced/i
+];
+
+function extractFromTranscript(content){
+  if(!content || typeof content !== 'string') return { name: null };
+  for(const pattern of TRANSCRIPT_NAME_PATTERNS){
+    const match = content.match(pattern);
+    if(match && match[1] && isValidNameCandidate(match[1].trim())){
+      return { name: match[1].trim() };
+    }
+  }
+  return { name: null };
+}
+
+function detectStudentInfo(normalized){
+  const titleResult = extractFromTitle(normalized.title);
+  if(titleResult.name) return { name: titleResult.name, context: titleResult.context, source: 'title' };
+
+  const participantResult = extractFromParticipants(normalized.rawMeeting);
+  if(participantResult.name) return { name: participantResult.name, context: null, source: 'participant' };
+
+  const transcriptResult = extractFromTranscript(normalized.transcript);
+  if(transcriptResult.name) return { name: transcriptResult.name, context: null, source: 'transcript' };
+
+  return { name: null, context: null, source: null };
+}
+
+function buildContentPreview(transcript){
+  if(!transcript || typeof transcript !== 'string') return '';
+  const singleLine = transcript.replace(/\s+/g, ' ').trim();
+  if(singleLine.length <= CONTENT_PREVIEW_MAX_CHARS) return singleLine;
+  return singleLine.slice(0, CONTENT_PREVIEW_MAX_CHARS).trim() + '\u2026';
 }
 
 // --- Normalization layer -------------------------------------------------
@@ -91,7 +164,7 @@ function normalizeKrispPayload(body){
   const durationSeconds = meeting.duration ?? body.duration_seconds ?? body.duration ?? null;
   const transcript = data.raw_content || body.transcript || body.transcript_text || body.transcriptText || '';
 
-  return { meetingId, eventId, title, url, startTime, endTime, durationSeconds, transcript };
+  return { meetingId, eventId, title, url, startTime, endTime, durationSeconds, transcript, rawMeeting: meeting };
 }
 
 export default async function handler(req, res){
@@ -121,13 +194,15 @@ export default async function handler(req, res){
     return res.status(400).json({ error: 'Payload has neither a meeting ID nor an event ID -- nothing to dedupe or store on.' });
   }
 
+  const prefix = dataKeyPrefix(userIdentity);
+
   try{
     if(!normalized.transcript){
       console.log('[krisp-webhook] no transcript content, ignored (id=' + dedupeKey + ')');
       return res.status(200).json({ stored: false, reason: 'No transcript content in this event.' });
     }
 
-    const dedupeMarkerKey = 'krisp:' + token + ':seen:' + dedupeKey;
+    const dedupeMarkerKey = prefix + 'seen:' + dedupeKey;
     const alreadySeen = await kv.get(dedupeMarkerKey);
     if(alreadySeen){
       console.log('[krisp-webhook] duplicate ignored (id=' + dedupeKey + ')');
@@ -137,25 +212,29 @@ export default async function handler(req, res){
 
     console.log('[krisp-webhook] accepted (id=' + dedupeKey + ')');
 
-    const studentInfo = detectStudentInfoFromTitle(normalized.title);
+    const studentInfo = detectStudentInfo(normalized);
     const record = {
       meetingId: normalized.meetingId,
       eventId: normalized.eventId,
       title: normalized.title,
       url: normalized.url,
       startTime: normalized.startTime,
+      meetingStartTime: normalized.startTime,
       endTime: normalized.endTime,
       durationSeconds: normalized.durationSeconds,
       transcript: normalized.transcript,
+      contentPreview: buildContentPreview(normalized.transcript),
+      studentNameCandidate: studentInfo.name,
       detectedStudentName: studentInfo.name,
+      detectionSource: studentInfo.source,
       detectedContext: studentInfo.context,
       receivedAt: new Date().toISOString(),
       assigned: false
     };
 
-    const waitingKey = 'krisp:' + token + ':waitingSince';
-    const matchedKey = 'krisp:' + token + ':matched';
-    const pendingKey = 'krisp:' + token + ':pending';
+    const waitingKey = prefix + 'waitingSince';
+    const matchedKey = prefix + 'matched';
+    const pendingKey = prefix + 'pending';
 
     const waitingSince = await kv.get(waitingKey);
     if(waitingSince){
@@ -167,6 +246,11 @@ export default async function handler(req, res){
       return res.status(200).json({ stored: true, matched: true });
     }
 
+    // No one was waiting -- file it in the pending-import inbox instead
+    // so nothing is lost; the teacher can insert it manually later.
+    // Every pending item is preserved (up to the cap) rather than only
+    // the newest -- ordering for display is handled at read time in
+    // krisp-session.js, sorted by meeting start time, not arrival order.
     const pending = (await kv.get(pendingKey)) || [];
     pending.unshift(record);
     if(pending.length > PENDING_LIST_MAX){
