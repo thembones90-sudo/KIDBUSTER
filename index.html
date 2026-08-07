@@ -1860,16 +1860,31 @@ body.protocol-preply .generate-btn.loading{
           <textarea id="krispNotes" rows="6" placeholder="Paste the raw lesson summary or transcript here..."></textarea>
           <div class="field-counter" id="krispCounter">0 words · 0 characters</div>
         </div>
+                  <div id="krispImportStatus" aria-live="polite" style="display:none;font-size:13px;margin-top:6px;color:rgb(133,247,12);transition:opacity 0.4s ease;"></div>
         <div class="field" id="krispIntegrationPanel" style="display:none">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <button type="button" id="krispWaitBtn" class="btn-secondary">Wait for next Krisp transcript</button>
-            <span id="krispWaitStatus" style="font-size:13px;opacity:0.8;"></span>
+            <span id="krispWaitDotWrap" style="display:none;align-items:center;gap:6px;">
+              <span class="krisp-heartbeat-dot" aria-hidden="true"></span>
+              <span id="krispWaitStatus" aria-live="polite" style="font-size:13px;opacity:0.85;"></span>
+            </span>
           </div>
-          <div id="krispPendingWrap" style="display:none;margin-top:10px;">
-            <div style="font-size:13px;opacity:0.8;margin-bottom:4px;">Unclaimed Krisp imports:</div>
+          <div style="margin-top:10px;font-size:12px;opacity:0.7;">Your personal Krisp webhook URL (paste into Krisp's Settings &rarr; Integrations &rarr; Webhook):</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;">
+            <input type="text" id="krispWebhookUrlField" readonly style="flex:1;min-width:220px;font-size:12px;padding:6px 8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:inherit;">
+            <button type="button" id="krispCopyUrlBtn" class="btn-secondary">Copy</button>
+            <button type="button" id="krispRegenerateBtn" class="btn-secondary">Regenerate</button>
+            <button type="button" id="krispDisconnectBtn" class="btn-secondary">Disconnect</button>
+          </div>
+          <div id="krispPendingWrap" style="display:none;margin-top:14px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:13px;opacity:0.8;">Unclaimed Krisp imports:</span>
+              <span id="krispNewBadge" aria-live="polite" style="display:none;font-size:11px;background:rgba(133,247,12,0.15);color:rgb(133,247,12);border:1px solid rgba(133,247,12,0.4);border-radius:10px;padding:2px 8px;">1 New Krisp transcript</span>
+            </div>
             <div id="krispPendingItems"></div>
           </div>
         </div>
+
         <div class="field">
           <label class="field-label" for="specialRemarks">Special remarks (optional)</label>
           <textarea id="specialRemarks" rows="2" placeholder="Please review TH pronunciation. Homework: pages 12-14."></textarea>
@@ -6434,106 +6449,305 @@ restoreDraft();
   }
 })();
 </script>
+<style>
+@keyframes krisp-heartbeat {
+  0%, 100% { opacity: 0.5; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+.krisp-heartbeat-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgb(133,247,12);
+  animation: krisp-heartbeat 1.8s ease-in-out infinite;
+}
+
+@keyframes krisp-btn-pulse {
+  0%, 100% { box-shadow: 0 0 22.34px 2.59px rgba(133,247,12,0.52), 0 0 41.51px 7.1px rgba(133,247,12,0.32); }
+  25% { box-shadow: 0 0 5px 0px rgba(133,247,12,0.2); }
+  50% { box-shadow: 0 0 40px 8px rgba(133,247,12,0.85), 0 0 60px 14px rgba(133,247,12,0.5); }
+  75% { box-shadow: 0 0 5px 0px rgba(133,247,12,0.2); }
+}
+.krisp-arrival-pulse { animation: krisp-btn-pulse 0.6s ease-in-out 3; }
+.krisp-arrival-static { box-shadow: 0 0 40px 8px rgba(133,247,12,0.85), 0 0 60px 14px rgba(133,247,12,0.5) !important; }
+
+@keyframes krisp-panel-highlight {
+  0% { background-color: rgba(133,247,12,0.12); }
+  100% { background-color: transparent; }
+}
+.krisp-panel-flash { animation: krisp-panel-highlight 1.6s ease-out 1; border-radius: 6px; }
+
+@keyframes krisp-insert-pulse {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: 0 0 12px 2px rgba(133,247,12,0.6); }
+}
+.krisp-insert-flash { animation: krisp-insert-pulse 0.5s ease-in-out 3; }
+
+@keyframes krisp-card-out {
+  to { opacity: 0; transform: translateX(12px); max-height: 0; margin: 0; padding-top: 0; padding-bottom: 0; }
+}
+.krisp-card-removing { animation: krisp-card-out 0.35s ease-in forwards; overflow: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .krisp-heartbeat-dot { animation: none; opacity: 0.9; }
+  .krisp-arrival-pulse { animation: none; box-shadow: 0 0 40px 8px rgba(133,247,12,0.85), 0 0 60px 14px rgba(133,247,12,0.5); }
+  .krisp-panel-flash { animation: none; background-color: rgba(133,247,12,0.12); }
+  .krisp-insert-flash { animation: none; box-shadow: 0 0 12px 2px rgba(133,247,12,0.6); }
+  .krisp-card-removing { animation: none; opacity: 0; }
+}
+</style>
 <script>
 (function(){
   var ACCESS_KEY_STORAGE_KEY = 'kidbuster_access_key';
   var pollTimer = null;
+  var renderedPendingIds = {};
+  var announcedIds = {};
 
   function getSavedKey(){
     try{ return localStorage.getItem(ACCESS_KEY_STORAGE_KEY); }catch(e){ return null; }
   }
 
+  function prefersReducedMotion(){
+    try{ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; }
+  }
+
+  // --- Generate-button arrival animation -----------------------------
+  function triggerGenerateArrivalAnimation(){
+    var btn = document.getElementById('generateBtn');
+    if(!btn || btn.disabled) return; // never interrupt a report already generating
+    var originalText = btn.textContent;
+    var reduced = prefersReducedMotion();
+    btn.textContent = '\u26a1 Transcript Received';
+    btn.classList.add(reduced ? 'krisp-arrival-static' : 'krisp-arrival-pulse');
+    setTimeout(function(){
+      btn.classList.remove('krisp-arrival-pulse', 'krisp-arrival-static');
+      btn.textContent = originalText;
+    }, 2000);
+  }
+
+  // --- Temporary status message under Krisp Notes ---------------------
+  function showImportStatusMessage(msg){
+    var el = document.getElementById('krispImportStatus');
+    if(!el) return;
+    clearTimeout(el.__hideTimer);
+    el.textContent = msg;
+    el.style.display = '';
+    el.style.opacity = '1';
+    el.__hideTimer = setTimeout(function(){
+      el.style.opacity = '0';
+      setTimeout(function(){ el.style.display = 'none'; }, 400);
+    }, 2500);
+  }
+
+  function showKrispError(msg){
+    var statusEl = document.getElementById('krispWaitStatus');
+    if(statusEl){
+      statusEl.style.color = '#E5484D';
+      statusEl.textContent = msg;
+    }
+  }
+
+  // --- Shared apply flow: identical for automatic match and manual insert ---
+  function applyTranscriptWithFullFlow(record){
+    var box = document.getElementById('krispNotes');
+    if(box){
+      box.value = record.transcript || '';
+      box.dispatchEvent(new Event('input', {bubbles:true}));
+    }
+    var studentField = document.getElementById('studentName');
+    if(studentField && !studentField.value.trim() && record.detectedStudentName){
+      studentField.value = record.detectedStudentName;
+      studentField.dispatchEvent(new Event('input', {bubbles:true}));
+    }
+    triggerGenerateArrivalAnimation();
+    showImportStatusMessage('\u2713 Transcript imported successfully');
+  }
+
+  // --- Pending card display (fallback order per spec) -------------------
+  function buildCardDisplay(item){
+    var mins = item.durationSeconds ? Math.round(item.durationSeconds / 60) : null;
+    var timeStr = '';
+    if(item.startTime){
+      try{ timeStr = new Date(item.startTime).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}); }catch(e){}
+    }
+    var headerLine, contextLine;
+    if(item.detectedStudentName){
+      headerLine = '\ud83d\udce5 ' + item.detectedStudentName;
+      var tail = mins ? (mins + ' min') : '';
+      if(item.detectedContext){
+        contextLine = tail ? (item.detectedContext + ' \u2022 ' + tail) : item.detectedContext;
+      } else if(item.title){
+        contextLine = tail ? (item.title + ' \u2022 ' + tail) : item.title;
+      } else {
+        contextLine = tail;
+      }
+    } else {
+      headerLine = item.title || 'Krisp transcript';
+      contextLine = mins ? (mins + ' min') : '';
+    }
+    return { headerLine: headerLine, contextLine: contextLine, timeStr: timeStr };
+  }
+
+  function buildPendingCard(item){
+    var display = buildCardDisplay(item);
+    var card = document.createElement('div');
+    card.className = 'krisp-pending-card';
+    card.dataset.meetingId = item.meetingId;
+    card.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;margin:6px 0;border:1px solid rgba(255,255,255,0.08);border-radius:6px;background:rgba(255,255,255,0.02);';
+
+    var textWrap = document.createElement('div');
+    textWrap.style.cssText = 'font-size:13px;line-height:1.4;';
+
+    var headerEl = document.createElement('div');
+    headerEl.style.fontWeight = '600';
+    headerEl.textContent = display.headerLine;
+    textWrap.appendChild(headerEl);
+
+    if(display.contextLine){
+      var contextEl = document.createElement('div');
+      contextEl.style.cssText = 'opacity:0.75;font-size:12px;';
+      contextEl.textContent = display.contextLine;
+      textWrap.appendChild(contextEl);
+    }
+    if(display.timeStr){
+      var timeEl = document.createElement('div');
+      timeEl.style.cssText = 'opacity:0.55;font-size:11px;';
+      timeEl.textContent = display.timeStr;
+      textWrap.appendChild(timeEl);
+    }
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Insert';
+    btn.className = 'btn-secondary krisp-insert-btn';
+    btn.addEventListener('click', function(){ handleInsertClick(item.meetingId, btn, card); });
+
+    card.appendChild(textWrap);
+    card.appendChild(btn);
+    return card;
+  }
+
+  function removeCardSmoothly(cardEl){
+    var reduced = prefersReducedMotion();
+    cardEl.classList.add('krisp-card-removing');
+    setTimeout(function(){
+      if(cardEl.parentElement) cardEl.parentElement.removeChild(cardEl);
+    }, reduced ? 50 : 350);
+  }
+
+  function highlightPendingPanel(){
+    var wrap = document.getElementById('krispPendingWrap');
+    if(!wrap) return;
+    wrap.classList.remove('krisp-panel-flash');
+    void wrap.offsetWidth; // force reflow so the flash can restart if it fires again later
+    wrap.classList.add('krisp-panel-flash');
+  }
+
+  function pulseInsertButton(btnEl){
+    if(!btnEl) return;
+    btnEl.classList.add('krisp-insert-flash');
+    setTimeout(function(){ btnEl.classList.remove('krisp-insert-flash'); }, 1800);
+  }
+
+  function showNewBadge(){
+    var badge = document.getElementById('krispNewBadge');
+    if(badge) badge.style.display = '';
+  }
+  function hideNewBadge(){
+    var badge = document.getElementById('krispNewBadge');
+    if(badge) badge.style.display = 'none';
+  }
+
+  // --- Diffed rendering: only touch DOM nodes for items that actually
+  // changed. Existing cards are never rebuilt or re-animated just
+  // because a poll happened to run. ---------------------------------
   function renderPending(items){
     var wrap = document.getElementById('krispPendingWrap');
     var list = document.getElementById('krispPendingItems');
     if(!wrap || !list) return;
-    list.innerHTML = '';
-    if(!items || items.length === 0){
+    items = items || [];
+
+    var currentIdMap = {};
+    items.forEach(function(i){ currentIdMap[i.meetingId] = true; });
+
+    Array.prototype.slice.call(list.children).forEach(function(cardEl){
+      var id = cardEl.dataset.meetingId;
+      if(!currentIdMap[id]){
+        if(list.contains(cardEl)) list.removeChild(cardEl);
+        delete renderedPendingIds[id];
+      }
+    });
+
+    if(items.length === 0){
       wrap.style.display = 'none';
+      hideNewBadge();
       return;
     }
     wrap.style.display = '';
-    items.forEach(function(item){
-      var row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;';
-      var label = document.createElement('span');
-      var mins = item.durationSeconds ? Math.round(item.durationSeconds / 60) : null;
-      label.textContent = (item.title || 'Untitled meeting') + (mins ? ' · ' + mins + ' min' : '');
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = 'Insert';
-      btn.className = 'btn-secondary';
-      btn.addEventListener('click', function(){ claimPending(item.meetingId); });
-      row.appendChild(label);
-      row.appendChild(btn);
-      list.appendChild(row);
-    });
-  }
 
-  function applyTranscript(record){
-    var box = document.getElementById('krispNotes');
-    if(!box || !record) return;
-    box.value = record.transcript || '';
-    box.dispatchEvent(new Event('input', {bubbles:true}));
-    var mins = record.durationSeconds ? Math.round(record.durationSeconds / 60) : null;
-    var status = document.getElementById('krispWaitStatus');
-    if(status){
-      status.style.color = '';
-      status.textContent = 'Transcript received \u2713' + (record.title ? ' \u2014 ' + record.title : '') + (mins ? ' \u2014 ' + mins + ' min' : '');
+    var hasNewItem = false;
+    items.forEach(function(item){
+      if(renderedPendingIds[item.meetingId]) return; // already rendered -- do not touch or re-animate
+      renderedPendingIds[item.meetingId] = true;
+      var cardEl = buildPendingCard(item);
+      list.appendChild(cardEl);
+
+      if(!announcedIds[item.meetingId]){
+        announcedIds[item.meetingId] = true;
+        hasNewItem = true;
+        pulseInsertButton(cardEl.querySelector('.krisp-insert-btn'));
+      }
+    });
+
+    if(hasNewItem){
+      highlightPendingPanel();
+      showNewBadge();
     }
   }
 
-  async function claimPending(meetingId){
+  // --- Insert workflow ---------------------------------------------------
+  async function handleInsertClick(meetingId, btnEl, cardEl){
     var key = getSavedKey();
     if(!key) return;
-    var status = document.getElementById('krispWaitStatus');
+
+    btnEl.disabled = true;
+    var originalBtnText = btnEl.textContent;
+    btnEl.textContent = 'Inserting...';
+
     try{
       var res = await fetch('/api/krisp-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-app-key': key },
         body: JSON.stringify({ action: 'claim', meetingId: meetingId })
       });
+
       if(res.ok){
         var json = await res.json();
         if(json.claimed){
-          applyTranscript(json.claimed);
-        }
-      } else {
-        var errorMsg = 'Could not insert that transcript. Please try again.';
-        try{
-          var errJson = await res.json();
-          if(errJson && errJson.error){ errorMsg = errJson.error; }
-        }catch(parseErr){ /* body wasn't JSON -- keep the generic fallback */ }
-        if(status){
-          status.style.color = '#E5484D';
-          status.textContent = errorMsg;
+          // Card is only removed AFTER backend confirmation, never before.
+          removeCardSmoothly(cardEl);
+          delete renderedPendingIds[meetingId];
+          hideNewBadge();
+          applyTranscriptWithFullFlow(json.claimed);
+          return;
         }
       }
-      refreshKrispSession();
+      var errorMsg = 'Could not insert that transcript. Please try again.';
+      try{
+        var errJson = await res.json();
+        if(errJson && errJson.error){ errorMsg = errJson.error; }
+      }catch(parseErr){}
+      btnEl.disabled = false;
+      btnEl.textContent = originalBtnText;
+      showKrispError(errorMsg);
     }catch(e){
-      if(status){
-        status.style.color = '#E5484D';
-        status.textContent = 'Could not reach Pathfinder to insert that transcript. Check your connection and try again.';
-      }
+      btnEl.disabled = false;
+      btnEl.textContent = originalBtnText;
+      showKrispError('Could not reach Pathfinder to insert that transcript. Check your connection and try again.');
     }
   }
 
-  async function refreshKrispSession(){
-    var key = getSavedKey();
-    if(!key) return null;
-    try{
-      var res = await fetch('/api/krisp-session', { headers: { 'x-app-key': key } });
-      if(!res.ok) return null;
-      var json = await res.json();
-      renderPending(json.pending);
-      if(json.matched){
-        applyTranscript(json.matched);
-        stopWaiting(false);
-      }
-      return json;
-    }catch(e){ return null; }
-  }
-
+  // --- Waiting session ------------------------------------------------
   function startWaiting(){
     var key = getSavedKey();
     if(!key) return;
@@ -6544,10 +6758,10 @@ restoreDraft();
     }).catch(function(){});
     var btn = document.getElementById('krispWaitBtn');
     var status = document.getElementById('krispWaitStatus');
+    var dotWrap = document.getElementById('krispWaitDotWrap');
     if(btn) btn.textContent = 'Stop waiting';
-    if(status){ status.style.color = ''; status.textContent = '\uD83D\uDFE2 Waiting for Krisp transcript...'; }
-    if(pollTimer) clearInterval(pollTimer);
-    pollTimer = setInterval(refreshKrispSession, 5000);
+    if(status){ status.style.color = ''; status.textContent = 'Waiting for Krisp transcript...'; }
+    if(dotWrap) dotWrap.style.display = 'inline-flex';
   }
 
   function stopWaiting(callServer){
@@ -6562,33 +6776,127 @@ restoreDraft();
       }
     }
     var btn = document.getElementById('krispWaitBtn');
+    var status = document.getElementById('krispWaitStatus');
+    var dotWrap = document.getElementById('krispWaitDotWrap');
     if(btn) btn.textContent = 'Wait for next Krisp transcript';
-    if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+    if(status) status.textContent = '';
+    if(dotWrap) dotWrap.style.display = 'none';
+  }
+
+  // --- Polling (always runs once the panel is visible, independent of
+  // the waiting toggle, so pending imports surface without requiring
+  // the teacher to click Wait first) -----------------------------------
+  async function refreshKrispSession(){
+    var key = getSavedKey();
+    if(!key) return null;
+    try{
+      var res = await fetch('/api/krisp-session', { headers: { 'x-app-key': key } });
+      if(!res.ok) return null;
+      var json = await res.json();
+      renderPending(json.pending);
+      if(json.matched){
+        var alreadyAnnounced = json.matched.meetingId && announcedIds[json.matched.meetingId];
+        if(!alreadyAnnounced){
+          if(json.matched.meetingId) announcedIds[json.matched.meetingId] = true;
+          applyTranscriptWithFullFlow(json.matched);
+          stopWaiting(false);
+        }
+      }
+      return json;
+    }catch(e){ return null; }
+  }
+
+  // --- Webhook URL controls -------------------------------------------
+  function setWebhookUrlField(url){
+    var field = document.getElementById('krispWebhookUrlField');
+    if(field) field.value = url || '';
+  }
+
+  async function handleCopyUrl(){
+    var field = document.getElementById('krispWebhookUrlField');
+    if(!field || !field.value) return;
+    try{
+      await navigator.clipboard.writeText(field.value);
+    }catch(e){
+      field.select();
+    }
+    var btn = document.getElementById('krispCopyUrlBtn');
+    if(btn){
+      var original = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(function(){ btn.textContent = original; }, 1500);
+    }
+  }
+
+  async function handleRegenerate(){
+    var key = getSavedKey();
+    if(!key) return;
+    if(!window.confirm('This immediately invalidates your current webhook URL -- you\'ll need to update it in your Krisp account. Continue?')) return;
+    try{
+      var res = await fetch('/api/krisp-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-app-key': key },
+        body: JSON.stringify({ action: 'regenerate' })
+      });
+      var json = await res.json();
+      if(res.ok && json.webhookUrl){
+        setWebhookUrlField(json.webhookUrl);
+      }
+    }catch(e){}
+  }
+
+  async function handleDisconnect(){
+    var key = getSavedKey();
+    if(!key) return;
+    if(!window.confirm('This disconnects your Krisp integration. You can reconnect anytime, which issues a new webhook URL.')) return;
+    try{
+      await fetch('/api/krisp-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-app-key': key },
+        body: JSON.stringify({ action: 'disconnect' })
+      });
+      refreshKrispSession();
+    }catch(e){}
   }
 
   function wireButtons(){
-    var btn = document.getElementById('krispWaitBtn');
-    if(!btn) return;
     var waiting = false;
-    btn.addEventListener('click', function(){
-      waiting = !waiting;
-      if(waiting){ startWaiting(); } else { stopWaiting(true); var status = document.getElementById('krispWaitStatus'); if(status) status.textContent = ''; }
-    });
+    var waitBtn = document.getElementById('krispWaitBtn');
+    if(waitBtn){
+      waitBtn.addEventListener('click', function(){
+        waiting = !waiting;
+        if(waiting){ startWaiting(); } else { stopWaiting(true); }
+      });
+    }
+    var copyBtn = document.getElementById('krispCopyUrlBtn');
+    if(copyBtn) copyBtn.addEventListener('click', handleCopyUrl);
+    var regenBtn = document.getElementById('krispRegenerateBtn');
+    if(regenBtn) regenBtn.addEventListener('click', handleRegenerate);
+    var disconnectBtn = document.getElementById('krispDisconnectBtn');
+    if(disconnectBtn) disconnectBtn.addEventListener('click', handleDisconnect);
   }
 
+  // --- Init: entitlement check IS the GET call itself. 403 (or any
+  // failure) leaves the panel hidden -- fail safe, not fail open. -----
   async function initKrispPanel(){
     var key = getSavedKey();
-    if(!key) return; // fail-safe hidden, same as the lint panel: no key, no panel
+    if(!key) return;
     try{
-      var res = await fetch('/api/license-status', { headers: { 'x-app-key': key } });
+      var res = await fetch('/api/krisp-session', { headers: { 'x-app-key': key } });
       if(!res.ok) return;
       var json = await res.json();
-      if(!json.founder) return;
       var panel = document.getElementById('krispIntegrationPanel');
       if(panel) panel.style.display = '';
+      setWebhookUrlField(json.webhookUrl);
+      renderPending(json.pending);
+      if(json.matched){
+        if(json.matched.meetingId) announcedIds[json.matched.meetingId] = true;
+        applyTranscriptWithFullFlow(json.matched);
+      }
       wireButtons();
-      refreshKrispSession();
-    }catch(e){ /* stays hidden on any error -- fail safe, not fail open */ }
+      if(pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(refreshKrispSession, 5000);
+    }catch(e){ /* stays hidden on any error -- fail safe */ }
   }
 
   if(document.readyState === 'loading'){
@@ -6598,5 +6906,6 @@ restoreDraft();
   }
 })();
 </script>
+
 </body>
 </html>
