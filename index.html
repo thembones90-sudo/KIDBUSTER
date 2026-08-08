@@ -1872,7 +1872,7 @@ body.protocol-preply .generate-btn.loading{
               <span id="krispWaitStatus" aria-live="polite" style="font-size:13px;opacity:0.85;"></span>
             </span>
           </div>
-          <div style="margin-top:10px;font-size:12px;opacity:0.7;">Your personal Krisp webhook URL (paste into Krisp's Settings &rarr; Integrations &rarr; Webhook):</div>
+          <div style="margin-top:10px;font-size:12px;opacity:0.7;">Your personal Krisp webhook URL (paste into Krisp's Settings &rarr; Integrations &rarr; Webhook): <span class="info-icon" id="krispHelpBtn" style="cursor:pointer;" tabindex="0" role="button" aria-label="How to connect Krisp">?</span></div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;">
             <input type="text" id="krispWebhookUrlField" readonly style="flex:1;min-width:220px;font-size:12px;padding:6px 8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:inherit;">
             <button type="button" id="krispCopyUrlBtn" class="btn-secondary" style="border:1px solid rgba(133,247,12,0.4);">Copy</button>
@@ -2028,6 +2028,40 @@ body.protocol-preply .generate-btn.loading{
       <div class="help-mini-card">
         <p class="help-mini-title">Lost code</p>
         <p class="help-mini-copy">Open Access and use the same email from checkout to find it again.</p>
+      </div>
+    </div>
+
+    <hr class="help-divider">
+
+    <p class="help-mini-title">Connecting Krisp (optional)</p>
+    <div class="help-steps">
+      <div class="help-step">
+        <span class="help-step-number">1</span>
+        <div>
+          <p class="help-step-title">Copy your webhook URL</p>
+          <p class="help-step-copy">In the Krisp Notes section, find "Your personal Krisp webhook URL" and press Copy.</p>
+        </div>
+      </div>
+      <div class="help-step">
+        <span class="help-step-number">2</span>
+        <div>
+          <p class="help-step-title">Open Krisp's webhook settings</p>
+          <p class="help-step-copy">In Krisp, go to Settings, then Integrations, then Webhook.</p>
+        </div>
+      </div>
+      <div class="help-step">
+        <span class="help-step-number">3</span>
+        <div>
+          <p class="help-step-title">Paste and save</p>
+          <p class="help-step-copy">Paste the URL you copied and save. No extra headers or secrets needed -- the link itself is your private key.</p>
+        </div>
+      </div>
+      <div class="help-step">
+        <span class="help-step-number">4</span>
+        <div>
+          <p class="help-step-title">You're connected</p>
+          <p class="help-step-copy">New Krisp transcripts now appear automatically below the notes box, ready to import with one click.</p>
+        </div>
       </div>
     </div>
 
@@ -7014,6 +7048,12 @@ restoreDraft();
     if(regenBtn) regenBtn.addEventListener('click', handleRegenerate);
     var disconnectBtn = document.getElementById('krispDisconnectBtn');
     if(disconnectBtn) disconnectBtn.addEventListener('click', handleDisconnect);
+    var krispHelpBtn = document.getElementById('krispHelpBtn');
+    if(krispHelpBtn){
+      var openKrispHelp = function(){ if(typeof window.openHelpModal === 'function') window.openHelpModal(); };
+      krispHelpBtn.addEventListener('click', openKrispHelp);
+      krispHelpBtn.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openKrispHelp(); } });
+    }
   }
 
   // --- Init: entitlement check IS the GET call itself. 403 (or any
