@@ -241,6 +241,7 @@ export default async function handler(req, res){
       record.assigned = true;
       await kv.set(matchedKey, record);
       await kv.set(waitingKey, null);
+      await kv.set(prefix + 'lastReceivedAt', record.receivedAt);
       console.log('[krisp-webhook] waiting session matched (id=' + dedupeKey + ')');
       console.log('[krisp-webhook] transcript assigned (id=' + dedupeKey + ')');
       return res.status(200).json({ stored: true, matched: true });
@@ -257,6 +258,7 @@ export default async function handler(req, res){
       pending.length = PENDING_LIST_MAX;
     }
     await kv.set(pendingKey, pending);
+    await kv.set(prefix + 'lastReceivedAt', record.receivedAt);
     console.log('[krisp-webhook] pending import created (id=' + dedupeKey + ')');
 
     return res.status(200).json({ stored: true, matched: false });

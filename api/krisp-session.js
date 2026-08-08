@@ -84,11 +84,13 @@ export default async function handler(req, res){
     const waitingSince = await kv.get(waitingKey).catch(() => null);
     const pendingRaw = (await kv.get(pendingKey).catch(() => null)) || [];
     const pending = sortPendingByMeetingStart(pendingRaw);
+    const lastReceivedAt = await kv.get(prefix + 'lastReceivedAt').catch(() => null);
     return res.status(200).json({
       matched,
       waiting: !!waitingSince,
       pending,
       pendingCount: pending.length,
+      lastReceivedAt,
       webhookUrl: 'https://kidbuster.vercel.app/api/krisp-webhook?token=' + token
     });
   }

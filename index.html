@@ -1879,6 +1879,7 @@ body.protocol-preply .generate-btn.loading{
             <button type="button" id="krispRegenerateBtn" class="btn-secondary" style="border:1px solid rgba(133,247,12,0.4);">Regenerate</button>
             <button type="button" id="krispDisconnectBtn" class="btn-secondary" style="border:1px solid rgba(133,247,12,0.4);">Disconnect</button>
           </div>
+          <div id="krispLastReceived" style="display:none;font-size:11px;opacity:0.5;margin-top:8px;"></div>
           <div id="krispPendingWrap" style="display:none;margin-top:20px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
               <span style="font-size:13px;opacity:0.85;font-weight:600;">Unclaimed Krisp imports:</span>
@@ -6520,13 +6521,22 @@ restoreDraft();
   function triggerGenerateArrivalAnimation(){
     var btn = document.getElementById('generateBtn');
     if(!btn || btn.disabled) return; // never interrupt a report already generating
-    var originalText = btn.textContent;
     var reduced = prefersReducedMotion();
-    btn.textContent = '\u26a1 Transcript Received';
+    // Never set btn.textContent/innerHTML directly -- the original app
+    // caches a reference to the nested .btn-label span once at load time
+    // (generateBtn.querySelector('.btn-label')) for its own status-message
+    // cycling feature; replacing the button's content destroys that span
+    // and silently breaks that feature for the rest of the session (no
+    // error, the cached reference just goes stale). Only ever mutate the
+    // label's own textContent, in place.
+    var label = btn.querySelector('.btn-label');
+    var target = label || btn;
+    var originalText = target.textContent;
+    target.textContent = '\u26a1 Transcript Received';
     btn.classList.add(reduced ? 'krisp-arrival-static' : 'krisp-arrival-pulse');
     setTimeout(function(){
       btn.classList.remove('krisp-arrival-pulse', 'krisp-arrival-static');
-      btn.textContent = originalText;
+      target.textContent = originalText;
     }, 2000);
   }
 
@@ -6589,6 +6599,17 @@ restoreDraft();
       display = date.toLocaleDateString([], {day:'numeric', month:'short'}) + ', ' + timeStr;
     }
     return { display: display, full: date.toLocaleString() };
+  }
+
+  function updateLastReceived(iso){
+    var el = document.getElementById('krispLastReceived');
+    if(!el) return;
+    if(!iso){ el.style.display = 'none'; return; }
+    var info = formatFriendlyMeetingTime(iso);
+    if(!info.display){ el.style.display = 'none'; return; }
+    el.style.display = '';
+    el.textContent = 'Last transcript received: ' + info.display;
+    if(info.full) el.title = info.full;
   }
 
   // --- Pending card display (fallback order per spec) -------------------
@@ -6823,34 +6844,46 @@ restoreDraft();
     var key = getSavedKey();
     if(!key) return;
 
-    btnEl.disabled = true;
-    var originalBtnText = btnEl.textContent;
-    btnEl.textContent = 'Dismissing...';
+    // Optimistic undo window: swap the card for a small placeholder
+    // immediately, but do NOT call the backend yet. The item stays in
+    // the teacher's actual pending list server-side the whole time --
+    // if Undo is clicked, nothing ever happened; if the window elapses,
+    // only then do we call dismiss for real.
+    var placeholder = document.createElement('div');
+    placeholder.className = 'krisp-pending-card';
+    placeholder.dataset.meetingId = meetingId;
+    placeholder.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;margin:12px 0;border:1px solid rgba(255,255,255,0.12);border-radius:10px;background:rgba(255,255,255,0.02);font-size:13px;opacity:0.85;';
+    var label = document.createElement('span');
+    label.textContent = 'Dismissed';
+    var undoBtn = document.createElement('button');
+    undoBtn.type = 'button';
+    undoBtn.textContent = 'Undo';
+    undoBtn.className = 'btn-secondary';
+    undoBtn.style.cssText = 'border:1px solid rgba(133,247,12,0.4);color:rgb(133,247,12);padding:5px 14px;font-size:12px;';
+    placeholder.appendChild(label);
+    placeholder.appendChild(undoBtn);
+    cardEl.replaceWith(placeholder);
 
-    try{
-      var res = await fetch('/api/krisp-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-app-key': key },
-        body: JSON.stringify({ action: 'dismiss', meetingId: meetingId })
-      });
+    var undone = false;
+    var timer = setTimeout(async function(){
+      if(undone) return;
+      try{
+        await fetch('/api/krisp-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-app-key': key },
+          body: JSON.stringify({ action: 'dismiss', meetingId: meetingId })
+        });
+      }catch(e){}
+      removeCardSmoothly(placeholder);
+      delete renderedPendingIds[meetingId];
+      refreshKrispSession();
+    }, 5000);
 
-      if(res.ok){
-        var json = await res.json();
-        if(json.dismissed){
-          removeCardSmoothly(cardEl);
-          delete renderedPendingIds[meetingId];
-          if(typeof json.pendingCount === 'number') updatePendingCount(json.pendingCount);
-          return;
-        }
-      }
-      btnEl.disabled = false;
-      btnEl.textContent = originalBtnText;
-      showKrispError('Could not dismiss that item. Please try again.');
-    }catch(e){
-      btnEl.disabled = false;
-      btnEl.textContent = originalBtnText;
-      showKrispError('Could not reach Pathfinder to dismiss that item. Check your connection and try again.');
-    }
+    undoBtn.addEventListener('click', function(){
+      undone = true;
+      clearTimeout(timer);
+      placeholder.replaceWith(cardEl);
+    });
   }
 
   // --- Waiting session ------------------------------------------------
@@ -6899,6 +6932,7 @@ restoreDraft();
       var res = await fetch('/api/krisp-session', { headers: { 'x-app-key': key } });
       if(!res.ok) return null;
       var json = await res.json();
+      updateLastReceived(json.lastReceivedAt);
       renderPending(json.pending);
       if(json.matched){
         var alreadyAnnounced = json.matched.meetingId && announcedIds[json.matched.meetingId];
@@ -6915,7 +6949,7 @@ restoreDraft();
   // --- Webhook URL controls -------------------------------------------
   function setWebhookUrlField(url){
     var field = document.getElementById('krispWebhookUrlField');
-    if(field) field.value = url || '';
+    if(field){ field.value = url || ''; field.title = url || ''; }
   }
 
   async function handleCopyUrl(){
@@ -6994,6 +7028,7 @@ restoreDraft();
       var panel = document.getElementById('krispIntegrationPanel');
       if(panel) panel.style.display = '';
       setWebhookUrlField(json.webhookUrl);
+      updateLastReceived(json.lastReceivedAt);
       renderPending(json.pending);
       if(json.matched){
         if(json.matched.meetingId) announcedIds[json.matched.meetingId] = true;
