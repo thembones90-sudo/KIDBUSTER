@@ -5618,23 +5618,32 @@ async function copyOutputToClipboard(sourceEl, btnEl){
   return false;
 }
 
+function flashGenerateBtnRejected(){
+  var btn = document.getElementById('generateBtn');
+  if(!btn) return;
+  btn.classList.remove('generate-btn-shake');
+  void btn.offsetWidth; // restart the animation if it fires again quickly
+  btn.classList.add('generate-btn-shake');
+  setTimeout(function(){ btn.classList.remove('generate-btn-shake'); }, 450);
+}
+
 async function generate(){
   const form = readFormState();
 
   if(!form.notes.trim()){
-    outputBox.className = 'output-box error';
+    flashGenerateBtnRejected(); outputBox.className = 'output-box error';
     outputBox.textContent = (form.protocol === 'BLITZ' || form.protocol === 'PREPLY')
       ? 'Add a few quick notes about this lesson before generating.'
       : 'Add the Krisp notes for this lesson before generating.';
     return;
   }
   if(!form.rating && form.protocol !== 'PREPLY'){
-    outputBox.className = 'output-box error';
+    flashGenerateBtnRejected(); outputBox.className = 'output-box error';
     outputBox.textContent = 'Select a quality rating before generating.';
     return;
   }
   if(form.protocol === 'OF' && !form.studentGender){
-    outputBox.className = 'output-box error';
+    flashGenerateBtnRejected(); outputBox.className = 'output-box error';
     outputBox.textContent = 'Select the student\'s pronoun (Boy/Girl) before generating — OF is written entirely in the third person and needs to know which to use.';
     return;
   }
@@ -6545,7 +6554,15 @@ restoreDraft();
 .krisp-wait-active { background: rgba(var(--toxin-rgb),0.16) !important; border-color: rgba(var(--toxin-rgb),0.65) !important; color: rgb(var(--toxin-rgb)) !important; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   .krisp-help-lit { animation: none; }
+  .generate-btn-shake { animation: none; box-shadow: 0 0 0 2px rgba(229,72,77,0.6); }
 }
+@keyframes generate-btn-shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+.generate-btn-shake { animation: generate-btn-shake 0.4s ease-in-out; box-shadow: 0 0 0 2px rgba(229,72,77,0.6); }
 </style>
 <script>
 (function(){
