@@ -1866,7 +1866,7 @@ body.protocol-preply .generate-btn.loading{
                             <div id="krispImportStatus" aria-live="polite" style="display:none;font-size:13px;margin-top:6px;color:rgb(133,247,12);transition:opacity 0.4s ease;"></div>
         <div class="field" id="krispIntegrationPanel" style="display:none">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <button type="button" id="krispWaitBtn" class="btn-secondary" style="border:1px solid rgba(133,247,12,0.4);">Wait for next Krisp transcript</button>
+            <button type="button" id="krispWaitBtn" class="btn-secondary" style="border:1px solid rgba(133,247,12,0.4);">ARM KRISP</button>
             <span id="krispWaitDotWrap" style="display:none;align-items:center;gap:6px;">
               <span class="krisp-heartbeat-dot" aria-hidden="true"></span>
               <span id="krispWaitStatus" aria-live="polite" style="font-size:13px;opacity:0.85;"></span>
@@ -6943,7 +6943,7 @@ restoreDraft();
     var btn = document.getElementById('krispWaitBtn');
     var status = document.getElementById('krispWaitStatus');
     var dotWrap = document.getElementById('krispWaitDotWrap');
-    if(btn){ btn.textContent = 'Stop waiting (ON)'; btn.dataset.waiting = 'true'; btn.classList.add('krisp-wait-active'); }
+    if(btn){ btn.textContent = 'DISARM KRISP'; btn.dataset.waiting = 'true'; btn.classList.add('krisp-wait-active'); }
     if(status){ status.style.color = ''; status.textContent = 'Waiting for Krisp transcript...'; }
     if(dotWrap) dotWrap.style.display = 'inline-flex';
   }
@@ -6962,7 +6962,7 @@ restoreDraft();
     var btn = document.getElementById('krispWaitBtn');
     var status = document.getElementById('krispWaitStatus');
     var dotWrap = document.getElementById('krispWaitDotWrap');
-    if(btn){ btn.textContent = 'Wait for next Krisp transcript (OFF)'; btn.dataset.waiting = 'false'; btn.classList.remove('krisp-wait-active'); }
+    if(btn){ btn.textContent = 'ARM KRISP'; btn.dataset.waiting = 'false'; btn.classList.remove('krisp-wait-active'); }
     if(status) status.textContent = '';
     if(dotWrap) dotWrap.style.display = 'none';
   }
