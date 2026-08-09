@@ -1863,28 +1863,28 @@ body.protocol-preply .generate-btn.loading{
           <textarea id="krispNotes" rows="6" placeholder="Paste the raw lesson summary or transcript here..."></textarea>
           <div class="field-counter" id="krispCounter">0 words · 0 characters</div>
         </div>
-                            <div id="krispImportStatus" aria-live="polite" style="display:none;font-size:13px;margin-top:6px;color:rgb(133,247,12);transition:opacity 0.4s ease;"></div>
+                            <div id="krispImportStatus" aria-live="polite" style="display:none;font-size:13px;margin-top:6px;color:rgb(var(--toxin-rgb));transition:opacity 0.4s ease;"></div>
         <div class="field" id="krispIntegrationPanel" style="display:none">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <button type="button" id="krispWaitBtn" class="btn-secondary" style="border:1px solid rgba(133,247,12,0.4);">ARM KRISP</button>
+            <button type="button" id="krispWaitBtn" class="btn-secondary" style="border:1px solid rgba(var(--toxin-rgb),0.4);">ARM KRISP</button>
             <span id="krispWaitDotWrap" style="display:none;align-items:center;gap:6px;">
               <span class="krisp-heartbeat-dot" aria-hidden="true"></span>
               <span id="krispWaitStatus" aria-live="polite" style="font-size:13px;opacity:0.85;"></span>
             </span>
           </div>
-          <div style="margin-top:10px;font-size:12px;opacity:0.7;">Your personal Krisp webhook URL (paste into Krisp's Settings &rarr; Integrations &rarr; Webhook): <span class="info-icon krisp-help-lit" id="krispHelpBtn" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:rgba(133,247,12,0.22);border:2px solid rgba(133,247,12,0.8);color:rgb(133,247,12);font-weight:800;font-size:15px;vertical-align:middle;" tabindex="0" role="button" aria-label="How to connect Krisp -- important, click for setup steps">?</span></div>
+          <div style="margin-top:10px;font-size:12px;opacity:0.7;">Your personal Krisp webhook URL (paste into Krisp's Settings &rarr; Integrations &rarr; Webhook): <span class="info-icon krisp-help-lit" id="krispHelpBtn" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:rgba(var(--toxin-rgb),0.22);border:2px solid rgba(var(--toxin-rgb),0.8);color:rgb(var(--toxin-rgb));font-weight:800;font-size:15px;vertical-align:middle;" tabindex="0" role="button" aria-label="How to connect Krisp -- important, click for setup steps">?</span></div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;">
             <input type="text" id="krispWebhookUrlField" readonly style="flex:1;min-width:220px;font-size:12px;padding:6px 8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:inherit;">
-            <button type="button" id="krispCopyUrlBtn" class="btn-secondary" style="border:1px solid rgba(133,247,12,0.4);">Copy</button>
-            <button type="button" id="krispRegenerateBtn" class="btn-secondary" style="border:1px solid rgba(133,247,12,0.4);">Regenerate</button>
-            <button type="button" id="krispDisconnectBtn" class="btn-secondary" style="border:1px solid rgba(133,247,12,0.4);">Disconnect</button>
+            <button type="button" id="krispCopyUrlBtn" class="btn-secondary" style="border:1px solid rgba(var(--toxin-rgb),0.4);">Copy</button>
+            <button type="button" id="krispRegenerateBtn" class="btn-secondary" style="border:1px solid rgba(var(--toxin-rgb),0.4);">Regenerate</button>
+            <button type="button" id="krispDisconnectBtn" class="btn-secondary" style="border:1px solid rgba(var(--toxin-rgb),0.4);">Disconnect</button>
           </div>
           <div id="krispLastReceived" style="display:none;font-size:11px;opacity:0.5;margin-top:8px;"></div>
           <div id="krispPendingWrap" style="display:none;margin-top:20px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
               <span style="font-size:13px;opacity:0.85;font-weight:600;">Unclaimed Krisp imports:</span>
-              <span id="krispPendingCount" aria-live="polite" style="display:none;font-size:12px;color:rgb(133,247,12);background:rgba(133,247,12,0.08);border:1px solid rgba(133,247,12,0.25);border-radius:12px;padding:3px 11px;"></span>
-              <span id="krispNewBadge" aria-live="polite" style="display:none;font-size:11px;font-weight:600;background:rgba(133,247,12,0.15);color:rgb(133,247,12);border:1px solid rgba(133,247,12,0.4);border-radius:12px;padding:3px 11px;">1 New Krisp transcript</span>
+              <span id="krispPendingCount" aria-live="polite" style="display:none;font-size:12px;color:rgb(var(--toxin-rgb));background:rgba(var(--toxin-rgb),0.08);border:1px solid rgba(var(--toxin-rgb),0.25);border-radius:12px;padding:3px 11px;"></span>
+              <span id="krispNewBadge" aria-live="polite" style="display:none;font-size:11px;font-weight:600;background:rgba(var(--toxin-rgb),0.15);color:rgb(var(--toxin-rgb));border:1px solid rgba(var(--toxin-rgb),0.4);border-radius:12px;padding:3px 11px;">1 New Krisp transcript</span>
             </div>
             <div id="krispPendingItems"></div>
           </div>
@@ -6498,28 +6498,28 @@ restoreDraft();
   display: inline-block;
   width: 8px; height: 8px;
   border-radius: 50%;
-  background: rgb(133,247,12);
+  background: rgb(var(--toxin-rgb));
   animation: krisp-heartbeat 1.8s ease-in-out infinite;
 }
 
 @keyframes krisp-btn-pulse {
-  0%, 100% { box-shadow: 0 0 22.34px 2.59px rgba(133,247,12,0.52), 0 0 41.51px 7.1px rgba(133,247,12,0.32); }
-  25% { box-shadow: 0 0 5px 0px rgba(133,247,12,0.2); }
-  50% { box-shadow: 0 0 40px 8px rgba(133,247,12,0.85), 0 0 60px 14px rgba(133,247,12,0.5); }
-  75% { box-shadow: 0 0 5px 0px rgba(133,247,12,0.2); }
+  0%, 100% { box-shadow: 0 0 22.34px 2.59px rgba(var(--toxin-rgb),0.52), 0 0 41.51px 7.1px rgba(var(--toxin-rgb),0.32); }
+  25% { box-shadow: 0 0 5px 0px rgba(var(--toxin-rgb),0.2); }
+  50% { box-shadow: 0 0 40px 8px rgba(var(--toxin-rgb),0.85), 0 0 60px 14px rgba(var(--toxin-rgb),0.5); }
+  75% { box-shadow: 0 0 5px 0px rgba(var(--toxin-rgb),0.2); }
 }
 .krisp-arrival-pulse { animation: krisp-btn-pulse 0.6s ease-in-out 3; }
-.krisp-arrival-static { box-shadow: 0 0 40px 8px rgba(133,247,12,0.85), 0 0 60px 14px rgba(133,247,12,0.5) !important; }
+.krisp-arrival-static { box-shadow: 0 0 40px 8px rgba(var(--toxin-rgb),0.85), 0 0 60px 14px rgba(var(--toxin-rgb),0.5) !important; }
 
 @keyframes krisp-panel-highlight {
-  0% { background-color: rgba(133,247,12,0.12); }
+  0% { background-color: rgba(var(--toxin-rgb),0.12); }
   100% { background-color: transparent; }
 }
 .krisp-panel-flash { animation: krisp-panel-highlight 1.6s ease-out 1; border-radius: 6px; }
 
 @keyframes krisp-insert-pulse {
   0%, 100% { box-shadow: none; }
-  50% { box-shadow: 0 0 12px 2px rgba(133,247,12,0.6); }
+  50% { box-shadow: 0 0 12px 2px rgba(var(--toxin-rgb),0.6); }
 }
 .krisp-insert-flash { animation: krisp-insert-pulse 0.5s ease-in-out 3; }
 
@@ -6530,19 +6530,19 @@ restoreDraft();
 
 @media (prefers-reduced-motion: reduce) {
   .krisp-heartbeat-dot { animation: none; opacity: 0.9; }
-  .krisp-arrival-pulse { animation: none; box-shadow: 0 0 40px 8px rgba(133,247,12,0.85), 0 0 60px 14px rgba(133,247,12,0.5); }
-  .krisp-panel-flash { animation: none; background-color: rgba(133,247,12,0.12); }
-  .krisp-insert-flash { animation: none; box-shadow: 0 0 12px 2px rgba(133,247,12,0.6); }
+  .krisp-arrival-pulse { animation: none; box-shadow: 0 0 40px 8px rgba(var(--toxin-rgb),0.85), 0 0 60px 14px rgba(var(--toxin-rgb),0.5); }
+  .krisp-panel-flash { animation: none; background-color: rgba(var(--toxin-rgb),0.12); }
+  .krisp-insert-flash { animation: none; box-shadow: 0 0 12px 2px rgba(var(--toxin-rgb),0.6); }
   .krisp-card-removing { animation: none; opacity: 0; }
-  .krisp-help-lit { animation: none; box-shadow: 0 0 18px 5px rgba(133,247,12,0.75), 0 0 32px 9px rgba(133,247,12,0.4); }
+  .krisp-help-lit { animation: none; box-shadow: 0 0 18px 5px rgba(var(--toxin-rgb),0.75), 0 0 32px 9px rgba(var(--toxin-rgb),0.4); }
 }
 
 @keyframes krisp-help-pulse {
-  0%, 100% { box-shadow: 0 0 10px 3px rgba(133,247,12,0.55), 0 0 20px 6px rgba(133,247,12,0.3); transform: scale(1); }
-  50% { box-shadow: 0 0 24px 7px rgba(133,247,12,0.95), 0 0 42px 12px rgba(133,247,12,0.6); transform: scale(1.12); }
+  0%, 100% { box-shadow: 0 0 10px 3px rgba(var(--toxin-rgb),0.55), 0 0 20px 6px rgba(var(--toxin-rgb),0.3); transform: scale(1); }
+  50% { box-shadow: 0 0 24px 7px rgba(var(--toxin-rgb),0.95), 0 0 42px 12px rgba(var(--toxin-rgb),0.6); transform: scale(1.12); }
 }
 .krisp-help-lit { animation: krisp-help-pulse 1.6s ease-in-out infinite; }
-.krisp-wait-active { background: rgba(133,247,12,0.16) !important; border-color: rgba(133,247,12,0.65) !important; color: rgb(133,247,12) !important; font-weight: 600; }
+.krisp-wait-active { background: rgba(var(--toxin-rgb),0.16) !important; border-color: rgba(var(--toxin-rgb),0.65) !important; color: rgb(var(--toxin-rgb)) !important; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   .krisp-help-lit { animation: none; }
 }
@@ -6685,7 +6685,7 @@ restoreDraft();
     var card = document.createElement('div');
     card.className = 'krisp-pending-card';
     card.dataset.meetingId = item.meetingId;
-    card.style.cssText = 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:14px 16px;margin:12px 0;border:1px solid rgba(133,247,12,0.14);border-radius:10px;background:rgba(133,247,12,0.025);';
+    card.style.cssText = 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:14px 16px;margin:12px 0;border:1px solid rgba(var(--toxin-rgb),0.14);border-radius:10px;background:rgba(var(--toxin-rgb),0.025);';
 
     var textWrap = document.createElement('div');
     textWrap.style.cssText = 'font-size:13px;line-height:1.6;min-width:0;flex:1;';
@@ -6710,7 +6710,7 @@ restoreDraft();
     }
     if(display.preview){
       var previewEl = document.createElement('div');
-      previewEl.style.cssText = 'opacity:0.7;font-size:12.5px;font-style:italic;line-height:1.5;margin-top:6px;padding-left:11px;border-left:2px solid rgba(133,247,12,0.28);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;';
+      previewEl.style.cssText = 'opacity:0.7;font-size:12.5px;font-style:italic;line-height:1.5;margin-top:6px;padding-left:11px;border-left:2px solid rgba(var(--toxin-rgb),0.28);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;';
       previewEl.textContent = '\u201c' + display.preview + '\u201d';
       textWrap.appendChild(previewEl);
     }
@@ -6721,7 +6721,7 @@ restoreDraft();
     var importBtn = document.createElement('button');
     importBtn.type = 'button';
     importBtn.textContent = 'Import Comment';
-    importBtn.className = 'btn-secondary krisp-insert-btn'; importBtn.style.border = '1px solid rgba(133,247,12,0.55)'; importBtn.style.width = '100%';
+    importBtn.className = 'btn-secondary krisp-insert-btn'; importBtn.style.border = '1px solid rgba(var(--toxin-rgb),0.55)'; importBtn.style.width = '100%';
     importBtn.addEventListener('click', function(){ handleImportClick(item.meetingId, importBtn, card); });
 
     var dismissBtn = document.createElement('button');
@@ -6904,7 +6904,7 @@ restoreDraft();
     undoBtn.type = 'button';
     undoBtn.textContent = 'Undo';
     undoBtn.className = 'btn-secondary';
-    undoBtn.style.cssText = 'border:1px solid rgba(133,247,12,0.4);color:rgb(133,247,12);padding:5px 14px;font-size:12px;';
+    undoBtn.style.cssText = 'border:1px solid rgba(var(--toxin-rgb),0.4);color:rgb(var(--toxin-rgb));padding:5px 14px;font-size:12px;';
     placeholder.appendChild(label);
     placeholder.appendChild(undoBtn);
     cardEl.replaceWith(placeholder);
