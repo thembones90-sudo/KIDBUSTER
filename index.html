@@ -3054,7 +3054,7 @@ Love, Teacher [Name]`;
     const isOF = params.protocol === 'OF';
     const isFairy = params.protocol === 'FAIRY';
 
-    let msg = `Student: ${name}\n`;
+    let msg = `Student: ${name}\nIMPERATIVE: The student's name is exactly "${name}" -- this is what the teacher typed and it is authoritative, full stop. Use exactly this spelling every time you refer to the student, in every sentence, regardless of protocol. If the transcript, notes, or anything else below spells the name differently (this happens often with speech-to-text), that spelling is wrong -- ignore it completely and use "${name}" instead. Never substitute, "correct," or default to a name spelling found elsewhere in this prompt.\n`;
     if(isFairy){
       const teacherName = (params.teacherName || '').trim() || 'Layne';
       msg += `Teacher: ${teacherName} — use exactly this name in the final "Love, Teacher [Name]" sign-off; never invent or guess a different one.\n`;
