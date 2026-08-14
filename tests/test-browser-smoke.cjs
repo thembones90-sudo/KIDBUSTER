@@ -136,12 +136,12 @@ module.exports = async function run(){
       visible: overlay && getComputedStyle(overlay).display !== 'none',
       hasTitle: text.includes('How to use Pathfinder'),
       hasSteps: text.includes('Pick a protocol') && text.includes('Paste your lesson notes') && text.includes('Generate, read, send'),
-      hasAccess: text.includes('Free') && text.includes('Pro') && text.includes('Manual code')
+      hasAccess: text.includes('Free') && text.includes('Pro') && text.includes('Manual key')
     };
   });
   check('Help button opens the onboarding guide', helpOpen.visible);
   check('Help guide includes the basic workflow steps', helpOpen.hasTitle && helpOpen.hasSteps);
-  check('Help guide explains Free, Pro, and manual code access', helpOpen.hasAccess);
+  check('Help guide explains Free, Pro, and manual key access', helpOpen.hasAccess);
 
   await page.click('#helpModalCloseBtn');
   await new Promise(r => setTimeout(r, 80));
@@ -224,15 +224,15 @@ module.exports = async function run(){
     check('calling promptForAccessKey() shows the modal', modalShown.visible);
     check(
       'modal shows the simplified access choices',
-      modalShown.title === 'Pathfinder access' &&
+      modalShown.title === 'Choose your access' &&
       modalShown.hasPro &&
       modalShown.hasFree &&
       modalShown.hasPaypal &&
       modalShown.paypalDisabled === 'false' &&
       modalShown.hasKey &&
       modalShown.hasRecover &&
-      modalShown.recoverLabel === 'Find my code' &&
-      modalShown.keyButtonLabel === 'Use code'
+      modalShown.recoverLabel === 'Find my key' &&
+      modalShown.keyButtonLabel === 'Use key'
     );
 
     await page.evaluate(() => {
@@ -319,7 +319,7 @@ module.exports = async function run(){
         continueText: continueBtn ? continueBtn.textContent : ''
       };
     });
-    check('checkout success panel clearly shows the Pro access code', checkoutPanel.keyText === 'kb_live_checkout_visible' && checkoutPanel.outputText.includes('Your Pro code is ready'));
+    check('checkout success panel clearly shows the Pro access key', checkoutPanel.keyText === 'kb_live_checkout_visible' && checkoutPanel.outputText.includes('Your Pro key is ready'));
     check('checkout success panel offers Copy code and Continue to app actions', checkoutPanel.hasCopy && checkoutPanel.hasContinue && checkoutPanel.continueText === 'Continue to app');
 
     await page.click('#accountBtn');

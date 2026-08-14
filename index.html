@@ -1613,6 +1613,17 @@ body.protocol-preply .generate-btn.loading{
   line-height:1.35;
   margin:3px 0 0;
 }
+.license-modal-step-note{
+  border:1px solid rgba(255,204,64,0.24);
+  border-radius:8px;
+  background:rgba(255,204,64,0.055);
+  color:#EED99B;
+  font-family:var(--font-body);
+  font-size:11px;
+  line-height:1.45;
+  margin:8px 0 0;
+  padding:8px 9px;
+}
 .license-modal-inline{
   display:grid;
   grid-template-columns:minmax(0,1fr) minmax(106px,auto);
@@ -1677,6 +1688,15 @@ body.protocol-preply .generate-btn.loading{
   margin-top:16px;
   margin-bottom:0;
   line-height:1.5;
+}
+.license-modal-trust{
+  border-top:1px solid var(--border);
+  color:var(--text-dim);
+  font-family:var(--font-body);
+  font-size:11px;
+  line-height:1.45;
+  margin:14px 0 0;
+  padding-top:12px;
 }
 .license-modal-actions{
   display:grid;
@@ -2019,14 +2039,14 @@ body.protocol-preply .generate-btn.loading{
       </div>
       <div class="help-mini-card">
         <p class="help-mini-title">Pro</p>
-        <p class="help-mini-copy">Unlimited reports and every protocol. Buy Pro, return to Pathfinder, then copy your code.</p>
+        <p class="help-mini-copy">Unlimited reports and every protocol. After payment, use your Pro key to continue.</p>
       </div>
       <div class="help-mini-card">
-        <p class="help-mini-title">Manual code</p>
-        <p class="help-mini-copy">If you paid directly or through PayPal, paste the 30-day code in Access.</p>
+        <p class="help-mini-title">Manual key</p>
+        <p class="help-mini-copy">If you paid directly or through PayPal, paste the 30-day key in Access.</p>
       </div>
       <div class="help-mini-card">
-        <p class="help-mini-title">Lost code</p>
+        <p class="help-mini-title">Lost key</p>
         <p class="help-mini-copy">Open Access and use the same email from checkout to find it again.</p>
       </div>
     </div>
@@ -2071,15 +2091,15 @@ body.protocol-preply .generate-btn.loading{
 
 <div id="licenseModalOverlay" class="license-modal-overlay" style="display:none;">
   <div class="license-modal">
-    <h2 class="license-modal-title">Pathfinder access</h2>
-    <p class="license-modal-subtitle">Start free, buy Pro, or enter a code you already have.</p>
+    <h2 class="license-modal-title">Choose your access</h2>
+    <p class="license-modal-subtitle">Start free, unlock Pro, or continue with a key you already have.</p>
 
     <div class="license-modal-options">
       <div class="license-modal-section primary">
         <div class="license-modal-plan-head">
           <div>
             <p class="license-modal-plan-name">Start free</p>
-            <p class="license-modal-plan-note">20 Classic reports each month.</p>
+            <p class="license-modal-plan-note">Try Pathfinder with 20 Classic reports per month.</p>
           </div>
           <span class="license-modal-pill">free</span>
         </div>
@@ -2094,7 +2114,8 @@ body.protocol-preply .generate-btn.loading{
           <div>
             <span class="license-modal-crown" aria-hidden="true">♛</span>
             <p class="license-modal-plan-name">Buy Pro</p>
-            <p class="license-modal-plan-note">Pay securely. When you return, Pathfinder will show your Pro code with a Copy button.</p>
+            <p class="license-modal-plan-note">Unlimited reports. Every protocol.</p>
+            <p class="license-modal-step-note">After payment, return here and use the same checkout email under Already paid. Pathfinder will find your Pro key.</p>
           </div>
           <span class="license-modal-pill">pro</span>
         </div>
@@ -2103,10 +2124,10 @@ body.protocol-preply .generate-btn.loading{
           <button class="generate-btn" id="licenseModalProBtn"><span class="btn-label" id="licenseModalProBtnLabel">Buy Pro</span></button>
         </div>
         <div class="license-modal-paypal">
-          <p class="license-modal-paypal-note">Prefer PayPal? Pay there, then you will receive a 30-day Pro code manually.</p>
+          <p class="license-modal-paypal-note">Prefer PayPal? Pay there, then I will send you a 30-day Pro key manually.</p>
           <button class="paypal-btn" id="licenseModalPaypalBtn" type="button" aria-disabled="true">
             <span class="paypal-mark">PayPal</span>
-            <span>Manual 30-day code</span>
+            <span>Pay with PayPal</span>
           </button>
         </div>
       </div>
@@ -2115,26 +2136,27 @@ body.protocol-preply .generate-btn.loading{
         <div class="license-modal-plan-head">
           <div>
             <p class="license-modal-plan-name">Already paid?</p>
-            <p class="license-modal-plan-note">Enter the checkout email and Pathfinder will find your Pro code.</p>
+            <p class="license-modal-plan-note">Find your key with the same email from checkout, or paste it directly.</p>
           </div>
         </div>
         <div class="license-modal-recover">
           <div class="license-modal-inline">
-            <input type="email" id="licenseModalRecoverEmail" placeholder="your@email.com" aria-label="Email to find existing access code">
-            <button class="btn-secondary" id="licenseModalRecoverBtn"><span id="licenseModalRecoverBtnLabel">Find my code</span></button>
+            <input type="email" id="licenseModalRecoverEmail" placeholder="your@email.com" aria-label="Email to find existing access key">
+            <button class="btn-secondary" id="licenseModalRecoverBtn"><span id="licenseModalRecoverBtnLabel">Find my key</span></button>
           </div>
         </div>
         <div class="license-modal-advanced">
-          <p class="license-modal-plan-note">Paste a Pro access code, owner code, or support code</p>
+          <p class="license-modal-plan-note">Paste key</p>
           <div class="license-modal-inline">
-            <input type="text" id="licenseModalKeyInput" placeholder="kb_live_..." aria-label="Existing access code">
-            <button class="btn-secondary" id="licenseModalKeyBtn">Use code</button>
+            <input type="text" id="licenseModalKeyInput" placeholder="kb_live_..." aria-label="Existing access key">
+            <button class="btn-secondary" id="licenseModalKeyBtn">Use key</button>
           </div>
         </div>
       </div>
     </div>
 
     <p class="license-modal-error" id="licenseModalError" style="display:none;"></p>
+    <p class="license-modal-trust">Pathfinder does not store generated reports. Access keys only control your plan.</p>
   </div>
 </div>
 
@@ -5305,7 +5327,7 @@ function promptForAccessKey(){
 
     function onKeyClick(){
       const key = keyInput.value.trim();
-      if(!key){ showError('Please paste your Pathfinder access code.'); return; }
+      if(!key){ showError('Please paste your Pathfinder key.'); return; }
       errorEl.style.display = 'none';
       finish(key);
     }
@@ -5321,10 +5343,10 @@ function promptForAccessKey(){
 
     async function onRecoverClick(){
       const email = recoverEmailInput.value.trim();
-      if(!email){ showError('Please enter the email you used for Pathfinder.'); return; }
+      if(!email){ showError('Please enter the email you used at checkout.'); return; }
       errorEl.style.display = 'none';
       recoverBtn.disabled = true;
-      recoverBtnLabel.textContent = 'Finding...';
+      recoverBtnLabel.textContent = 'Finding key...';
       try{
         const res = await fetch('/api/license-recover', {
           method: 'POST',
@@ -5333,16 +5355,16 @@ function promptForAccessKey(){
         });
         const data = await res.json().catch(() => ({}));
         if(!res.ok || !data.licenseKey){
-          showError(data.error || 'No Pathfinder access was found for that email.');
+          showError(data.error || 'No Pathfinder key was found for that email.');
           recoverBtn.disabled = false;
-          recoverBtnLabel.textContent = 'Find my code';
+          recoverBtnLabel.textContent = 'Find my key';
           return;
         }
         finish(data.licenseKey);
       }catch(e){
         showError('Network error - check your connection and try again.');
         recoverBtn.disabled = false;
-        recoverBtnLabel.textContent = 'Find my code';
+        recoverBtnLabel.textContent = 'Find my key';
       }
     }
 
@@ -5358,7 +5380,7 @@ function promptForAccessKey(){
     freeBtn.disabled = false;
     freeBtnLabel.textContent = 'Start free';
     recoverBtn.disabled = false;
-    recoverBtnLabel.textContent = 'Find my code';
+    recoverBtnLabel.textContent = 'Find my key';
     overlay.style.display = 'flex';
     proBtn.addEventListener('click', onProClick);
     freeBtn.addEventListener('click', onFreeClick);
@@ -5945,16 +5967,16 @@ function renderCheckoutSuccess(key){
   outputBox.className = key ? 'output-box' : 'output-box error';
   if(!key){
     outputBox.textContent =
-      'Payment complete, but this browser does not have the Pro code saved.\n\n' +
-      'Open Access, choose Already paid?, and enter the checkout email. Pathfinder will find your Pro code.';
+      'Payment complete, but this browser does not have the Pro key saved.\n\n' +
+      'Open Access, choose Already paid?, and enter the checkout email. Pathfinder will find your Pro key.';
     return;
   }
 
   outputBox.innerHTML =
     '<div class="checkout-success-card">' +
-      '<div class="checkout-success-title">Your Pro code is ready.</div>' +
-      '<div class="checkout-success-copy">Copy this code if you want to use Pathfinder on another device. It is already active in this browser.</div>' +
-      '<span class="checkout-success-label">Pathfinder Pro code</span>' +
+      '<div class="checkout-success-title">Your Pro key is ready.</div>' +
+      '<div class="checkout-success-copy">Copy this key if you want to use Pathfinder on another device. It is already active in this browser.</div>' +
+      '<span class="checkout-success-label">Pathfinder Pro key</span>' +
       '<code class="checkout-key" id="checkoutSuccessKey">' + escapeHtml(key) + '</code>' +
     '</div>' +
     '<div class="checkout-actions">' +

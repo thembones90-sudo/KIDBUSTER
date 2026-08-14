@@ -130,7 +130,8 @@ export function evaluateEntitlement({ plan, status, protocol, monthlyUsageCount,
     // Only time-limited Pro grants (e.g. a 30-day manual code) ever set
     // expiresAt at all -- an ordinary paying customer's record never has
     // this field, so this check is a no-op for them.
-    if(expiresAt && new Date(expiresAt).getTime() <= Date.now()){
+    const effectiveNow = now || new Date();
+    if(expiresAt && new Date(expiresAt).getTime() <= effectiveNow.getTime()){
       return {
         allowed: false,
         reason: 'pro_expired',

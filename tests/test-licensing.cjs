@@ -24,6 +24,8 @@ module.exports = async function run(){
   const { check, getFailures } = createChecker();
   console.log('\n=== test-licensing.cjs ===');
 
+  process.env.KIDBUSTER_TEST_KV = '1';
+
   const licensing = await import('../api/_lib/licensing.js');
   const { __resetForTests } = await import('../api/_lib/kv-client.js');
 
@@ -92,14 +94,15 @@ module.exports = async function run(){
       return r.allowed === false && r.reason === 'expired';
     })());
     check('future-dated Pro license -> allowed until expiry', (() => {
+      const now = new Date('2026-07-02T00:00:00.000Z');
       const r = licensing.evaluateEntitlement({
         plan:'pro',
         status:'active',
         protocol:'BEIDA',
         monthlyUsageCount:0,
         trialUsageCount:0,
-        expiresAt:'2026-08-01T00:00:00.000Z',
-        now:new Date('2026-07-02T00:00:00.000Z')
+        expiresAt: licensing.expiresInDays(30, now),
+        now
       });
       return r.allowed === true;
     })());
