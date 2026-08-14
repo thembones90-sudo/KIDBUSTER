@@ -6032,6 +6032,7 @@ function resetWorkspace(){
   renderLint(null);
   renderTrialStatus(null);
   try{ localStorage.removeItem(DRAFT_KEY); }catch(e){ /* storage unavailable, fail silently */ }
+  document.dispatchEvent(new CustomEvent('kidbuster:workspace-reset'));
 }
 
 // A deliberately unhurried scroll to the top — native browser smooth-scroll
@@ -6646,6 +6647,25 @@ restoreDraft();
     }
   }
 
+  function ensurePolling(){
+    if(pollTimer) return;
+    pollTimer = setInterval(refreshKrispSession, 5000);
+  }
+
+  function handleWorkspaceReset(){
+    // New Student should create a fresh import target, not disarm Krisp.
+    // Clear only client-side duplicate memory so the next transcript can
+    // arrive even if Krisp reuses a meeting identity.
+    announcedIds = {};
+    var waitBtn = document.getElementById('krispWaitBtn');
+    var status = document.getElementById('krispWaitStatus');
+    if(waitBtn && waitBtn.dataset.waiting === 'true'){
+      if(status){ status.style.color = ''; status.textContent = 'Waiting for Krisp transcript...'; }
+      ensurePolling();
+      refreshKrispSession();
+    }
+  }
+
   // --- Shared apply flow: identical for automatic match and manual import ---
   function applyTranscriptWithFullFlow(record){
     var box = document.getElementById('krispNotes');
@@ -6985,6 +7005,8 @@ restoreDraft();
     if(btn){ btn.textContent = 'DISARM KRISP'; btn.dataset.waiting = 'true'; btn.classList.add('krisp-wait-active'); }
     if(status){ status.style.color = ''; status.textContent = 'Waiting for Krisp transcript...'; }
     if(dotWrap) dotWrap.style.display = 'inline-flex';
+    ensurePolling();
+    refreshKrispSession();
   }
 
   function stopWaiting(callServer){
@@ -7088,7 +7110,7 @@ restoreDraft();
   function wireButtons(){
     var waitBtn = document.getElementById('krispWaitBtn');
     // Read actual current state off the button itself (set by startWaiting/
-    // stopWaiting, including automatic stops on a match) instead of a
+    // stopWaiting, and restored from the server) instead of a
     // separately-tracked closure variable -- a closure boolean can silently
     // fall out of sync whenever stopWaiting fires on its own (e.g. a
     // transcript arrives and auto-matches), which is exactly what caused
@@ -7143,9 +7165,12 @@ restoreDraft();
       }
       wireButtons();
       if(pollTimer) clearInterval(pollTimer);
-      pollTimer = setInterval(refreshKrispSession, 5000);
+      pollTimer = null;
+      ensurePolling();
     }catch(e){ /* stays hidden on any error -- fail safe */ }
   }
+
+  document.addEventListener('kidbuster:workspace-reset', handleWorkspaceReset);
 
   if(document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', initKrispPanel);
