@@ -6682,6 +6682,51 @@ restoreDraft();
     showImportStatusMessage('\u2713 Comment imported successfully');
   }
 
+  function isWorkspaceReadyForAutoImport(){
+    var notes = document.getElementById('krispNotes');
+    var output = document.getElementById('outputBox');
+    var notesAreEmpty = !notes || !notes.value.trim();
+    var outputIsIdle = !output || output.classList.contains('empty') || output.textContent.trim() === 'Protocol standing by.';
+    return notesAreEmpty && outputIsIdle;
+  }
+
+  async function deferMatchedImport(record){
+    var key = getSavedKey();
+    if(!key || !record) return false;
+    try{
+      var res = await fetch('/api/krisp-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-app-key': key },
+        body: JSON.stringify({ action: 'defer', record: record })
+      });
+      if(!res.ok) return false;
+      var json = await res.json();
+      if(json.pending){
+        renderPending(json.pending);
+      } else {
+        refreshKrispSession();
+      }
+      showImportStatusMessage('\u2713 Krisp transcript saved to Pending');
+      highlightPendingPanel();
+      showNewBadge();
+      return true;
+    }catch(e){
+      return false;
+    }
+  }
+
+  async function handleMatchedImport(record){
+    if(!record) return;
+    if(isWorkspaceReadyForAutoImport()){
+      applyTranscriptWithFullFlow(record);
+      return;
+    }
+    var deferred = await deferMatchedImport(record);
+    if(!deferred){
+      showKrispError('Krisp transcript received, but your current report is still open. Press New Student, then Refresh.');
+    }
+  }
+
   // --- Friendly timestamp formatting -----------------------------------
   // "Today, 18:29" / "Yesterday, 20:00" / "4 Aug, 16:15", with the full
   // timestamp always available separately for a title/tooltip.
@@ -7044,7 +7089,7 @@ restoreDraft();
         var alreadyAnnounced = json.matched.meetingId && announcedIds[json.matched.meetingId];
         if(!alreadyAnnounced){
           if(json.matched.meetingId) announcedIds[json.matched.meetingId] = true;
-          applyTranscriptWithFullFlow(json.matched);
+          handleMatchedImport(json.matched);
           // ARM KRISP is a persistent toggle now -- a match does NOT
           // disarm it. It stays armed for the next transcript until the
           // teacher explicitly presses DISARM KRISP.
@@ -7161,7 +7206,7 @@ restoreDraft();
       }
       if(json.matched){
         if(json.matched.meetingId) announcedIds[json.matched.meetingId] = true;
-        applyTranscriptWithFullFlow(json.matched);
+        handleMatchedImport(json.matched);
       }
       wireButtons();
       if(pollTimer) clearInterval(pollTimer);

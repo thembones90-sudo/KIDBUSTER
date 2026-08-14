@@ -15,6 +15,8 @@ import { isFounderLicenseKey, getLicense, isLicenseExpired } from './_lib/licens
 import { getOrCreateKrispToken, regenerateKrispToken, disconnectKrisp } from './_lib/krisp-token.js';
 import { kv } from './_lib/kv-client.js';
 
+const PENDING_LIST_MAX = 20;
+
 function dataKeyPrefix(userIdentity){
   return 'krisp:data:' + userIdentity + ':';
 }
@@ -41,6 +43,28 @@ function sortPendingByMeetingStart(pending){
     if(!bTime) return -1;
     return new Date(bTime).getTime() - new Date(aTime).getTime();
   });
+}
+
+function normalizeDeferredImport(record){
+  if(!record || typeof record !== 'object') return null;
+  const meetingId = typeof record.meetingId === 'string' ? record.meetingId.trim() : '';
+  const transcript = typeof record.transcript === 'string' ? record.transcript.trim() : '';
+  if(!meetingId || !transcript) return null;
+
+  return {
+    meetingId,
+    transcript,
+    title: typeof record.title === 'string' ? record.title : '',
+    detectedStudentName: typeof record.detectedStudentName === 'string' ? record.detectedStudentName : '',
+    detectedContext: typeof record.detectedContext === 'string' ? record.detectedContext : '',
+    contentPreview: typeof record.contentPreview === 'string' ? record.contentPreview : transcript.slice(0, 220),
+    meetingStartTime: record.meetingStartTime || record.startTime || null,
+    startTime: record.startTime || record.meetingStartTime || null,
+    durationSeconds: Number.isFinite(Number(record.durationSeconds)) ? Number(record.durationSeconds) : null,
+    receivedAt: record.receivedAt || new Date().toISOString(),
+    assigned: false,
+    deferred: true
+  };
 }
 
 export default async function handler(req, res){
@@ -121,6 +145,27 @@ export default async function handler(req, res){
       const [claimed] = pending.splice(index, 1);
       await kv.set(pendingKey, pending).catch(() => {});
       return res.status(200).json({ claimed, pendingCount: pending.length });
+    }
+
+    if(action === 'defer'){
+      const record = normalizeDeferredImport((req.body || {}).record);
+      if(!record){
+        return res.status(400).json({ error: 'A valid Krisp import record is required to defer.' });
+      }
+      const pending = (await kv.get(pendingKey).catch(() => null)) || [];
+      const existingIndex = pending.findIndex(item => item.meetingId === record.meetingId);
+      if(existingIndex === -1){
+        pending.unshift(record);
+      } else {
+        pending[existingIndex] = { ...pending[existingIndex], ...record };
+      }
+      if(pending.length > PENDING_LIST_MAX){
+        pending.length = PENDING_LIST_MAX;
+      }
+      await kv.set(pendingKey, pending).catch(() => {});
+      await kv.set(matchedKey, null).catch(() => {});
+      const sorted = sortPendingByMeetingStart(pending);
+      return res.status(200).json({ deferred: true, pending: sorted, pendingCount: sorted.length });
     }
 
     if(action === 'dismiss'){
