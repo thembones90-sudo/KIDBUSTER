@@ -240,7 +240,12 @@ export default async function handler(req, res){
     if(waitingSince){
       record.assigned = true;
       await kv.set(matchedKey, record);
-      await kv.set(waitingKey, null);
+      // Deliberately NOT clearing waitingKey here -- ARM KRISP is a
+      // persistent toggle, not a one-shot "wait for a single transcript."
+      // It stays armed across every subsequent match until the teacher
+      // explicitly disarms it (the 'cancel-wait' action), so it survives
+      // New Student, Clear, and any number of transcripts arriving in a
+      // row without needing to be re-armed each time.
       await kv.set(prefix + 'lastReceivedAt', record.receivedAt);
       console.log('[krisp-webhook] waiting session matched (id=' + dedupeKey + ')');
       console.log('[krisp-webhook] transcript assigned (id=' + dedupeKey + ')');

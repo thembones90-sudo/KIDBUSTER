@@ -7001,7 +7001,9 @@ restoreDraft();
         if(!alreadyAnnounced){
           if(json.matched.meetingId) announcedIds[json.matched.meetingId] = true;
           applyTranscriptWithFullFlow(json.matched);
-          stopWaiting(false);
+          // ARM KRISP is a persistent toggle now -- a match does NOT
+          // disarm it. It stays armed for the next transcript until the
+          // teacher explicitly presses DISARM KRISP.
         }
       }
       return json;
@@ -7105,6 +7107,14 @@ restoreDraft();
       setWebhookUrlField(json.webhookUrl);
       updateLastReceived(json.lastReceivedAt);
       renderPending(json.pending);
+      if(json.waiting){
+        var wb = document.getElementById('krispWaitBtn');
+        var wStatus = document.getElementById('krispWaitStatus');
+        var wDotWrap = document.getElementById('krispWaitDotWrap');
+        if(wb){ wb.textContent = 'DISARM KRISP'; wb.dataset.waiting = 'true'; wb.classList.add('krisp-wait-active'); }
+        if(wStatus){ wStatus.style.color = ''; wStatus.textContent = 'Waiting for Krisp transcript...'; }
+        if(wDotWrap) wDotWrap.style.display = 'inline-flex';
+      }
       if(json.matched){
         if(json.matched.meetingId) announcedIds[json.matched.meetingId] = true;
         applyTranscriptWithFullFlow(json.matched);
