@@ -5284,6 +5284,34 @@ async function resetLicenseClaim(licenseKey){
   }
 }
 
+function capitalizeStudentNameFirstLetter(){
+  var field = document.getElementById('studentName');
+  if(!field) return;
+  var value = field.value;
+  if(!value) return;
+  var firstChar = value.charAt(0);
+  var capitalized = firstChar.toUpperCase();
+  if(firstChar === capitalized) return;
+  var selectionStart = field.selectionStart;
+  var selectionEnd = field.selectionEnd;
+  field.value = capitalized + value.slice(1);
+  if(typeof selectionStart === 'number'){
+    field.setSelectionRange(selectionStart, selectionEnd);
+  }
+}
+function wireStudentNameCapitalization(){
+  var field = document.getElementById('studentName');
+  if(field && field.dataset.capWired !== 'true'){
+    field.dataset.capWired = 'true';
+    field.addEventListener('input', capitalizeStudentNameFirstLetter);
+  }
+}
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', wireStudentNameCapitalization);
+} else {
+  wireStudentNameCapitalization();
+}
+
 function wireResetClaimBtn(){
   var lookupBtn = document.getElementById('resetClaimLookupBtn');
   if(lookupBtn && lookupBtn.dataset.wired !== 'true'){
