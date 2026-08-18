@@ -1793,6 +1793,14 @@ body.protocol-preply .generate-btn.loading{
       <div class="account-owner-copy-row" id="manualLicenseCopyRow" style="display:none;">
         <button class="btn-secondary" id="manualLicenseCopyBtn" type="button" data-default-label="Copy code">Copy code</button>
       </div>
+      <hr class="help-divider">
+      <p class="account-trials-title">Reset a device binding</p>
+      <p class="account-summary">If a customer's 30-day key was activated on a browser they no longer use (switched devices, cleared cookies), paste their key here to free it up for the new browser.</p>
+      <div class="license-modal-inline">
+        <input type="text" id="resetClaimKeyField" placeholder="kb_live_... (customer's key)">
+        <button class="btn-secondary" id="resetClaimLookupBtn" type="button">Look up</button>
+      </div>
+      <div class="account-owner-result" id="resetClaimResult" style="display:none;"></div>
     </div>
     <div class="account-actions">
       <button class="btn-secondary account-change-key-btn" id="accountChangeKeyBtn" type="button">Change code</button>
@@ -5184,6 +5192,109 @@ async function refreshAccountPanel(){
     updateAccountSnapshot('Saved access code found. Status check needs the live app server.', 'Saved code', 'Unknown', 'Unable to refresh', maskAccessKey(key), true, false);
     renderAccountTrials(null);
   }
+}
+
+async function lookupLicenseForReset(){
+  var ownerKey = getStoredAccessKey();
+  var keyField = document.getElementById('resetClaimKeyField');
+  var resultEl = document.getElementById('resetClaimResult');
+  if(!ownerKey || !keyField || !resultEl) return;
+  var licenseKey = keyField.value.trim();
+  if(!licenseKey){
+    resultEl.style.display = '';
+    resultEl.textContent = 'Paste a license key first.';
+    return;
+  }
+  resultEl.style.display = '';
+  resultEl.textContent = 'Looking up...';
+  try{
+    var res = await fetch('/api/admin-license-lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-app-key': ownerKey },
+      body: JSON.stringify({ licenseKey: licenseKey, action: 'lookup' })
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if(!res.ok || !data.exists){
+      resultEl.textContent = (data && data.error) || 'That key was not found.';
+      return;
+    }
+    renderResetClaimResult(licenseKey, data.license);
+  }catch(e){
+    resultEl.textContent = 'Could not reach the server. Try again.';
+  }
+}
+
+function renderResetClaimResult(licenseKey, license){
+  var resultEl = document.getElementById('resetClaimResult');
+  if(!resultEl) return;
+  resultEl.innerHTML = '';
+  var summary = document.createElement('p');
+  summary.className = 'account-summary';
+  summary.textContent = (license.email || '(no email)') + ' \u2014 ' + license.plan + ' / ' + license.status + (license.manual ? ' (manual key)' : '');
+  resultEl.appendChild(summary);
+
+  if(!license.manual){
+    var note = document.createElement('p');
+    note.className = 'account-summary';
+    note.textContent = 'Not a manual 30-day key -- no device binding to reset.';
+    resultEl.appendChild(note);
+    return;
+  }
+
+  if(!license.claimed){
+    var note2 = document.createElement('p');
+    note2.className = 'account-summary';
+    note2.textContent = 'Not claimed by any browser yet -- nothing to reset.';
+    resultEl.appendChild(note2);
+    return;
+  }
+
+  var claimNote = document.createElement('p');
+  claimNote.className = 'account-summary';
+  claimNote.textContent = 'Claimed on a browser since ' + (license.claimedAt || 'an unknown time') + '.';
+  resultEl.appendChild(claimNote);
+
+  var resetBtn = document.createElement('button');
+  resetBtn.className = 'btn-secondary';
+  resetBtn.type = 'button';
+  resetBtn.textContent = 'Reset device binding';
+  resetBtn.addEventListener('click', function(){ resetLicenseClaim(licenseKey); });
+  resultEl.appendChild(resetBtn);
+}
+
+async function resetLicenseClaim(licenseKey){
+  var ownerKey = getStoredAccessKey();
+  var resultEl = document.getElementById('resetClaimResult');
+  if(!ownerKey || !resultEl) return;
+  resultEl.textContent = 'Resetting...';
+  try{
+    var res = await fetch('/api/admin-license-lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-app-key': ownerKey },
+      body: JSON.stringify({ licenseKey: licenseKey, action: 'reset-claim' })
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if(!res.ok || !data.reset){
+      resultEl.textContent = (data && data.error) || 'Could not reset this key.';
+      return;
+    }
+    resultEl.textContent = 'Done \u2014 this key can now be activated on a new browser.';
+  }catch(e){
+    resultEl.textContent = 'Could not reach the server. Try again.';
+  }
+}
+
+function wireResetClaimBtn(){
+  var lookupBtn = document.getElementById('resetClaimLookupBtn');
+  if(lookupBtn && lookupBtn.dataset.wired !== 'true'){
+    lookupBtn.dataset.wired = 'true';
+    lookupBtn.addEventListener('click', lookupLicenseForReset);
+  }
+}
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', wireResetClaimBtn);
+} else {
+  wireResetClaimBtn();
 }
 
 async function createManualLicense(){
