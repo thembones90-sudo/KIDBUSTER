@@ -207,6 +207,49 @@ async function notifyManualLicenseClaim({ licenseKey, license, installationId })
 }
 
 /**
+ * Clears the device binding on a manual 30-day key so it can be
+ * re-activated from a different browser (a customer switched devices,
+ * cleared cookies, etc.). Owner-only -- gated by the caller
+ * (admin-license-lookup.js checks isFounderLicenseKey before this is
+ * ever reached). Refuses on a non-manual key, since the single-claim
+ * restriction only exists for manual keys in the first place -- there
+ * is nothing to reset on a Free, Lemon Squeezy Pro, or founder key.
+ * @param {string} licenseKey
+ * @returns {Promise<{ok: boolean, reason: string|null, license: object|null}>}
+ */
+export async function resetManualLicenseClaim(licenseKey){
+  const license = await getLicense(licenseKey);
+  if(!license){
+    return { ok: false, reason: 'invalid_key', license: null };
+  }
+  if(license.manual !== true){
+    return { ok: false, reason: 'not_a_manual_key', license };
+  }
+  if(!license.claimedInstallationId){
+    return { ok: false, reason: 'not_claimed', license };
+  }
+
+  const previousInstallationId = license.claimedInstallationId;
+  const updated = {
+    ...license,
+    claimedInstallationId: null,
+    claimedAt: null
+  };
+  await saveLicense(licenseKey, updated);
+  await notifyAccessEvent({
+    type: 'manual_key_claim_reset',
+    title: 'Manual 30-day key device binding reset.',
+    email: license.email || '',
+    licenseKey,
+    details: [
+      'Previously claimed browser: ' + previousInstallationId,
+      'Expires: ' + (license.expiresAt || '(none)')
+    ]
+  });
+  return { ok: true, reason: null, license: updated };
+}
+
+/**
  * Manual 30-day keys are single-claim: the first browser installation
  * that uses one binds it, and later attempts from another browser are
  * rejected. This is intentionally limited to owner-issued manual keys,
