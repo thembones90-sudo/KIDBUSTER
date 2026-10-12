@@ -1,9 +1,9 @@
 // Owner-only emergency replacement of the September 11 manual-code inventory.
 // Existing customer records are never deleted. Only old, already-expired
 // September 11 manual codes can be retired; renewed keys are protected.
-import { getLicense, saveLicense, isFounderLicenseKey, isLicenseExpired } from './_lib/licensing.js';
-import { createManualProLicense } from './_lib/license-service.js';
-import { disconnectKrisp } from './_lib/krisp-token.js';
+import { getLicense, saveLicense, isFounderLicenseKey, isLicenseExpired } from './licensing.js';
+import { createManualProLicense } from './license-service.js';
+import { disconnectKrisp } from './krisp-token.js';
 
 const OLD_BATCH_DATE = '2026-09-11';
 const KEY_PATTERN = /^kb_live_[0-9a-f]{48}$/;
