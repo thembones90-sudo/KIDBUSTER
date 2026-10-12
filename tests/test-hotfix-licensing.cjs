@@ -48,6 +48,32 @@ module.exports = async function run(){
     check('owner-only lookup reports the effective expiry and issue timestamp',
       ownerResponse.code===200 && lookupBody.license.expired===true &&
       !!lookupBody.license.createdAt && lookupBody.license.expiresAt==='2000-01-01T00:00:00.000Z');
+    let refusedStatus = null, refusedBody = null;
+    const refusedRes = {status(x){refusedStatus=x;return this;},json(x){refusedBody=x;return this;}};
+    await ownerLookup({method:'POST',headers:{'x-app-key':'not-owner'},body:{licenseKey:first.licenseKey,action:'renew-manual'}},refusedRes);
+    check('manual renewal endpoint rejects requests without owner credentials',refusedStatus===403);
+    const beforeRenew = await licensing.getLicense(first.licenseKey);
+    let renewalStatus=null, renewalResponse=null;
+    const renewalRes={status(x){renewalStatus=x;return this;},json(x){renewalResponse=x;return this;}};
+    await ownerLookup({method:'POST',headers:{'x-app-key':'hotfix-owner-test'},body:{licenseKey:first.licenseKey,action:'renew-manual'}},renewalRes);
+    const afterRenew=await licensing.getLicense(first.licenseKey);
+    check('owner can renew an expired manual license on the same key for 30 days',
+      renewalStatus===200 && renewalResponse.renewed===true &&
+      renewalResponse.license.expired===false && Date.parse(afterRenew.expiresAt)>Date.now()+29*864e5);
+    check('renewing existing license preserves Krisp identity and browser claim',
+      afterRenew.claimedInstallationId===beforeRenew.claimedInstallationId &&
+      afterRenew.createdAt===beforeRenew.createdAt &&
+      (await send(krisp,first.licenseKey)).code===200);
+    check('renewed license remains bound to original browser',
+      (await send(status,first.licenseKey,'anon-another-browser')).code===403);
+    const secondBefore=await licensing.getLicense(second.licenseKey);
+    const secondRenewal=await svc.renewManualProLicense(second.licenseKey);
+    check('renewing before expiry adds 30 days without discarding remaining time',
+      secondRenewal.ok===true &&
+      Math.abs(Date.parse(secondRenewal.license.expiresAt)-Date.parse(secondBefore.expiresAt)-30*864e5)<2000);
+    const freeForTest=await svc.getOrCreateFreeLicense('notmanual@example.test');
+    const freeRenewal=await svc.renewManualProLicense(freeForTest);
+    check('manual renewal refuses Free or nonmanual license',freeRenewal.ok===false && freeRenewal.reason==='not_manual');
     if(oldOwner===undefined) delete process.env.OWNER_LICENSE_KEYS;
     else process.env.OWNER_LICENSE_KEYS=oldOwner;
     const wrongBrowser = await send(status,second.licenseKey,'anon-another-browser');

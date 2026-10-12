@@ -5259,6 +5259,14 @@ function renderResetClaimResult(licenseKey, license){
     return;
   }
 
+  var renewBtn = document.createElement('button');
+  renewBtn.className = 'btn-secondary';
+  renewBtn.type = 'button';
+  renewBtn.textContent = 'Renew this code for 30 days';
+  renewBtn.title = 'Extend the existing Pro key without changing its Krisp identity or saved browser';
+  renewBtn.addEventListener('click', function(){ renewExistingLicense(licenseKey); });
+  resultEl.appendChild(renewBtn);
+
   if(!license.claimed){
     var note2 = document.createElement('p');
     note2.className = 'account-summary';
@@ -5278,6 +5286,33 @@ function renderResetClaimResult(licenseKey, license){
   resetBtn.textContent = 'Reset device binding';
   resetBtn.addEventListener('click', function(){ resetLicenseClaim(licenseKey); });
   resultEl.appendChild(resetBtn);
+}
+
+async function renewExistingLicense(licenseKey){
+  var ownerKey = getStoredAccessKey();
+  var resultEl = document.getElementById('resetClaimResult');
+  if(!ownerKey || !resultEl) return;
+  if(!window.confirm('Renew this existing manual Pro license for 30 days? The original code and Krisp connection will stay the same.')) return;
+  resultEl.textContent = 'Renewing existing code...';
+  try{
+    var res = await fetch('/api/admin-license-lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-app-key': ownerKey },
+      body: JSON.stringify({ licenseKey: licenseKey, action: 'renew-manual' })
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if(!res.ok || !data.renewed){
+      resultEl.textContent = (data && data.error) || 'Renewal failed; no changes confirmed.';
+      return;
+    }
+    renderResetClaimResult(licenseKey, data.license);
+    var success = document.createElement('p');
+    success.className = 'account-summary';
+    success.textContent = 'Renewed successfully. Ask the teacher to press Refresh; no code or Krisp URL change is necessary.';
+    resultEl.prepend(success);
+  }catch(e){
+    resultEl.textContent = 'Could not confirm renewal. Look up this code before retrying.';
+  }
 }
 
 async function resetLicenseClaim(licenseKey){

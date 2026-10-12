@@ -13,19 +13,19 @@ Christopher reported that old and replacement codes showed Expired, with expiry 
 2. api/_lib/license-service.js: downgradeToFree previously retained expiresAt and a manual device claim. A user eligible for the ongoing Free tier could be fully denied. Now resets the expiry and manual binding, retains active Free status, preserves the license key and existing usage history.
 3. index.html: prior concurrent status requests could overwrite newer key status. Now each refresh is versioned and checked against the actual saved key; obsolete replies/errors are ignored.
 4. index.html: stopped saying 'Saved access code is active' when expired. Explicit access state and Expired/Expires date.
-5. api/admin-license-lookup.js / index.html: owner-only read-only license lookup now exposes an effective expired Boolean, createdAt and expiresAt, and displays effective expiration rather than raw 'status=active' alone. No license mutation or key disclosure added.
+5. api/admin-license-lookup.js / index.html: owner-only lookup exposes effective expiration, createdAt and expiresAt. An explicit owner-confirmed "Renew this code for 30 days" action extends an existing manual key in place. This is a licensed, authenticated write and does not change the key or Krisp browser binding.
 6. tests/test-hotfix-licensing.cjs: synthetic regression tests for three manual codes sharing email, independent expiry, owner expiry lookup, manual device claim, paid conversion, Krisp eligibility, Free fallback and an out-of-order browser status race.
 
 ## Evidence and limitations
 Local deterministic test: three newly created 30-day manual keys for the SAME email are unique and all return ACTIVE Pro under their correctly claimed installation ID; expiring one does not expire the others. Therefore current source does NOT reproduce the assertion 'every new key expires October 11'. Actual customer KV metadata, creation dates and issuance workflow must be inspected to determine why Christopher's replacements behaved that way.
 The current manual-license creation route generates a distinct license and calculated 30-day expiry. An old spare key created around September 11 would naturally expire around October 11. An incorrect live record, browser race, or wrong issued-code sequence are still possibilities.
-Manual-key expiry STILL denies Krisp by design until the owner correctly extends/replaces the manual entitlement. This hotfix does not silently grant unpaid Pro access. Replacing a key changes the stable Krisp identity; preserving the original key on legitimate renewal is preferable but requires an explicitly authorized renewal flow (not implemented here).
+Manual-key expiry STILL denies Krisp by design until the owner explicitly renews the existing manual entitlement. The new owner-only renewal action extends the same key for 30 days without losing its Krisp identity; for an unexpired key, it adds 30 days after its existing expiration. It does NOT silently grant unpaid Pro access, reactivate unrelated inactive users, or extend nonmanual accounts.
 Existing payment webhook immediately downgrades on cancellation, even before paid-through end, a separate billing lifecycle defect requiring a distinct fix/test. This hotfix does not change billing event semantics.
 
 ## Verification
 - npm ci completed locally on A:.
 - node tests/test-hotfix-licensing.cjs: passes.
-- npm test: ALL 20 TEST FILES PASSED, including Chromium browser smoke and payment/route suites.
+- npm test: ALL 20 TEST FILES PASSED, including Chromium browser smoke and payment/route suites; owner renewal and access preservation regressions passed.
 - git diff --check: clean.
 - No payment-provider test traffic, real Krisp webhook, live customer records, or production KV were touched.
 - Codex reviewed this issue and independently confirmed the main three code defects, but its read-only execution policy blocked code changes. Changes and test runs above were performed through authorized desktop tooling.
