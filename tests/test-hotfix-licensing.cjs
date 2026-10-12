@@ -31,7 +31,7 @@ module.exports = async function run(){
     const third = await svc.createManualProLicense({email:'same-person@example.test'});
     const all = [first,second,third];
     check('three issued codes are three different keys',new Set(all.map(x=>x.licenseKey)).size===3);
-    check('each newly issued code expires roughly 30 days from issuance',all.every(x=>Date.parse(x.expiresAt)-t0>29*864e5 && Date.parse(x.expiresAt)-t0<31*864e5));
+    check('each newly issued code has NO expiry before activation',all.every(x=>x.expiresAt===null && (x.days||30)===30));
     check('email lookup points to newest code, but each older code still independently exists',
       (await licensing.getLicenseKeyByEmail('same-person@example.test'))===third.licenseKey &&
       (await licensing.getLicense(first.licenseKey)).expiresAt===first.expiresAt);

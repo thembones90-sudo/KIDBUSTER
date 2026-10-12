@@ -86,6 +86,8 @@ export default async function handler(req, res){
       status: expired ? 'expired' : (license.status || 'inactive'),
       founder: false,
       manual: license.manual === true,
+      activationPending: license.activationPending === true,
+      activatedAt: license.activatedAt || null,
       email: license.email || '',
       expiresAt: license.expiresAt || null,
       expired,

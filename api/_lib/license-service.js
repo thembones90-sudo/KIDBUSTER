@@ -126,6 +126,7 @@ export async function activateOrRenewPro({ licenseKey, email, paymentCustomerId,
     manual: false,
     source: 'subscription',
     expiresAt: null,
+    activationPending: false,
     claimedInstallationId: null,
     claimedAt: null,
     paymentCustomerId: paymentCustomerId || existing.paymentCustomerId,
@@ -160,7 +161,8 @@ export async function createManualProLicense({ email = '', days = 30, note = '' 
   const normalizedEmail = email ? normalizeEmail(email) : '';
   const now = new Date();
   const licenseKey = generateLicenseKey();
-  const expiresAt = expiresInDays(durationDays, now);
+  // The clock starts on FIRST activation, not when inventory is minted.
+  const expiresAt = null;
 
   await saveLicense(licenseKey, {
     email: normalizedEmail,
@@ -173,6 +175,8 @@ export async function createManualProLicense({ email = '', days = 30, note = '' 
     note: String(note || '').slice(0, 200),
     durationDays,
     createdAt: now.toISOString(),
+    activationPending: true,
+    activatedAt: null,
     expiresAt
   });
 
@@ -186,7 +190,7 @@ export async function createManualProLicense({ email = '', days = 30, note = '' 
     email: normalizedEmail,
     licenseKey,
     details: [
-      'Expires: ' + expiresAt,
+      'Activation: pending; 30-day clock starts at first use',
       note ? 'Note: ' + String(note || '').slice(0, 200) : ''
     ]
   });
@@ -204,6 +208,12 @@ export async function renewManualProLicense(licenseKey, days = 30){
   if(!existing) return { ok: false, reason: 'invalid_key', license: null };
   if(existing.manual !== true || existing.paymentSubscriptionId){
     return { ok: false, reason: 'not_manual', license: existing };
+  }
+  if(existing.status === 'revoked'){
+    return { ok: false, reason: 'revoked', license: existing };
+  }
+  if(existing.activationPending === true){
+    return { ok: false, reason: 'not_activated', license: existing };
   }
   const duration = Number.isInteger(days) && days > 0 && days <= 365 ? days : 30;
   const now = new Date();
@@ -317,6 +327,12 @@ export async function claimManualLicenseForInstallation(licenseKey, license, ins
     };
   }
 
+  // Expired or revoked legacy keys cannot claim a new browser. Keep the
+  // read-only status route functional so the customer sees their expiry.
+  if(license.status !== 'active' || (license.expiresAt && Date.parse(license.expiresAt) <= Date.now())){
+    return { allowed: true, reason: null, message: null, license };
+  }
+
   if(license.claimedInstallationId){
     if(license.claimedInstallationId === normalizedInstallationId){
       return { allowed: true, reason: null, message: null, license };
@@ -329,10 +345,16 @@ export async function claimManualLicenseForInstallation(licenseKey, license, ins
     };
   }
 
+  const activatedAt = new Date();
   const updated = {
     ...license,
     claimedInstallationId: normalizedInstallationId,
-    claimedAt: new Date().toISOString()
+    claimedAt: activatedAt.toISOString(),
+    ...(license.activationPending === true ? {
+      activationPending: false,
+      activatedAt: activatedAt.toISOString(),
+      expiresAt: expiresInDays(license.durationDays || 30, activatedAt)
+    } : {})
   };
   await saveLicense(licenseKey, updated);
   await notifyManualLicenseClaim({
@@ -372,6 +394,7 @@ export async function downgradeToFree({ licenseKey, paymentCustomerId }){
     // Free accounts have no fixed expiry or single-browser manual claim.
     manual: false,
     expiresAt: null,
+    activationPending: false,
     claimedInstallationId: null,
     claimedAt: null,
     paymentSubscriptionId: null

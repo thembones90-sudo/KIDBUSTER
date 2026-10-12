@@ -1801,6 +1801,23 @@ body.protocol-preply .generate-btn.loading{
         <button class="btn-secondary" id="resetClaimLookupBtn" type="button">Look up</button>
       </div>
       <div class="account-owner-result" id="resetClaimResult" style="display:none;"></div>
+      <hr class="help-divider">
+      <p class="account-trials-title">September 11 inventory replacement</p>
+      <p class="account-summary">Paste the 20 old codes from Claude below. Preview first. Only expired manual codes issued September 11 are retired; renewed and active customer accounts are protected. Your master key is never changed.</p>
+      <textarea id="retireBatchKeys" rows="5" spellcheck="false" placeholder="Paste the old 20 codes, one per line"></textarea>
+      <div class="license-modal-inline" style="margin-top:8px;flex-wrap:wrap;">
+        <button class="btn-secondary" id="previewRetireBtn" type="button">Preview old codes</button>
+        <button class="btn-secondary" id="retireExpiredBtn" type="button">Retire eligible old codes</button>
+      </div>
+      <div class="account-owner-result" id="retireBatchResult" style="display:none;white-space:pre-wrap;"></div>
+      <hr class="help-divider">
+      <p class="account-trials-title">Generate fresh activation-based codes</p>
+      <p class="account-summary">Create 20 replacement keys. The 30-day clock starts on each customer's first activation, not today. Copy and keep the keys somewhere private.</p>
+      <div class="license-modal-inline" style="flex-wrap:wrap;">
+        <button class="btn-secondary" id="createActivationBatchBtn" type="button">Create 20 new codes</button>
+        <button class="btn-secondary" id="copyActivationBatchBtn" type="button" style="display:none;">Copy all new codes</button>
+      </div>
+      <div class="account-owner-result" id="activationBatchResult" style="display:none;white-space:pre-wrap;overflow-wrap:anywhere;"></div>
     </div>
     <div class="account-actions">
       <button class="btn-secondary account-change-key-btn" id="accountChangeKeyBtn" type="button">Change code</button>
@@ -5247,7 +5264,8 @@ function renderResetClaimResult(licenseKey, license){
   var datesNote = document.createElement('p');
   datesNote.className = 'account-summary';
   datesNote.textContent = 'Issued: ' + (license.createdAt ? new Date(license.createdAt).toLocaleString() : 'unknown') +
-    ' | Expiry: ' + (license.expiresAt ? new Date(license.expiresAt).toLocaleString() : 'none') +
+    ' | Activated: ' + (license.activatedAt ? new Date(license.activatedAt).toLocaleString() : (license.activationPending ? 'Not yet' : 'Legacy/unknown')) +
+    ' | Expiry: ' + (license.expiresAt ? new Date(license.expiresAt).toLocaleString() : (license.activationPending ? '30 days after activation' : 'none')) +
     (license.expired ? ' | EXPIRED' : '');
   resultEl.appendChild(datesNote);
 
@@ -5263,6 +5281,7 @@ function renderResetClaimResult(licenseKey, license){
   renewBtn.className = 'btn-secondary';
   renewBtn.type = 'button';
   renewBtn.textContent = 'Renew this code for 30 days';
+  renewBtn.disabled = license.activationPending === true || license.status === 'revoked';
   renewBtn.title = 'Extend the existing Pro key without changing its Krisp identity or saved browser';
   renewBtn.addEventListener('click', function(){ renewExistingLicense(licenseKey); });
   resultEl.appendChild(renewBtn);
@@ -5365,6 +5384,89 @@ if(document.readyState === 'loading'){
   wireStudentNameCapitalization();
 }
 
+let newlyCreatedActivationCodes = [];
+async function ownerBatchRequest(action, payload){
+  const ownerKey = getStoredAccessKey();
+  if(!ownerKey) throw new Error('Owner login is required.');
+  const response = await fetch('/api/admin-manual-batch', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'x-app-key': ownerKey },
+    body: JSON.stringify({ action, ...payload })
+  });
+  const data = await response.json().catch(() => ({}));
+  if(!response.ok) throw new Error(data.error || 'Batch action failed.');
+  return data;
+}
+async function previewSeptemberBatch(){
+  const field = document.getElementById('retireBatchKeys');
+  const output = document.getElementById('retireBatchResult');
+  output.style.display = '';
+  output.textContent = 'Inspecting old records...';
+  try{
+    const data = await ownerBatchRequest('preview-retirement', {keys:field.value});
+    output.textContent = 'Preview: ' + JSON.stringify(data.summary) + '\n' +
+      data.items.map(x => x.key + ' | ' + x.category + (x.claimed ? ' | previously claimed' : '')).join('\n');
+  }catch(e){output.textContent = e.message;}
+}
+async function retireSeptemberBatch(){
+  const field = document.getElementById('retireBatchKeys');
+  const output = document.getElementById('retireBatchResult');
+  const preview = await ownerBatchRequest('preview-retirement', {keys:field.value}).catch(e => {output.style.display='';output.textContent=e.message;return null;});
+  if(!preview)return;
+  const eligible = preview.summary.retire_eligible || 0;
+  if(eligible===0){output.style.display='';output.textContent='No expired September 11 codes eligible for retirement.\n' + JSON.stringify(preview.summary);return;}
+  if(!window.confirm('Retire ' + eligible + ' expired September 11 manual codes? Previously renewed and non-expired codes will be protected. This does NOT change your master key.'))return;
+  output.style.display='';
+  output.textContent='Retiring eligible expired keys...';
+  try{
+    const result = await ownerBatchRequest('retire-expired', {keys:field.value});
+    output.textContent='Retirement complete: ' + JSON.stringify(result.summary) + '\n' +
+      result.items.map(x=>x.key + ' | ' + x.category).join('\n');
+  }catch(e){output.textContent='Could not confirm retirement. Run Preview again before retrying. ' + e.message;}
+}
+async function createActivationBatch(){
+  const btn=document.getElementById('createActivationBatchBtn');
+  const copy=document.getElementById('copyActivationBatchBtn');
+  const output=document.getElementById('activationBatchResult');
+  if(!window.confirm('Create 20 NEW stock codes? They remain unactivated until first customer use. Copy them immediately and store privately.'))return;
+  btn.disabled=true; output.style.display=''; output.textContent='Creating 20 new activation-based licenses...';
+  newlyCreatedActivationCodes=[];
+  try{
+    for(let batchNumber=0;batchNumber<4;batchNumber++){
+      const data=await ownerBatchRequest('create-batch', {count:5});
+      newlyCreatedActivationCodes.push(...(data.codes || []));
+      copy.style.display = newlyCreatedActivationCodes.length ? '' : 'none';
+      output.textContent = newlyCreatedActivationCodes.length + '/20 new codes. CLOCK NOT STARTED.\n' +
+        newlyCreatedActivationCodes.map((k,i)=>(i+1)+'. '+k).join('\n');
+      if(data.created !== 5)throw new Error('Partial creation. Copy the codes shown before retrying.');
+    }
+    btn.textContent = 'Create another 20 codes';
+  }catch(e){output.textContent += '\nStopped: '+e.message+' Copy any completed codes before making another batch.';}
+  finally{btn.disabled=false;}
+}
+function wireOwnerBatchTools(){
+  const ids = [
+    ['previewRetireBtn',previewSeptemberBatch],
+    ['retireExpiredBtn',retireSeptemberBatch],
+    ['createActivationBatchBtn',createActivationBatch]
+  ];
+  for(const [id,handler] of ids){
+    const el=document.getElementById(id);
+    if(el && !el.dataset.wired){el.dataset.wired='true';el.addEventListener('click',handler);}
+  }
+  const copy=document.getElementById('copyActivationBatchBtn');
+  if(copy && !copy.dataset.wired){
+    copy.dataset.wired='true';
+    copy.addEventListener('click',async()=>{
+      if(!newlyCreatedActivationCodes.length)return;
+      try{await navigator.clipboard.writeText(newlyCreatedActivationCodes.join('\n'));copy.textContent='Copied all codes';}
+      catch(e){copy.textContent='Copy failed. Select the codes manually.';}
+    });
+  }
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wireOwnerBatchTools);
+else wireOwnerBatchTools();
+
 function wireResetClaimBtn(){
   var lookupBtn = document.getElementById('resetClaimLookupBtn');
   if(lookupBtn && lookupBtn.dataset.wired !== 'true'){
@@ -5411,7 +5513,7 @@ async function createManualLicense(){
     els.manualResult.innerHTML =
       '<span>30-day Pro access code:</span>' +
       '<code class="checkout-key account-owner-code" id="manualLicenseCode">' + escapeHtml(data.licenseKey) + '</code>' +
-      '<span>Expires: ' + escapeHtml(expiry || '30 days') + '</span>' +
+      '<span>' + (expiry ? 'Expires: ' + escapeHtml(expiry) : 'Starts on first activation; valid for 30 days from then') + '</span>' +
       '<span style="display:block; color:var(--text-dim); margin-top:8px;">Copied automatically. Use the button below if you need it again.</span>';
     if(els.manualCopyRow) els.manualCopyRow.style.display = '';
     try{ await navigator.clipboard.writeText(data.licenseKey); }catch(e){ /* clipboard may be unavailable */ }

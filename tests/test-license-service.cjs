@@ -215,7 +215,7 @@ module.exports = async function run(){
     };
 
     const result = await svc.createManualProLicense({ email: ' Buyer@Example.com ', days: 30, note: 'cash payment' });
-    check('manual key returns a normal license key and expiry date', result.licenseKey.startsWith('kb_live_') && typeof result.expiresAt === 'string');
+    check('manual stock code returns a key with no running clock', result.licenseKey.startsWith('kb_live_') && result.expiresAt === null);
 
     const license = await licensing.getLicense(result.licenseKey);
     check('manual license is Pro, active, and marked manual', license.plan === 'pro' && license.status === 'active' && license.manual === true);

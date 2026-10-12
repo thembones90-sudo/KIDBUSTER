@@ -11,6 +11,8 @@ function publicLicenseStatus(license){
     email: license.email || '',
     createdAt: license.createdAt || null,
     expiresAt: license.expiresAt || null,
+    activationPending: license.activationPending === true,
+    activatedAt: license.activatedAt || null,
     expired: isLicenseExpired(license),
     claimedAt: license.claimedAt || null,
     claimed: Boolean(license.claimedInstallationId),
