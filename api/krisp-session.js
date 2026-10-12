@@ -27,6 +27,8 @@ async function isEntitledToKrisp(licenseKey){
   const license = await getLicense(licenseKey);
   if(!license) return false;
   if(license.plan !== 'pro' || license.status !== 'active') return false;
+  // Stock keys cannot use Krisp before their first browser activation.
+  if(license.manual === true && license.activationPending === true) return false;
   if(isLicenseExpired(license)) return false;
   return true;
 }

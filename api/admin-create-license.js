@@ -32,7 +32,8 @@ export default async function handler(req, res){
       email,
       plan: 'pro',
       status: 'active',
-      manual: true
+      manual: true,
+      activationPending: true
     });
   }catch(err){
     console.error('admin-create-license error:', err);
