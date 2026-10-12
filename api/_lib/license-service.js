@@ -121,6 +121,13 @@ export async function activateOrRenewPro({ licenseKey, email, paymentCustomerId,
     email: normalizedEmail || existing.email,
     plan: 'pro',
     status: 'active',
+    // A paid subscription replaces temporary/manual access rules.
+    // Keep the SAME license key (and therefore the same Krisp identity).
+    manual: false,
+    source: 'subscription',
+    expiresAt: null,
+    claimedInstallationId: null,
+    claimedAt: null,
     paymentCustomerId: paymentCustomerId || existing.paymentCustomerId,
     paymentSubscriptionId: paymentSubscriptionId || existing.paymentSubscriptionId
   });
@@ -185,6 +192,42 @@ export async function createManualProLicense({ email = '', days = 30, note = '' 
   });
 
   return { licenseKey, expiresAt, days: durationDays };
+}
+
+/**
+ * Renews an existing manually issued license without changing its identity.
+ * Only call from an owner-authenticated route; this function is not public.
+ * An early renewal adds days to the current expiry rather than truncating it.
+ */
+export async function renewManualProLicense(licenseKey, days = 30){
+  const existing = await getLicense(licenseKey);
+  if(!existing) return { ok: false, reason: 'invalid_key', license: null };
+  if(existing.manual !== true || existing.paymentSubscriptionId){
+    return { ok: false, reason: 'not_manual', license: existing };
+  }
+  const duration = Number.isInteger(days) && days > 0 && days <= 365 ? days : 30;
+  const now = new Date();
+  const previousExpiry = Date.parse(existing.expiresAt || '');
+  const base = Number.isFinite(previousExpiry) && previousExpiry > now.getTime()
+    ? new Date(previousExpiry) : now;
+  const updated = {
+    ...existing,
+    plan: 'pro',
+    status: 'active',
+    expiresAt: expiresInDays(duration, base),
+    renewedAt: now.toISOString()
+  };
+  // The license key and the existing claimed browser remain unchanged,
+  // protecting the previously configured Krisp identity and inbox.
+  await saveLicense(licenseKey, updated);
+  await notifyAccessEvent({
+    type: 'manual_key_renewed',
+    title: duration + '-day manual Pro renewal completed.',
+    licenseKey,
+    email: existing.email || '',
+    details: ['Previous expiry: ' + (existing.expiresAt || '(none)'), 'New expiry: ' + updated.expiresAt]
+  });
+  return { ok: true, reason: null, license: updated };
 }
 
 function normalizeInstallationId(installationId){
@@ -325,6 +368,12 @@ export async function downgradeToFree({ licenseKey, paymentCustomerId }){
   await saveLicense(resolvedKey, {
     ...existing,
     plan: 'free',
+    // Preserve any independently disabled account status on downgrade.
+    // Free accounts have no fixed expiry or single-browser manual claim.
+    manual: false,
+    expiresAt: null,
+    claimedInstallationId: null,
+    claimedAt: null,
     paymentSubscriptionId: null
   });
   await notifyAccessEvent({
