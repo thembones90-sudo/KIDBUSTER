@@ -1,6 +1,8 @@
 import { getLicense, isFounderLicenseKey, isLicenseExpired } from './_lib/licensing.js';
 import { resetManualLicenseClaim, renewManualProLicense } from './_lib/license-service.js';
 
+import adminManualBatchHandler from './_lib/admin-manual-batch.js';
+
 function publicLicenseStatus(license){
   if(!license) return null;
   return {
@@ -36,6 +38,11 @@ export default async function handler(req, res){
     return res.status(403).json({ error: 'Owner access is required to inspect keys.' });
   }
 
+  const action = String(req.body?.action || 'lookup').trim();
+  if(['create-batch','preview-retirement','retire-expired'].includes(action)){
+    return adminManualBatchHandler(req,res);
+  }
+
   const licenseKey = String(req.body?.licenseKey || '').trim();
   if(!licenseKey){
     return res.status(400).json({ error: 'A license key is required.' });
@@ -46,8 +53,6 @@ export default async function handler(req, res){
   // activated again from a different browser -- for a legitimate
   // customer who switched devices or cleared cookies, not a way around
   // the single-claim restriction for anyone else.
-  const action = String(req.body?.action || 'lookup').trim();
-
   try{
     if(action === 'renew-manual'){
       const result = await renewManualProLicense(licenseKey, 30);

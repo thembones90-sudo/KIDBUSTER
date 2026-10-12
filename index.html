@@ -5388,7 +5388,7 @@ let newlyCreatedActivationCodes = [];
 async function ownerBatchRequest(action, payload){
   const ownerKey = getStoredAccessKey();
   if(!ownerKey) throw new Error('Owner login is required.');
-  const response = await fetch('/api/admin-manual-batch', {
+  const response = await fetch('/api/admin-license-lookup', {
     method: 'POST',
     headers: { 'Content-Type':'application/json', 'x-app-key': ownerKey },
     body: JSON.stringify({ action, ...payload })
