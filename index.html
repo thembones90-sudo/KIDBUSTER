@@ -5156,7 +5156,9 @@ function renderAccountTrials(trials){
   box.innerHTML = '<p class="account-trials-title">Protocol trials (one-time, 5 each)</p>' + rows.join('');
 }
 
+let accountStatusRequestId = 0;
 async function refreshAccountPanel(){
+  const requestId = ++accountStatusRequestId;
   const key = getStoredAccessKey();
   if(!key){
     updateAccountSnapshot('No access code is saved in this browser yet.', 'Not signed in', 'No code', '-', 'None', false, false);
@@ -5171,6 +5173,9 @@ async function refreshAccountPanel(){
       headers: { 'x-app-key': key, 'x-installation-id': getAccessInstallationId() }
     });
     const data = await res.json().catch(() => ({}));
+    // A user may change codes while this request is still in flight.
+    // Never let an older response overwrite the current code's status.
+    if(requestId !== accountStatusRequestId || getStoredAccessKey() !== key) return;
     if(!res.ok){
       updateAccountSnapshot(data.error || 'This saved access code was not accepted.', 'Needs attention', 'Invalid', '-', maskAccessKey(key), false, false);
       renderAccountTrials(null);
@@ -5184,11 +5189,15 @@ async function refreshAccountPanel(){
     const usageLabel = isPro
       ? 'Unlimited'
       : (data.expired ? 'Renew needed' : String(data.usageCount || 0) + ' used - ' + String(data.remainingFreeReports) + ' left this month');
-    const expiryLabel = data.expiresAt ? ' Expires ' + formatExpiryDate(data.expiresAt) + '.' : '';
-    const emailNote = data.email ? 'Signed in as ' + data.email + '.' + expiryLabel : 'Saved access code is active.' + expiryLabel;
+    const expiryLabel = data.expiresAt
+      ? (data.expired ? ' Expired ' : ' Expires ') + formatExpiryDate(data.expiresAt) + '.'
+      : '';
+    const accessNote = data.expired ? 'Access has expired.' : (data.status === 'active' ? 'Access is active.' : 'Access is not active.');
+    const emailNote = data.email ? 'Signed in as ' + data.email + '. ' + accessNote + expiryLabel : accessNote + expiryLabel;
     updateAccountSnapshot(emailNote, planLabel, statusLabel, usageLabel, maskAccessKey(key), !isPro, data.founder === true);
     renderAccountTrials(data.trials || null);
   }catch(e){
+    if(requestId !== accountStatusRequestId || getStoredAccessKey() !== key) return;
     updateAccountSnapshot('Saved access code found. Status check needs the live app server.', 'Saved code', 'Unknown', 'Unable to refresh', maskAccessKey(key), true, false);
     renderAccountTrials(null);
   }
@@ -5230,8 +5239,17 @@ function renderResetClaimResult(licenseKey, license){
   resultEl.innerHTML = '';
   var summary = document.createElement('p');
   summary.className = 'account-summary';
-  summary.textContent = (license.email || '(no email)') + ' \u2014 ' + license.plan + ' / ' + license.status + (license.manual ? ' (manual key)' : '');
+  summary.textContent = (license.email || '(no email)') + ' \u2014 ' + license.plan + ' / ' + (license.expired ? 'EXPIRED' : license.status) + (license.manual ? ' (manual key)' : '');
   resultEl.appendChild(summary);
+
+  // Stored status may say "active" even after the actual expiry timestamp.
+  // Owner lookup must show both dates when investigating a customer's key.
+  var datesNote = document.createElement('p');
+  datesNote.className = 'account-summary';
+  datesNote.textContent = 'Issued: ' + (license.createdAt ? new Date(license.createdAt).toLocaleString() : 'unknown') +
+    ' | Expiry: ' + (license.expiresAt ? new Date(license.expiresAt).toLocaleString() : 'none') +
+    (license.expired ? ' | EXPIRED' : '');
+  resultEl.appendChild(datesNote);
 
   if(!license.manual){
     var note = document.createElement('p');

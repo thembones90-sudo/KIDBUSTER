@@ -121,6 +121,13 @@ export async function activateOrRenewPro({ licenseKey, email, paymentCustomerId,
     email: normalizedEmail || existing.email,
     plan: 'pro',
     status: 'active',
+    // A paid subscription replaces temporary/manual access rules.
+    // Keep the SAME license key (and therefore the same Krisp identity).
+    manual: false,
+    source: 'subscription',
+    expiresAt: null,
+    claimedInstallationId: null,
+    claimedAt: null,
     paymentCustomerId: paymentCustomerId || existing.paymentCustomerId,
     paymentSubscriptionId: paymentSubscriptionId || existing.paymentSubscriptionId
   });
@@ -325,6 +332,12 @@ export async function downgradeToFree({ licenseKey, paymentCustomerId }){
   await saveLicense(resolvedKey, {
     ...existing,
     plan: 'free',
+    // Preserve any independently disabled account status on downgrade.
+    // Free accounts have no fixed expiry or single-browser manual claim.
+    manual: false,
+    expiresAt: null,
+    claimedInstallationId: null,
+    claimedAt: null,
     paymentSubscriptionId: null
   });
   await notifyAccessEvent({

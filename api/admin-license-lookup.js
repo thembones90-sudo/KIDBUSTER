@@ -1,4 +1,4 @@
-import { getLicense, isFounderLicenseKey } from './_lib/licensing.js';
+import { getLicense, isFounderLicenseKey, isLicenseExpired } from './_lib/licensing.js';
 import { resetManualLicenseClaim } from './_lib/license-service.js';
 
 function publicLicenseStatus(license){
@@ -11,6 +11,7 @@ function publicLicenseStatus(license){
     email: license.email || '',
     createdAt: license.createdAt || null,
     expiresAt: license.expiresAt || null,
+    expired: isLicenseExpired(license),
     claimedAt: license.claimedAt || null,
     claimed: Boolean(license.claimedInstallationId),
     claimedInstallationId: license.claimedInstallationId || null
