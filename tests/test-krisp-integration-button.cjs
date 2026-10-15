@@ -136,6 +136,7 @@ module.exports = async function run(){
     check('header opens all Krisp controls in one popover', i.expanded === 'true' && i.panelVisible && i.sectionVisible);
     check('a link alone is NOT a verified connection', await page.$eval('#krispConnectionState',el=>el.textContent==='Awaiting first delivery'));
     check('raw webhook link stays hidden',await page.$eval('#krispWebhookUrlField',el=>el.hidden));
+    check('ARM KRISP is a visible command, not a hidden switch label',await page.$eval('#krispWaitBtn .krisp-btn-label',el=>el.textContent==='ARM KRISP' && el.getBoundingClientRect().width>60 && getComputedStyle(el).clipPath==='none'));
     check('copy action is available without opening Advanced',await page.$eval('#krispCopyUrlBtn',el=>el.getBoundingClientRect().height>=44 && !el.closest('details')));
     check('default panel is compact (under 430px tall)',await page.$eval('#krispIntegrationPanel',el=>el.getBoundingClientRect().height<430));
     check('connection maintenance is collapsed by default',await page.$eval('#krispConnectionDetails',el=>!el.open));
@@ -174,6 +175,9 @@ module.exports = async function run(){
     i = await info(page);
     check('ARM KRISP arms (button says DISARM KRISP)', i.wait === 'DISARM KRISP' && i.waiting === 'true' && state.waiting === true);
     check('persistent status explicitly says Krisp armed',await page.$eval('#krispArmedState',el=>el.textContent==='Krisp armed'));
+    await toggleBtn(page);
+    check('DISARM KRISP remains visibly readable when armed',await page.$eval('#krispWaitBtn .krisp-btn-label',el=>el.textContent==='DISARM KRISP' && el.getBoundingClientRect().width>60 && getComputedStyle(el).clipPath==='none'));
+    await toggleBtn(page);
     await toggleBtn(page);
     await page.click('#krispPanelClose'); await sleep(100);
     check('close button returns focus to header and keeps ARM',await page.evaluate(()=>document.activeElement.id==='krispIntegrationBtn') && state.waiting);

@@ -8086,31 +8086,32 @@ button.btn-secondary.account-btn.krisp-integration-btn[aria-expanded="true"] .kr
 
 /* Compact Krisp panel: only status, auto-import and copy are primary. */
 #krispIntegrationPanel[popover]{width:min(400px,calc(100vw - 32px));padding:24px;background:linear-gradient(145deg,#202722,#171c19 65%);border:1px solid #52605270;border-radius:20px}
-.krisp-compact-header{display:flex;align-items:center;gap:12px;margin:0 48px 22px 0}
+.krisp-compact-header{display:flex;align-items:center;gap:12px;margin:0 48px 16px 0}
 .krisp-compact-header h3{margin:0;font-size:21px;font-weight:650;letter-spacing:-.03em;color:#edf3ee}
 .krisp-compact-header .krisp-logo-slot{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#111914;border:1px solid #ffffff0d;flex-shrink:0}
 .krisp-compact-header svg,.krisp-compact-header img{width:25px;height:25px}
 #krispPanelClose{top:19px;right:18px;width:36px;height:36px;background:transparent;border-color:transparent;border-radius:10px}
 #krispPanelClose:hover{background:#ffffff08}
-#krispIntegrationPanel .krisp-connection-status{margin:0 0 22px;padding:12px 14px;border:1px solid #ffffff0b;background:#10161260;border-radius:11px}
+#krispIntegrationPanel .krisp-connection-status{margin:0 0 16px;padding:12px 14px;border:1px solid #ffffff0b;background:#10161260;border-radius:11px}
 #krispConnectionState{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#bac7be}
 #krispConnectionState::before{content:'';width:6px;height:6px;background:#a7b7ac;border-radius:50%;flex-shrink:0}
 #krispConnectionState[data-verified="true"]::before{background:rgb(var(--toxin-rgb))}
 #krispIntegrationPanel .krisp-connection-status p{font-size:12px;line-height:1.6;margin:5px 0 0 14px;color:#9eafa3}
-#krispIntegrationPanel .krisp-controls-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+#krispIntegrationPanel .krisp-controls-row{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:center}
 #krispIntegrationPanel .krisp-card-heading{min-width:0}
 #krispIntegrationPanel .krisp-card-heading h3{font-size:14px;line-height:1.5;margin:0 0 3px}
 #krispIntegrationPanel .krisp-card-heading p{font-size:12px;line-height:1.5;color:#a7b6ac}
 #krispIntegrationPanel .krisp-arm-control{display:block}
 #krispArmedState{position:absolute!important;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-#krispIntegrationPanel #krispWaitBtn{min-width:56px;width:56px;min-height:44px;height:44px;padding:0;border:0;background:transparent;box-shadow:none;border-radius:9px;display:grid;place-items:center}
-#krispIntegrationPanel #krispWaitBtn:hover,#krispIntegrationPanel #krispWaitBtn.krisp-wait-active{background:#ffffff05;border:0;box-shadow:none}
-#krispIntegrationPanel #krispWaitBtn .krisp-logo-slot{display:none}
-#krispWaitBtn .krisp-btn-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-#krispIntegrationPanel #krispWaitBtn::after{width:40px;height:23px;margin:0;box-shadow:inset 0 1px 3px #0004}
+#krispIntegrationPanel #krispWaitBtn{min-width:0;width:100%;min-height:48px;height:auto;padding:11px 16px;border:1px solid rgba(var(--toxin-rgb),.4);background:rgba(var(--toxin-rgb),.08);color:rgb(var(--toxin-rgb));box-shadow:inset 0 1px 0 #ffffff08;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-weight:700;letter-spacing:.04em}
+#krispIntegrationPanel #krispWaitBtn:hover{background:rgba(var(--toxin-rgb),.15);border-color:rgba(var(--toxin-rgb),.65)}
+#krispIntegrationPanel #krispWaitBtn.krisp-wait-active{background:rgba(var(--toxin-rgb),.16);border-color:rgba(var(--toxin-rgb),.65);color:rgb(var(--toxin-rgb))}
+#krispIntegrationPanel #krispWaitBtn .krisp-logo-slot{display:inline-flex}
+#krispWaitBtn .krisp-btn-label{position:static;width:auto;height:auto;overflow:visible;clip-path:none;white-space:nowrap}
+#krispIntegrationPanel #krispWaitBtn::after{display:none}
 #krispIntegrationPanel #krispWaitDotWrap{grid-column:1/-1}
 #krispIntegrationPanel #krispWaitStatus{font-size:12px!important}
-#krispIntegrationPanel #krispSetupSection{margin-top:22px}
+#krispIntegrationPanel #krispSetupSection{margin-top:16px}
 #krispIntegrationPanel #krispCopyUrlBtn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:44px;padding:11px 16px;border:1px solid #61746470;border-radius:11px;background:#2c3a30;color:#e3eee6;font-size:13px;font-weight:600;box-shadow:inset 0 1px 0 #ffffff07;transform:none}
 #krispCopyUrlBtn:hover{background:#36493c!important;border-color:#829986!important}
 #krispCopyUrlBtn svg{width:16px;height:16px}
