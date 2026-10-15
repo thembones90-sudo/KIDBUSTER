@@ -144,17 +144,17 @@ module.exports = async function run(){
   {
     __resetForTests();
     const key = await svc.getOrCreateFreeLicense('faye@example.com');
-    for(let i = 0; i < 19; i++){
+    for(let i = 0; i < 4; i++){
       await svc.recordUsage(key, 'MA');
     }
     const stillOk = await svc.checkEntitlement(key, 'MA');
-    check('19 recorded MA generations -> still allowed (under the 20 monthly limit)', stillOk.allowed === true);
+    check('4 recorded MA generations -> still allowed (under the 5 monthly limit)', stillOk.allowed === true);
 
-    await svc.recordUsage(key, 'MA'); // 20th
+    await svc.recordUsage(key, 'MA'); // 5th
     const nowBlocked = await svc.checkEntitlement(key, 'MA');
-    check('20th recorded MA generation -> now blocked (monthly limit reached)', nowBlocked.allowed === false && nowBlocked.reason === 'limit_reached');
+    check('5th recorded MA generation -> now blocked (monthly limit reached)', nowBlocked.allowed === false && nowBlocked.reason === 'limit_reached');
 
-    // Recording MA usage 20 times must not have touched any other
+    // Recording MA usage to its monthly cap must not have touched any other
     // protocol's independent trial counter.
     const blitzUnaffected = await svc.checkEntitlement(key, 'BLITZ');
     check('MA\'s monthly usage never bleeds into a trial-based protocol\'s counter', blitzUnaffected.allowed === true);
@@ -215,7 +215,7 @@ module.exports = async function run(){
     };
 
     const result = await svc.createManualProLicense({ email: ' Buyer@Example.com ', days: 30, note: 'cash payment' });
-    check('manual key returns a normal license key and expiry date', result.licenseKey.startsWith('kb_live_') && typeof result.expiresAt === 'string');
+    check('manual stock code returns a key with no running clock', result.licenseKey.startsWith('kb_live_') && result.expiresAt === null);
 
     const license = await licensing.getLicense(result.licenseKey);
     check('manual license is Pro, active, and marked manual', license.plan === 'pro' && license.status === 'active' && license.manual === true);

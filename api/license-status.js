@@ -20,7 +20,7 @@ import {
   getUsageCount,
   getTrialUsageCount,
   isFounderLicenseKey,
-  isLicenseExpired
+  isLicenseExpired, effectiveSubscriptionLicense
 } from './_lib/licensing.js';
 import { claimManualLicenseForInstallation } from './_lib/license-service.js';
 
@@ -76,7 +76,7 @@ export default async function handler(req, res){
     if(!claim.allowed){
       return res.status(403).json({ error: claim.message, reason: claim.reason });
     }
-    license = claim.license;
+    license = effectiveSubscriptionLicense(claim.license);
 
     const usageCount = await getUsageCount(licenseKey, period);
     const expired = isLicenseExpired(license);
@@ -86,8 +86,15 @@ export default async function handler(req, res){
       status: expired ? 'expired' : (license.status || 'inactive'),
       founder: false,
       manual: license.manual === true,
+      activationPending: license.activationPending === true,
+      activatedAt: license.activatedAt || null,
       email: license.email || '',
       expiresAt: license.expiresAt || null,
+      subscriptionStatus: license.subscriptionStatus || null,
+      subscriptionEndsAt: license.subscriptionEndsAt || null,
+      subscriptionBillingStatus: license.subscriptionBillingStatus || null,
+      providerManagedSubscription: !!(license.paymentSubscriptionId && license.paymentCustomerId),
+      refundReviewPending: !!license.subscriptionRefundReview,
       expired,
       usagePeriod: period,
       usageCount,

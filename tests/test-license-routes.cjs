@@ -6,6 +6,7 @@ module.exports = async function run(){
   console.log('\n=== test-license-routes.cjs ===');
 
   process.env.KIDBUSTER_TEST_KV = '1';
+  process.env.KIDBUSTER_TEST_EMAIL = '1';
 
   const svc = await import('../api/_lib/license-service.js');
   const licensing = await import('../api/_lib/licensing.js');
@@ -13,6 +14,9 @@ module.exports = async function run(){
   const signupHandler = await import('../api/license-signup.js');
   const statusHandler = await import('../api/license-status.js');
   const recoverHandler = await import('../api/license-recover.js');
+  const verifyHandler = await import('../api/license-verify.js');
+  const verification = await import('../api/_lib/account-verification.js');
+  const emailService = await import('../api/_lib/email-service.js');
   const adminCreateLicenseHandler = await import('../api/admin-create-license.js');
   const adminLicenseLookupHandler = await import('../api/admin-license-lookup.js');
 
@@ -28,53 +32,117 @@ module.exports = async function run(){
     return { statusCode, jsonBody };
   }
 
-  console.log('\n1) license-recover: finds an existing key by normalized email');
-  {
-    __resetForTests();
-    const key = await svc.getOrCreateFreeLicense('recover@example.com');
-    const result = await send(recoverHandler, { body: { email: ' Recover@Example.com ' } });
-    check('recover returns 200 for a known email', result.statusCode === 200);
-    check('recover returns the same existing license key', result.jsonBody.licenseKey === key);
+  function tokenFromLastMessage(){
+    const messages = emailService.__getTestMessages();
+    const url = new URL(messages[messages.length - 1].verificationUrl);
+    return url.searchParams.get('access_token');
   }
 
-  console.log('\n2) license-recover: validates bad or unknown email');
+  console.log('\n1) access requests never disclose an existing key before email verification');
   {
     __resetForTests();
+    emailService.__resetTestMessages();
+    const key = await svc.getOrCreateFreeLicense('recover@example.com');
+    const recover = await send(recoverHandler, { body: { email: ' Recover@Example.com ' } });
+    const signup = await send(signupHandler, { body: { email: 'recover@example.com' } });
+    check('known-email recovery is accepted without returning a key', recover.statusCode === 202 && !recover.jsonBody.licenseKey);
+    check('repeat signup cannot disclose the existing key', signup.statusCode === 202 && !signup.jsonBody.licenseKey && signup.jsonBody.alreadyExisted === undefined);
+    check('the stored key is unchanged while verification is pending', await licensing.getLicenseKeyByEmail('recover@example.com') === key);
+    check('verification messages target the normalized mailbox', emailService.__getTestMessages().every(message => message.to === 'recover@example.com'));
+  }
+
+  console.log('\n2) recovery responses do not enumerate registered email addresses');
+  {
+    __resetForTests();
+    emailService.__resetTestMessages();
+    await svc.getOrCreateFreeLicense('known@example.com');
     const bad = await send(recoverHandler, { body: { email: 'not-an-email' } });
     check('invalid email returns 400', bad.statusCode === 400);
-
-    const missing = await send(recoverHandler, { body: { email: 'missing@example.com' } });
-    check('unknown email returns 404', missing.statusCode === 404);
+    const known = await send(recoverHandler, { body: { email: 'known@example.com' } });
+    const unknown = await send(recoverHandler, { body: { email: 'missing@example.com' } });
+    check('known and unknown recovery return the same status', known.statusCode === 202 && unknown.statusCode === 202);
+    check('known and unknown recovery return the same body', JSON.stringify(known.jsonBody) === JSON.stringify(unknown.jsonBody));
+    check('known and unknown requests take the same delivery path', emailService.__getTestMessages().length === 2 && emailService.__getTestMessages()[1].to === 'missing@example.com');
   }
 
-  console.log('\n3) access notifications: signup and recovery email events are sent to the sheet webhook');
+  console.log('\n3) verified signup creates access only after a one-time email token is exchanged');
   {
     __resetForTests();
-    const originalWebhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL;
-    const originalFetch = global.fetch;
-    process.env.GOOGLE_SHEET_WEBHOOK_URL = 'https://example.test/access-events';
-    const captured = [];
-    global.fetch = async (url, opts) => {
-      captured.push({ url, body: JSON.parse(opts.body) });
-      return { ok: true };
-    };
-
-    const firstSignup = await send(signupHandler, { body: { email: 'Notify@Example.com' } });
-    const secondSignup = await send(signupHandler, { body: { email: 'notify@example.com' } });
-    const recovered = await send(recoverHandler, { body: { email: ' notify@example.com ' } });
-
-    check('notified signup/recovery routes still return successful responses', firstSignup.statusCode === 200 && secondSignup.statusCode === 200 && recovered.statusCode === 200);
-    check('new Free signup sends a notification row', captured[0]?.body?.protocol === 'LICENSE' && captured[0].body.ratingTier === 'free_signup_new');
-    check('repeat Free signup sends an existing-user notification row', captured[1]?.body?.ratingTier === 'free_signup_existing');
-    check('license recovery sends a notification row', captured[2]?.body?.ratingTier === 'license_recovered');
-    check('notification rows include the normalized email', captured.every(call => call.body.comment.includes('Email: notify@example.com')));
-
-    global.fetch = originalFetch;
-    if(originalWebhookUrl === undefined) delete process.env.GOOGLE_SHEET_WEBHOOK_URL;
-    else process.env.GOOGLE_SHEET_WEBHOOK_URL = originalWebhookUrl;
+    emailService.__resetTestMessages();
+    const requested = await send(signupHandler, { body: { email: ' New@Example.com ' } });
+    check('signup challenge is accepted', requested.statusCode === 202);
+    check('no account exists before mailbox verification', await licensing.getLicenseKeyByEmail('new@example.com') === null);
+    const token = tokenFromLastMessage();
+    const verified = await send(verifyHandler, { body: { token } });
+    check('valid verification token returns a newly created Free key', verified.statusCode === 200 && verified.jsonBody.plan === 'free' && verified.jsonBody.licenseKey.startsWith('kb_live_'));
+    const replay = await send(verifyHandler, { body: { token } });
+    check('verification token is one-time and rejects replay', replay.statusCode === 400 && !replay.jsonBody.licenseKey);
   }
 
-  console.log('\n4) license-status: reports Free usage and remaining monthly allowance, plus every trial protocol\'s status');
+  console.log('\n4) verified recovery preserves the existing key, paid plan, and usage');
+  {
+    __resetForTests();
+    emailService.__resetTestMessages();
+    const key = await svc.getOrCreateFreeLicense('paid@example.com');
+    await svc.recordUsage(key, 'MA');
+    await svc.activateOrRenewPro({ licenseKey: key, email: 'paid@example.com', paymentCustomerId: 'customer_paid', paymentSubscriptionId: 'subscription_paid' });
+    const requested = await send(recoverHandler, { body: { email: 'paid@example.com' } });
+    const verified = await send(verifyHandler, { body: { token: tokenFromLastMessage() } });
+    const license = await licensing.getLicense(key);
+    check('paid owner can complete verified recovery', requested.statusCode === 202 && verified.statusCode === 200);
+    check('recovery returns the same existing key', verified.jsonBody.licenseKey === key);
+    check('recovery preserves Pro entitlement and subscription identity', verified.jsonBody.plan === 'pro' && license.plan === 'pro' && license.paymentSubscriptionId === 'subscription_paid');
+    check('recovery preserves existing usage', await licensing.getUsageCount(key, licensing.currentUsagePeriod()) === 1);
+  }
+
+  console.log('\n5) expired verification tokens fail closed and are consumed');
+  {
+    __resetForTests();
+    const originalNow = Date.now;
+    let now = originalNow();
+    Date.now = () => now;
+    const issued = await verification.createVerificationToken({ email: 'expired@example.com', intent: 'signup' });
+    now = issued.expiresAt + 1;
+    const expired = await send(verifyHandler, { body: { token: issued.token } });
+    Date.now = originalNow;
+    check('expired verification token is rejected', expired.statusCode === 400 && !expired.jsonBody.licenseKey);
+    check('expired token cannot create an account', await licensing.getLicenseKeyByEmail('expired@example.com') === null);
+  }
+
+  console.log('\n6) identity endpoints are rate limited without leaking account state');
+  {
+    __resetForTests();
+    emailService.__resetTestMessages();
+    let last;
+    for(let i = 0; i < verification.VERIFICATION_REQUEST_LIMIT + 1; i++){
+      last = await send(recoverHandler, { headers: { 'x-forwarded-for': '192.0.2.10' }, body: { email: 'limited@example.com' } });
+    }
+    check('requests above the verification limit return 429', last.statusCode === 429);
+    check('rate-limit response never contains a license key', !last.jsonBody.licenseKey);
+  }
+
+  console.log('\n7) missing email-provider configuration fails closed without returning a key');
+  {
+    __resetForTests();
+    emailService.__resetTestMessages();
+    const originalTestEmail = process.env.KIDBUSTER_TEST_EMAIL;
+    const originalProvider = process.env.EMAIL_PROVIDER;
+    const originalApiKey = process.env.RESEND_API_KEY;
+    const originalFrom = process.env.PATHFINDER_EMAIL_FROM;
+    delete process.env.KIDBUSTER_TEST_EMAIL;
+    delete process.env.EMAIL_PROVIDER;
+    delete process.env.RESEND_API_KEY;
+    delete process.env.PATHFINDER_EMAIL_FROM;
+    const unavailable = await send(signupHandler, { body: { email: 'no-provider@example.com' } });
+    process.env.KIDBUSTER_TEST_EMAIL = originalTestEmail;
+    if(originalProvider === undefined) delete process.env.EMAIL_PROVIDER; else process.env.EMAIL_PROVIDER = originalProvider;
+    if(originalApiKey === undefined) delete process.env.RESEND_API_KEY; else process.env.RESEND_API_KEY = originalApiKey;
+    if(originalFrom === undefined) delete process.env.PATHFINDER_EMAIL_FROM; else process.env.PATHFINDER_EMAIL_FROM = originalFrom;
+    check('unconfigured delivery returns 503 instead of unsafe direct access', unavailable.statusCode === 503 && !unavailable.jsonBody.licenseKey);
+    check('failed delivery does not create a Free account', await licensing.getLicenseKeyByEmail('no-provider@example.com') === null);
+  }
+
+  console.log('\n8) license-status: reports Free usage and remaining monthly allowance, plus every trial protocol\'s status');
   {
     __resetForTests();
     const key = await svc.getOrCreateFreeLicense('status@example.com');

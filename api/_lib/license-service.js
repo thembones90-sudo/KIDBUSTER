@@ -20,12 +20,17 @@
 // writing a new file in api/_lib/providers/, nothing else in this file
 // or in api/generate.js needs to change.
 
+import crypto from 'node:crypto';
 import {
   generateLicenseKey, currentUsagePeriod, evaluateEntitlement,
   getLicense, saveLicense, getLicenseKeyByEmail, saveEmailIndex,
   getLicenseKeyByPaymentCustomerId, savePaymentCustomerIndex,
   getUsageCount, incrementUsage, getTrialUsageCount, incrementTrialUsage,
-  normalizeEmail, isFounderLicenseKey, ALWAYS_FREE_PROTOCOLS, expiresInDays
+  reserveMonthlyUsage, releaseMonthlyUsage, reserveTrialUsage, releaseTrialUsage,
+  reserveUsageHold,commitUsageHold,releaseUsageHold,
+  normalizeEmail, isFounderLicenseKey, ALWAYS_FREE_PROTOCOLS, expiresInDays,
+  getManualClaim, tryCreateManualClaim, clearManualClaim,
+  effectiveSubscriptionLicense
 } from './licensing.js';
 import { notifyAccessEvent } from './access-notifications.js';
 
@@ -121,9 +126,19 @@ export async function activateOrRenewPro({ licenseKey, email, paymentCustomerId,
     email: normalizedEmail || existing.email,
     plan: 'pro',
     status: 'active',
+    // A paid subscription replaces temporary/manual access rules.
+    // Keep the SAME license key (and therefore the same Krisp identity).
+    manual: false,
+    source: 'subscription',
+    expiresAt: null,
+    activationPending: false,
+    claimedInstallationId: null,
+    claimedAt: null,
     paymentCustomerId: paymentCustomerId || existing.paymentCustomerId,
     paymentSubscriptionId: paymentSubscriptionId || existing.paymentSubscriptionId
   });
+  // Subscription plans do not use manual single-browser claim markers.
+  await clearManualClaim(resolvedKey);
 
   await notifyAccessEvent({
     type: 'pro_activated',
@@ -153,7 +168,8 @@ export async function createManualProLicense({ email = '', days = 30, note = '' 
   const normalizedEmail = email ? normalizeEmail(email) : '';
   const now = new Date();
   const licenseKey = generateLicenseKey();
-  const expiresAt = expiresInDays(durationDays, now);
+  // The clock starts on FIRST activation, not when inventory is minted.
+  const expiresAt = null;
 
   await saveLicense(licenseKey, {
     email: normalizedEmail,
@@ -166,6 +182,8 @@ export async function createManualProLicense({ email = '', days = 30, note = '' 
     note: String(note || '').slice(0, 200),
     durationDays,
     createdAt: now.toISOString(),
+    activationPending: true,
+    activatedAt: null,
     expiresAt
   });
 
@@ -179,12 +197,54 @@ export async function createManualProLicense({ email = '', days = 30, note = '' 
     email: normalizedEmail,
     licenseKey,
     details: [
-      'Expires: ' + expiresAt,
+      'Activation: pending; 30-day clock starts at first use',
       note ? 'Note: ' + String(note || '').slice(0, 200) : ''
     ]
   });
 
   return { licenseKey, expiresAt, days: durationDays };
+}
+
+/**
+ * Renews an existing manually issued license without changing its identity.
+ * Only call from an owner-authenticated route; this function is not public.
+ * An early renewal adds days to the current expiry rather than truncating it.
+ */
+export async function renewManualProLicense(licenseKey, days = 30){
+  const existing = await getLicense(licenseKey);
+  if(!existing) return { ok: false, reason: 'invalid_key', license: null };
+  if(existing.manual !== true || existing.paymentSubscriptionId){
+    return { ok: false, reason: 'not_manual', license: existing };
+  }
+  if(existing.status === 'revoked'){
+    return { ok: false, reason: 'revoked', license: existing };
+  }
+  if(existing.activationPending === true){
+    return { ok: false, reason: 'not_activated', license: existing };
+  }
+  const duration = Number.isInteger(days) && days > 0 && days <= 365 ? days : 30;
+  const now = new Date();
+  const previousExpiry = Date.parse(existing.expiresAt || '');
+  const base = Number.isFinite(previousExpiry) && previousExpiry > now.getTime()
+    ? new Date(previousExpiry) : now;
+  const updated = {
+    ...existing,
+    plan: 'pro',
+    status: 'active',
+    expiresAt: expiresInDays(duration, base),
+    renewedAt: now.toISOString()
+  };
+  // The license key and the existing claimed browser remain unchanged,
+  // protecting the previously configured Krisp identity and inbox.
+  await saveLicense(licenseKey, updated);
+  await notifyAccessEvent({
+    type: 'manual_key_renewed',
+    title: duration + '-day manual Pro renewal completed.',
+    licenseKey,
+    email: existing.email || '',
+    details: ['Previous expiry: ' + (existing.expiresAt || '(none)'), 'New expiry: ' + updated.expiresAt]
+  });
+  return { ok: true, reason: null, license: updated };
 }
 
 function normalizeInstallationId(installationId){
@@ -236,6 +296,7 @@ export async function resetManualLicenseClaim(licenseKey){
     claimedAt: null
   };
   await saveLicense(licenseKey, updated);
+  await clearManualClaim(licenseKey);
   await notifyAccessEvent({
     type: 'manual_key_claim_reset',
     title: 'Manual 30-day key device binding reset.',
@@ -274,29 +335,91 @@ export async function claimManualLicenseForInstallation(licenseKey, license, ins
     };
   }
 
-  if(license.claimedInstallationId){
-    if(license.claimedInstallationId === normalizedInstallationId){
-      return { allowed: true, reason: null, message: null, license };
-    }
-    return {
-      allowed: false,
-      reason: 'key_already_claimed',
-      message: 'This 30-day key has already been activated on another browser.',
-      license
-    };
+  // Expired or revoked legacy keys cannot claim a new browser. Keep the
+  // read-only status route functional so the customer sees their expiry.
+  if(license.status !== 'active' || (license.expiresAt && Date.parse(license.expiresAt) <= Date.now())){
+    return { allowed: true, reason: null, message: null, license };
   }
 
+  const denied = {
+    allowed: false,
+    reason: 'key_already_claimed',
+    message: 'This 30-day key has already been activated on another browser.',
+    license
+  };
+  // Respect old V2 records that were claimed before atomic markers existed.
+  // A legacy claimed record must never be stolen by a new browser.
+  if(license.claimedInstallationId && license.claimedInstallationId !== normalizedInstallationId){
+    return denied;
+  }
+
+  let marker = await getManualClaim(licenseKey);
+  let firstWinner = false;
+  if(!marker && !license.claimedInstallationId){
+    const instant = new Date();
+    const claimedAt = instant.toISOString();
+    const claimRecord = {
+      installationId: normalizedInstallationId,
+      claimedAt,
+      activatedAt: license.activationPending === true ? claimedAt : (license.activatedAt || null),
+      expiresAt: license.activationPending === true
+        ? expiresInDays(license.durationDays || 30, instant) : (license.expiresAt || null)
+    };
+    // Atomically decide the winner BEFORE writing the normal license record.
+    firstWinner = await tryCreateManualClaim(licenseKey, claimRecord);
+    marker = firstWinner ? claimRecord : await getManualClaim(licenseKey);
+    if(!marker){
+      // An owner reset may have removed the marker during this request.
+      // Do not guess a winner or authorize an uncommitted browser.
+      return {
+        allowed: false,
+        reason: 'claim_conflict',
+        message: 'Your activation is being updated. Please retry.',
+        license
+      };
+    }
+  }
+
+  if(marker && marker.installationId !== normalizedInstallationId) return denied;
+  if(license.claimedInstallationId === normalizedInstallationId && license.activationPending !== true
+      && (marker || license.atomicClaim !== true)){
+    return { allowed: true, reason: null, message: null, license };
+  }
+  if(!marker && license.claimedInstallationId === normalizedInstallationId){
+    // A modern claim whose marker disappeared (e.g. during owner reset)
+    // must fail closed; only pre-migration licenses are markerless.
+    if(license.atomicClaim === true){
+      return {
+        allowed: false,
+        reason: 'claim_conflict',
+        message: 'Your browser binding changed. Please refresh and try again.',
+        license
+      };
+    }
+    return { allowed: true, reason: null, message: null, license };
+  }
+
+  // The marker is authoritative for which browser won and WHEN activation
+  // began. A retry repairs an interrupted write without restarting 30 days.
   const updated = {
     ...license,
-    claimedInstallationId: normalizedInstallationId,
-    claimedAt: new Date().toISOString()
+    atomicClaim: true,
+    claimedInstallationId: marker.installationId,
+    claimedAt: marker.claimedAt,
+    ...(license.activationPending === true ? {
+      activationPending: false,
+      activatedAt: marker.activatedAt,
+      expiresAt: marker.expiresAt
+    } : {})
   };
   await saveLicense(licenseKey, updated);
-  await notifyManualLicenseClaim({
-    licenseKey,
-    license: updated,
-    installationId: normalizedInstallationId
-  });
+  if(firstWinner){
+    await notifyManualLicenseClaim({
+      licenseKey,
+      license: updated,
+      installationId: normalizedInstallationId
+    });
+  }
   return { allowed: true, reason: null, message: null, license: updated };
 }
 
@@ -325,8 +448,16 @@ export async function downgradeToFree({ licenseKey, paymentCustomerId }){
   await saveLicense(resolvedKey, {
     ...existing,
     plan: 'free',
+    // Preserve any independently disabled account status on downgrade.
+    // Free accounts have no fixed expiry or single-browser manual claim.
+    manual: false,
+    expiresAt: null,
+    activationPending: false,
+    claimedInstallationId: null,
+    claimedAt: null,
     paymentSubscriptionId: null
   });
+  await clearManualClaim(resolvedKey);
   await notifyAccessEvent({
     type: 'pro_downgraded',
     title: 'Pro access downgraded to Free.',
@@ -379,19 +510,20 @@ export async function checkEntitlement(licenseKey, protocol, installationId){
     return claim;
   }
 
+  const effective = effectiveSubscriptionLicense(claim.license);
   const period = currentUsagePeriod();
   const monthlyUsageCount = await getUsageCount(licenseKey, period);
   const trialUsageCount = await getTrialUsageCount(licenseKey, protocol);
   const result = evaluateEntitlement({
-    plan: claim.license.plan,
-    status: claim.license.status,
+    plan: effective.plan,
+    status: effective.status,
     protocol,
     monthlyUsageCount,
     trialUsageCount,
-    expiresAt: claim.license.expiresAt
+    expiresAt: effective.expiresAt
   });
 
-  return { ...result, license: claim.license };
+  return { ...result, license: effective };
 }
 
 /**
@@ -414,4 +546,40 @@ export async function recordUsage(licenseKey, protocol){
     return await incrementUsage(licenseKey, currentUsagePeriod());
   }
   return await incrementTrialUsage(licenseKey, protocol);
+}
+
+
+/**
+ * Authorizes a generation and atomically reserves any applicable Free-plan
+ * allowance before an external model call begins. This is the route-facing
+ * gate; checkEntitlement remains the read-only status/preview operation.
+ */
+export async function reserveGeneration(licenseKey,protocol,installationId){
+  const entitlement=await checkEntitlement(licenseKey,protocol,installationId);
+  if(!entitlement.allowed)return {...entitlement,reservation:null};
+  if(isFounderLicenseKey(licenseKey)||entitlement.license?.plan==='pro'){
+    return {...entitlement,reservation:null};
+  }
+  const period=currentUsagePeriod();
+  const kind=ALWAYS_FREE_PROTOCOLS.includes(protocol)?'monthly':'trial';
+  const token=crypto.randomBytes(24).toString('hex');
+  const count=await reserveUsageHold(licenseKey,{kind,period,protocol,token});
+  if(count===null){
+    const refreshed=await checkEntitlement(licenseKey,protocol,installationId);
+    return {...refreshed,allowed:false,reservation:null};
+  }
+  return {
+    ...entitlement,
+    reservation:{licenseKey,protocol,kind,period:kind==='monthly'?period:null,count,token}
+  };
+}
+
+export async function releaseGeneration(reservation){
+  if(!reservation)return null;
+  return await releaseUsageHold(reservation);
+}
+
+export async function commitGeneration(reservation){
+  if(!reservation)return true;
+  return await commitUsageHold(reservation);
 }

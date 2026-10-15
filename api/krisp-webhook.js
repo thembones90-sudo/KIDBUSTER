@@ -20,7 +20,8 @@
 // Krisp. Deliberately does NOT implement Krisp's OAuth Platform API;
 // that's a separate, heavier product meant for building full third-party
 // integrations, and nothing here needs it.
-import { kv } from './_lib/kv-client.js';
+import crypto from 'crypto';
+import { kv, acquirePaymentLock, releasePaymentLock } from './_lib/kv-client.js';
 import { resolveKrispToken } from './_lib/krisp-token.js';
 
 const DEDUPE_TTL_SECONDS = 60 * 60 * 24 * 7; // one week is far more than enough to catch retries
@@ -196,6 +197,11 @@ export default async function handler(req, res){
 
   const prefix = dataKeyPrefix(userIdentity);
 
+  const mutationLockKey=prefix+'mutationLock';
+  const mutationToken=crypto.randomUUID();
+  if(!await acquirePaymentLock(mutationLockKey,mutationToken,30)){
+    return res.status(503).json({error:'Krisp inbox is busy. Retry this webhook.'});
+  }
   try{
     if(!normalized.transcript){
       console.log('[krisp-webhook] no transcript content, ignored (id=' + dedupeKey + ')');
@@ -208,13 +214,14 @@ export default async function handler(req, res){
       console.log('[krisp-webhook] duplicate ignored (id=' + dedupeKey + ')');
       return res.status(200).json({ stored: false, reason: 'Duplicate delivery (already processed).' });
     }
-    await kv.set(dedupeMarkerKey, true, { ex: DEDUPE_TTL_SECONDS });
-
     console.log('[krisp-webhook] accepted (id=' + dedupeKey + ')');
 
     const studentInfo = detectStudentInfo(normalized);
     const record = {
-      meetingId: normalized.meetingId,
+      // The client queue uses meetingId as its stable item identity. Some
+      // Krisp event variants only provide an event ID, so normalize either
+      // provider identity into this required internal field.
+      meetingId: normalized.meetingId || normalized.eventId,
       eventId: normalized.eventId,
       title: normalized.title,
       url: normalized.url,
@@ -233,13 +240,16 @@ export default async function handler(req, res){
     };
 
     const waitingKey = prefix + 'waitingSince';
-    const matchedKey = prefix + 'matched';
+    const matchedQueueKey = prefix + 'matchedQueue';
     const pendingKey = prefix + 'pending';
 
     const waitingSince = await kv.get(waitingKey);
     if(waitingSince){
       record.assigned = true;
-      await kv.set(matchedKey, record);
+      const matchedQueue=(await kv.get(matchedQueueKey))||[];
+      if(!matchedQueue.some(item=>(item.meetingId||item.eventId)===dedupeKey)) matchedQueue.push(record);
+      if(matchedQueue.length>PENDING_LIST_MAX)matchedQueue.splice(0,matchedQueue.length-PENDING_LIST_MAX);
+      await kv.set(matchedQueueKey,matchedQueue);
       // Deliberately NOT clearing waitingKey here -- ARM KRISP is a
       // persistent toggle, not a one-shot "wait for a single transcript."
       // It stays armed across every subsequent match until the teacher
@@ -247,6 +257,7 @@ export default async function handler(req, res){
       // New Student, Clear, and any number of transcripts arriving in a
       // row without needing to be re-armed each time.
       await kv.set(prefix + 'lastReceivedAt', record.receivedAt);
+      await kv.set(dedupeMarkerKey, true, { ex: DEDUPE_TTL_SECONDS });
       console.log('[krisp-webhook] waiting session matched (id=' + dedupeKey + ')');
       console.log('[krisp-webhook] transcript assigned (id=' + dedupeKey + ')');
       return res.status(200).json({ stored: true, matched: true });
@@ -258,17 +269,26 @@ export default async function handler(req, res){
     // the newest -- ordering for display is handled at read time in
     // krisp-session.js, sorted by meeting start time, not arrival order.
     const pending = (await kv.get(pendingKey)) || [];
-    pending.unshift(record);
+    // A previous attempt may have persisted the queue and then failed before
+    // writing lastReceivedAt or the dedupe marker. Provider retries must repair
+    // that partial commit rather than inserting a duplicate which could evict
+    // a different transcript from the bounded inbox.
+    if(!pending.some(item=>(item.meetingId||item.eventId)===dedupeKey)){
+      pending.unshift(record);
+    }
     if(pending.length > PENDING_LIST_MAX){
       pending.length = PENDING_LIST_MAX;
     }
     await kv.set(pendingKey, pending);
     await kv.set(prefix + 'lastReceivedAt', record.receivedAt);
+    await kv.set(dedupeMarkerKey, true, { ex: DEDUPE_TTL_SECONDS });
     console.log('[krisp-webhook] pending import created (id=' + dedupeKey + ')');
 
     return res.status(200).json({ stored: true, matched: false });
   }catch(err){
     console.error('[krisp-webhook] unexpected error:', err);
     return res.status(500).json({ error: 'Internal server error.' });
+  }finally{
+    await releasePaymentLock(mutationLockKey,mutationToken).catch(()=>{});
   }
 }

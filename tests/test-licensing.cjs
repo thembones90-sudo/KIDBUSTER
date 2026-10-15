@@ -32,12 +32,12 @@ module.exports = async function run(){
   console.log('\n1) evaluateEntitlement: the core Free/Pro decision logic (two-tier model)');
   {
     // --- Classic (MA): the one ongoing, monthly-resetting Free tier ---
-    check('Free + MA + under monthly limit -> allowed', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', monthlyUsageCount:5, trialUsageCount:0 }).allowed === true);
-    check('Free + MA + at monthly limit (20) -> blocked, reason limit_reached', (() => {
-      const r = licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', monthlyUsageCount:20, trialUsageCount:0 });
+    check('Free + MA + under monthly limit -> allowed', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', monthlyUsageCount:4, trialUsageCount:0 }).allowed === true);
+    check('Free + MA + at monthly limit (5) -> blocked, reason limit_reached', (() => {
+      const r = licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', monthlyUsageCount:5, trialUsageCount:0 });
       return r.allowed === false && r.reason === 'limit_reached';
     })());
-    check('Free + MA + one under limit (19) -> still allowed', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', monthlyUsageCount:19, trialUsageCount:0 }).allowed === true);
+    check('Free + MA + one under limit (4) -> still allowed', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', monthlyUsageCount:4, trialUsageCount:0 }).allowed === true);
     check('MA is never affected by trialUsageCount, no matter how high', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', monthlyUsageCount:0, trialUsageCount:999 }).allowed === true);
 
     // --- Trial-eligible protocols: one-time, permanent trial allowance ---
@@ -114,7 +114,7 @@ module.exports = async function run(){
 
     check('custom freeMonthlyLimit override respected', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'MA', monthlyUsageCount:5, trialUsageCount:0, freeMonthlyLimit: 5 }).allowed === false);
     check('custom trialLimit override respected', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'BEIDA', monthlyUsageCount:0, trialUsageCount:2, trialLimit: 2 }).allowed === false);
-    check('custom alwaysFreeProtocols override respected', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'BEIDA', monthlyUsageCount:5, trialUsageCount:0, alwaysFreeProtocols: ['BEIDA'] }).allowed === true);
+    check('custom alwaysFreeProtocols override respected', licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'BEIDA', monthlyUsageCount:4, trialUsageCount:0, alwaysFreeProtocols: ['BEIDA'] }).allowed === true);
 
     check('every rejection includes a non-empty, teacher-facing message', (() => {
       const r = licensing.evaluateEntitlement({ plan:'free', status:'active', protocol:'BEIDA', monthlyUsageCount:0, trialUsageCount:5 });

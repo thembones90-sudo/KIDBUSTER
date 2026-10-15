@@ -9,13 +9,26 @@
 //   async function createCheckoutUrl({ email, licenseKey }) -> string
 //     Returns a URL to redirect the browser to for a Pro checkout.
 //
+//   async function createCustomerPortalUrl({ subscriptionId, customerId }) -> string
+//     Returns a fresh signed billing portal URL after verifying the provider
+//     subscription still belongs to the locally authenticated customer.
+//
 //   async function verifyAndNormalizeWebhook({ rawBody, headers }) -> {
 //     type: 'payment_succeeded' | 'subscription_renewed'
-//         | 'subscription_cancelled' | 'subscription_expired' | null,
+//         | 'subscription_payment_failed' | 'subscription_payment_recovered'
+//         | 'subscription_payment_refunded' | 'order_refunded'
+//         | 'subscription_cancelled' | 'subscription_expired'
+//         | 'subscription_resumed' | 'subscription_paused'
+//         | 'subscription_unpaused' | 'subscription_past_due'
+//         | 'subscription_unpaid' | 'subscription_on_trial' | null,
 //     licenseKey: string|null,
 //     email: string|null,
 //     paymentCustomerId: string|null,
-//     paymentSubscriptionId: string|null
+//     paymentSubscriptionId: string|null,
+//     eventAt: string|null, endsAt: string|null,
+//     invoiceId: string|null, orderId: string|null,
+//     refundAmount: number|null, invoiceTotal: number|null,
+//     fullyRefunded: boolean
 //   }
 //     Throws only for a genuinely invalid/unverifiable webhook (bad
 //     signature, missing config). A validly-signed event of a type this

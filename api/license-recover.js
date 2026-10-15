@@ -1,38 +1,16 @@
-// Recovers an existing license key by email. This matches the current
-// lightweight licensing model: no password accounts yet, just a stable
-// email -> license key lookup in KV.
+// Requests a one-time mailbox-verification link. This route never returns a
+// key and intentionally gives registered and unregistered emails the same
+// response; the key exchange happens only in license-verify.js.
 
-import { getLicenseKeyByEmail, normalizeEmail } from './_lib/licensing.js';
-import { notifyAccessEvent } from './_lib/access-notifications.js';
-
-function isValidEmail(email){
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+import { requestVerifiedAccess } from './_lib/access-request.js';
 
 export default async function handler(req, res){
   if(req.method !== 'POST'){
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email } = req.body || {};
-  const normalizedEmail = typeof email === 'string' ? normalizeEmail(email) : '';
-  if(!normalizedEmail || !isValidEmail(normalizedEmail)){
-    return res.status(400).json({ error: 'Please provide a valid email address.' });
-  }
-
   try{
-    const licenseKey = await getLicenseKeyByEmail(normalizedEmail);
-    if(!licenseKey){
-      return res.status(404).json({ error: 'No license key was found for that email.' });
-    }
-    await notifyAccessEvent({
-      type: 'license_recovered',
-      title: 'Existing access code recovered by email.',
-      email: normalizedEmail,
-      licenseKey,
-      details: ['Source: Find my code']
-    });
-    return res.status(200).json({ licenseKey });
+    return await requestVerifiedAccess(req, res, { intent: 'recover' });
   }catch(err){
     console.error('license-recover error:', err);
     return res.status(500).json({ error: 'Could not recover a license key right now.' });

@@ -26,12 +26,18 @@ import crypto from 'crypto';
 const EVENT_TYPE_MAP = {
   subscription_created: 'payment_succeeded',
   subscription_payment_success: 'subscription_renewed',
+  subscription_payment_failed: 'subscription_payment_failed',
+  subscription_payment_recovered: 'subscription_payment_recovered',
+  subscription_payment_refunded: 'subscription_payment_refunded',
   subscription_cancelled: 'subscription_cancelled',
-  subscription_expired: 'subscription_expired'
-  // Anything else (subscription_updated, subscription_paused,
-  // subscription_payment_failed, order_created, etc.) is outside the
-  // four notifications this app's licensing actually needs to react to
-  // — see the interface contract in api/_lib/providers/index.js.
+  subscription_resumed: 'subscription_resumed',
+  subscription_expired: 'subscription_expired',
+  subscription_paused: 'subscription_paused',
+  subscription_unpaused: 'subscription_unpaused',
+  subscription_updated: 'subscription_state_update',
+  order_refunded: 'order_refunded'
+  // Chargebacks are NOT a documented Lemon Squeezy webhook type.
+  // Refunds are ADVISORIES and must never revoke Pro automatically.
 };
 
 /**
@@ -92,6 +98,46 @@ export async function createCheckoutUrl({ email, licenseKey }){
 }
 
 /**
+ * Returns a freshly-issued, short-lived customer portal URL for the
+ * authenticated subscription owner. Identity matching happens here as a
+ * second line of defence after the route has resolved the local license.
+ */
+export async function createCustomerPortalUrl({ subscriptionId, customerId, fetcher = fetch }){
+  const apiKey = process.env.LEMONSQUEEZY_API_KEY;
+  const id = String(subscriptionId || '');
+  if(!apiKey) throw new Error('Missing LEMONSQUEEZY_API_KEY');
+  if(!/^[1-9][0-9]{0,19}$/.test(id)){
+    throw new Error('Customer portal requires a numeric Lemon Squeezy subscription ID');
+  }
+
+  const response = await fetcher('https://api.lemonsqueezy.com/v1/subscriptions/' + id, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/vnd.api+json',
+      'Authorization': 'Bearer ' + apiKey
+    }
+  });
+  if(!response.ok) throw new Error('Lemon Squeezy subscription lookup failed (' + response.status + ')');
+  const body = await response.json();
+  const data = body?.data;
+  const attributes = data?.attributes;
+  if(data?.type !== 'subscriptions' || String(data.id) !== id || !attributes){
+    throw new Error('Lemon Squeezy returned a mismatched subscription object');
+  }
+  if(customerId && String(attributes.customer_id) !== String(customerId)){
+    throw new Error('Lemon Squeezy customer identity did not match the signed-in account');
+  }
+  const url = attributes.urls?.customer_portal;
+  let parsed;
+  try{ parsed = new URL(url); }catch{ throw new Error('Lemon Squeezy did not return a valid customer portal URL'); }
+  const providerHost = parsed.hostname === 'lemonsqueezy.com' || parsed.hostname.endsWith('.lemonsqueezy.com');
+  if(parsed.protocol !== 'https:' || parsed.username || parsed.password || !providerHost){
+    throw new Error('Lemon Squeezy returned an unsafe customer portal URL');
+  }
+  return parsed.toString();
+}
+
+/**
  * Verifies a webhook's signature and normalizes it into this app's
  * provider-agnostic event shape. Throws only for a genuinely invalid or
  * unverifiable request (bad/missing signature, unconfigured secret,
@@ -130,18 +176,78 @@ export async function verifyAndNormalizeWebhook({ rawBody, headers }){
   }
 
   const eventName = payload && payload.meta && payload.meta.event_name;
-  const type = EVENT_TYPE_MAP[eventName] || null;
+  const mapped = EVENT_TYPE_MAP[eventName] || null;
   const customData = (payload && payload.meta && payload.meta.custom_data) || {};
-  const attributes = (payload && payload.data && payload.data.attributes) || {};
-  const dataId = payload && payload.data && payload.data.id;
+  const data = payload && payload.data || {};
+  const attributes = data.attributes || {};
+  // ALL subscription_payment_* events are subscription INVOICES;
+  // data.id is an invoice, not a subscription. order_refunded is an ORDER.
+  const invoice = typeof eventName === 'string' && eventName.startsWith('subscription_payment_');
+  const order = eventName === 'order_refunded';
+  const paymentSubscriptionId = invoice ? attributes.subscription_id : (order ? null : data.id);
+  const state = attributes.status;
+  let type = mapped;
+  if(type === 'subscription_state_update'){
+    type = {
+      cancelled:'subscription_cancelled',expired:'subscription_expired',
+      active:'subscription_resumed',paused:'subscription_paused',
+      past_due:'subscription_past_due',unpaid:'subscription_unpaid',
+      on_trial:'subscription_on_trial'
+    }[state] || null;
+  }
 
   return {
     type,
     licenseKey: customData.license_key || null,
     email: attributes.user_email || null,
     paymentCustomerId: attributes.customer_id != null ? String(attributes.customer_id) : null,
-    // data.id is the subscription's own id for every subscription_*
-    // event this adapter maps — correct for all four handled types.
-    paymentSubscriptionId: dataId != null ? String(dataId) : null
+    paymentSubscriptionId: paymentSubscriptionId != null ? String(paymentSubscriptionId) : null,
+    eventAt: attributes.updated_at || attributes.created_at || null,
+    endsAt: attributes.ends_at || null,
+    providerStatus: state || null,
+    invoiceId: invoice && data.id != null ? String(data.id) : null,
+    orderId: (order ? data.id : attributes.order_id) != null ?
+      String(order ? data.id : attributes.order_id) : null,
+    refundAmount: attributes.refunded_amount != null && Number.isFinite(Number(attributes.refunded_amount))
+      ? Number(attributes.refunded_amount) : null,
+    invoiceTotal: attributes.total != null && Number.isFinite(Number(attributes.total))
+      ? Number(attributes.total) : null,
+    fullyRefunded: attributes.refunded === true || state === 'refunded' ||
+      (Number(attributes.total) > 0 && attributes.refunded_amount != null &&
+        Number(attributes.refunded_amount) >= Number(attributes.total))
+  };
+}
+
+// Read-only provider snapshot for future isolated staging reconciliation.
+// This function is NEVER invoked by the local V2 preview or its tests
+// without a fully stubbed fetcher. It does NOT mutate a subscription.
+export async function fetchSubscriptionSnapshot(subscriptionId, {
+  fetcher = fetch,
+  apiKey = process.env.LEMONSQUEEZY_API_KEY
+} = {}){
+  const id=String(subscriptionId||'');
+  if(!/^[1-9][0-9]{0,19}$/.test(id)){
+    throw new Error('Reconciliation requires a numeric Lemon Squeezy subscription ID');
+  }
+  if(!apiKey)throw new Error('Reconciliation requires separate staging Lemon Squeezy credentials');
+  const response=await fetcher('https://api.lemonsqueezy.com/v1/subscriptions/'+id,{
+    method:'GET',
+    headers:{'Accept':'application/vnd.api+json','Authorization':'Bearer '+apiKey}
+  });
+  if(!response.ok)throw new Error('Subscription provider lookup failed: '+response.status);
+  const body=await response.json();
+  const data=body?.data;
+  const a=data?.attributes;
+  if(data?.type!=='subscriptions'||String(data.id)!==id||!a){
+    throw new Error('Provider returned a mismatched subscription object');
+  }
+  return {
+    subscriptionId:id,
+    customerId:a.customer_id!=null?String(a.customer_id):null,
+    orderId:a.order_id!=null?String(a.order_id):null,
+    status:a.status||null,
+    endsAt:a.ends_at||null,
+    updatedAt:a.updated_at||null,
+    renewsAt:a.renews_at||null
   };
 }

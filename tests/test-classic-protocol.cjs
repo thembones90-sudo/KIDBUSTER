@@ -106,15 +106,20 @@ module.exports = function run(){
     });
   }
 
-  console.log('\n2b) Low ratings require a firmer, sharper tone');
+  console.log('\n2b) Low ratings are direct about actual challenges, not invented effort or behavior');
   {
     const lowPrompt = KidbusterCore.buildMASystemPrompt({ rating: '2', lengthFormat: 'long' });
-    check('Classic low-rating prompt says not to over-praise or sugarcoat', lowPrompt.includes('do not over-praise, sugarcoat'));
-    check('Classic low-rating prompt says weak performance must be named clearly', lowPrompt.includes('was not good enough today'));
+    check('Classic low-rating prompt stays firmer than rating 3', lowPrompt.includes('firmer, more direct tone than rating 3'));
+    check('Classic low rating needs actual evidence, never assumed poor effort',
+      lowPrompt.includes('A low rating is not proof of poor effort, weak attention or misconduct') &&
+      lowPrompt.includes('specific skills that require improvement'));
 
     const sweetLowPrompt = KidbusterCore.PROTOCOLS.MS.buildSystemPrompt({ rating: '2', lengthFormat: 'long' });
-    check('Sugarcoat low-rating prompt says not to over-praise', sweetLowPrompt.includes('do not over-praise'));
-    check('Sugarcoat low-rating prompt keeps a firmer message than rating 3', sweetLowPrompt.includes('clearly firmer than rating 3'));
+    check('Sugarcoat low-rating prompt is honest about evidenced challenges',
+      sweetLowPrompt.includes('honest about challenges evidenced by the notes or transcript'));
+    check('Sugarcoat keeps firmer tone without inventing low effort',
+      sweetLowPrompt.includes('appropriately firmer than rating 3') &&
+      sweetLowPrompt.includes('never assume poor effort'));
   }
 
   console.log('\n2c) Classic has hidden random style variants, without exposing a chooser or changing Sugarcoat');

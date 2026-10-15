@@ -2,12 +2,10 @@
 //
 // This is the ONLY place the real Anthropic API key ever exists. It lives
 // in a Vercel environment variable, never in git, never in the browser.
-// The frontend (index.html) sends a fully-built systemPrompt + userMessage
-// here; this function attaches the real API key server-side, calls
-// Anthropic, and relays the result back. It has zero knowledge of MA/OF,
-// protocols, or validation — that logic stays entirely in KidbusterCore on
-// the frontend. This function's only job is: authenticate the request,
-// hide the key, proxy the call.
+// The frontend sends structured lesson facts and selections. The backend
+// constructs the trusted protocol prompt, attaches the real API key, calls
+// Anthropic, and relays the result. Browser callers cannot replace system
+// instructions or smuggle a different protocol prompt through this route.
 //
 // Prompt caching: every protocol's buildXSystemPrompt() (see KidbusterCore
 // in index.html) assembles its prompt as
@@ -40,23 +38,55 @@ function buildCacheableSystemBlocks(systemPrompt) {
   ];
 }
 
-import { checkEntitlement, recordUsage } from './_lib/license-service.js';
+import crypto from 'node:crypto';
+import { reserveGeneration, releaseGeneration, commitGeneration } from './_lib/license-service.js';
 import { ALWAYS_FREE_PROTOCOLS, TRIAL_GENERATIONS_PER_PROTOCOL } from './_lib/licensing.js';
+import { buildServerGeneration } from './_lib/server-generation.js';
+import {beginGenerationRequest,completeGenerationRequest,releaseGenerationRequest} from './_lib/kv-client.js';
+
+const DEFAULT_PROVIDER_TIMEOUT_MS=60000;
+function providerTimeoutMs(){
+  const configured=Number.parseInt(process.env.ANTHROPIC_TIMEOUT_MS||'',10);
+  return Number.isInteger(configured)&&configured>=10&&configured<=180000
+    ? configured : DEFAULT_PROVIDER_TIMEOUT_MS;
+}
+class ProviderTimeoutError extends Error{
+  constructor(){super('Anthropic request timed out');this.name='ProviderTimeoutError';}
+}
+async function fetchProviderJsonWithTimeout(url,options,timeoutMs){
+  const controller=new AbortController();
+  let timer,timedOut=false;
+  const timeout=new Promise((_,reject)=>{
+    timer=setTimeout(()=>{
+      timedOut=true;
+      controller.abort();
+      reject(new ProviderTimeoutError());
+    },timeoutMs);
+  });
+  try{
+    const request=(async()=>{
+      const response=await fetch(url,{...options,signal:controller.signal});
+      let data=null,parseError=null;
+      try{data=await response.json();}catch(err){parseError=err;}
+      return {response,data,parseError};
+    })();
+    return await Promise.race([request,timeout]);
+  }catch(err){
+    if(timedOut)throw new ProviderTimeoutError();
+    throw err;
+  }finally{clearTimeout(timer);}
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { systemPrompt, userMessage, protocol } = req.body || {};
-  if (!systemPrompt || typeof systemPrompt !== 'string') {
-    return res.status(400).json({ error: 'Missing or invalid systemPrompt' });
-  }
-  if (!userMessage || typeof userMessage !== 'string') {
-    return res.status(400).json({ error: 'Missing or invalid userMessage' });
-  }
-  if (!protocol || typeof protocol !== 'string') {
-    return res.status(400).json({ error: 'Missing or invalid protocol' });
+  let systemPrompt,userMessage,protocol;
+  try{
+    ({systemPrompt,userMessage,protocol}=buildServerGeneration((req.body||{}).generation));
+  }catch(err){
+    return res.status(400).json({error:'Invalid generation request: '+err.message});
   }
 
   // --- per-license entitlement gate ---
@@ -76,28 +106,55 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'A license key is required.', reason: 'missing_key' });
   }
   const installationId = req.headers['x-installation-id'] || '';
+  const requestId=String(req.headers['x-generation-id']||'').trim();
+  if(requestId&&!/^[A-Za-z0-9_-]{16,128}$/.test(requestId))return res.status(400).json({error:'Invalid generation request identifier.'});
+  let requestKey=null,requestToken=null,requestHeld=false;
+  if(requestId){
+    requestKey='generationRequest:'+crypto.createHash('sha256').update(licenseKey+'\n'+requestId).digest('hex');
+    requestToken=crypto.randomBytes(24).toString('hex');
+    try{
+      const begun=await beginGenerationRequest(requestKey,requestToken);
+      if(!begun.acquired){
+        if(typeof res.setHeader==='function')res.setHeader('Retry-After',begun.state==='running'?'2':'86400');
+        return res.status(409).json({error:begun.state==='completed'?'This generation request was already completed.':'This generation request is already in progress.',reason:begun.state==='completed'?'duplicate_completed':'duplicate_in_progress'});
+      }
+      requestHeld=true;
+    }catch(err){
+      console.error('generate.js: request identity unavailable:',err);
+      return res.status(503).json({error:'Could not start this report safely. Please try again shortly.',reason:'request_identity_unavailable'});
+    }
+  }
+  const releaseRequest=async()=>{
+    if(!requestHeld)return;
+    try{await releaseGenerationRequest(requestKey,requestToken);}catch(err){console.error('generate.js: request marker release failed:',err);}
+    requestHeld=false;
+  };
 
   let entitlement;
   try {
-    entitlement = await checkEntitlement(licenseKey, protocol, installationId);
+    entitlement = await reserveGeneration(licenseKey, protocol, installationId);
   } catch (err) {
+    await releaseRequest();
     console.error('generate.js: error checking entitlement:', err);
     return res.status(500).json({ error: 'Could not verify your license right now. Please try again shortly.' });
   }
   if (!entitlement.allowed) {
+    await releaseRequest();
     const status = entitlement.reason === 'invalid_key' ? 401 : 402;
     return res.status(status).json({ error: entitlement.message, reason: entitlement.reason });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
+    await releaseGeneration(entitlement.reservation).catch(()=>{});
+    await releaseRequest();
     console.error('ANTHROPIC_API_KEY is not set in the environment');
     return res.status(500).json({ error: 'Server is not configured correctly (missing API key)' });
   }
 
-  let anthropicResponse;
+  let providerResult;
   try {
-    anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    providerResult = await fetchProviderJsonWithTimeout('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -119,27 +176,72 @@ export default async function handler(req, res) {
         system: buildCacheableSystemBlocks(systemPrompt),
         messages: [{ role: 'user', content: userMessage }]
       })
-    });
+    },providerTimeoutMs());
   } catch (networkErr) {
+    await releaseGeneration(entitlement.reservation).catch(err=>console.error('generate.js: reservation release failed:',err));
+    await releaseRequest();
+    if(networkErr?.name==='ProviderTimeoutError'){
+      if(typeof res.setHeader==='function')res.setHeader('Retry-After','2');
+      return res.status(504).json({error:'Report generation timed out. Your lesson notes are safe; please try again.',reason:'generation_timeout'});
+    }
     return res.status(502).json({ error: 'Network error contacting Anthropic' });
   }
 
+  const {response:anthropicResponse,data,parseError}=providerResult;
   if (!anthropicResponse.ok) {
-    let detail = '';
-    try {
-      const errBody = await anthropicResponse.json();
-      detail = (errBody && errBody.error && errBody.error.message) || '';
-    } catch (e) { /* body wasn't JSON, ignore */ }
+    const detail = (data && data.error && data.error.message) || '';
+    await releaseGeneration(entitlement.reservation).catch(err=>console.error('generate.js: reservation release failed:',err));
+    await releaseRequest();
     return res.status(anthropicResponse.status).json({
-      error: detail || ('Anthropic API request failed with status ' + anthropicResponse.status)
+      error: detail || ('Anthropic API request failed with status ' + anthropicResponse.status),
+      reason:'provider_unavailable'
     });
   }
 
-  const data = await anthropicResponse.json();
-  const text = (data.content || []).map(b => b.text || '').join('').trim();
+  let text;
+  try {
+    if(parseError)throw parseError;
+    if(!Array.isArray(data?.content)) throw new Error('Provider response content is not an array');
+    text = data.content.map(b => b?.text || '').join('').trim();
+  } catch (parseErr) {
+    await releaseGeneration(entitlement.reservation).catch(err=>console.error('generate.js: reservation release failed:',err));
+    await releaseRequest();
+    console.error('generate.js: malformed Anthropic response:',parseErr);
+    return res.status(502).json({ error: 'Anthropic returned a malformed response' });
+  }
 
   if (!text) {
+    await releaseGeneration(entitlement.reservation).catch(err=>console.error('generate.js: reservation release failed:',err));
+    await releaseRequest();
     return res.status(502).json({ error: 'Anthropic returned an empty response' });
+  }
+
+  // A successful HTTP response can still contain an incomplete report.
+  // Never deliver or charge quota for a provider response cut off by output limits.
+  if (data?.stop_reason === 'max_tokens' || data?.stop_reason === 'model_context_window_exceeded') {
+    await releaseGeneration(entitlement.reservation).catch(err=>console.error('generate.js: truncated response reservation release failed:',err));
+    await releaseRequest();
+    return res.status(502).json({
+      error: 'The report was cut off before completion. Your lesson notes are safe; please try again.',
+      reason: 'generation_truncated'
+    });
+  }
+
+  // Commit the durable hold before returning report text. If the datastore
+  // cannot confirm the commit, do not deliver the report; the abandoned hold
+  // will be refunded after its lease expires on a later reservation attempt.
+  try {
+    const committed=await commitGeneration(entitlement.reservation);
+    if(!committed)throw new Error('Generation reservation no longer exists');
+  } catch (commitErr) {
+    console.error('generate.js: reservation commit failed:',commitErr);
+    return res.status(503).json({ error: 'Could not finalize this report safely. Please try again shortly.',reason:'finalization_uncertain' });
+  }
+  if(requestHeld){
+    try{
+      if(await completeGenerationRequest(requestKey,requestToken))requestHeld=false;
+      else console.error('generate.js: request marker ownership changed before completion');
+    }catch(err){console.error('generate.js: request completion marker failed:',err);}
   }
 
   // Only count a generation against the license's monthly usage once
@@ -148,7 +250,7 @@ export default async function handler(req, res) {
   // part of their Free allowance.
   let trialStatus = null;
   try {
-    const newCount = await recordUsage(licenseKey, protocol);
+    const newCount = entitlement.reservation?.count ?? null;
     // newCount is null for founder/owner keys (nothing was ever
     // incremented) and for Pro users there's no meaningful "remaining"
     // concept either — trialStatus only makes sense for a real,
@@ -162,7 +264,7 @@ export default async function handler(req, res) {
       };
     }
   } catch (err) {
-    console.error('generate.js: error recording usage (report still delivered):', err);
+    console.error('generate.js: error formatting usage status:', err);
   }
 
   // data.usage now includes cache_creation_input_tokens / cache_read_input_tokens

@@ -9,7 +9,9 @@
   },
   "scripts": {
     "test": "node tests/run-all.cjs",
-    "test:live": "node tests/test-live-smoke.cjs"
+    "test:live": "node tests/test-live-smoke.cjs",
+    "dev:v2:local": "node tools/v2-local-server.cjs",
+    "dev:v2:alias": "node tools/v2-owner-alias-bridge.cjs"
   },
   "dependencies": {
     "@vercel/kv": "^2.0.0"

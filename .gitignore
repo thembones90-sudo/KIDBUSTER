@@ -4,3 +4,9 @@
 node_modules
 .DS_Store
 .env*
+.v2-cache/
+.v2-tmp/
+.v2-local/
+# Local-only compatibility for an already running pre-change V2 preview.
+# The deployed V2 ping is a static /ping.json rewrite, not an API function.
+/api/ping.js

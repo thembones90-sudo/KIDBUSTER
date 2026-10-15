@@ -123,8 +123,13 @@ module.exports = function run(){
       ].join('\n');
     }
     const msReportNina = makeMSReport('Teacher Nina 💖');
-    const warnMS = KidbusterCore.PROTOCOLS.MS.analyze(msReportNina, '4', 'Nina', 'long', '', '🦊');
-    check('MS + Nina + "Teacher Nina 💖" (even with an unrelated signoffEmoji arg passed) -> sign-off NOT flagged', !warnMS.some(w => w.includes('sign-off')));
+    const warnMS = KidbusterCore.PROTOCOLS.MS.analyze(msReportNina, '4', 'Nina', 'long', '', '');
+    check('MS + Nina + "Teacher Nina 💖" with blank emoji -> sign-off NOT flagged', !warnMS.some(w => w.includes('sign-off')));
+    const warnMSOverrideMissing = KidbusterCore.PROTOCOLS.MS.analyze(msReportNina, '4', 'Nina', 'long', '', '🦊');
+    check('MS + custom fox requires that chosen emoji before the fixed heart', warnMSOverrideMissing.some(w => w.includes('sign-off')));
+    const msReportCustom = makeMSReport('Teacher Nina 🦊 💖');
+    const warnMSOverridePresent = KidbusterCore.PROTOCOLS.MS.analyze(msReportCustom, '4', 'Nina', 'long', '', '🦊');
+    check('MS + chosen fox before the fixed heart passes sign-off validation', !warnMSOverridePresent.some(w => w.includes('sign-off')));
     const msPromptFaye = KidbusterCore.applyProtocolSignoffEmoji(
       KidbusterCore.applyTeacherIdentity(KidbusterCore.buildSweetSystemPrompt({ rating: '4', lengthFormat: 'long' }), 'Faye'),
       'Faye',

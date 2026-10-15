@@ -33,7 +33,13 @@ const fs = require('fs');
  */
 function loadPuppeteer(){
   try {
-    return { puppeteer: require('puppeteer'), launchOptions: {} };
+    const puppeteer = require('puppeteer');
+    const installedBrowsers = process.platform === 'win32' ? [
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
+    ] : [];
+    const executablePath = installedBrowsers.find(p => fs.existsSync(p));
+    return { puppeteer, launchOptions: executablePath ? { executablePath } : {} };
   } catch (e) {
     const fallbackModulePath = '/usr/local/lib/node_modules_global/@mermaid-js/mermaid-cli/node_modules/puppeteer';
     const puppeteer = require(fallbackModulePath); // absolute path — bypasses mermaid-cli's package.json "exports" map, which blocks a deep subpath require() by name
@@ -86,6 +92,123 @@ module.exports = async function run(){
   console.log('\n1) Page loads with zero uncaught JavaScript errors');
   check('no page errors on initial load', pageErrors.length === 0);
   if(pageErrors.length){ console.log('    errors seen:', pageErrors); }
+  const accountFlow=await page.evaluate(()=>{
+    localStorage.removeItem(ACCESS_KEY_STORAGE);
+    document.getElementById('accountBtn').click();
+    const newcomer=getComputedStyle(document.getElementById('licenseModalOverlay')).display!=='none'&&getComputedStyle(document.getElementById('accountPanel')).display==='none';
+    document.getElementById('licenseModalCloseBtn').click();
+    localStorage.setItem(ACCESS_KEY_STORAGE,'synthetic-account-ui');
+    document.getElementById('accountBtn').click();
+    const returning=getComputedStyle(document.getElementById('accountPanel')).display!=='none'&&!document.querySelector('.account-support').open;
+    document.getElementById('accountSignOutBtn').click();
+    return {newcomer,returning,signedOut:!localStorage.getItem(ACCESS_KEY_STORAGE)&&getComputedStyle(document.getElementById('accountPanel')).display==='none'};
+  });
+  check('Account routes newcomers to sign-in, collapses support details, and signs out locally',accountFlow.newcomer&&accountFlow.returning&&accountFlow.signedOut);
+  const fonts = await page.evaluate(async () => {
+    await Promise.all([
+      document.fonts.load('700 22px Manrope'),
+      document.fonts.load('400 16px Inter'),
+      document.fonts.load('600 12px "JetBrains Mono"')
+    ]);
+    return {
+      manrope: document.fonts.check('700 22px Manrope'),
+      inter: document.fonts.check('400 16px Inter'),
+      mono: document.fonts.check('600 12px "JetBrains Mono"'),
+      externalGoogleImport: [...document.styleSheets].some(sheet => String(sheet.href || '').includes('fonts.googleapis.com'))
+    };
+  });
+  check('Manrope, Inter, and JetBrains Mono load from the local font bundle',fonts.manrope&&fonts.inter&&fonts.mono&&!fonts.externalGoogleImport);
+
+  console.log('\n1a) V2 workflow onboarding lives in Help, not the workspace');
+  {
+    const workflow=await page.evaluate(()=>({
+      title:document.getElementById('helpModalTitle')?.textContent||'',
+      steps:document.querySelectorAll('.first-guide-step').length,
+      workspaceStrips:document.querySelectorAll('.experience-bar').length,
+      zoom:getComputedStyle(document.body).zoom
+    }));
+    check('onboarding workflow lives in Help and leaves workspace clear',workflow.title.includes('first report')&&workflow.steps===3&&workflow.workspaceStrips===0);
+    check('global browser zoom hack is removed',workflow.zoom==='1');
+    await page.setViewport({width:390,height:844,deviceScaleFactor:1});
+    const mobile=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));
+    check('390px mobile layout has no horizontal overflow',mobile.scroll===mobile.client);
+    for(const width of [768,900,980]){
+      await page.setViewport({width,height:844,deviceScaleFactor:1});
+      const tablet=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));
+      check(width+'px tablet layout has no horizontal overflow',tablet.scroll===tablet.client);
+    }
+    const onboardingText=await page.evaluate(()=>({
+      promise:parseFloat(getComputedStyle(document.querySelector('.first-guide-intro p')).fontSize),
+      label:parseFloat(getComputedStyle(document.querySelector('.first-guide-step strong')).fontSize),
+      detail:parseFloat(getComputedStyle(document.querySelector('.first-guide-step p')).fontSize)
+    }));
+    check('onboarding instructions use readable font sizes',onboardingText.promise>=13&&onboardingText.label>=13&&onboardingText.detail>=13);
+    const details=await page.evaluate(()=>({
+      protocolFont:parseFloat(getComputedStyle(document.querySelector('.protocol-select')).fontSize),
+      hintFont:parseFloat(getComputedStyle(document.querySelector('.field-hint')).fontSize),
+      recoveryNoteFont:parseFloat(getComputedStyle(document.querySelector('.license-modal-step-note')).fontSize),
+      focusOutline:getComputedStyle(document.querySelector('.info-icon'),':focus-visible').outlineStyle
+    }));
+    check('protocol selector labels use at least 15px text',details.protocolFont>=15);
+    const armory=await page.evaluate(()=>({
+      protocolCards:document.querySelectorAll('#protocolSelect>label').length,
+      lengthTiles:document.querySelectorAll('#lengthFormatSelect>label').length,
+      protocolDisplay:getComputedStyle(document.getElementById('protocolSelect')).display,
+      lengthDisplay:getComputedStyle(document.getElementById('lengthFormatSelect')).display,
+      helpLabel:document.getElementById('helpBtn').textContent.trim(),
+      nativeRadios:document.querySelectorAll('#protocolSelect input[type="radio"][name="protocol"]').length
+    }));
+    check('protocol armory retains seven native radio cards',armory.protocolCards===7&&armory.nativeRadios===7&&armory.protocolDisplay==='grid');
+    const balanced=await page.evaluate(()=>{const cards=[...document.querySelectorAll('#protocolSelect>label')];const preply=cards[6];const of=cards[5];const grid=getComputedStyle(document.getElementById('protocolSelect'));return {preplySpan:getComputedStyle(preply).gridColumnEnd,preplyWidth:Math.round(preply.getBoundingClientRect().width),gridWidth:Math.round(document.getElementById('protocolSelect').getBoundingClientRect().width),ofTitle:of.textContent.replace('?', '').trim(),columns:grid.gridTemplateColumns.split(' ').length}});
+    check('seven protocols form a balanced 2-2-2-1 card layout',balanced.columns===2&&balanced.preplyWidth>=balanced.gridWidth-2);
+    check('OF Protocol has a compact visible title',balanced.ofTitle==='OF Protocol');
+    check('report-length armory retains three native radio tiles',armory.lengthTiles===3&&armory.lengthDisplay==='grid');
+    check('amber onboarding entry is clearly labeled',armory.helpLabel==='New here? Start here');
+    const onboarding=await page.evaluate(async()=>{
+      localStorage.removeItem(HELP_COMPLETED_KEY);
+      updateHelpButton(false);
+      openHelpModal();closeHelpModal();
+      const dismissed=localStorage.getItem(HELP_COMPLETED_KEY)===null&&helpEls.btn.textContent==='New here? Start here';
+      openHelpModal();document.getElementById('firstGuideStart').click();
+      const completed=localStorage.getItem(HELP_COMPLETED_KEY)==='1'&&helpEls.btn.textContent==='Help & guide';
+      openHelpModal();
+      const accessible=getComputedStyle(helpEls.overlay).display!=='none';
+      closeHelpModal();
+      localStorage.removeItem(HELP_COMPLETED_KEY);updateHelpButton(false);
+      return {dismissed,completed,accessible};
+    });
+    check('guide dismissal preserves newcomer mode; explicit completion saves it and keeps Help available',onboarding.dismissed&&onboarding.completed&&onboarding.accessible);
+    for(const [fitWidth,fitHeight] of [[1400,900],[1280,800],[1280,720],[900,800],[390,844]]){
+      await page.setViewport({width:fitWidth,height:fitHeight,deviceScaleFactor:1});
+      await page.reload({waitUntil:'domcontentloaded'});
+      const fit=await page.evaluate(()=>({
+        pageWidth:document.documentElement.scrollWidth,
+        zoom:parseFloat(getComputedStyle(document.querySelector('.wrap')).zoom),
+        ratingExists:document.getElementById('ratingTrack').getBoundingClientRect().height>0,
+        sidebarWidth:document.querySelector('.grid>div:first-child').getBoundingClientRect().width,
+        viewport:innerWidth
+      }));
+      check('native size and unclipped layout at '+fitWidth+'x'+fitHeight,fit.zoom===1&&fit.pageWidth<=fitWidth+1&&fit.ratingExists&&fit.sidebarWidth<=fit.viewport);
+    }
+    await page.setViewport({width:1280,height:800,deviceScaleFactor:1});
+    await page.reload({waitUntil:'domcontentloaded'});
+    const cardColors=await page.evaluate(()=>[...document.querySelectorAll('#protocolSelect>label')].map(e=>getComputedStyle(e).backgroundColor));
+    check('all seven protocol cards have individualized tints',new Set(cardColors).size===7);
+    check('workspace field hints use at least 14px text',details.hintFont>=14);
+    check('payment recovery instructions use at least 14px text',details.recoveryNoteFont>=14);
+    const polish=await page.evaluate(()=>({
+      placeholder:getComputedStyle(document.querySelector('#krispNotes'),'::placeholder').color,
+      counter:parseFloat(getComputedStyle(document.querySelector('#krispCounter')).fontSize),
+      note:parseFloat(getComputedStyle(document.querySelector('.small-note')).fontSize),
+      logo:document.querySelector('.kb-logo').getBoundingClientRect().height,
+      onboardingAlign:getComputedStyle(document.querySelector('.first-guide-steps')).display
+    }));
+    check('notes placeholder uses intentionally legible styling',polish.placeholder==='rgb(174, 184, 195)');
+    check('counter and output guidance remain readable',polish.counter>=13&&polish.note>=13);
+    check('Pathfinder logo is visible',polish.logo>=44);
+    check('onboarding guide retains its structured learning steps',polish.onboardingAlign!=='none');
+    await page.setViewport({width:1280,height:800,deviceScaleFactor:1});
+  }
 
   console.log('\n1b) Pathfinder logo acts as a real reload/reset button');
   {
@@ -134,14 +257,14 @@ module.exports = async function run(){
     const text = overlay ? overlay.textContent : '';
     return {
       visible: overlay && getComputedStyle(overlay).display !== 'none',
-      hasTitle: text.includes('How to use Pathfinder'),
-      hasSteps: text.includes('Pick a protocol') && text.includes('Paste your lesson notes') && text.includes('Generate, read, send'),
-      hasAccess: text.includes('Free') && text.includes('Pro') && text.includes('Manual key')
+      hasTitle: text.includes('Your first report in three steps'),
+      hasSteps: text.includes('Choose your report style') && text.includes('Add your lesson notes') && text.includes('Create your report'),
+      hasAccess: text.includes('Free') && text.includes('Pro') && text.includes('Manage billing') && text.includes('PayPal')
     };
   });
   check('Help button opens the onboarding guide', helpOpen.visible);
   check('Help guide includes the basic workflow steps', helpOpen.hasTitle && helpOpen.hasSteps);
-  check('Help guide explains Free, Pro, and manual key access', helpOpen.hasAccess);
+  check('Help guide explains Free, Pro, provider-managed PayPal, and billing access', helpOpen.hasAccess);
 
   await page.click('#helpModalCloseBtn');
   await new Promise(r => setTimeout(r, 80));
@@ -153,6 +276,12 @@ module.exports = async function run(){
   await new Promise(r => setTimeout(r, 80));
   const helpClosedByEscape = await page.evaluate(() => getComputedStyle(document.getElementById('helpModalOverlay')).display === 'none');
   check('Help modal closes with Escape', helpClosedByEscape);
+  await page.click('#helpBtn');
+  await page.click('#helpModalCloseBtn');
+  check('visible X closes START HERE',await page.evaluate(()=>getComputedStyle(document.getElementById('helpModalOverlay')).display==='none'));
+  await page.click('#helpBtn');
+  await page.evaluate(()=>document.getElementById('helpModalOverlay').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true})));
+  check('clicking outside START HERE closes it',await page.evaluate(()=>getComputedStyle(document.getElementById('helpModalOverlay')).display==='none'));
 
   const protocols = [
     { value: 'MA',    bodyClass: null, label: 'Classic' }, // MA is the default theme — no body class of its own
@@ -213,8 +342,8 @@ module.exports = async function run(){
         title: overlay.querySelector('.license-modal-title').textContent,
         hasPro: !!document.getElementById('licenseModalProBtn'),
         hasFree: !!document.getElementById('licenseModalFreeBtn'),
-        hasPaypal: !!document.getElementById('licenseModalPaypalBtn'),
-        paypalDisabled: document.getElementById('licenseModalPaypalBtn')?.getAttribute('aria-disabled') || '',
+        hasProviderPaymentCopy: overlay.textContent.includes('PayPal') && overlay.textContent.includes('Lemon Squeezy'),
+        hasDirectPaypal: !!document.getElementById('licenseModalPaypalBtn'),
         hasKey: !!document.getElementById('licenseModalKeyBtn'),
         hasRecover: !!document.getElementById('licenseModalRecoverBtn'),
         recoverLabel: document.getElementById('licenseModalRecoverBtnLabel')?.textContent || '',
@@ -224,33 +353,21 @@ module.exports = async function run(){
     check('calling promptForAccessKey() shows the modal', modalShown.visible);
     check(
       'modal shows the simplified access choices',
-      modalShown.title === 'Choose your access' &&
+      modalShown.title === 'Choose how to continue' &&
       modalShown.hasPro &&
       modalShown.hasFree &&
-      modalShown.hasPaypal &&
-      modalShown.paypalDisabled === 'false' &&
+      modalShown.hasProviderPaymentCopy &&
+      !modalShown.hasDirectPaypal &&
       modalShown.hasKey &&
       modalShown.hasRecover &&
-      modalShown.recoverLabel === 'Find my key' &&
+      modalShown.recoverLabel === 'Email sign-in link' &&
       modalShown.keyButtonLabel === 'Use key'
     );
 
-    await page.evaluate(() => {
-      window.__kidbusterPaypalOpened = null;
-      window.open = (url) => { window.__kidbusterPaypalOpened = url; return null; };
-    });
-    await page.click('#licenseModalPaypalBtn');
-    await new Promise(r => setTimeout(r, 80));
-    const paypalClickResult = await page.evaluate(() => {
-      const err = document.getElementById('licenseModalError');
-      return {
-        opened: window.__kidbusterPaypalOpened,
-        errorVisible: err.style.display !== 'none',
-        errorText: err.textContent
-      };
-    });
-    check('PayPal manual payment option opens the configured PayPal link without showing an error', paypalClickResult.opened === 'https://paypal.me/shadezyel' && !paypalClickResult.errorVisible);
+    check('PayPal is offered only through the automated Lemon Squeezy checkout path',
+      modalShown.hasProviderPaymentCopy && !modalShown.hasDirectPaypal);
 
+    await page.click('.license-modal-section.pro > .license-modal-choice');
     await page.click('#licenseModalProBtn');
     await new Promise(r => setTimeout(r, 80));
     const emptyProEmailError = await page.evaluate(() => {
@@ -268,6 +385,7 @@ module.exports = async function run(){
     // Clicking "Get my free key" with no email entered should show a
     // client-side validation error WITHOUT attempting any network call
     // (there's no live backend for this file:// test to talk to).
+    await page.click('.license-modal-section.primary > .license-modal-choice');
     await page.click('#licenseModalFreeBtn');
     await new Promise(r => setTimeout(r, 80));
     const emptyEmailError = await page.evaluate(() => {
@@ -276,6 +394,7 @@ module.exports = async function run(){
     });
     check('empty email -> client-side validation error shown, no crash', emptyEmailError.visible && emptyEmailError.text.length > 0);
 
+    await page.click('.license-modal-section:not(.primary):not(.pro) > .license-modal-choice');
     await page.click('#licenseModalRecoverBtn');
     await new Promise(r => setTimeout(r, 80));
     const emptyRecoverEmailError = await page.evaluate(() => {
@@ -287,6 +406,7 @@ module.exports = async function run(){
     // Pasting an existing key and clicking Continue should work entirely
     // client-side (no network call needed for this path at all) and
     // resolve the pending promise.
+    await page.click('.license-modal-advanced > summary');
     await page.type('#licenseModalKeyInput', 'kb_live_test_pasted_key');
     await page.click('#licenseModalKeyBtn');
     await new Promise(r => setTimeout(r, 80));
@@ -335,6 +455,133 @@ module.exports = async function run(){
     check('Access panel opens from the header', accountPanel.visible);
     check('Access panel shows the saved access code in masked form', accountPanel.keyText === 'kb_live_..._key');
     check('Access panel renders a usable local/server status', accountPanel.planText.length > 0);
+
+    const duplicateUx = await page.evaluate(async () => {
+      let sentGenerationId = '';
+      window.fetch = async (url, options = {}) => {
+        if(String(url).includes('/api/generate')){
+          sentGenerationId = options.headers && options.headers['x-generation-id'];
+          return new Response(JSON.stringify({
+            error: 'This generation request is already in progress.',
+            reason: 'duplicate_in_progress'
+          }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+        }
+        throw new Error('Unexpected browser-smoke fetch: ' + url);
+      };
+      let message = '';
+      try{
+        await callClaude({
+          teacherName: 'Layne', studentName: 'Test Student',
+          notes: 'Practised reading.', rating: '4', protocol: 'MA'
+        });
+      }catch(err){ message = err.message; }
+      return { sentGenerationId, message };
+    });
+    check('generation requests carry a unique server idempotency identifier',
+      /^[A-Za-z0-9_-]{16,128}$/.test(duplicateUx.sentGenerationId));
+    check('duplicate generation state has clear retry guidance and preserves notes',
+      duplicateUx.message.includes('already generating') && duplicateUx.message.includes('lesson notes'));
+
+    const timeoutUx = await page.evaluate(async () => {
+      window.fetch = async url => {
+        if(String(url).includes('/api/generate')){
+          return new Response(JSON.stringify({
+            error: 'Report generation timed out. Your lesson notes are safe; please try again.',
+            reason: 'generation_timeout'
+          }), { status: 504, headers: { 'Content-Type': 'application/json' } });
+        }
+        throw new Error('Unexpected browser-smoke fetch: ' + url);
+      };
+      try{
+        await callClaude({
+          teacherName: 'Layne', studentName: 'Test Student',
+          notes: 'Practised reading.', rating: '4', protocol: 'MA'
+        });
+      }catch(err){ return err.message; }
+      return '';
+    });
+    check('provider timeout explains when to retry and that lesson notes remain safe',
+      timeoutUx.includes('took too long') && timeoutUx.includes('lesson notes') && timeoutUx.includes('try again'));
+
+    const lostResponseRecovery = await page.evaluate(async () => {
+      sessionStorage.clear();
+      const ids = [];
+      let call = 0;
+      window.fetch = async (_url, options = {}) => {
+        ids.push(options.headers && options.headers['x-generation-id']);
+        call++;
+        if(call === 1) throw new Error('synthetic response loss');
+        if(call === 2) return new Response(JSON.stringify({
+          error: 'This generation request was already completed.',
+          reason: 'duplicate_completed'
+        }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({text:'A deliberately new report'}), {
+          status: 200, headers: { 'Content-Type': 'application/json' }
+        });
+      };
+      const generation = {
+        teacherName: 'Layne', studentName: 'Private Student',
+        notes: 'Private lesson evidence.', rating: '4', protocol: 'MA'
+      };
+      let storedAfterLoss = '', duplicateMessage = '';
+      try{ await callClaude(generation); }catch(_err){
+        storedAfterLoss = sessionStorage.getItem('pathfinder_pending_generation_v1') || '';
+      }
+      try{ await callClaude(generation); }catch(err){ duplicateMessage = err.message; }
+      const storedAfterCompleted = sessionStorage.getItem('pathfinder_pending_generation_v1');
+      clearGenerationAttempt(JSON.parse(storedAfterCompleted)); // explicit teacher-approved regeneration path
+      const final = await callClaude(generation);
+      const storedAfterSuccess = sessionStorage.getItem('pathfinder_pending_generation_v1');
+      return {ids,storedAfterLoss,storedAfterCompleted,storedAfterSuccess,duplicateMessage,finalText:final.text};
+    });
+    check('ambiguous network retry reuses the exact pending generation identity',
+      lostResponseRecovery.ids[0] === lostResponseRecovery.ids[1]);
+    check('pending browser marker contains only opaque id and digest, never lesson content',
+      lostResponseRecovery.storedAfterLoss.includes('fingerprint') &&
+      !lostResponseRecovery.storedAfterLoss.includes('Private Student') &&
+      !lostResponseRecovery.storedAfterLoss.includes('Private lesson evidence'));
+    check('completed replay becomes a tombstone and requires explicit regeneration',
+      lostResponseRecovery.storedAfterCompleted.includes('completed_without_result') &&
+      lostResponseRecovery.duplicateMessage.includes('could not be recovered'));
+    check('a later deliberate generation uses a new identity and clears it on success',
+      lostResponseRecovery.ids[2] !== lostResponseRecovery.ids[1] &&
+      lostResponseRecovery.storedAfterSuccess === null && lostResponseRecovery.finalText === 'A deliberately new report');
+
+    const pendingStateEdges = await page.evaluate(async () => {
+      const a = {teacherName:'Layne',studentName:'Mia',notes:'Same evidence',rating:'4',protocol:'MA'};
+      const b = {protocol:'MA',rating:'4',notes:'Same evidence',studentName:'Mia',teacherName:'Layne'};
+      const canonicalA = await generationFingerprint(a,'kb_live_test_pasted_key');
+      const canonicalB = await generationFingerprint(b,'kb_live_test_pasted_key');
+
+      sessionStorage.clear();
+      const timeoutIds=[];
+      let timeoutCall=0;
+      window.fetch=async(_url,options={})=>{
+        timeoutIds.push(options.headers['x-generation-id']);
+        timeoutCall++;
+        if(timeoutCall===1)return new Response(JSON.stringify({reason:'generation_timeout'}),{status:504,headers:{'Content-Type':'application/json'}});
+        return new Response(JSON.stringify({text:'Retry delivered'}),{status:200,headers:{'Content-Type':'application/json'}});
+      };
+      try{await callClaude(a);}catch(_err){/* expected */}
+      await callClaude(a);
+
+      sessionStorage.clear();
+      document.querySelector('input[name="protocol"][value="MA"]').click();
+      document.getElementById('studentName').value='Mia';
+      document.getElementById('krispNotes').value='Submitted evidence';
+      window.fetch=async()=>{
+        await new Promise(resolve=>setTimeout(resolve,30));
+        return new Response(JSON.stringify({text:'Delivered while editing'}),{status:200,headers:{'Content-Type':'application/json'}});
+      };
+      const running=generate();
+      await new Promise(resolve=>setTimeout(resolve,5));
+      document.getElementById('krispNotes').value='New notes typed during generation';
+      await running;
+      return {canonicalA,canonicalB,timeoutIds,editedNotes:document.getElementById('krispNotes').value};
+    });
+    check('canonical fingerprint ignores object property insertion order',pendingStateEdges.canonicalA===pendingStateEdges.canonicalB);
+    check('server-confirmed timeout clears pending identity before retry',pendingStateEdges.timeoutIds[0]!==pendingStateEdges.timeoutIds[1]);
+    check('notes edited during generation are never erased by the earlier success',pendingStateEdges.editedNotes==='New notes typed during generation');
   }
 
   console.log('\n4) No new page errors accumulated from clicking through every protocol and the license modal');

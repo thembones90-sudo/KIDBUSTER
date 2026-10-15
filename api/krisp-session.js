@@ -11,9 +11,10 @@
 // stable license identity, resolved the same way, so pending imports
 // survive token regeneration and Krisp reconnects. See
 // _lib/krisp-token.js for the token<->identity design.
-import { isFounderLicenseKey, getLicense, isLicenseExpired } from './_lib/licensing.js';
+import { isFounderLicenseKey, getLicense, isLicenseExpired, effectiveSubscriptionLicense } from './_lib/licensing.js';
 import { getOrCreateKrispToken, regenerateKrispToken, disconnectKrisp } from './_lib/krisp-token.js';
-import { kv } from './_lib/kv-client.js';
+import crypto from 'crypto';
+import { kv, acquirePaymentLock, releasePaymentLock } from './_lib/kv-client.js';
 
 const PENDING_LIST_MAX = 20;
 
@@ -24,9 +25,11 @@ function dataKeyPrefix(userIdentity){
 async function isEntitledToKrisp(licenseKey){
   if(!licenseKey) return false;
   if(isFounderLicenseKey(licenseKey)) return true;
-  const license = await getLicense(licenseKey);
+  const license = effectiveSubscriptionLicense(await getLicense(licenseKey));
   if(!license) return false;
   if(license.plan !== 'pro' || license.status !== 'active') return false;
+  // Stock keys cannot use Krisp before their first browser activation.
+  if(license.manual === true && license.activationPending === true) return false;
   if(isLicenseExpired(license)) return false;
   return true;
 }
@@ -98,15 +101,29 @@ export default async function handler(req, res){
 
   const waitingKey = prefix + 'waitingSince';
   const matchedKey = prefix + 'matched';
+  const matchedQueueKey = prefix + 'matchedQueue';
   const pendingKey = prefix + 'pending';
 
+  async function withMutationLock(work){
+    const lockKey=prefix+'mutationLock';
+    const lockToken=crypto.randomUUID();
+    if(!await acquirePaymentLock(lockKey,lockToken,30))return {busy:true};
+    try{return {value:await work()};}
+    finally{await releasePaymentLock(lockKey,lockToken).catch(()=>{});}
+  }
+
   if(req.method === 'GET'){
-    const matched = await kv.get(matchedKey).catch(() => null);
-    if(matched){
-      await kv.set(matchedKey, null).catch(() => {});
-    }
-    const waitingSince = await kv.get(waitingKey).catch(() => null);
-    const pendingRaw = (await kv.get(pendingKey).catch(() => null)) || [];
+    const read=await withMutationLock(async()=>{
+      const legacy=await kv.getdel(matchedKey);
+      const queue=(await kv.get(matchedQueueKey))||[];
+      if(legacy)queue.unshift(legacy);
+      const matched=queue.shift()||null;
+      await kv.set(matchedQueueKey,queue);
+      return {matched,pendingRaw:(await kv.get(pendingKey))||[]};
+    });
+    if(read.busy)return res.status(503).json({error:'Krisp inbox is busy. Retry shortly.'});
+    const waitingSince = await kv.get(waitingKey);
+    const {matched,pendingRaw}=read.value;
     const pending = sortPendingByMeetingStart(pendingRaw);
     const lastReceivedAt = await kv.get(prefix + 'lastReceivedAt').catch(() => null);
     return res.status(200).json({
@@ -123,12 +140,12 @@ export default async function handler(req, res){
     const action = (req.body || {}).action;
 
     if(action === 'wait'){
-      await kv.set(waitingKey, new Date().toISOString()).catch(() => {});
+      await kv.set(waitingKey, new Date().toISOString());
       return res.status(200).json({ waiting: true });
     }
 
     if(action === 'cancel-wait'){
-      await kv.set(waitingKey, null).catch(() => {});
+      await kv.del(waitingKey);
       return res.status(200).json({ waiting: false });
     }
 
@@ -137,14 +154,19 @@ export default async function handler(req, res){
       if(!meetingId){
         return res.status(400).json({ error: 'meetingId is required to claim a pending import.' });
       }
-      const pending = (await kv.get(pendingKey).catch(() => null)) || [];
-      const index = pending.findIndex(item => item.meetingId === meetingId);
-      if(index === -1){
+      const claim=await withMutationLock(async()=>{
+        const pending=(await kv.get(pendingKey))||[];
+        const index=pending.findIndex(item=>item.meetingId===meetingId);
+        if(index===-1)return null;
+        const [claimed]=pending.splice(index,1);
+        await kv.set(pendingKey,pending);
+        return {claimed,pendingCount:pending.length};
+      });
+      if(claim.busy)return res.status(409).json({error:'Krisp inbox changed. Please retry.'});
+      if(!claim.value){
         return res.status(404).json({ error: 'That pending import is no longer available.' });
       }
-      const [claimed] = pending.splice(index, 1);
-      await kv.set(pendingKey, pending).catch(() => {});
-      return res.status(200).json({ claimed, pendingCount: pending.length });
+      return res.status(200).json(claim.value);
     }
 
     if(action === 'defer'){
@@ -152,19 +174,16 @@ export default async function handler(req, res){
       if(!record){
         return res.status(400).json({ error: 'A valid Krisp import record is required to defer.' });
       }
-      const pending = (await kv.get(pendingKey).catch(() => null)) || [];
-      const existingIndex = pending.findIndex(item => item.meetingId === record.meetingId);
-      if(existingIndex === -1){
-        pending.unshift(record);
-      } else {
-        pending[existingIndex] = { ...pending[existingIndex], ...record };
-      }
-      if(pending.length > PENDING_LIST_MAX){
-        pending.length = PENDING_LIST_MAX;
-      }
-      await kv.set(pendingKey, pending).catch(() => {});
-      await kv.set(matchedKey, null).catch(() => {});
-      const sorted = sortPendingByMeetingStart(pending);
+      const deferred=await withMutationLock(async()=>{
+        const pending=(await kv.get(pendingKey))||[];
+        const existingIndex=pending.findIndex(item=>item.meetingId===record.meetingId);
+        if(existingIndex===-1)pending.unshift(record);else pending[existingIndex]={...pending[existingIndex],...record};
+        if(pending.length>PENDING_LIST_MAX)pending.length=PENDING_LIST_MAX;
+        await kv.set(pendingKey,pending);
+        return sortPendingByMeetingStart(pending);
+      });
+      if(deferred.busy)return res.status(409).json({error:'Krisp inbox changed. Please retry.'});
+      const sorted=deferred.value;
       return res.status(200).json({ deferred: true, pending: sorted, pendingCount: sorted.length });
     }
 
@@ -173,14 +192,19 @@ export default async function handler(req, res){
       if(!meetingId){
         return res.status(400).json({ error: 'meetingId is required to dismiss a pending import.' });
       }
-      const pending = (await kv.get(pendingKey).catch(() => null)) || [];
-      const index = pending.findIndex(item => item.meetingId === meetingId);
-      if(index === -1){
+      const dismissed=await withMutationLock(async()=>{
+        const pending=(await kv.get(pendingKey))||[];
+        const index=pending.findIndex(item=>item.meetingId===meetingId);
+        if(index===-1)return null;
+        pending.splice(index,1);
+        await kv.set(pendingKey,pending);
+        return pending.length;
+      });
+      if(dismissed.busy)return res.status(409).json({error:'Krisp inbox changed. Please retry.'});
+      if(dismissed.value===null){
         return res.status(404).json({ error: 'That pending import is no longer available.' });
       }
-      pending.splice(index, 1);
-      await kv.set(pendingKey, pending).catch(() => {});
-      return res.status(200).json({ dismissed: true, pendingCount: pending.length });
+      return res.status(200).json({ dismissed: true, pendingCount: dismissed.value });
     }
 
     return res.status(400).json({ error: 'Unknown action.' });

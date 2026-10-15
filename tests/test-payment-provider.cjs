@@ -44,10 +44,11 @@ module.exports = async function run(){
     else process.env.PAYMENT_PROVIDER = originalEnv;
   }
 
-  console.log('\n2) Paddle stub: both interface functions exist and clearly explain they are not implemented yet');
+  console.log('\n2) Paddle stub: every interface function exists and fails closed');
   {
     check('createCheckoutUrl exists as a function', typeof paddle.createCheckoutUrl === 'function');
     check('verifyAndNormalizeWebhook exists as a function', typeof paddle.verifyAndNormalizeWebhook === 'function');
+    check('createCustomerPortalUrl exists as a function', typeof paddle.createCustomerPortalUrl === 'function');
 
     let threwCreate = false, createMessage = '';
     try{ await paddle.createCheckoutUrl({ email:'a@b.com', licenseKey:'kb_live_x' }); }
@@ -58,6 +59,10 @@ module.exports = async function run(){
     try{ await paddle.verifyAndNormalizeWebhook({ rawBody: Buffer.from('{}'), headers: {} }); }
     catch(e){ threwVerify = true; }
     check('verifyAndNormalizeWebhook throws (not implemented) too, rather than silently accepting anything', threwVerify);
+    let threwPortal = false;
+    try{ await paddle.createCustomerPortalUrl({ subscriptionId:'1', customerId:'2' }); }
+    catch(e){ threwPortal = e.message.includes('not implemented yet'); }
+    check('customer portal stub fails closed too', threwPortal);
   }
 
   console.log('\n3) Lemon Squeezy: webhook signature verification');
@@ -146,6 +151,45 @@ module.exports = async function run(){
     try{ await lemonsqueezy.createCheckoutUrl({ email: 'a@b.com', licenseKey: 'kb_live_x' }); }
     catch(e){ threw = true; message = e.message; }
     check('missing LS API config -> throws a clear config error rather than a confusing network failure', threw && message.includes('LEMONSQUEEZY_'));
+  }
+
+  console.log('\n8) Lemon Squeezy: checkout delegates payment choice and portal URLs stay owner-bound');
+  {
+    const saved={
+      apiKey:process.env.LEMONSQUEEZY_API_KEY,
+      store:process.env.LEMONSQUEEZY_STORE_ID,
+      variant:process.env.LEMONSQUEEZY_PRO_VARIANT_ID,
+      site:process.env.SITE_URL
+    };
+    process.env.LEMONSQUEEZY_API_KEY='synthetic-test-key';
+    process.env.LEMONSQUEEZY_STORE_ID='11';
+    process.env.LEMONSQUEEZY_PRO_VARIANT_ID='22';
+    process.env.SITE_URL='https://staging.example.invalid/';
+    let checkoutBody;
+    const oldFetch=global.fetch;
+    global.fetch=async(url,options)=>{
+      checkoutBody=JSON.parse(options.body);
+      return {ok:true,json:async()=>({data:{attributes:{url:'https://store.lemonsqueezy.com/checkout/buy/test'}}})};
+    };
+    const checkoutUrl=await lemonsqueezy.createCheckoutUrl({email:'buyer@example.test',licenseKey:'kb_live_owner'});
+    check('checkout uses the configured store and variant',checkoutBody.data.relationships.store.data.id==='11'&&checkoutBody.data.relationships.variant.data.id==='22');
+    check('checkout binds verified email and account key as provider custom data',checkoutBody.data.attributes.checkout_data.email==='buyer@example.test'&&checkoutBody.data.attributes.checkout_data.custom.license_key==='kb_live_owner');
+    check('checkout does not restrict payment methods, allowing Lemon Squeezy to offer PayPal when eligible',!('payment_methods' in checkoutBody.data.attributes)&&checkoutUrl.includes('lemonsqueezy.com'));
+
+    const portalFetcher=async(url,options)=>({ok:true,json:async()=>({data:{type:'subscriptions',id:'123',attributes:{customer_id:456,urls:{customer_portal:'https://store.lemonsqueezy.com/billing?signature=synthetic'}}}})});
+    const portal=await lemonsqueezy.createCustomerPortalUrl({subscriptionId:'123',customerId:'456',fetcher:portalFetcher});
+    check('fresh signed customer portal URL is returned only for the matching provider customer',portal.startsWith('https://store.lemonsqueezy.com/billing?'));
+    let mismatched=false;
+    try{await lemonsqueezy.createCustomerPortalUrl({subscriptionId:'123',customerId:'attacker',fetcher:portalFetcher});}catch{mismatched=true;}
+    check('provider customer mismatch cannot disclose a signed billing portal URL',mismatched);
+    let unsafe=false;
+    try{await lemonsqueezy.createCustomerPortalUrl({subscriptionId:'123',customerId:'456',fetcher:async()=>({ok:true,json:async()=>({data:{type:'subscriptions',id:'123',attributes:{customer_id:456,urls:{customer_portal:'javascript:alert(1)'}}}})})});}catch{unsafe=true;}
+    check('unsafe portal URL schemes are rejected',unsafe);
+    global.fetch=oldFetch;
+    if(saved.apiKey===undefined)delete process.env.LEMONSQUEEZY_API_KEY;else process.env.LEMONSQUEEZY_API_KEY=saved.apiKey;
+    if(saved.store===undefined)delete process.env.LEMONSQUEEZY_STORE_ID;else process.env.LEMONSQUEEZY_STORE_ID=saved.store;
+    if(saved.variant===undefined)delete process.env.LEMONSQUEEZY_PRO_VARIANT_ID;else process.env.LEMONSQUEEZY_PRO_VARIANT_ID=saved.variant;
+    if(saved.site===undefined)delete process.env.SITE_URL;else process.env.SITE_URL=saved.site;
   }
 
   return getFailures();

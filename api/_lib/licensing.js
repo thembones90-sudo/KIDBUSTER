@@ -22,11 +22,12 @@
 // Free vs Pro means" is intentionally hardcoded to keep this simple.
 
 import crypto from 'crypto';
-import { kv } from './kv-client.js';
+import { kv, reserveBoundedCounter, releaseBoundedCounter,
+  reserveCounterHold,commitCounterHold,releaseCounterHold } from './kv-client.js';
 
 // ---------- configuration ----------
 
-export const FREE_MONTHLY_LIMIT = parseInt(process.env.FREE_MONTHLY_LIMIT || '20', 10);
+export const FREE_MONTHLY_LIMIT = parseInt(process.env.FREE_MONTHLY_LIMIT || '5', 10);
 
 // Classic (MA) is the only protocol with a genuine, ongoing Free tier —
 // FREE_MONTHLY_LIMIT reports every calendar month, forever, never expires.
@@ -219,6 +220,19 @@ export function isLicenseExpired(license, date){
   return expiry <= now.getTime();
 }
 
+// A cancellation keeps Pro until ends_at, then automatically reverts to
+// Free even if the final expiry webhook is missing. This is a read-only
+// projection; retain original subscription IDs for late-webhook checks.
+export function effectiveSubscriptionLicense(license, date){
+  if(!license || license.source !== 'subscription' ||
+      license.subscriptionStatus !== 'cancelled') return license;
+  const ends=Date.parse(license.subscriptionEndsAt || '');
+  const now=date||new Date();
+  if(!Number.isFinite(ends) || ends>now.getTime())return license;
+  return {...license,plan:'free',expiresAt:null,
+    subscriptionStatus:'expired',effectiveSubscriptionExpired:true};
+}
+
 /**
  * Private owner/beta keys that should behave like Pro forever without a
  * payment provider. Kept in Vercel env, never in git. OWNER_LICENSE_KEYS
@@ -279,6 +293,22 @@ export async function saveLicense(licenseKey, data){
   await kv.set(licenseKeyFor(licenseKey), data);
 }
 
+// The claim marker is an independent, immutable winner record. Redis SET NX
+// is atomic even across multiple serverless workers. It cannot be replaced
+// by another browser through an ordinary read/modify/write race.
+// Never TTL this key: the claimed browser identity outlives the 30-day grant.
+const manualClaimKeyFor = (key) => 'manualClaim:' + key;
+export async function getManualClaim(licenseKey){
+  return await kv.get(manualClaimKeyFor(licenseKey));
+}
+export async function tryCreateManualClaim(licenseKey, claim){
+  const outcome = await kv.set(manualClaimKeyFor(licenseKey), claim, { nx: true });
+  return outcome === 'OK' || outcome === true;
+}
+export async function clearManualClaim(licenseKey){
+  await kv.del(manualClaimKeyFor(licenseKey));
+}
+
 export async function getLicenseKeyByEmail(email){
   return (await kv.get(emailIndexFor(email))) || null;
 }
@@ -320,6 +350,15 @@ export async function incrementUsage(licenseKey, period){
   return newCount;
 }
 
+export async function reserveMonthlyUsage(licenseKey,period){
+  return await reserveBoundedCounter(
+    usageKeyFor(licenseKey,period||currentUsagePeriod()),FREE_MONTHLY_LIMIT,60*60*24*40);
+}
+
+export async function releaseMonthlyUsage(licenseKey,period){
+  return await releaseBoundedCounter(usageKeyFor(licenseKey,period||currentUsagePeriod()));
+}
+
 // ---------- one-time per-protocol trial usage (Protocol Trial Unlocks) ----------
 //
 // Deliberately a SEPARATE counter from the monthly usage above, with no
@@ -339,6 +378,35 @@ export async function getTrialUsageCount(licenseKey, protocol){
 
 export async function incrementTrialUsage(licenseKey, protocol){
   return await kv.incr(trialUsageKeyFor(licenseKey, protocol));
+}
+
+export async function reserveTrialUsage(licenseKey,protocol){
+  return await reserveBoundedCounter(
+    trialUsageKeyFor(licenseKey,protocol),TRIAL_GENERATIONS_PER_PROTOCOL,0);
+}
+
+export async function releaseTrialUsage(licenseKey,protocol){
+  return await releaseBoundedCounter(trialUsageKeyFor(licenseKey,protocol));
+}
+
+export async function reserveUsageHold(licenseKey,{kind,period,protocol,token,nowMs}={}){
+  const monthly=kind==='monthly';
+  const key=monthly?usageKeyFor(licenseKey,period||currentUsagePeriod()):trialUsageKeyFor(licenseKey,protocol);
+  return await reserveCounterHold(key,token,monthly?FREE_MONTHLY_LIMIT:TRIAL_GENERATIONS_PER_PROTOCOL,{
+    counterTtlSeconds:monthly?60*60*24*40:0,holdTtlSeconds:15*60,nowMs
+  });
+}
+export async function commitUsageHold(reservation){
+  const key=reservation.kind==='monthly'
+    ? usageKeyFor(reservation.licenseKey,reservation.period)
+    : trialUsageKeyFor(reservation.licenseKey,reservation.protocol);
+  return await commitCounterHold(key,reservation.token);
+}
+export async function releaseUsageHold(reservation){
+  const key=reservation.kind==='monthly'
+    ? usageKeyFor(reservation.licenseKey,reservation.period)
+    : trialUsageKeyFor(reservation.licenseKey,reservation.protocol);
+  return await releaseCounterHold(key,reservation.token);
 }
 
 // ---------- webhook duplicate/replay protection ----------
@@ -366,6 +434,6 @@ export async function hasProcessedWebhook(bodyHash){
  * it needs to remember for longer than that.
  */
 export async function markWebhookProcessed(bodyHash){
-  await kv.set(webhookSeenKeyFor(bodyHash), true);
-  await kv.expire(webhookSeenKeyFor(bodyHash), 60 * 60 * 24 * 30);
+  // One atomic write: a failed TTL update cannot leave an unbounded marker.
+  await kv.set(webhookSeenKeyFor(bodyHash), true, { ex: 60 * 60 * 24 * 90 });
 }

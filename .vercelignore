@@ -1,0 +1,8 @@
+api/ping.js
+.v2-local/
+.v2-tmp/
+.v2-cache/
+tools/
+tests/
+.env*
+*.md

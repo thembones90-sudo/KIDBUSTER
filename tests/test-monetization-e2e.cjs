@@ -27,10 +27,29 @@ module.exports = async function run(){
   process.env.PAYMENT_PROVIDER = 'lemonsqueezy';
 
   // ---------- test harness: minimal fake req/res for calling route handlers directly ----------
+  // Realistic fixture: provider state events carry subscription-object
+  // updated_at/ends_at, renewal events carry INVOICE attributes.subscription_id.
+  let fixtureTick = 0;
   function makeLemonSqueezyWebhookPayload({ eventName, licenseKey, email, customerId, subscriptionId }){
+    const updatedAt = new Date(Date.now() + (++fixtureTick)*1000).toISOString();
+    const invoice = eventName === 'subscription_payment_success';
+    const cancelled = eventName === 'subscription_cancelled';
+    const expired = eventName === 'subscription_expired';
     return {
       meta: { event_name: eventName, custom_data: { license_key: licenseKey } },
-      data: { id: String(subscriptionId), attributes: { customer_id: customerId, user_email: email, status: 'active' } }
+      data: {
+        type: invoice ? 'subscription-invoices' : 'subscriptions',
+        id: invoice ? 'invoice_' + fixtureTick : String(subscriptionId),
+        attributes: {
+          subscription_id: invoice ? subscriptionId : undefined,
+          customer_id: customerId, user_email: email,
+          status: expired ? 'expired' : cancelled ? 'cancelled' : 'active',
+          ends_at: cancelled ? new Date(Date.now()+86400000).toISOString()
+            : expired ? new Date(Date.now()-86400000).toISOString() : null,
+          updated_at: updatedAt,
+          created_at: updatedAt
+        }
+      }
     };
   }
 
@@ -98,12 +117,12 @@ module.exports = async function run(){
       if(!entitlement.allowed){ blockedAt = i; break; }
       await svc.recordUsage(licenseKey, 'MA');
     }
-    check('3: blocked at exactly report #21 (20 allowed, per FREE_MONTHLY_LIMIT default)', blockedAt === 21);
+    check('3: blocked at exactly report #6 (5 allowed, per FREE_MONTHLY_LIMIT default)', blockedAt === 6);
 
     // Step 4: when blocked, the reason and message are clear and upgrade-oriented
     const blockedResult = await svc.checkEntitlement(licenseKey, 'MA');
     check('4: blocked reason is limit_reached', blockedResult.reason === 'limit_reached');
-    check('4: message clearly explains why AND mentions upgrading to Pro', blockedResult.message.includes('20') && blockedResult.message.toLowerCase().includes('upgrade'));
+    check('4: message clearly explains why AND mentions upgrading to Pro', blockedResult.message.includes('5') && blockedResult.message.toLowerCase().includes('upgrade'));
 
     // Step 5: purchasing Pro via Lemon Squeezy automatically upgrades THIS SAME license —
     // simulated as a real signed webhook hitting the real route handler, not a direct
@@ -140,7 +159,7 @@ module.exports = async function run(){
     }));
     check('8: cancellation webhook accepted', cancelWebhook.statusCode === 200);
     const afterCancel = await licensing.getLicense(licenseKey);
-    check('8: downgraded to free', afterCancel.plan === 'free');
+    check('8: cancellation preserves paid Pro until ends_at', afterCancel.plan === 'pro' && afterCancel.subscriptionStatus === 'cancelled' && Date.parse(afterCancel.subscriptionEndsAt) > Date.now());
     check('8: license status stays active — account itself is preserved, not deactivated', afterCancel.status === 'active');
     check('8: SAME license key throughout the entire journey — never re-issued', true); // implicit in every check above using the one `licenseKey` variable
     check('8: usage history preserved across the downgrade, not reset', (await licensing.getUsageCount(licenseKey)) === usageBeforeCancel);
@@ -181,7 +200,7 @@ module.exports = async function run(){
       eventName: 'subscription_cancelled', licenseKey: key, email: 'canceltest@example.com', customerId: 'cust_cancel', subscriptionId: 'sub_cancel'
     }));
     check('cancellation webhook accepted', cancelWebhook.statusCode === 200);
-    check('correctly downgraded', (await licensing.getLicense(key)).plan === 'free');
+    check('cancelled customer retains paid-through Pro', (await licensing.getLicense(key)).plan === 'pro');
   }
 
   console.log('\n5) FAILURE PATH: "missing webhook" — creating a checkout has ZERO effect on the license until a webhook actually arrives');
@@ -220,7 +239,7 @@ module.exports = async function run(){
       eventName: 'subscription_cancelled', licenseKey: key, email: 'replay@example.com', customerId: 'cust_replay', subscriptionId: 'sub_replay'
     });
     const originalCancel = await sendFakeWebhook(oldCancelPayload); // the "original" legitimate cancellation
-    check('original cancellation applied normally', originalCancel.statusCode === 200 && (await licensing.getLicense(key)).plan === 'free');
+    check('original cancellation retains Pro grace period', originalCancel.statusCode === 200 && (await licensing.getLicense(key)).subscriptionStatus === 'cancelled');
 
     // Customer legitimately re-subscribes.
     await sendFakeWebhook(makeLemonSqueezyWebhookPayload({

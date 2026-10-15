@@ -30,6 +30,13 @@ export async function createCheckoutUrl({ email, licenseKey }){
   );
 }
 
+export async function createCustomerPortalUrl({ subscriptionId, customerId }){
+  throw new Error(
+    'Paddle integration is not implemented yet. Set PAYMENT_PROVIDER=lemonsqueezy in the environment ' +
+    'to use the real, working integration.'
+  );
+}
+
 export async function verifyAndNormalizeWebhook({ rawBody, headers }){
   throw new Error(
     'Paddle integration is not implemented yet. Set PAYMENT_PROVIDER=lemonsqueezy in the environment ' +

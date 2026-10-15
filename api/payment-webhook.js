@@ -1,120 +1,108 @@
-// Receives payment lifecycle webhooks from whichever payment provider is
-// currently active (see api/_lib/providers/index.js) and translates them
-// into calls to license-service.js. This route has zero knowledge of any
-// specific provider's API shape, signature scheme, or event names — that
-// all lives in api/_lib/providers/<name>.js. Swapping providers means
-// pointing PAYMENT_PROVIDER at a different, fully-implemented adapter;
-// this file never changes.
-//
-// Vercel's Node.js functions parse the request body as JSON by default,
-// which would corrupt the raw bytes a provider's signature was computed
-// over — signature verification needs the exact original bytes, not a
-// re-serialized copy. `export const config = { api: { bodyParser: false } }`
-// disables that default parsing for this route specifically, so the raw
-// body can be read directly off the request stream instead.
-
-import crypto from 'crypto';
+// V2 signed payment webhooks: bounded input and serialized account lifecycle.
+// A Redis SET NX EX lock prevents concurrent deliveries rewriting one account.
+// Failed deliveries are NEVER marked handled; provider should retry HTTP 5xx.
+import crypto from 'node:crypto';
 import { getActiveProvider } from './_lib/providers/index.js';
-import { activateOrRenewPro, downgradeToFree } from './_lib/license-service.js';
+import {
+  applySubscriptionEvent, resolveSubscriptionLicenseKey
+} from './_lib/subscription-lifecycle.js';
 import { hasProcessedWebhook, markWebhookProcessed } from './_lib/licensing.js';
+import { acquirePaymentLock, releasePaymentLock } from './_lib/kv-client.js';
 
-export const config = {
-  api: { bodyParser: false }
-};
+export const config = { api: { bodyParser: false } };
+export const MAX_WEBHOOK_BYTES = 256 * 1024;
+const PAYMENT_LOCK_TTL_SECONDS = 120;
 
 function readRawBody(req){
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    req.on('data', (chunk) => chunks.push(chunk));
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', reject);
+  return new Promise((resolve,reject)=>{
+    const chunks=[];
+    let total=0,finished=false;
+    req.on('data',chunk=>{
+      if(finished)return;
+      total+=chunk.length;
+      if(total>MAX_WEBHOOK_BYTES){
+        finished=true;
+        const err=new Error('Webhook request is too large');
+        err.statusCode=413;
+        reject(err);
+      }else chunks.push(chunk);
+    });
+    req.on('end',()=>{
+      if(!finished){finished=true;resolve(Buffer.concat(chunks,total));}
+    });
+    req.on('error',err=>{
+      if(!finished){finished=true;reject(err);}
+    });
+    req.on('aborted',()=>{
+      if(!finished){finished=true;reject(new Error('Webhook request interrupted'));}
+    });
   });
 }
 
-export default async function handler(req, res){
-  if(req.method !== 'POST'){
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+export default async function handler(req,res){
+  if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});
 
-  const rawBody = await readRawBody(req);
-  const provider = getActiveProvider();
+  let rawBody;
+  try{rawBody=await readRawBody(req);}
+  catch(err){
+    return res.status(err.statusCode===413?413:400).json({
+      error:err.statusCode===413?'Webhook request too large':'Invalid webhook request'
+    });
+  }
 
   let event;
   try{
-    event = await provider.verifyAndNormalizeWebhook({ rawBody, headers: req.headers });
+    event=await getActiveProvider().verifyAndNormalizeWebhook({
+      rawBody,headers:req.headers
+    });
   }catch(err){
-    console.error('payment-webhook: verification failed:', err.message);
-    return res.status(400).json({ error: 'Invalid webhook request' });
+    console.error('payment-webhook: verification failed:',err.message);
+    return res.status(400).json({error:'Invalid webhook request'});
   }
 
-  // --- duplicate / replay protection ---
-  // A validly-signed body that's byte-for-byte identical to one already
-  // processed is either a legitimate retry (Lemon Squeezy resends up to
-  // 3 times if a webhook doesn't respond 200) or a replay of a captured
-  // request — both are indistinguishable from the signature alone, and
-  // both are handled the same way: skip re-processing, acknowledge with
-  // 200 so the provider doesn't keep retrying something already applied.
-  const bodyHash = crypto.createHash('sha256').update(rawBody).digest('hex');
-  let alreadyProcessed = false;
+  if(!event.type) return res.status(200).json({received:true,ignored:true});
+
+  const bodyHash=crypto.createHash('sha256').update(rawBody).digest('hex');
+  let lockKey=null,lockToken=null,held=false;
   try{
-    alreadyProcessed = await hasProcessedWebhook(bodyHash);
-  }catch(err){
-    // If the dedup check itself can't be reached (KV unavailable), fail
-    // OPEN on the dedup check specifically rather than blocking a
-    // genuinely new, real payment update from ever being applied — the
-    // license operations below (activateOrRenewPro/downgradeToFree) are
-    // themselves idempotent upserts, so processing something twice due to
-    // a dedup-check outage is a much smaller risk than never processing
-    // a real payment at all.
-    console.error('payment-webhook: dedup check failed, proceeding anyway:', err);
-  }
-  if(alreadyProcessed){
-    return res.status(200).json({ received: true, duplicate: true });
-  }
-
-  try{
-    switch(event.type){
-      case 'payment_succeeded':
-      case 'subscription_renewed':
-        await activateOrRenewPro({
-          licenseKey: event.licenseKey,
-          email: event.email,
-          paymentCustomerId: event.paymentCustomerId,
-          paymentSubscriptionId: event.paymentSubscriptionId
-        });
-        break;
-
-      case 'subscription_cancelled':
-      case 'subscription_expired':
-        await downgradeToFree({
-          licenseKey: event.licenseKey,
-          paymentCustomerId: event.paymentCustomerId
-        });
-        break;
-
-      default:
-        // A validly-signed event this app doesn't act on (e.g. a plain
-        // order_created with no subscription attached) — not an error,
-        // just nothing to do.
-        break;
+    // Lock the ACCOUNT, not just the raw event hash, because distinct
+    // cancellation/resume/renewal events must also have a serial order.
+    // Events with a customer index but no custom key resolve identically.
+    const licenseKey=await resolveSubscriptionLicenseKey(event);
+    if(!licenseKey)return res.status(200).json({received:true,ignored:true});
+    lockKey='paymentLock:'+crypto.createHash('sha256').update(licenseKey).digest('hex');
+    lockToken=crypto.randomBytes(24).toString('hex');
+    held=await acquirePaymentLock(lockKey,lockToken,PAYMENT_LOCK_TTL_SECONDS);
+    if(!held){
+      if(typeof res.setHeader==='function')res.setHeader('Retry-After','2');
+      return res.status(503).json({
+        error:'Payment event for this account is already being processed. Retry.'
+      });
     }
 
-    try{
-      await markWebhookProcessed(bodyHash);
-    }catch(err){
-      // Marking-as-processed failing doesn't undo the license update that
-      // already succeeded above — worst case, a future retry of this
-      // exact same event re-applies the same (idempotent) update again.
-      console.error('payment-webhook: failed to record dedup marker (event still applied):', err);
+    // The duplicate lookup is INSIDE the atomic account lock, never
+    // before it. Errors fail closed rather than skipping deduplication.
+    if(await hasProcessedWebhook(bodyHash)){
+      return res.status(200).json({received:true,duplicate:true});
     }
 
-    return res.status(200).json({ received: true });
+    // A newer state or another subscription may render the signed event
+    // stale; still record it as handled so retries won't repeat work.
+    await applySubscriptionEvent({...event,licenseKey});
+    await markWebhookProcessed(bodyHash);
+    return res.status(200).json({received:true});
   }catch(err){
-    console.error('payment-webhook: error processing event ' + event.type + ':', err);
-    // A non-200 here tells the provider to retry the event later instead
-    // of considering it delivered — important, since this branch means a
-    // real payment update didn't get applied. Deliberately NOT marked as
-    // processed, so the retry actually gets a chance to succeed.
-    return res.status(500).json({ error: 'Error processing webhook event' });
+    console.error('payment-webhook: event could not be committed:',err.message);
+    return res.status(500).json({error:'Webhook not committed; retry delivery'});
+  }finally{
+    if(held){
+      try{
+        const released=await releasePaymentLock(lockKey,lockToken);
+        if(!released)console.error('payment-webhook: lock ownership changed; token-safe release skipped');
+      }catch(err){
+        // The lock's TTL is the crash/release-failure recovery mechanism.
+        console.error('payment-webhook: lock release failed; TTL will recover:',err.message);
+      }
+    }
   }
 }

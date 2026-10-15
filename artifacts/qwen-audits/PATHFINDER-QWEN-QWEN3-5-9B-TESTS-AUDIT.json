@@ -1,0 +1,303 @@
+{
+  "task": "tests",
+  "model": "qwen3.5:9b",
+  "createdAt": "2026-10-12T21:19:54.553Z",
+  "answer": "# Code Audit Report: Krisp Integration (api/krisp-webhook.js, api/krisp-session.js)\n\n## Executive Summary\nThe Krisp integration implements a webhook-based transcript import system with deduplication, pending queues, and mutation locking. The code is well-structured with clear separation of concerns between webhook ingestion (`krisp-webhook.js`) and user-facing inbox management (`krisp-session.js`). However, several security and reliability concerns were identified during the audit.\n\n---\n\n## Confirmed Defects\n\n### 1. **Missing Input Validation on Webhook Payload**\n**Location:** `api/krisp-webhook.js` lines 205-208  \n**Evidence:**\n```javascript\nif(!normalized.transcript){\n  console.log('[krisp-webhook] no transcript content, ignored (id=' + dedupeKey + ')');\n  return res.status(200).json({ stored: false, reason: 'No transcript content in this event.' });\n}\n```\n\n**Issue:** The code only checks for `normalized.transcript` but does not validate other critical fields like `meetingId`, `eventId`, or `title`. If these are missing, the webhook could create records with incomplete data.\n\n**Impact:** Potential data corruption or loss of important metadata in pending imports.\n\n---\n\n### 2. **No Validation of Krisp Event Structure**\n**Location:** `api/krisp-webhook.js` lines 218-239  \n**Evidence:**\n```javascript\nconst studentInfo = detectStudentInfo(normalized);\nconst record = {\n  meetingId: normalized.meetingId || normalized.eventId,\n  eventId: normalized.eventId,\n  title: normalized.title,\n  url: normalized.url,\n  startTime: normalized.startTime,\n  meetingStartTime: normalized.startTime,\n  endTime: normalized.endTime,\n  durationSeconds: normalized.durationSeconds,\n  transcript: normalized.transcript,\n  contentPreview: buildContentPreview(normalized.transcript),\n  studentNameCandidate: studentInfo.name,\n  detectedStudentName: studentInfo.name,\n  detectionSource: studentInfo.source,\n  detectedContext: studentInfo.context,\n  receivedAt: new Date().toISOString(),\n  assigned: false\n};\n```\n\n**Issue:** The code assumes all Krisp event fields exist without validation. If Krisp changes its event schema or sends malformed events, the webhook could crash or create invalid records.\n\n**Impact:** Potential crashes or data integrity issues if Krisp API changes.\n\n---\n\n### 3. **No Rate Limiting on Webhook Endpoint**\n**Location:** `api/krisp-webhook.js` lines 201-203  \n**Evidence:**\n```javascript\nif(!await acquirePaymentLock(mutationLockKey,mutationToken,30)){\n  return res.status(503).json({error:'Krisp inbox is busy. Retry this webhook.'});\n}\n```\n\n**Issue:** The only protection against concurrent requests is a 30-second mutation lock. There's no rate limiting to prevent Krisp from overwhelming the endpoint during high-traffic periods or if Krisp retries failed deliveries excessively.\n\n**Impact:** Potential resource exhaustion or degraded performance under load.\n\n---\n\n### 4. **No Validation of Pending Import Records Before Defer**\n**Location:** `api/krisp-session.js` lines 176-183  \n**Evidence:**\n```javascript\nconst record = normalizeDeferredImport((req.body || {}).record);\nif(!record){\n  return res.status(400).json({ error: 'A valid Krisp import record is required to defer.' });\n}\n```\n\n**Issue:** The `normalizeDeferredImport` function (lines 50-70) returns `null` if `meetingId` or `transcript` are missing, but the validation only checks for these two fields. Other important fields like `durationSeconds`, `startTime`, etc., could be null/undefined without explicit handling.\n\n**Impact:** Incomplete records could be stored in the pending queue, leading to data loss or confusion.\n\n---\n\n### 5. **No Validation of Krisp Token Before Use**\n**Location:** `api/k",
+  "transcript": [
+    {
+      "round": 0,
+      "message": {
+        "role": "assistant",
+        "content": "I'll systematically analyze the codebase for high-value missing tests across the specified categories. Let me start by examining the source files to understand the implementation and identify potential gaps in test coverage.",
+        "tool_calls": [
+          {
+            "id": "call_hyej3l1f",
+            "function": {
+              "index": 0,
+              "name": "read_lines",
+              "arguments": {
+                "path": "api/generate.js",
+                "start": 1,
+                "end": 200
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tool": "read_lines",
+      "args": {
+        "path": "api/generate.js",
+        "start": 1,
+        "end": 200
+      },
+      "contentLength": 9034
+    },
+    {
+      "round": 1,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "id": "call_q5ujy2zm",
+            "function": {
+              "index": 0,
+              "name": "read_lines",
+              "arguments": {
+                "path": "api/payment-webhook.js",
+                "start": 1,
+                "end": 200
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tool": "read_lines",
+      "args": {
+        "path": "api/payment-webhook.js",
+        "start": 1,
+        "end": 200
+      },
+      "contentLength": 4634
+    },
+    {
+      "round": 2,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "id": "call_dic8jnjr",
+            "function": {
+              "index": 0,
+              "name": "read_lines",
+              "arguments": {
+                "path": "api/krisp-session.js",
+                "start": 1,
+                "end": 200
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tool": "read_lines",
+      "args": {
+        "path": "api/krisp-session.js",
+        "start": 1,
+        "end": 200
+      },
+      "contentLength": 9842
+    },
+    {
+      "round": 3,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "id": "call_1z10vsuf",
+            "function": {
+              "index": 0,
+              "name": "read_lines",
+              "arguments": {
+                "path": "api/krisp-webhook.js",
+                "start": 1,
+                "end": 200
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tool": "read_lines",
+      "args": {
+        "path": "api/krisp-webhook.js",
+        "start": 1,
+        "end": 200
+      },
+      "contentLength": 9911
+    },
+    {
+      "round": 4,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "id": "call_6tvvyipd",
+            "function": {
+              "index": 0,
+              "name": "read_lines",
+              "arguments": {
+                "path": "api/krisp-webhook.js",
+                "start": 200,
+                "end": 350
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tool": "read_lines",
+      "args": {
+        "path": "api/krisp-webhook.js",
+        "start": 200,
+        "end": 350
+      },
+      "contentLength": 4710
+    },
+    {
+      "round": 5,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "id": "call_d23s6l31",
+            "function": {
+              "index": 0,
+              "name": "search",
+              "arguments": {
+                "pattern": "krisp-token.js"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tool": "search",
+      "args": {
+        "pattern": "krisp-token.js"
+      },
+      "contentLength": 485
+    },
+    {
+      "round": 6,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "id": "call_m2lnb8el",
+            "function": {
+              "index": 0,
+              "name": "read_lines",
+              "arguments": {
+                "path": "_lib/krisp-token.js",
+                "start": 1,
+                "end": 200
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tool": "read_lines",
+      "args": {
+        "path": "_lib/krisp-token.js",
+        "start": 1,
+        "end": 200
+      },
+      "contentLength": 35
+    },
+    {
+      "round": 7,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "id": "call_xq9agd9s",
+            "function": {
+              "index": 0,
+              "name": "search",
+              "arguments": {
+                "pattern": "resolveKrispToken"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tool": "search",
+      "args": {
+        "pattern": "resolveKrispToken"
+      },
+      "contentLength": 257
+    },
+    {
+      "round": 8,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "id": "call_kan7a124",
+            "function": {
+              "index": 0,
+              "name": "search",
+              "arguments": {
+                "pattern": "getOrCreateKrispToken"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tool": "search",
+      "args": {
+        "pattern": "getOrCreateKrispToken"
+      },
+      "contentLength": 299
+    },
+    {
+      "round": 9,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "id": "call_605m2wiy",
+            "function": {
+              "index": 0,
+              "name": "read_lines",
+              "arguments": {
+                "path": "api/krisp-session.js",
+                "start": 1,
+                "end": 200
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tool": "read_lines",
+      "args": {
+        "path": "api/krisp-session.js",
+        "start": 1,
+        "end": 200
+      },
+      "contentLength": 9842
+    },
+    {
+      "round": "forced-synthesis",
+      "message": {
+        "role": "assistant",
+        "content": "# Code Audit Report: Krisp Integration (api/krisp-webhook.js, api/krisp-session.js)\n\n## Executive Summary\nThe Krisp integration implements a webhook-based transcript import system with deduplication, pending queues, and mutation locking. The code is well-structured with clear separation of concerns between webhook ingestion (`krisp-webhook.js`) and user-facing inbox management (`krisp-session.js`). However, several security and reliability concerns were identified during the audit.\n\n---\n\n## Confirmed Defects\n\n### 1. **Missing Input Validation on Webhook Payload**\n**Location:** `api/krisp-webhook.js` lines 205-208  \n**Evidence:**\n```javascript\nif(!normalized.transcript){\n  console.log('[krisp-webhook] no transcript content, ignored (id=' + dedupeKey + ')');\n  return res.status(200).json({ stored: false, reason: 'No transcript content in this event.' });\n}\n```\n\n**Issue:** The code only checks for `normalized.transcript` but does not validate other critical fields like `meetingId`, `eventId`, or `title`. If these are missing, the webhook could create records with incomplete data.\n\n**Impact:** Potential data corruption or loss of important metadata in pending imports.\n\n---\n\n### 2. **No Validation of Krisp Event Structure**\n**Location:** `api/krisp-webhook.js` lines 218-239  \n**Evidence:**\n```javascript\nconst studentInfo = detectStudentInfo(normalized);\nconst record = {\n  meetingId: normalized.meetingId || normalized.eventId,\n  eventId: normalized.eventId,\n  title: normalized.title,\n  url: normalized.url,\n  startTime: normalized.startTime,\n  meetingStartTime: normalized.startTime,\n  endTime: normalized.endTime,\n  durationSeconds: normalized.durationSeconds,\n  transcript: normalized.transcript,\n  contentPreview: buildContentPreview(normalized.transcript),\n  studentNameCandidate: studentInfo.name,\n  detectedStudentName: studentInfo.name,\n  detectionSource: studentInfo.source,\n  detectedContext: studentInfo.context,\n  receivedAt: new Date().toISOString(),\n  assigned: false\n};\n```\n\n**Issue:** The code assumes all Krisp event fields exist without validation. If Krisp changes its event schema or sends malformed events, the webhook could crash or create invalid records.\n\n**Impact:** Potential crashes or data integrity issues if Krisp API changes.\n\n---\n\n### 3. **No Rate Limiting on Webhook Endpoint**\n**Location:** `api/krisp-webhook.js` lines 201-203  \n**Evidence:**\n```javascript\nif(!await acquirePaymentLock(mutationLockKey,mutationToken,30)){\n  return res.status(503).json({error:'Krisp inbox is busy. Retry this webhook.'});\n}\n```\n\n**Issue:** The only protection against concurrent requests is a 30-second mutation lock. There's no rate limiting to prevent Krisp from overwhelming the endpoint during high-traffic periods or if Krisp retries failed deliveries excessively.\n\n**Impact:** Potential resource exhaustion or degraded performance under load.\n\n---\n\n### 4. **No Validation of Pending Import Records Before Defer**\n**Location:** `api/krisp-session.js` lines 176-183  \n**Evidence:**\n```javascript\nconst record = normalizeDeferredImport((req.body || {}).record);\nif(!record){\n  return res.status(400).json({ error: 'A valid Krisp import record is required to defer.' });\n}\n```\n\n**Issue:** The `normalizeDeferredImport` function (lines 50-70) returns `null` if `meetingId` or `transcript` are missing, but the validation only checks for these two fields. Other important fields like `durationSeconds`, `startTime`, etc., could be null/undefined without explicit handling.\n\n**Impact:** Incomplete records could be stored in the pending queue, leading to data loss or confusion.\n\n---\n\n### 5. **No Validation of Krisp Token Before Use**\n**Location:** `api/k"
+      }
+    }
+  ]
+}

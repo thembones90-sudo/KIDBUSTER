@@ -54,7 +54,7 @@ Click **Deploy**. Vercel gives you a URL like `https://kidbuster-yourname.vercel
 
 Two plans, nothing more granular:
 
-- **Free** — 20 report generations/month (configurable via `FREE_MONTHLY_LIMIT`), Classic (MA) protocol only.
+- **Free** — 5 Classic report generations/month (configurable via `FREE_MONTHLY_LIMIT`), plus five lifetime trial generations for each trial-eligible protocol.
 - **Pro** — flat monthly subscription, unlimited reports, every protocol, automatic access to future ones too.
 
 The architecture is deliberately payment-provider-agnostic:
@@ -76,7 +76,7 @@ A teacher gets a Free key via the in-app "Get my free key" flow (email only, no 
 3. They set the **Teacher** field to their own name (once — it's remembered afterward).
 4. Everything else is identical to how you use it: pick a protocol, pick a rating, paste notes, click Generate.
 
-Free comes with the same real limits everyone gets: 20 reports/month, Classic protocol only. Upgrading to Pro (unlimited, every protocol) is a button click away, handled entirely by the payment provider's own hosted checkout — no card details ever touch this app.
+Free comes with the same real limits everyone gets: 5 Classic reports/month, plus five lifetime trials per other protocol. Upgrading to Pro (unlimited, every protocol) is a button click away, handled entirely by the payment provider's own hosted checkout — no card details ever touch this app.
 
 ## Field-test feedback system
 
@@ -121,6 +121,6 @@ This runs both the static frontend and the serverless function locally, using a 
 ## Known limitations, on purpose
 
 - **Paddle is a documented stub, not a real integration.** `api/_lib/providers/paddle.js` implements the same interface as the Lemon Squeezy adapter but throws "not implemented" — it exists to prove the payment-provider abstraction is genuinely swappable, not to be used yet. Build it out (and flip `PAYMENT_PROVIDER=paddle`) whenever there's an actual reason to switch providers.
-- **No self-service billing portal.** A Pro subscriber can't currently view/cancel their own subscription from inside this app — that lives entirely on Lemon Squeezy's own hosted pages (which do have this), reached via the email receipt Lemon Squeezy sends, not a link inside Pathfinder itself.
-- **Cancellation and expiration currently have identical effects** (both immediately fall back to Free) — there's no grace period modeled between "canceled, but paid through end of period" and "access actually ends." Simple on purpose, matching the product's own "just Free and Pro, nothing fancier" philosophy; worth revisiting if it ever actually annoys a real subscriber.
+- **Billing is provider-managed.** A subscribed teacher can open Lemon Squeezy's short-lived signed Customer Portal from the Access panel to update payment details, view invoices, cancel or resume. Pathfinder never collects payment credentials.
+- **Cancellation preserves paid access.** A cancellation keeps Pro through Lemon Squeezy's authoritative `ends_at`; only confirmed expiration returns the account to Free.
 - **Model, max_tokens, and API version are fixed server-side** in `api/generate.js` rather than sent from the browser — this is a deliberate security choice, not an oversight, so a request from the browser can't override which model gets called or its parameters.

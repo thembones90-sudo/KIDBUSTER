@@ -1,5 +1,9 @@
-import { getLicense, isFounderLicenseKey } from './_lib/licensing.js';
-import { resetManualLicenseClaim } from './_lib/license-service.js';
+import { getLicense, isFounderLicenseKey, isLicenseExpired } from './_lib/licensing.js';
+import { resetManualLicenseClaim, renewManualProLicense } from './_lib/license-service.js';
+import { applySubscriptionReconciliation } from './_lib/subscription-reconciliation.js';
+import { fetchSubscriptionSnapshot } from './_lib/providers/lemonsqueezy.js';
+
+import adminManualBatchHandler from './_lib/admin-manual-batch.js';
 
 function publicLicenseStatus(license){
   if(!license) return null;
@@ -11,9 +15,24 @@ function publicLicenseStatus(license){
     email: license.email || '',
     createdAt: license.createdAt || null,
     expiresAt: license.expiresAt || null,
+    activationPending: license.activationPending === true,
+    activatedAt: license.activatedAt || null,
+    expired: isLicenseExpired(license),
     claimedAt: license.claimedAt || null,
     claimed: Boolean(license.claimedInstallationId),
-    claimedInstallationId: license.claimedInstallationId || null
+    claimedInstallationId: license.claimedInstallationId || null,
+    subscriptionStatus: license.subscriptionStatus || null,
+    subscriptionEndsAt: license.subscriptionEndsAt || null,
+    subscriptionBillingStatus: license.subscriptionBillingStatus || null,
+    refundReview: license.subscriptionRefundReview ? {
+      kind: license.subscriptionRefundReview.kind || null,
+      eventAt: license.subscriptionRefundReview.eventAt || null,
+      invoiceId: license.subscriptionRefundReview.invoiceId || null,
+      orderId: license.subscriptionRefundReview.orderId || null,
+      refundAmount: license.subscriptionRefundReview.refundAmount ?? null,
+      total: license.subscriptionRefundReview.total ?? null,
+      fullyRefunded: license.subscriptionRefundReview.fullyRefunded === true
+    } : null
   };
 }
 
@@ -33,6 +52,11 @@ export default async function handler(req, res){
     return res.status(403).json({ error: 'Owner access is required to inspect keys.' });
   }
 
+  const action = String(req.body?.action || 'lookup').trim();
+  if(['create-batch','preview-retirement','retire-expired'].includes(action)){
+    return adminManualBatchHandler(req,res);
+  }
+
   const licenseKey = String(req.body?.licenseKey || '').trim();
   if(!licenseKey){
     return res.status(400).json({ error: 'A license key is required.' });
@@ -43,9 +67,29 @@ export default async function handler(req, res){
   // activated again from a different browser -- for a legitimate
   // customer who switched devices or cleared cookies, not a way around
   // the single-claim restriction for anyone else.
-  const action = String(req.body?.action || 'lookup').trim();
-
   try{
+    if(action === 'reconcile-subscription'){
+      const result=await applySubscriptionReconciliation(licenseKey,{fetchSnapshot:fetchSubscriptionSnapshot});
+      const license=await getLicense(licenseKey);
+      return res.status(result.reason==='account_busy'?409:200).json({
+        reconciled:result.action==='applied_provider_state'&&result.applied===true,
+        result,
+        license:publicLicenseStatus(license)
+      });
+    }
+    if(action === 'renew-manual'){
+      const result = await renewManualProLicense(licenseKey, 30);
+      if(!result.ok){
+        return res.status(400).json({
+          error: result.reason === 'invalid_key' ? 'That license key was not found.' : 'Only manual Pro licenses can be renewed with this action.',
+          license: publicLicenseStatus(result.license)
+        });
+      }
+      return res.status(200).json({
+        renewed: true,
+        license: publicLicenseStatus(result.license)
+      });
+    }
     if(action === 'reset-claim'){
       const result = await resetManualLicenseClaim(licenseKey);
       if(!result.ok){
