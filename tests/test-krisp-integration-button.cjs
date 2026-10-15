@@ -143,6 +143,7 @@ module.exports = async function run(){
     check('ARM KRISP is a visible command, not a hidden switch label',await page.$eval('#krispWaitBtn .krisp-btn-label',el=>el.textContent==='ARM KRISP' && el.getBoundingClientRect().width>60 && getComputedStyle(el).clipPath==='none'));
     await page.click('#krispWaitBtn'); await sleep(350);
     check('armed without a delivery is amber, never falsely green',await page.$eval('#krispIntegrationBtn',el=>el.dataset.health==='pending'));
+    check('setup acknowledges arming instead of asking teachers to arm again',await page.$eval('#krispSetupArmStep',el=>el.textContent==='Krisp is armed — you are ready'));
     state.serviceError = true;
     await page.click('#krispWaitBtn'); await sleep(200);
     await page.click('#krispWaitBtn'); await sleep(350);
@@ -157,10 +158,13 @@ module.exports = async function run(){
     check('rejected ARM request never earns a green tick',await page.$eval('#krispIntegrationBtn',el=>el.dataset.health==='error'));
     state.actionError = false;
     await page.click('#krispWaitBtn'); await sleep(200);
-    check('copy action is available without opening Advanced',await page.$eval('#krispCopyUrlBtn',el=>el.getBoundingClientRect().height>=44 && !el.closest('details')));
-    check('default panel is compact (under 430px tall)',await page.$eval('#krispIntegrationPanel',el=>el.getBoundingClientRect().height<430));
+    check('copy action is visible in setup, outside Advanced',await page.$eval('#krispCopyUrlBtn',el=>el.getBoundingClientRect().height>=44 && !document.getElementById('krispConnectionDetails').contains(el)));
+    const firstTimeHeight=await page.$eval('#krispIntegrationPanel',el=>el.getBoundingClientRect().height);
+    check('first-time setup stays inside the viewport',firstTimeHeight<=900-32);
+    check('first-time users see three ordered setup steps',await page.evaluate(()=>document.getElementById('krispSetupGuide').open && document.querySelectorAll('.krisp-setup-steps>li').length===3));
+    check('setup comes before arming on screen',await page.evaluate(()=>document.getElementById('krispCopyUrlBtn').getBoundingClientRect().top<document.getElementById('krispWaitBtn').getBoundingClientRect().top));
     check('connection maintenance is collapsed by default',await page.$eval('#krispConnectionDetails',el=>!el.open));
-    check('commands clearly identify link maintenance',await page.evaluate(()=>document.getElementById('krispCopyUrlBtn').textContent.includes('Copy link')&&document.getElementById('krispRegenerateBtn').textContent.includes('Replace connection link')));
+    check('commands clearly identify link maintenance',await page.evaluate(()=>document.getElementById('krispCopyUrlBtn').textContent.includes('Copy connection link')&&document.getElementById('krispRegenerateBtn').textContent.includes('Replace connection link')));
     check('webhook URL is shown', i.urlField === state.webhookUrl);
     const label = await page.evaluate(() => document.querySelector('#krispIntegrationBtn .krisp-integration-label').textContent.trim());
     check('button text says Krisp integration', /krisp integration/i.test(label));
@@ -181,6 +185,10 @@ module.exports = async function run(){
     await toggleBtn(page); i = await info(page);
     check('click opens the settings', i.expanded === 'true' && i.sectionVisible && i.urlField === state.webhookUrl);
     check('actual delivery confirms connection',await page.$eval('#krispConnectionState',el=>el.textContent==='Connection verified'));
+    check('verified users get a calmer, shorter everyday view',await page.$eval('#krispSetupGuide',el=>!el.open) && await page.$eval('#krispIntegrationPanel',el=>el.getBoundingClientRect().height)<firstTimeHeight);
+    await page.click('#krispSetupGuide>summary');
+    check('returning users can reopen connection instructions',await page.$eval('#krispSetupGuide',el=>el.open));
+    await page.click('#krispSetupGuide>summary');
     state.calls = [];
     await page.keyboard.press('Escape'); await sleep(80);
     check('Escape dismisses the popover without disarming', !(await info(page)).panelVisible && !state.calls.includes('cancel-wait'));
@@ -332,12 +340,14 @@ module.exports = async function run(){
     await toggleBtn(page);
     await page.click('#krispWaitBtn'); await sleep(350);
     check('verified and armed uses the supplied green-check image',await customIcon('krisp-armed.png'));
+    if(process.env.KRISP_SCREENSHOT_DIR){fs.mkdirSync(process.env.KRISP_SCREENSHOT_DIR,{recursive:true});await (await page.$('#krispIntegrationPanel')).screenshot({path:path.join(process.env.KRISP_SCREENSHOT_DIR,'krisp-everyday.png')});}
     state.serviceError = true;
     await page.click('#krispWaitBtn'); await sleep(150); await page.click('#krispWaitBtn'); await sleep(350);
     check('service failure uses the supplied red-X image',await customIcon('krisp-error.png'));
     state.serviceError = false; state.lastReceivedAt = null;
     await page.click('#krispWaitBtn'); await sleep(150); await page.click('#krispWaitBtn'); await sleep(350);
     check('unverified armed state uses the supplied amber-dot image',await customIcon('krisp-pending.png'));
+    if(process.env.KRISP_SCREENSHOT_DIR){await (await page.$('#krispIntegrationPanel')).screenshot({path:path.join(process.env.KRISP_SCREENSHOT_DIR,'krisp-firsttime.png')});}
     await page.close(); state.waiting = false;
     for(const name of ['neutral','armed','pending','error']){
       const bytes=fs.readFileSync(path.join(ROOT,'assets','logos','krisp-'+name+'.png'));
@@ -360,6 +370,7 @@ module.exports = async function run(){
         if(document.getElementById('krispIntegrationBtn').getAttribute('aria-expanded')!=='true') document.getElementById('krispIntegrationBtn').click();
         document.getElementById('krispSetupSection').hidden = false;
         document.getElementById('krispConnectionDetails').open = true;
+        document.getElementById('krispSetupGuide').open = true;
       });
       const expanded = await page.evaluate(() => {
         const card = document.getElementById('krispIntegrationPanel').getBoundingClientRect();

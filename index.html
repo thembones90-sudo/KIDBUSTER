@@ -2499,7 +2499,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
           <div class="krisp-compact-header"><span class="krisp-logo-slot" aria-hidden="true"><img class="krisp-logo-img" alt="" width="28" height="28" hidden><svg class="krisp-logo-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></span><h3>Krisp</h3></div>
           <div class="krisp-connection-status" role="status"><strong id="krispConnectionState">Not configured</strong><p id="krispConnectionDescription">Connect Krisp to import your lesson notes.</p></div>
           <div class="krisp-controls-row">
-            <div class="krisp-card-heading"><h3>Auto-import lessons</h3><p id="krispHealthStatus" role="status">Disarmed · stays on once armed.</p></div>
+            <div class="krisp-card-heading"><h3>Import lesson notes automatically</h3><p id="krispHealthStatus" role="status">Disarmed · turn on when you are ready.</p></div>
             <div class="krisp-arm-control"><span id="krispArmedState" class="krisp-armed-state" role="status">Krisp disarmed</span>
             <button type="button" id="krispWaitBtn" class="btn-secondary krisp-premium-btn krisp-arm-btn" aria-pressed="false"><span class="krisp-logo-slot" aria-hidden="true"><img class="krisp-logo-img" alt="" width="22" height="22" hidden><svg class="krisp-logo-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></span><span class="krisp-btn-label">ARM KRISP</span></button>
             </div>
@@ -2511,7 +2511,18 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
           <div id="krispSetupSection" role="region" aria-label="Krisp integration settings" hidden>
             <label class="krisp-link-label" for="krispWebhookUrlField" hidden>Your private webhook link</label>
             <input type="text" id="krispWebhookUrlField" readonly hidden>
+            <details id="krispSetupGuide"><summary>Connection setup <span aria-hidden="true">⌄</span></summary>
+            <h4>Connect Krisp once</h4>
+            <ol class="krisp-setup-steps">
+            <li><strong>Copy your connection link</strong>
             <button type="button" id="krispCopyUrlBtn" class="btn-secondary krisp-premium-btn krisp-action-btn"><svg class="krisp-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><span class="krisp-btn-label">Copy</span></button>
+            </li>
+            <li><strong>Paste it into Krisp</strong><p>Open Krisp → Settings → Integrations → Webhook. Paste the link and save your settings.</p></li>
+            <li><strong id="krispSetupArmStep">Return here and press ARM KRISP</strong><p id="krispSetupArmHint">Your first lesson delivery will confirm the connection.</p></li>
+            </ol>
+            </details>
+          </div>
+          <p class="krisp-everyday-hint">When armed, new Krisp lesson notes appear here automatically. It stays armed until you press DISARM KRISP.</p>
           <details id="krispConnectionDetails"><summary><span>Advanced</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></summary>
           <p class="krisp-connection-help">In Krisp: Settings → Integrations → Webhook. <button type="button" id="krispHelpBtn" class="krisp-setup-help">Setup help</button></p>
           <div class="krisp-webhook-row">
@@ -2520,7 +2531,6 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
           </div>
           <p class="krisp-connection-help">Replacing the link disables the old one. Pending imports are kept.</p>
           </details>
-          </div>
           <div id="krispLastReceived" style="display:none;font-size:11px;opacity:0.5;margin-top:8px;"></div>
           <div id="krispPendingWrap" style="display:none;margin-top:20px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
@@ -8144,6 +8154,43 @@ body .krisp-compact-header .krisp-logo-slot.krisp-custom-icon img.krisp-logo-img
 #krispHealthStatus[data-state="error"]{color:#ff94a1}
 #krispHealthStatus[data-state="pending"]{color:#e6c78d}
 
+/* First-time guidance and a quieter, verified everyday view. */
+#krispIntegrationPanel[popover]{width:min(440px,calc(100vw - 32px));padding:28px;background:linear-gradient(145deg,#222a24,#171d19 65%);border-color:#68786a50;color:#dce6de}
+#krispIntegrationPanel:popover-open{display:flex;flex-direction:column}
+#krispIntegrationPanel .krisp-compact-header{order:0;margin-bottom:22px}
+#krispIntegrationPanel .krisp-compact-header h3{font-size:23px}
+#krispIntegrationPanel .krisp-connection-status{order:1;padding:0;margin:0 0 22px;border:0;background:none;border-radius:0}
+#krispIntegrationPanel #krispConnectionState{font-size:14px;color:#d4dfd6}
+#krispIntegrationPanel .krisp-connection-status p{font-size:13px;line-height:1.65;margin-top:6px;color:#b0c0b5}
+#krispIntegrationPanel #krispSetupSection{order:2;margin:0 0 22px}
+#krispSetupGuide{border:0;padding:0;margin:0}
+#krispSetupGuide>summary{display:flex;align-items:center;justify-content:space-between;list-style:none;min-height:44px;color:#cbd9ce;font-size:14px;font-weight:550;cursor:pointer}
+#krispSetupGuide>summary::-webkit-details-marker{display:none}
+#krispSetupGuide>summary:focus-visible{outline:2px solid rgb(var(--toxin-rgb));outline-offset:3px;border-radius:6px}
+#krispIntegrationPanel[data-setup-needed="true"] #krispSetupGuide>summary{display:none}
+#krispSetupGuide h4{margin:4px 0 16px;font-size:17px;font-weight:650;color:#edf3ee;letter-spacing:-.02em}
+.krisp-setup-steps{margin:0;padding-left:22px;color:#adbdaf}
+.krisp-setup-steps li{padding-left:7px;margin-bottom:17px;font-size:14px;line-height:1.6}
+.krisp-setup-steps li:last-child{margin-bottom:0}
+.krisp-setup-steps li::marker{font-weight:650;color:#bad4a9}
+.krisp-setup-steps strong{font-weight:600;color:#e0e9e2;font-size:14px}
+.krisp-setup-steps p{margin:5px 0 0;font-size:13px;line-height:1.65;color:#b0c0b5}
+#krispIntegrationPanel #krispCopyUrlBtn{margin-top:10px;font-size:14px;min-height:46px;background:#29372d}
+#krispIntegrationPanel[data-setup-needed="true"] #krispCopyUrlBtn{background:linear-gradient(110deg,#b5dd91,#d0ebb6);border-color:#cce8b5;color:#182615;box-shadow:0 4px 16px #0002}
+#krispIntegrationPanel[data-setup-needed="true"] #krispCopyUrlBtn:hover{background:#d3edbc!important;color:#182615}
+#krispIntegrationPanel .krisp-controls-row{order:3;padding-top:19px;border-top:1px solid #ffffff10;gap:13px}
+#krispIntegrationPanel .krisp-card-heading h3{font-size:15px;color:#e3ece5}
+#krispIntegrationPanel .krisp-card-heading p{font-size:13px;line-height:1.6}
+#krispIntegrationPanel #krispWaitBtn{font-size:14px;min-height:50px}
+#krispIntegrationPanel[data-setup-needed="false"] #krispWaitBtn{background:rgba(var(--toxin-rgb),.16);border-color:rgba(var(--toxin-rgb),.55)}
+.krisp-everyday-hint{order:4;margin:13px 0 0;font-size:13px;line-height:1.65;color:#b3c2b8}
+#krispIntegrationPanel #krispConnectionDetails{order:5;margin-top:19px}
+#krispIntegrationPanel #krispConnectionDetails>summary{font-size:13px;color:#adbbb2}
+#krispIntegrationPanel #krispLastReceived{order:6;color:#afc0b4;font-size:12px!important;opacity:1!important;line-height:1.6}
+#krispIntegrationPanel #krispPendingWrap{order:7}
+#krispPanelClose{width:44px;height:44px;top:19px;right:17px}
+@media(max-width:650px){#krispIntegrationPanel[popover]{inset:auto 12px 12px;width:calc(100vw - 24px);padding:24px}}
+
 /* Override the existing button.btn-secondary.account-btn.krisp-integration-btn
    selector. Header button is a quiet integration shortcut, not a primary CTA. */
 button.btn-secondary.account-btn.krisp-integration-btn {
@@ -8417,7 +8464,7 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
   function renderKrispHealth(){
     var failed = krispServiceError || krispActionError;
     var mode = failed ? 'error' : krispDisconnected || !krispRequestedArmed ? 'neutral' : krispServerArmed && krispVerifiedDelivery ? 'ready' : 'pending';
-    var description = mode === 'error' ? 'Krisp unavailable · retry shortly' : mode === 'ready' ? 'Connected and armed' : mode === 'pending' ? krispServerArmed ? 'Armed · awaiting first delivery' : 'Arming · awaiting confirmation' : krispDisconnected ? 'Disconnected' : 'Disarmed · stays on once armed';
+    var description = mode === 'error' ? 'Cannot reach Krisp right now. Please try again shortly.' : mode === 'ready' ? 'Armed · ready for your next lesson' : mode === 'pending' ? krispServerArmed ? 'Armed · waiting for your first lesson' : 'Turning on · waiting for confirmation' : krispDisconnected ? 'Disconnected' : 'Disarmed · turn on when you are ready';
     document.querySelectorAll('#krispIntegrationBtn .krisp-logo-slot, .krisp-compact-header .krisp-logo-slot, #krispWaitBtn .krisp-logo-slot').forEach(function(slot){
       var badge = slot.querySelector('.krisp-state-badge');
       if(!badge){ badge = document.createElement('span'); badge.className = 'krisp-state-badge'; badge.setAttribute('aria-hidden','true'); slot.appendChild(badge); }
@@ -8428,6 +8475,11 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
     });
     var hint = document.getElementById('krispHealthStatus');
     if(hint){ hint.textContent = description; hint.dataset.state = mode; }
+    var armStep = document.getElementById('krispSetupArmStep');
+    var armHint = document.getElementById('krispSetupArmHint');
+    var confirmedArmed = krispRequestedArmed && krispServerArmed;
+    if(armStep) armStep.textContent = confirmedArmed ? 'Krisp is armed — you are ready' : 'Return here and press ARM KRISP';
+    if(armHint) armHint.textContent = confirmedArmed ? 'Leave it on. Your first delivered lesson will confirm the connection.' : 'Your first lesson delivery will confirm the connection.';
     var header = document.getElementById('krispIntegrationBtn');
     if(header){ header.dataset.health = mode; header.setAttribute('aria-label','Krisp integration — ' + description); }
   }
@@ -8442,9 +8494,16 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
     var verified = !krispDisconnected && field && field.value && Number.isFinite(delivered) && delivered > after;
     state.textContent = verified ? 'Connection verified' : field && field.value ? 'Awaiting first delivery' : 'Not configured';
     state.dataset.verified = String(!!verified);
+    var panel = document.getElementById('krispIntegrationPanel');
+    if(panel) panel.dataset.setupNeeded = String(!verified);
+    var guide = document.getElementById('krispSetupGuide');
+    if(guide && guide.dataset.verified !== String(!!verified)){
+      guide.open = !verified;
+      guide.dataset.verified = String(!!verified);
+    }
     krispVerifiedDelivery = !!verified;
     renderKrispHealth();
-    description.textContent = verified ? 'Your lesson connection is working.' : field && field.value ? 'Paste your connection link into Krisp to finish setup.' : 'Create a connection link under Advanced.';
+    description.textContent = verified ? 'Krisp has successfully sent lesson notes to Pathfinder.' : field && field.value ? 'Follow the setup below. We will confirm when your first lesson arrives.' : 'Create a connection link under Advanced to begin.';
   }
   function resetConnectionConfirmation(){
     krispVerificationAfter = Date.now();
@@ -8876,7 +8935,7 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
   // --- Krisp integration entrypoint: shows/hides the webhook setup
   // controls only. Independent of ARM KRISP -- never touches armed state.
   function setKrispSetupExpanded(expanded, reveal){
-    setKrispBtnLabel(document.getElementById('krispCopyUrlBtn'),'Copy link');
+    setKrispBtnLabel(document.getElementById('krispCopyUrlBtn'),'Copy connection link');
     setKrispBtnLabel(document.getElementById('krispRegenerateBtn'),'Replace connection link');
     var integrationBtn = document.getElementById('krispIntegrationBtn');
     var section = document.getElementById('krispSetupSection');
