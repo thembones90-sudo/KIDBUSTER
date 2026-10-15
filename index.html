@@ -510,6 +510,9 @@ button.help-btn:hover{
   .account-panel-head .btn-secondary{margin-top:10px;}
 }
 
+.workspace-teleport-scan{position:fixed;left:0;right:0;top:0;height:2px;z-index:1200;pointer-events:none;background:rgba(var(--toxin-rgb),.65);box-shadow:0 0 22px 5px rgba(var(--toxin-rgb),.16)}
+.grid[data-teleport]{overflow:clip}
+@media(prefers-reduced-motion:reduce){.workspace-teleport-scan{display:none}}
 .grid{
   display:grid;
   grid-template-columns:340px 1fr;
@@ -7297,8 +7300,7 @@ function resetWorkspace(){
   document.dispatchEvent(new CustomEvent('kidbuster:workspace-reset'));
 }
 
-// Return directly to the next lesson's first input, without a long trip to
-// the header. User input can interrupt the animation at any time.
+// Reset at the teleport midpoint, then focus the next lesson's first input.
 let nextStudentStatusTimer;
 function prepareNextStudent(){
   const field = document.getElementById('studentName');
@@ -7312,35 +7314,87 @@ function prepareNextStudent(){
     document.documentElement.scrollHeight - window.innerHeight,
     startY + field.getBoundingClientRect().top - window.innerHeight * 0.35
   ));
-  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-    window.scrollTo({top:targetY,behavior:'instant'});
-    return;
-  }
-  const duration = 450;
-  const startTime = performance.now();
-  const controller = new AbortController();
-  let frame;
-  const stop = () => { cancelAnimationFrame(frame); controller.abort(); };
-  for(const event of ['wheel','touchstart','pointerdown','keydown']){
-    window.addEventListener(event,stop,{passive:true,signal:controller.signal});
-  }
-  function easeInOutCubic(t){
-    return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
-  }
-  function step(now){
-    const elapsed = now - startTime;
-    const progress = Math.min(elapsed / duration, 1);
-    window.scrollTo({top:startY + (targetY - startY) * easeInOutCubic(progress),behavior:'instant'});
-    if(progress < 1){ frame = requestAnimationFrame(step); }
-    else controller.abort();
-  }
-  frame = requestAnimationFrame(step);
+  window.scrollTo({top:targetY,behavior:'instant'});
 }
 
-newStudentBtn.addEventListener('click', () => {
-  resetWorkspace();
-  prepareNextStudent();
-});
+let studentTeleportRunning = false;
+async function teleportToNextStudent(){
+  if(studentTeleportRunning) return;
+  studentTeleportRunning = true;
+  newStudentBtn.disabled = true;
+  const workspace = document.querySelector('.grid');
+  const cards = [...workspace.querySelectorAll('.panel')];
+  const animations = [];
+  const controller = new AbortController();
+  let scan, resetDone = false, interrupted = false;
+  const cancelAnimations = () => animations.forEach(animation => animation.cancel());
+  const resetOnce = () => {
+    if(resetDone) return;
+    resetDone = true;
+    resetWorkspace();
+    prepareNextStudent();
+  };
+  const interrupt = () => {
+    interrupted = true;
+    cancelAnimations();
+    resetOnce();
+  };
+  try{
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches || !cards.length || typeof cards[0].animate !== 'function'){
+      resetOnce();
+      return;
+    }
+    workspace.dataset.teleport = 'out';
+    scan = document.createElement('div');
+    scan.className = 'workspace-teleport-scan';
+    scan.setAttribute('aria-hidden','true');
+    document.body.appendChild(scan);
+    animations.push(scan.animate([
+      {transform:'translateY(-4px)',opacity:0},
+      {opacity:.65,offset:.2},
+      {transform:'translateY(100vh)',opacity:0}
+    ],{duration:700,easing:'ease-in-out'}));
+    for(const event of ['wheel','touchstart','pointerdown','keydown']){
+      window.addEventListener(event,interrupt,{passive:true,capture:true,signal:controller.signal});
+    }
+    const departing = cards.map((card,index) => {
+      const side = index === 0 ? -1 : 1;
+      const animation = card.animate([
+        {opacity:1,transform:'translate(0,0) scale(1)'},
+        {opacity:0,transform:'translate('+side*18+'px,-12px) scale(.985)'}
+      ],{duration:230,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'});
+      animations.push(animation);
+      return animation.finished.catch(() => {});
+    });
+    await Promise.all(departing);
+    if(interrupted) return;
+    // Cancel transforms before measuring the destination; the next animations
+    // start in this same frame so no intermediate page jump is painted.
+    animations.slice(1).forEach(animation => animation.cancel());
+    resetOnce();
+    workspace.dataset.teleport = 'in';
+    await Promise.all(cards.map((card,index) => {
+      const side = index === 0 ? -1 : 1;
+      const animation = card.animate([
+        {opacity:0,transform:'translate('+side*14+'px,10px) scale(.985)'},
+        {opacity:1,transform:'translate(0,0) scale(1)'}
+      ],{duration:390,delay:index*30,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'});
+      animations.push(animation);
+      return animation.finished.catch(() => {});
+    }));
+  }catch(_error){
+    // Effects must never prevent the teacher starting the next lesson.
+    cancelAnimations();
+    resetOnce();
+  }finally{
+    controller.abort();
+    cancelAnimations();
+    scan?.remove();
+    delete workspace.dataset.teleport;
+    studentTeleportRunning = false;
+  }
+}
+newStudentBtn.addEventListener('click',teleportToNextStudent);
 
 // Info icons sit inside the protocol <label>s (so hovering/focusing them
 // is easy to reach), but that also means a click on the icon itself would
