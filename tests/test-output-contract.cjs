@@ -84,9 +84,27 @@ module.exports=function run(){
   const ofSlight=validReport('OF').replace('Learning Suggestions\n\n','Learning Suggestions\n\n'+'He enjoyed the pictures. '.repeat(31));
   const os=evaluate('OF',ofSlight);
   const ofWords=ofSlight.trim().split(/\s+/).length;
-  check('fixture is slightly over the 300-word OF ceiling but within tolerance',ofWords>300&&ofWords<=345);
-  check('slightly-long OF is advisory only and incurs no correction call',os.compliant&&!os.softRepair&&os.advisory.some(a=>a.includes('words')));
+  check('fixture is just over the 300-word OF ceiling',ofWords>300&&ofWords<=345);
+  check('OF over its stated 300-word ceiling stays deliverable (stylistic, not hard)',os.compliant&&os.advisory.some(a=>a.includes('words')));
+  check('...but earns one shortening attempt (OF names 300 as the top of its range)',os.softRepair===true);
+  check('OF within its range needs no correction call',!evaluate('OF',validReport('OF')).softRepair);
   check('Classic between soft target and hard ceiling is advisory only',(()=>{const t=validReport('MA',{extraVocab:14});const r=evaluate('MA',t);return t.length>2800&&t.length<3000&&r.compliant&&!r.softRepair;})());
+
+  console.log('\n6b) rating-driven star rules are authoritative configuration');
+  const lowStars=evaluate('MS',validReport('MS',{rating:'2'}).replace('Parent Note:','Parent Note').replace('Mini Homework:','Total Stars Today:\n\n⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐\n\nMini Homework:'),{rating:'2'});
+  check('stars printed at rating 2 block delivery (repairable)',codes(lowStars).includes('rating_rule'));
+  check('eleven stars at rating 4 block delivery',codes(evaluate('MA',validReport('MA').replace('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐','⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐'))).includes('rating_rule'));
+  check('Fairy stars at rating 2 block delivery',codes(evaluate('FAIRY',validReport('FAIRY'),{rating:'2'})).includes('rating_rule'));
+
+  console.log('\n6c) pronunciation diagnoses read off speech-to-text are blocked');
+  const diagnosed=validReport('MS').replace('Grammar & Sentence Practice:','Pronunciation Focus\n\n🗣 Swim → SWIM (not "swing")\n\nGrammar & Sentence Practice:');
+  check('a 🗣 cue saying not "swing" is blocked as a grounding violation',codes(evaluate('MS',diagnosed)).includes('grounding'));
+  const modelOnly=validReport('MS').replace('Grammar & Sentence Practice:','Pronunciation Focus\n\n🗣 Swim → SWIM, rhymes with "him"\n\nGrammar & Sentence Practice:');
+  check('a 🗣 cue that only gives the model pronunciation is allowed',evaluate('MS',modelOnly).compliant);
+  const fairyNote=validReport('FAIRY').replace('Note: used it in a sentence with help','Note: You sometimes said "show" instead of "shoot", so practise the oo sound');
+  check('a Fairy Note claiming "said X instead of Y" about a sound is blocked',codes(evaluate('FAIRY',fairyNote)).includes('grounding'));
+  const grammarNote=validReport('MA').replace('Note: named it with support','Note: say "to my friend", not "with my friend"');
+  check('a grammar Note with not "…" is NOT treated as a pronunciation diagnosis',evaluate('MA',grammarNote).compliant);
 
   console.log('\n7) the single repair prompt is bounded and grounding-safe');
   const prompt=core.buildComplianceRepairPrompt('FAIRY',longFairy,lf);

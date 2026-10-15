@@ -3479,9 +3479,9 @@ Love, Teacher [Name]` + '\n\n─────────────────
       '',
       'Pronunciation Focus (optional)',
       '',
-      '🗣 [Word] → [helpful pronunciation cue]',
-      '🗣 [Word] → [helpful pronunciation cue]',
-      '🗣 [Word] → [helpful pronunciation cue]',
+      '🗣 [Word] → [correct model pronunciation: stress, syllables or a rhyme — never what the child said]',
+      '🗣 [Word] → [correct model pronunciation: stress, syllables or a rhyme — never what the child said]',
+      '🗣 [Word] → [correct model pronunciation: stress, syllables or a rhyme — never what the child said]',
       '',
       'Grammar & Sentence Practice',
       '',
@@ -3953,6 +3953,10 @@ Love, Teacher [Name]` + '\n\n─────────────────
     const superpowerCount = (text.match(/🦸/g) || []).length;
     if(superpowerCount === 0) warnings.push('No "Today\'s Superpower" emoji (🦸) found.');
     if(superpowerCount > 1) warnings.push('More than one Superpower emoji (🦸) found — should be exactly one.');
+    const diagnosedLine = findPronunciationDiagnosis(text);
+    if(diagnosedLine){
+      warnings.push('Pronunciation note describes how the student mispronounced a word ("' + diagnosedLine.slice(0, 80) + '") — a transcript cannot show sounds; give only the correct model pronunciation.');
+    }
     if(superpowerCount === 1 && !hasMeaningfulSuperpower(text)){
       warnings.push('Today\'s Superpower section is not meaningful — it needs one named skill after 🦸 and a specific encouragement paragraph, not just the emoji.');
     }
@@ -4141,6 +4145,10 @@ Love, Teacher [Name]` + '\n\n─────────────────
     }
     if(!/Mini Homework/i.test(trimmed)){
       warnings.push('Mini Homework section is missing.');
+    }
+    const fairyDiagnosis = findPronunciationDiagnosis(trimmed);
+    if(fairyDiagnosis){
+      warnings.push('Pronunciation note describes how the student mispronounced a word ("' + fairyDiagnosis.slice(0, 80) + '") — a transcript cannot show sounds; give only the correct model pronunciation.');
     }
     if(!/Positive Feedback:?\s*\S/i.test(trimmed)){
       warnings.push('Positive Feedback section is missing.');
@@ -5097,6 +5105,20 @@ because it's about a single lesson.`
     return warnings;
   }
 
+  // A transcript records words, not sounds (EVIDENCE_GROUNDING_RULES). A cue
+  // written as `not "street"` or `said "show" instead of "shoot"` describes how
+  // the student mispronounced a word — a claim speech-to-text cannot support.
+  // Scoped to pronunciation lines (🗣) and to Notes that talk about sounds, so a
+  // grammar note such as "say 'to', not 'with'" is never flagged.
+  function findPronunciationDiagnosis(text){
+    const diagnosis = /\bnot\s+["“'][^"”'\n]+["”']|\binstead of\s+["“']|\bsaid\s+["“'][^"”'\n]+["”']\s+instead\b/i;
+    for(const line of String(text || '').split('\n')){
+      const pronunciationLine = line.includes('🗣') || (/Note:/i.test(line) && /\b(sound|pronounc\w*|vowel|syllable|ending)\b/i.test(line));
+      if(pronunciationLine && diagnosis.test(line)) return line.trim();
+    }
+    return null;
+  }
+
   function hasMeaningfulSuperpower(text){
     const match = String(text || '').match(/🦸\s*([^\n]*)\n([\s\S]*?)(?=\n\s*(?:Parent Note|Mini Homework|Vocabulary Mission|Grammar Mission|Speaking Mission)|$)/i);
     if(!match) return false;
@@ -5122,13 +5144,18 @@ because it's about a single lesson.`
     { code:'signoff', re:/Closing sign-off does not exactly match|Custom teacher sign-off is missing|does not open with "Hi / },
     { code:'placeholder', re:/placeholder/i },
     { code:'tier_leak', re:/qualitative guidance tier label/ },
-    { code:'voice', re:/in the third person/ }
+    { code:'voice', re:/in the third person/ },
+    // Ratings are authoritative configuration: no stars below 3, exactly 10 at 3+.
+    { code:'rating_rule', re:/Total Stars Today should be omitted|^Star count is \d+, expected exactly 10/i },
+    { code:'grounding', re:/^Pronunciation note describes how the student mispronounced/ }
   ];
   // Deliberately advisory, not blocking: the OF pronoun check cannot tell the
   // student from other people or story characters named in the report (live
   // evaluation 2026-10-15 produced exactly that false positive). The selected
   // pronoun is enforced as a Fact in the prompt and still shown as a warning.
-  const SOFT_WORD_TOLERANCE = 1.15;
+  // OF's template and checklist name 300 words as the top of its range, so any
+  // overshoot earns one shortening attempt; Preply's maximum gets 5% grace.
+  const SOFT_WORD_TOLERANCE = { OF:1.0, PREPLY:1.05 };
 
   function countWords(text){ return String(text || '').trim().split(/\s+/).filter(Boolean).length; }
 
@@ -5163,7 +5190,7 @@ because it's about a single lesson.`
     let softRepair = false;
     if(limits.targetWords){
       const signed = (protocol === 'PREPLY') ? stripOptionalTeacherFooter(body, ctx.teacherName, ctx.signoffEmoji).body : body;
-      softRepair = countWords(signed) > Math.floor(limits.targetWords * SOFT_WORD_TOLERANCE);
+      softRepair = countWords(signed) > Math.floor(limits.targetWords * (SOFT_WORD_TOLERANCE[protocol] || 1));
     }
     return { compliant: blocking.length === 0, contentReviewed:false, blocking, advisory, softRepair, limits };
   }
