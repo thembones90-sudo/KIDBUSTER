@@ -6,9 +6,10 @@ module.exports = async function(){
   try{
     process.env.VERCEL_ENV = 'preview';
     const url = new URL(krispWebhookUrlForToken('synthetic+test/token'));
-    assert.equal(url.origin,'https://pathfinder-v2-staging-preview.vercel.app');
+    assert.equal(url.origin,'https://pathfinder-v2-krisp-ingress.vercel.app');
     assert.equal(url.pathname,'/api/krisp-webhook');
     assert.equal(url.searchParams.get('token'),'synthetic+test/token');
+    assert.deepEqual([...url.searchParams.keys()],['token']);
     process.env.VERCEL_ENV = 'production';
     assert.equal(new URL(krispWebhookUrlForToken('synthetic')).origin,'https://kidbuster.vercel.app');
     console.log('PASS preview links stay in V2; token encoding and existing non-preview behavior preserved');

@@ -1,0 +1,9 @@
+{
+  "projectId": "prj_8AQEDibYCzspPx67Wc0F7EpCFQGY",
+  "hostname": "pathfinder-v2-krisp-ingress.vercel.app",
+  "routeId": "6b17b814-39df-4299-b307-1efbaada17e4",
+  "src": "^/(?!api/krisp-webhook$).*",
+  "hostPattern": "^pathfinder-v2-krisp-ingress\\.vercel\\.app$",
+  "status": 403,
+  "responseHeaders": {"Cache-Control": "no-store"}
+}
