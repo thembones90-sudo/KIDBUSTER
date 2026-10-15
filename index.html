@@ -2469,6 +2469,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
         <div class="field">
           <label class="field-label" for="studentName">Student</label>
           <input type="text" class="identity-pill" id="studentName" placeholder="Student name">
+          <p id="nextStudentStatus" role="status" aria-live="polite" style="margin:8px 0 0;font-size:14px;color:var(--text-dim)"></p>
         </div>
         <div class="field" id="preplyTrialPersonField" style="display:none;">
           <label class="field-label">Trial student</label>
@@ -7296,28 +7297,49 @@ function resetWorkspace(){
   document.dispatchEvent(new CustomEvent('kidbuster:workspace-reset'));
 }
 
-// A deliberately unhurried scroll to the top — native browser smooth-scroll
-// is quick and its duration isn't controllable, so this animates it by hand
-// with an eased curve for a slower, more dramatic ascent.
-function slowScrollToTop(duration){
+// Return directly to the next lesson's first input, without a long trip to
+// the header. User input can interrupt the animation at any time.
+let nextStudentStatusTimer;
+function prepareNextStudent(){
+  const field = document.getElementById('studentName');
+  const status = document.getElementById('nextStudentStatus');
+  clearTimeout(nextStudentStatusTimer);
+  status.textContent = 'Ready for your next student';
+  nextStudentStatusTimer = setTimeout(() => { status.textContent = ''; }, 4000);
+  field.focus({preventScroll:true});
   const startY = window.scrollY;
-  if(startY === 0) return;
+  const targetY = Math.max(0, Math.min(
+    document.documentElement.scrollHeight - window.innerHeight,
+    startY + field.getBoundingClientRect().top - window.innerHeight * 0.35
+  ));
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    window.scrollTo({top:targetY,behavior:'instant'});
+    return;
+  }
+  const duration = 450;
   const startTime = performance.now();
+  const controller = new AbortController();
+  let frame;
+  const stop = () => { cancelAnimationFrame(frame); controller.abort(); };
+  for(const event of ['wheel','touchstart','pointerdown','keydown']){
+    window.addEventListener(event,stop,{passive:true,signal:controller.signal});
+  }
   function easeInOutCubic(t){
     return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
   }
   function step(now){
     const elapsed = now - startTime;
     const progress = Math.min(elapsed / duration, 1);
-    window.scrollTo(0, startY * (1 - easeInOutCubic(progress)));
-    if(progress < 1){ requestAnimationFrame(step); }
+    window.scrollTo({top:startY + (targetY - startY) * easeInOutCubic(progress),behavior:'instant'});
+    if(progress < 1){ frame = requestAnimationFrame(step); }
+    else controller.abort();
   }
-  requestAnimationFrame(step);
+  frame = requestAnimationFrame(step);
 }
 
 newStudentBtn.addEventListener('click', () => {
   resetWorkspace();
-  slowScrollToTop(1600);
+  prepareNextStudent();
 });
 
 // Info icons sit inside the protocol <label>s (so hovering/focusing them
