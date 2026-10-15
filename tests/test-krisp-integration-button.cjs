@@ -262,6 +262,7 @@ module.exports = async function run(){
     state.logoFile = false;
 
     console.log('\n12) Layout: desktop and mobile');
+    state.logoFile = 'shipped';
     for (const vp of [{ name: 'desktop 1440', width: 1440, height: 900 }, { name: 'tablet 768', width: 768, height: 900 }, { name: 'mobile 390', width: 390, height: 800 }]) {
       page = await open({ viewport: { width: vp.width, height: vp.height } });
       const lay = await page.evaluate(() => {
@@ -273,6 +274,29 @@ module.exports = async function run(){
       });
       check(vp.name + ': button fully on screen, tall enough to tap, not overlapping neighbours', lay.inView && lay.h >= 40 && lay.noOverlap);
       check(vp.name + ': no horizontal scrolling', lay.noHScroll);
+      await page.evaluate(() => {
+        document.getElementById('krispIntegrationBtn').click();
+        document.getElementById('krispSetupSection').hidden = false;
+        document.getElementById('krispConnectionDetails').open = true;
+      });
+      const expanded = await page.evaluate(() => {
+        const card = document.getElementById('krispIntegrationPanel').getBoundingClientRect();
+        const ids = ['krispWaitBtn','krispWebhookUrlField','krispCopyUrlBtn','krispRegenerateBtn','krispDisconnectBtn'];
+        const boxes = ids.map(id => document.getElementById(id).getBoundingClientRect());
+        const overlap = (a,b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+        return {boxes:boxes.map(r=>({x:r.x,y:r.y,w:r.width,h:r.height})),contained: boxes.every(r => r.left >= card.left + 12 && r.right <= card.right - 12),
+          targets: boxes.every(r => r.height >= 44),
+          separate: boxes.every((a,i) => boxes.every((b,j) => i === j || !overlap(a,b))),
+          noScroll: document.documentElement.scrollWidth <= innerWidth + 1,
+          label: document.getElementById('krispWebhookUrlField').labels.length === 1};
+      });
+      check(vp.name + ': expanded controls have safe padding, 44px targets and no overlap', expanded.contained && expanded.targets && expanded.separate);
+      if (!expanded.contained || !expanded.targets || !expanded.separate) console.log(expanded);
+      check(vp.name + ': expanded settings do not overflow and webhook has an accessible label', expanded.noScroll && expanded.label);
+      if (process.env.KRISP_SCREENSHOT_DIR) {
+        fs.mkdirSync(process.env.KRISP_SCREENSHOT_DIR, {recursive:true});
+        await (await page.$('#krispIntegrationPanel')).screenshot({path:path.join(process.env.KRISP_SCREENSHOT_DIR, 'krisp-' + vp.width + '.png')});
+      }
       await page.close();
     }
 
