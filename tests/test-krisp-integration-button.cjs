@@ -314,6 +314,18 @@ module.exports = async function run(){
     page = await open();
     const customIcon = async file => {
       await page.waitForFunction(file => [...document.querySelectorAll('img.krisp-logo-img')].every(img=>!img.hidden && img.complete && img.naturalWidth>0 && img.getAttribute('src').endsWith(file)),{},file);
+      const alignment = await page.evaluate(() => [...document.querySelectorAll('.krisp-custom-icon')].every(slot => {
+        if(!slot.getBoundingClientRect().width) return true;
+        const img=slot.querySelector('img'),r=img.getBoundingClientRect(),s=slot.getBoundingClientRect();
+        const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+        const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+        let x0=canvas.width,y0=canvas.height,x1=0,y1=0;
+        for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++)if(data[(y*canvas.width+x)*4+3]>=32){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y);}
+        const left=r.left+x0/canvas.width*r.width,right=r.left+(x1+1)/canvas.width*r.width;
+        const top=r.top+y0/canvas.height*r.height,bottom=r.top+(y1+1)/canvas.height*r.height;
+        return Math.abs((left+right-s.left-s.right)/2)<.6 && Math.abs((top+bottom-s.top-s.bottom)/2)<.6 && Math.min(left-s.left,s.right-right,top-s.top,s.bottom-bottom)>=3;
+      }));
+      check(file+': visible artwork is centered with even, unclipped padding',alignment);
       return page.evaluate(()=>[...document.querySelectorAll('.krisp-logo-slot')].every(slot=>slot.classList.contains('krisp-custom-icon') && slot.querySelector('.krisp-state-badge').hidden));
     };
     check('neutral uses the supplied logo only, without a duplicate badge',await customIcon('krisp-neutral.png'));

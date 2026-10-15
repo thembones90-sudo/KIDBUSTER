@@ -8129,10 +8129,15 @@ button.btn-secondary.account-btn.krisp-integration-btn[aria-expanded="true"] .kr
 .krisp-state-badge[data-state="ready"]{background:#55d3a1}
 .krisp-state-badge::after{content:attr(data-symbol)}
 .krisp-state-badge[hidden]{display:none!important}
-body .krisp-logo-slot.krisp-custom-icon{display:inline-grid!important;place-items:center;width:34px!important;height:34px!important;min-width:34px;padding:0!important;overflow:hidden;border-radius:9px!important;background:#e3e8e1!important;border:1px solid #ffffff18!important;box-shadow:inset 0 1px 0 #fff8}
-body .krisp-logo-slot.krisp-custom-icon img.krisp-logo-img{width:34px!important;height:34px!important;min-width:34px;max-width:none;object-fit:contain;transform:scale(1.35);filter:none}
+body .krisp-logo-slot.krisp-custom-icon{display:inline-grid!important;place-items:center;width:34px!important;height:34px!important;min-width:34px;padding:0!important;box-sizing:border-box;overflow:hidden;border-radius:9px!important;background:#e3e8e1!important;border:1px solid #ffffff18!important;box-shadow:inset 0 1px 0 #fff8}
+body .krisp-logo-slot.krisp-custom-icon img.krisp-logo-img{display:block;width:100%!important;height:100%!important;min-width:0;max-width:none;margin:0;align-self:center;justify-self:center;object-fit:contain;transform-origin:50% 50%;transform:translate(var(--krisp-art-x),var(--krisp-art-y)) scale(var(--krisp-art-scale));filter:none}
+/* Optical centering uses the PNG alpha bounds, not its uneven transparent canvas. */
+.krisp-custom-icon[data-icon-state="neutral"]{--krisp-art-scale:1.279248;--krisp-art-x:-2.907383%;--krisp-art-y:-5.559732%}
+.krisp-custom-icon[data-icon-state="ready"]{--krisp-art-scale:1.258970;--krisp-art-x:-4.467635%;--krisp-art-y:-7.730515%}
+.krisp-custom-icon[data-icon-state="pending"]{--krisp-art-scale:1.275823;--krisp-art-x:-2.797858%;--krisp-art-y:-6.765730%}
+.krisp-custom-icon[data-icon-state="error"]{--krisp-art-scale:1.204855;--krisp-art-x:-5.044248%;--krisp-art-y:-6.869785%}
 body .krisp-compact-header .krisp-logo-slot.krisp-custom-icon{width:40px!important;height:40px!important;min-width:40px;border-radius:11px!important}
-body .krisp-compact-header .krisp-logo-slot.krisp-custom-icon img.krisp-logo-img{width:40px!important;height:40px!important}
+body .krisp-compact-header .krisp-logo-slot.krisp-custom-icon img.krisp-logo-img{width:100%!important;height:100%!important}
 .krisp-state-badge[data-state="error"]{background:#ff6577;color:#250e12}
 .krisp-state-badge[data-state="pending"]{background:#efbf63}
 #krispHealthStatus[data-state="ready"]{color:#78ddb3}
