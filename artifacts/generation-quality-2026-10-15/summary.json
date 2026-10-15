@@ -1,0 +1,2525 @@
+{
+  "note": "Fictional cases only are committed as text. real-transcript-* rows are metrics from a user-authorized real transcript; their text stays in the git-ignored .v2-local folder. Model: claude-sonnet-4-6. Structural compliance only; educational accuracy is not verified by software.",
+  "rows": [
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "real-transcript-MA",
+      "protocol": "MA",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 19893,
+      "characters": 2417,
+      "words": 445,
+      "usage": {
+        "input_tokens": 6239,
+        "cache_creation_input_tokens": 3932,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 3932,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 740,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": false
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "real-transcript-FAIRY",
+      "protocol": "FAIRY",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 21082,
+      "characters": 2510,
+      "words": 462,
+      "usage": {
+        "input_tokens": 6098,
+        "cache_creation_input_tokens": 2138,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2138,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 709,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": false
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "real-transcript-MS",
+      "protocol": "MS",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 23625,
+      "characters": 2232,
+      "words": 429,
+      "usage": {
+        "input_tokens": 6134,
+        "cache_creation_input_tokens": 3503,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 3503,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 703,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [
+        "Star count is 11, expected exactly 10."
+      ],
+      "blockingChecks": null,
+      "textCommitted": false
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "real-transcript-BLITZ",
+      "protocol": "BLITZ",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": "warm",
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 9269,
+      "characters": 672,
+      "words": 115,
+      "usage": {
+        "input_tokens": 5928,
+        "cache_creation_input_tokens": 2257,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2257,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 137,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": false
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "real-transcript-BEIDA",
+      "protocol": "BEIDA",
+      "rating": "try_harder",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 14386,
+      "characters": 2079,
+      "words": 359,
+      "usage": {
+        "input_tokens": 6045,
+        "cache_creation_input_tokens": 1725,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 1725,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 487,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": false
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "real-transcript-OF",
+      "protocol": "OF",
+      "rating": "Medium",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 14928,
+      "characters": 2189,
+      "words": 339,
+      "usage": {
+        "input_tokens": 6055,
+        "cache_creation_input_tokens": 2630,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2630,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 436,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [
+        "Report is 339 words — longer than the intended 180-300 word range. Consider tightening."
+      ],
+      "blockingChecks": null,
+      "textCommitted": false
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "real-transcript-PREPLY",
+      "protocol": "PREPLY",
+      "rating": "",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": "parent",
+      "httpStatus": 200,
+      "elapsedMs": 14121,
+      "characters": 855,
+      "words": 140,
+      "usage": {
+        "input_tokens": 6879,
+        "cache_creation_input_tokens": 1618,
+        "cache_read_input_tokens": 1618,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 1618,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 437,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": true,
+        "outcome": "repaired"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": false
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "strong_independent-MA",
+      "protocol": "MA",
+      "rating": "5",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 17541,
+      "characters": 2449,
+      "words": 418,
+      "usage": {
+        "input_tokens": 879,
+        "cache_creation_input_tokens": 3932,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 3932,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 740,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "strong_independent-MS",
+      "protocol": "MS",
+      "rating": "5",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 20473,
+      "characters": 2869,
+      "words": 501,
+      "usage": {
+        "input_tokens": 773,
+        "cache_creation_input_tokens": 3503,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 3503,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 856,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [
+        "Report is 2869 characters — over the 2800 working target. Trim before sending to stay safely under the 3000 absolute limit."
+      ],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "strong_independent-BLITZ",
+      "protocol": "BLITZ",
+      "rating": "5",
+      "lengthFormat": "medium",
+      "blitzVoice": "warm",
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 6319,
+      "characters": 672,
+      "words": 102,
+      "usage": {
+        "input_tokens": 555,
+        "cache_creation_input_tokens": 2257,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2257,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 129,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [
+        "Comment closely reproduces wording from the \"Effort (warm)\" model (\"you worked so carefully in today's lesson on\") — rewrite using the transcript, not the example's own sentences."
+      ],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "strong_independent-FAIRY",
+      "protocol": "FAIRY",
+      "rating": "5",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 16296,
+      "characters": 2348,
+      "words": 386,
+      "usage": {
+        "input_tokens": 725,
+        "cache_creation_input_tokens": 2138,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2138,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 664,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "strong_independent-PREPLY",
+      "protocol": "PREPLY",
+      "rating": "",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": "parent",
+      "httpStatus": 200,
+      "elapsedMs": 7686,
+      "characters": 828,
+      "words": 136,
+      "usage": {
+        "input_tokens": 788,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1618,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 177,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "strong_independent-BEIDA",
+      "protocol": "BEIDA",
+      "rating": "excellent",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 10818,
+      "characters": 1531,
+      "words": 228,
+      "usage": {
+        "input_tokens": 665,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1725,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 351,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "strong_independent-OF",
+      "protocol": "OF",
+      "rating": "High",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 14696,
+      "characters": 2084,
+      "words": 309,
+      "usage": {
+        "input_tokens": 683,
+        "cache_creation_input_tokens": 2630,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2630,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 394,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [
+        "Report is 309 words — longer than the intended 180-300 word range. Consider tightening."
+      ],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "heavy_scaffolding-MA",
+      "protocol": "MA",
+      "rating": "2",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 16933,
+      "characters": 2077,
+      "words": 357,
+      "usage": {
+        "input_tokens": 890,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3932,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 592,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "heavy_scaffolding-FAIRY",
+      "protocol": "FAIRY",
+      "rating": "2",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 13978,
+      "characters": 1805,
+      "words": 326,
+      "usage": {
+        "input_tokens": 799,
+        "cache_creation_input_tokens": 2138,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2138,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 551,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [
+        "Total stars today should be omitted at ratings below 3."
+      ],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "heavy_scaffolding-BLITZ",
+      "protocol": "BLITZ",
+      "rating": "2",
+      "lengthFormat": "medium",
+      "blitzVoice": "warm",
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 6435,
+      "characters": 631,
+      "words": 97,
+      "usage": {
+        "input_tokens": 629,
+        "cache_creation_input_tokens": 2253,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2253,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 125,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "heavy_scaffolding-MS",
+      "protocol": "MS",
+      "rating": "2",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 422,
+      "elapsedMs": 24535,
+      "characters": null,
+      "words": null,
+      "usage": null,
+      "repair": {
+        "attempted": true,
+        "outcome": "still_noncompliant"
+      },
+      "reason": "output_noncompliant",
+      "advisory": null,
+      "blockingChecks": [
+        "Parent Note section is missing (required at ratings 1, 1.5, 2, and 2.5)."
+      ],
+      "textCommitted": false
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "heavy_scaffolding-BEIDA",
+      "protocol": "BEIDA",
+      "rating": "try_harder",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 10069,
+      "characters": 1351,
+      "words": 223,
+      "usage": {
+        "input_tokens": 746,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1725,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 310,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "heavy_scaffolding-PREPLY",
+      "protocol": "PREPLY",
+      "rating": "",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": "parent",
+      "httpStatus": 200,
+      "elapsedMs": 8081,
+      "characters": 768,
+      "words": 133,
+      "usage": {
+        "input_tokens": 862,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1618,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 175,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "heavy_scaffolding-OF",
+      "protocol": "OF",
+      "rating": "Low",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 12644,
+      "characters": 1791,
+      "words": 287,
+      "usage": {
+        "input_tokens": 763,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 2630,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 373,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "noisy_transcript-MA",
+      "protocol": "MA",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 16193,
+      "characters": 1942,
+      "words": 343,
+      "usage": {
+        "input_tokens": 875,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3932,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 606,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "noisy_transcript-FAIRY",
+      "protocol": "FAIRY",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 16982,
+      "characters": 2116,
+      "words": 368,
+      "usage": {
+        "input_tokens": 732,
+        "cache_creation_input_tokens": 2138,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2138,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 604,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "noisy_transcript-BLITZ",
+      "protocol": "BLITZ",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": "warm",
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 6116,
+      "characters": 573,
+      "words": 93,
+      "usage": {
+        "input_tokens": 562,
+        "cache_creation_input_tokens": 2259,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2259,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 113,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "noisy_transcript-MS",
+      "protocol": "MS",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 18996,
+      "characters": 2082,
+      "words": 385,
+      "usage": {
+        "input_tokens": 768,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3503,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 633,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "noisy_transcript-PREPLY",
+      "protocol": "PREPLY",
+      "rating": "",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": "parent",
+      "httpStatus": 200,
+      "elapsedMs": 8203,
+      "characters": 866,
+      "words": 156,
+      "usage": {
+        "input_tokens": 795,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1618,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 198,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [
+        "Message is 156 words — over the 150-word target for Parent Feedback. Trim it — this should read like a real message, not a report."
+      ],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "noisy_transcript-BEIDA",
+      "protocol": "BEIDA",
+      "rating": "try_harder",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 11601,
+      "characters": 1735,
+      "words": 270,
+      "usage": {
+        "input_tokens": 679,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1725,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 380,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "noisy_transcript-OF",
+      "protocol": "OF",
+      "rating": "Medium",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 12920,
+      "characters": 1938,
+      "words": 295,
+      "usage": {
+        "input_tokens": 689,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 2630,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 387,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "mixed_performance-MA",
+      "protocol": "MA",
+      "rating": "3.5",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 15563,
+      "characters": 1909,
+      "words": 324,
+      "usage": {
+        "input_tokens": 879,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3932,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 587,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "mixed_performance-FAIRY",
+      "protocol": "FAIRY",
+      "rating": "3.5",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 16882,
+      "characters": 2382,
+      "words": 403,
+      "usage": {
+        "input_tokens": 711,
+        "cache_creation_input_tokens": 2140,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2140,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 677,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "mixed_performance-BLITZ",
+      "protocol": "BLITZ",
+      "rating": "3.5",
+      "lengthFormat": "medium",
+      "blitzVoice": "warm",
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 6291,
+      "characters": 615,
+      "words": 100,
+      "usage": {
+        "input_tokens": 541,
+        "cache_creation_input_tokens": 2253,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2253,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 129,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "mixed_performance-MS",
+      "protocol": "MS",
+      "rating": "3.5",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 23410,
+      "characters": 2191,
+      "words": 395,
+      "usage": {
+        "input_tokens": 1950,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 7006,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1299,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": true,
+        "outcome": "repaired"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "mixed_performance-BEIDA",
+      "protocol": "BEIDA",
+      "rating": "try_harder",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 11803,
+      "characters": 1692,
+      "words": 281,
+      "usage": {
+        "input_tokens": 656,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1725,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 393,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "mixed_performance-PREPLY",
+      "protocol": "PREPLY",
+      "rating": "",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": "parent",
+      "httpStatus": 200,
+      "elapsedMs": 7613,
+      "characters": 771,
+      "words": 139,
+      "usage": {
+        "input_tokens": 772,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1618,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 182,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "mixed_performance-OF",
+      "protocol": "OF",
+      "rating": "Medium",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 422,
+      "elapsedMs": 17493,
+      "characters": null,
+      "words": null,
+      "usage": null,
+      "repair": {
+        "attempted": true,
+        "outcome": "still_noncompliant"
+      },
+      "reason": "output_noncompliant",
+      "advisory": null,
+      "blockingChecks": [
+        "Report uses \"he\"/\"him\"/\"his\" despite the student pronoun being specified as Girl (she/her) — check for an incorrect pronoun."
+      ],
+      "textCommitted": false
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "insufficient_evidence-MA",
+      "protocol": "MA",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 14503,
+      "characters": 1776,
+      "words": 323,
+      "usage": {
+        "input_tokens": 512,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3932,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 539,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "insufficient_evidence-MS",
+      "protocol": "MS",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 15435,
+      "characters": 1798,
+      "words": 332,
+      "usage": {
+        "input_tokens": 406,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3503,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 565,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "insufficient_evidence-BLITZ",
+      "protocol": "BLITZ",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": "warm",
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 5308,
+      "characters": 408,
+      "words": 74,
+      "usage": {
+        "input_tokens": 200,
+        "cache_creation_input_tokens": 2252,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2252,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 91,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "insufficient_evidence-FAIRY",
+      "protocol": "FAIRY",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 15371,
+      "characters": 2120,
+      "words": 389,
+      "usage": {
+        "input_tokens": 370,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 2138,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 604,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "insufficient_evidence-BEIDA",
+      "protocol": "BEIDA",
+      "rating": "excellent",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 6950,
+      "characters": 743,
+      "words": 128,
+      "usage": {
+        "input_tokens": 310,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1725,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 170,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "insufficient_evidence-PREPLY",
+      "protocol": "PREPLY",
+      "rating": "",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": "parent",
+      "httpStatus": 200,
+      "elapsedMs": 6253,
+      "characters": 516,
+      "words": 92,
+      "usage": {
+        "input_tokens": 433,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1618,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 112,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "insufficient_evidence-OF",
+      "protocol": "OF",
+      "rating": "Low/Medium",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 11310,
+      "characters": 1679,
+      "words": 267,
+      "usage": {
+        "input_tokens": 335,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 2630,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 319,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "var-ma-1.5-short",
+      "protocol": "MA",
+      "rating": "1.5",
+      "lengthFormat": "short",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 13791,
+      "characters": 1598,
+      "words": 274,
+      "usage": {
+        "input_tokens": 916,
+        "cache_creation_input_tokens": 4077,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 4077,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 472,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [
+        "Short reports must omit Pronunciation Focus entirely, per the length-tier content rule — found present with content.",
+        "Short reports must drop the \"| Pronunciation: ...\" segment from every Key Vocabulary line, per the length-tier content rule — found present.",
+        "Report includes 3 Grammar & Sentence Practice examples — the length-tier content rule caps Short reports at 2."
+      ],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "var-fairy-short",
+      "protocol": "FAIRY",
+      "rating": "3.5",
+      "lengthFormat": "short",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 12024,
+      "characters": 1612,
+      "words": 267,
+      "usage": {
+        "input_tokens": 700,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 2140,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 453,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "var-ma-6-long",
+      "protocol": "MA",
+      "rating": "6",
+      "lengthFormat": "long",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 23300,
+      "characters": 3485,
+      "words": 604,
+      "usage": {
+        "input_tokens": 884,
+        "cache_creation_input_tokens": 3887,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 3887,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 987,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "var-ms-2-short",
+      "protocol": "MS",
+      "rating": "2",
+      "lengthFormat": "short",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 422,
+      "elapsedMs": 22802,
+      "characters": null,
+      "words": null,
+      "usage": null,
+      "repair": {
+        "attempted": true,
+        "outcome": "still_noncompliant"
+      },
+      "reason": "output_noncompliant",
+      "advisory": null,
+      "blockingChecks": [
+        "Parent Note section is missing (required at ratings 1, 1.5, 2, and 2.5)."
+      ],
+      "textCommitted": false
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "var-blitz-simple",
+      "protocol": "BLITZ",
+      "rating": "3.5",
+      "lengthFormat": "medium",
+      "blitzVoice": "simple",
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 8184,
+      "characters": 649,
+      "words": 111,
+      "usage": {
+        "input_tokens": 541,
+        "cache_creation_input_tokens": 2262,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2262,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 137,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "var-blitz-polished",
+      "protocol": "BLITZ",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": "polished",
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 7666,
+      "characters": 700,
+      "words": 106,
+      "usage": {
+        "input_tokens": 562,
+        "cache_creation_input_tokens": 2255,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2255,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 135,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "var-preply-adult",
+      "protocol": "PREPLY",
+      "rating": "",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": "adult",
+      "httpStatus": 200,
+      "elapsedMs": 7940,
+      "characters": 858,
+      "words": 152,
+      "usage": {
+        "input_tokens": 707,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1618,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 190,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "var-preply-trial-child",
+      "protocol": "PREPLY",
+      "rating": "",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": "trial",
+      "httpStatus": 200,
+      "elapsedMs": 8395,
+      "characters": 917,
+      "words": 164,
+      "usage": {
+        "input_tokens": 935,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1618,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 211,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "var-fairy-long",
+      "protocol": "FAIRY",
+      "rating": "5",
+      "lengthFormat": "long",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 25786,
+      "characters": 4408,
+      "words": 740,
+      "usage": {
+        "input_tokens": 685,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 2138,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1147,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "var-preply-trial-adult",
+      "protocol": "PREPLY",
+      "rating": "",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": "trial",
+      "httpStatus": 200,
+      "elapsedMs": 8199,
+      "characters": 1022,
+      "words": 172,
+      "usage": {
+        "input_tokens": 858,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1618,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 212,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [
+        "Message is 172 words — over the 170-word target for Trial Follow-up. Trim it — this should read like a real message, not a report."
+      ],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round1",
+      "commit": "01f1eb7",
+      "id": "var-of-girl-medium",
+      "protocol": "OF",
+      "rating": "Medium/High",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 17208,
+      "characters": 2070,
+      "words": 323,
+      "usage": {
+        "input_tokens": 670,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 2630,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 430,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [
+        "Report is 323 words — longer than the intended 180-300 word range. Consider tightening."
+      ],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round2-recheck",
+      "commit": "dca3da8",
+      "id": "var-ms-2-short",
+      "protocol": "MS",
+      "rating": "2",
+      "lengthFormat": "short",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 16483,
+      "characters": 1870,
+      "words": 331,
+      "usage": {
+        "input_tokens": 784,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3648,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 552,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [
+        "Short reports must omit Pronunciation Focus entirely, per the length-tier content rule — found present with content.",
+        "Short reports must drop the \"| Pronunciation: ...\" segment from every Key Vocabulary line, per the length-tier content rule — found present.",
+        "Report includes 3 Grammar & Sentence Practice examples — the length-tier content rule caps Short reports at 2."
+      ],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round2-recheck",
+      "commit": "dca3da8",
+      "id": "mixed_performance-OF",
+      "protocol": "OF",
+      "rating": "Medium",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 17190,
+      "characters": 1879,
+      "words": 293,
+      "usage": {
+        "input_tokens": 666,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 2630,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 390,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round2-recheck",
+      "commit": "dca3da8",
+      "id": "heavy_scaffolding-MS",
+      "protocol": "MS",
+      "rating": "2",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 24914,
+      "characters": 2154,
+      "words": 375,
+      "usage": {
+        "input_tokens": 1839,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 7006,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1222,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": true,
+        "outcome": "repaired"
+      },
+      "reason": null,
+      "advisory": [
+        "Total Stars Today should be omitted entirely at ratings below 3."
+      ],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round2-recheck",
+      "commit": "dca3da8",
+      "id": "var-ms-2-short-sample2",
+      "protocol": "OF",
+      "rating": "Medium",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 12479,
+      "characters": 1795,
+      "words": 273,
+      "usage": {
+        "input_tokens": 666,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 2630,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 374,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round2-recheck",
+      "commit": "dca3da8",
+      "id": "heavy_scaffolding-MS-sample2",
+      "protocol": "MS",
+      "rating": "2",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 16321,
+      "characters": 2131,
+      "words": 369,
+      "usage": {
+        "input_tokens": 784,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3503,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 593,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [
+        "Total Stars Today should be omitted entirely at ratings below 3."
+      ],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round3-final",
+      "commit": "c9aaa1e",
+      "id": "real-transcript-FAIRY",
+      "protocol": "FAIRY",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 20058,
+      "characters": 2468,
+      "words": 454,
+      "usage": {
+        "input_tokens": 6098,
+        "cache_creation_input_tokens": 2138,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2138,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 687,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": false
+    },
+    {
+      "round": "round3-final",
+      "commit": "c9aaa1e",
+      "id": "real-transcript-MA",
+      "protocol": "MA",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 26043,
+      "characters": 2795,
+      "words": 511,
+      "usage": {
+        "input_tokens": 6239,
+        "cache_creation_input_tokens": 3932,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 3932,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 838,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": false
+    },
+    {
+      "round": "round3-final",
+      "commit": "c9aaa1e",
+      "id": "real-transcript-BLITZ",
+      "protocol": "BLITZ",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": "warm",
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 8207,
+      "characters": 626,
+      "words": 101,
+      "usage": {
+        "input_tokens": 5928,
+        "cache_creation_input_tokens": 2252,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2252,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 136,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": false
+    },
+    {
+      "round": "round3-final",
+      "commit": "c9aaa1e",
+      "id": "real-transcript-MS",
+      "protocol": "MS",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 28940,
+      "characters": 2388,
+      "words": 463,
+      "usage": {
+        "input_tokens": 7397,
+        "cache_creation_input_tokens": 3545,
+        "cache_read_input_tokens": 3545,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 3545,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1520,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": true,
+        "outcome": "repaired"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": false
+    },
+    {
+      "round": "round3-final",
+      "commit": "c9aaa1e",
+      "id": "real-transcript-PREPLY",
+      "protocol": "PREPLY",
+      "rating": "",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": "parent",
+      "httpStatus": 200,
+      "elapsedMs": 13506,
+      "characters": 709,
+      "words": 128,
+      "usage": {
+        "input_tokens": 6832,
+        "cache_creation_input_tokens": 1618,
+        "cache_read_input_tokens": 1618,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 1618,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 365,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": true,
+        "outcome": "repaired"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": false
+    },
+    {
+      "round": "round3-final",
+      "commit": "c9aaa1e",
+      "id": "real-transcript-BEIDA",
+      "protocol": "BEIDA",
+      "rating": "try_harder",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 16718,
+      "characters": 2262,
+      "words": 383,
+      "usage": {
+        "input_tokens": 6045,
+        "cache_creation_input_tokens": 1725,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 1725,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 497,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": false
+    },
+    {
+      "round": "round3-final",
+      "commit": "c9aaa1e",
+      "id": "real-transcript-OF",
+      "protocol": "OF",
+      "rating": "Medium",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 21732,
+      "characters": 1792,
+      "words": 268,
+      "usage": {
+        "input_tokens": 6912,
+        "cache_creation_input_tokens": 2630,
+        "cache_read_input_tokens": 2630,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2630,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 842,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": true,
+        "outcome": "repaired"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": false
+    },
+    {
+      "round": "round3-final",
+      "commit": "c9aaa1e",
+      "id": "strong_independent-OF",
+      "protocol": "OF",
+      "rating": "High",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 13427,
+      "characters": 1953,
+      "words": 292,
+      "usage": {
+        "input_tokens": 683,
+        "cache_creation_input_tokens": 2630,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2630,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 370,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round3-final",
+      "commit": "c9aaa1e",
+      "id": "heavy_scaffolding-MS",
+      "protocol": "MS",
+      "rating": "2",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 24428,
+      "characters": 2098,
+      "words": 373,
+      "usage": {
+        "input_tokens": 1871,
+        "cache_creation_input_tokens": 3545,
+        "cache_read_input_tokens": 3545,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 3545,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1284,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": true,
+        "outcome": "repaired"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round3-final",
+      "commit": "c9aaa1e",
+      "id": "heavy_scaffolding-FAIRY",
+      "protocol": "FAIRY",
+      "rating": "2",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 20420,
+      "characters": 1511,
+      "words": 269,
+      "usage": {
+        "input_tokens": 1720,
+        "cache_creation_input_tokens": 2138,
+        "cache_read_input_tokens": 2138,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 2138,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 989,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": true,
+        "outcome": "repaired"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round3-final",
+      "commit": "c9aaa1e",
+      "id": "noisy_transcript-MS",
+      "protocol": "MS",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 17255,
+      "characters": 2045,
+      "words": 379,
+      "usage": {
+        "input_tokens": 768,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3545,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 647,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round3-final",
+      "commit": "c9aaa1e",
+      "id": "var-of-girl-medium",
+      "protocol": "OF",
+      "rating": "Medium/High",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 12037,
+      "characters": 1863,
+      "words": 286,
+      "usage": {
+        "input_tokens": 670,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 2630,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 380,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round3-final",
+      "commit": "c9aaa1e",
+      "id": "noisy_transcript-MS-sample2",
+      "protocol": "MS",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 16618,
+      "characters": 2008,
+      "words": 363,
+      "usage": {
+        "input_tokens": 768,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3545,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 615,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": true
+    },
+    {
+      "round": "round3-final",
+      "commit": "c9aaa1e",
+      "id": "real-transcript-MS-sample2",
+      "protocol": "MS",
+      "rating": "3",
+      "lengthFormat": "medium",
+      "blitzVoice": null,
+      "preplyModule": null,
+      "httpStatus": 200,
+      "elapsedMs": 21471,
+      "characters": 2690,
+      "words": 510,
+      "usage": {
+        "input_tokens": 6134,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3545,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 798,
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "repair": {
+        "attempted": false,
+        "outcome": "not_needed"
+      },
+      "reason": null,
+      "advisory": [],
+      "blockingChecks": null,
+      "textCommitted": false
+    }
+  ]
+}

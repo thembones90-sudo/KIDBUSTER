@@ -1,0 +1,3 @@
+Today's lesson introduced Ava to a set of food vocabulary words — apple, banana, bread, milk, and juice — through picture prompts and simple sentence frames. I modeled each phrase first and had Ava repeat after me, which is how she's building these early structures. She completed the sentence "I like bananas" and "I like juice" with support, and she also completed the word "banana" when I started it for her, which was a nice moment. She's still working on small grammar points like the article "an," which we practiced together. Toward the end, we did a short matching activity to reinforce the words visually.
+
+Reviewing these food words at home — even just naming things at mealtimes — would be a natural way to help the vocabulary stick before our next session.
