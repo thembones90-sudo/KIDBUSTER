@@ -63,6 +63,7 @@ function makeServer(state){
     }
     if (url.pathname.startsWith('/api/')) { res.writeHead(404); return res.end('{}'); }
     let rel = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
+    if (/^\/assets\/logos\/krisp-(neutral|armed|pending|error)\.png$/.test(rel) && !state.customIcons) {res.writeHead(404);return res.end();}
     if (/^\/assets\/logos\/krisp-logo\.(png|svg)$/.test(rel)) {
       // Scenario control: by default behave as if no logo file exists, so the fallback icon path is tested.
       if (state.logoFile === 'stand-in') { res.writeHead(200, { 'content-type': 'image/png' }); return res.end(PIXEL); }
@@ -308,7 +309,29 @@ module.exports = async function run(){
     check('shipped logo is a PNG with an alpha channel (transparent background)', hdr.length > 500 && hdr.slice(1, 4).toString() === 'PNG' && hdr[25] === 6);
     state.logoFile = false;
 
-    console.log('\n12) Layout: desktop and mobile');
+    console.log('\n12) Supplied four-state icon pack');
+    state.customIcons = true; state.waiting = false; state.lastReceivedAt = new Date().toISOString();
+    page = await open();
+    const customIcon = async file => {
+      await page.waitForFunction(file => [...document.querySelectorAll('img.krisp-logo-img')].every(img=>!img.hidden && img.complete && img.naturalWidth>0 && img.getAttribute('src').endsWith(file)),{},file);
+      return page.evaluate(()=>[...document.querySelectorAll('.krisp-logo-slot')].every(slot=>slot.classList.contains('krisp-custom-icon') && slot.querySelector('.krisp-state-badge').hidden));
+    };
+    check('neutral uses the supplied logo only, without a duplicate badge',await customIcon('krisp-neutral.png'));
+    await toggleBtn(page);
+    await page.click('#krispWaitBtn'); await sleep(350);
+    check('verified and armed uses the supplied green-check image',await customIcon('krisp-armed.png'));
+    state.serviceError = true;
+    await page.click('#krispWaitBtn'); await sleep(150); await page.click('#krispWaitBtn'); await sleep(350);
+    check('service failure uses the supplied red-X image',await customIcon('krisp-error.png'));
+    state.serviceError = false; state.lastReceivedAt = null;
+    await page.click('#krispWaitBtn'); await sleep(150); await page.click('#krispWaitBtn'); await sleep(350);
+    check('unverified armed state uses the supplied amber-dot image',await customIcon('krisp-pending.png'));
+    await page.close(); state.waiting = false;
+    for(const name of ['neutral','armed','pending','error']){
+      const bytes=fs.readFileSync(path.join(ROOT,'assets','logos','krisp-'+name+'.png'));
+      check(name+' asset is a square PNG with alpha',bytes.slice(1,4).toString()==='PNG' && bytes.readUInt32BE(16)===bytes.readUInt32BE(20) && bytes[25]===6);
+    }
+    console.log('\n13) Layout: desktop and mobile');
     state.logoFile = 'shipped';
     for (const vp of [{ name: 'desktop 1440', width: 1440, height: 900 }, { name: 'tablet 768', width: 768, height: 900 }, { name: 'mobile 390', width: 390, height: 800 }]) {
       page = await open({ viewport: { width: vp.width, height: vp.height } });

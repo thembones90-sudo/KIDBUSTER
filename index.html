@@ -8128,6 +8128,11 @@ button.btn-secondary.account-btn.krisp-integration-btn[aria-expanded="true"] .kr
 .krisp-state-badge{position:absolute;right:-4px;bottom:-3px;display:grid;place-items:center;width:14px;height:14px;border:2px solid #1b231e;border-radius:5px;font:800 11px/1 Arial,sans-serif;box-sizing:content-box;box-shadow:0 1px 4px #0005;pointer-events:none;background:#83938a;color:#121a15}
 .krisp-state-badge[data-state="ready"]{background:#55d3a1}
 .krisp-state-badge::after{content:attr(data-symbol)}
+.krisp-state-badge[hidden]{display:none!important}
+body .krisp-logo-slot.krisp-custom-icon{display:inline-grid!important;place-items:center;width:34px!important;height:34px!important;min-width:34px;padding:0!important;overflow:hidden;border-radius:9px!important;background:#e3e8e1!important;border:1px solid #ffffff18!important;box-shadow:inset 0 1px 0 #fff8}
+body .krisp-logo-slot.krisp-custom-icon img.krisp-logo-img{width:34px!important;height:34px!important;min-width:34px;max-width:none;object-fit:contain;transform:scale(1.35);filter:none}
+body .krisp-compact-header .krisp-logo-slot.krisp-custom-icon{width:40px!important;height:40px!important;min-width:40px;border-radius:11px!important}
+body .krisp-compact-header .krisp-logo-slot.krisp-custom-icon img.krisp-logo-img{width:40px!important;height:40px!important}
 .krisp-state-badge[data-state="error"]{background:#ff6577;color:#250e12}
 .krisp-state-badge[data-state="pending"]{background:#efbf63}
 #krispHealthStatus[data-state="ready"]{color:#78ddb3}
@@ -8372,6 +8377,38 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
   var krispVerifiedDelivery = false;
   var krispServiceError = false;
   var krispActionError = false;
+  var krispIconLoads = {};
+  function applyKrispStateIcon(slot, mode){
+    var file = mode === 'ready' ? 'armed' : mode;
+    var source = 'assets/logos/krisp-' + file + '.png';
+    slot.dataset.iconState = mode;
+    if(!krispIconLoads[source]){
+      krispIconLoads[source] = new Promise(function(resolve){
+        var probe = new Image();
+        probe.onload = function(){resolve(true);};
+        probe.onerror = function(){resolve(false);};
+        probe.src = source;
+      });
+    }
+    var img = slot.querySelector('img');
+    // Never leave yesterday's green tick visible during a state transition.
+    if(slot.classList.contains('krisp-custom-icon') && img && img.getAttribute('src') !== source){
+      img.hidden = true; slot.classList.remove('krisp-custom-icon');
+      var fallback = slot.querySelector('svg');
+      if(fallback) fallback.style.display = '';
+      var currentBadge = slot.querySelector('.krisp-state-badge');
+      if(currentBadge) currentBadge.hidden = false;
+    }
+    krispIconLoads[source].then(function(loaded){
+      if(!loaded || slot.dataset.iconState !== mode || !img) return;
+      img.src = source; img.hidden = false;
+      slot.classList.add('krisp-custom-icon');
+      var fallback = slot.querySelector('svg');
+      if(fallback) fallback.style.display = 'none';
+      var badge = slot.querySelector('.krisp-state-badge');
+      if(badge) badge.hidden = true;
+    });
+  }
   function renderKrispHealth(){
     var failed = krispServiceError || krispActionError;
     var mode = failed ? 'error' : krispDisconnected || !krispRequestedArmed ? 'neutral' : krispServerArmed && krispVerifiedDelivery ? 'ready' : 'pending';
@@ -8382,6 +8419,7 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
       badge.dataset.state = mode;
       badge.dataset.symbol = mode === 'ready' ? '✓' : mode === 'error' ? '×' : mode === 'pending' ? '!' : '−';
       slot.title = description;
+      applyKrispStateIcon(slot, mode);
     });
     var hint = document.getElementById('krispHealthStatus');
     if(hint){ hint.textContent = description; hint.dataset.state = mode; }
@@ -8875,6 +8913,7 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
       var probe = new Image();
       probe.onload = function(){
         for(var j = 0; j < imgs.length; j++){
+          if(imgs[j].parentNode.classList.contains('krisp-custom-icon')) continue;
           imgs[j].src = sources[i]; imgs[j].hidden = false;
           var slot = imgs[j].parentNode;
           var fb = slot && slot.querySelector('svg');
