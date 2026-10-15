@@ -162,6 +162,8 @@ module.exports = async function run(){
     const firstTimeHeight=await page.$eval('#krispIntegrationPanel',el=>el.getBoundingClientRect().height);
     check('first-time setup stays inside the viewport',firstTimeHeight<=900-32);
     check('first-time users see three ordered setup steps',await page.evaluate(()=>document.getElementById('krispSetupGuide').open && document.querySelectorAll('.krisp-setup-steps>li').length===3));
+    check('setup names the exact Krisp event and limits selection to it',await page.$eval('#krispSetupGuide',el=>/Trigger Events/.test(el.textContent)&&/Transcript created\s+only/.test(el.textContent)));
+    check('detailed help includes event choice and honest connection verification',await page.evaluate(()=>[...document.querySelectorAll('.help-step-copy')].some(el=>/Trigger Events, select Transcript created only/.test(el.textContent))&&[...document.querySelectorAll('.help-step-copy')].some(el=>/first received transcript confirms the connection/.test(el.textContent))));
     check('setup comes before arming on screen',await page.evaluate(()=>document.getElementById('krispCopyUrlBtn').getBoundingClientRect().top<document.getElementById('krispWaitBtn').getBoundingClientRect().top));
     check('connection maintenance is collapsed by default',await page.$eval('#krispConnectionDetails',el=>!el.open));
     check('commands clearly identify link maintenance',await page.evaluate(()=>document.getElementById('krispCopyUrlBtn').textContent.includes('Copy connection link')&&document.getElementById('krispRegenerateBtn').textContent.includes('Replace connection link')));

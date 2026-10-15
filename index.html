@@ -2517,7 +2517,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
             <li><strong>Copy your connection link</strong>
             <button type="button" id="krispCopyUrlBtn" class="btn-secondary krisp-premium-btn krisp-action-btn"><svg class="krisp-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><span class="krisp-btn-label">Copy</span></button>
             </li>
-            <li><strong>Paste it into Krisp</strong><p>Open Krisp → Settings → Integrations → Webhook. Paste the link and save your settings.</p></li>
+            <li><strong>Set up the webhook in Krisp</strong><p>Open Krisp → Settings → Integrations → Webhook. Name it Pathfinder and paste the entire connection link.</p><p>Under <strong>Trigger Events</strong>, select <strong>Transcript created</strong> only, then save.</p></li>
             <li><strong id="krispSetupArmStep">Return here and press ARM KRISP</strong><p id="krispSetupArmHint">Your first lesson delivery will confirm the connection.</p></li>
             </ol>
             </details>
@@ -2671,7 +2671,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
         <span class="help-step-number">1</span>
         <div>
           <p class="help-step-title">Copy your webhook URL</p>
-          <p class="help-step-copy">In the Krisp Notes section, find "Your personal Krisp webhook URL" and press Copy.</p>
+          <p class="help-step-copy">Open Krisp integration at the top of Pathfinder. Under Connection setup, press Copy connection link.</p>
         </div>
       </div>
       <div class="help-step">
@@ -2684,15 +2684,15 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
       <div class="help-step">
         <span class="help-step-number">3</span>
         <div>
-          <p class="help-step-title">Paste and save</p>
-          <p class="help-step-copy">Paste the URL you copied and save. No extra headers or secrets needed -- the link itself is your private key.</p>
+          <p class="help-step-title">Choose Transcript created and save</p>
+          <p class="help-step-copy">Name the webhook Pathfinder and paste the entire copied link into Webhook URL. Under Trigger Events, select Transcript created only, then save. Leave the other events unchecked. Keep the link private; no extra headers or secrets are needed.</p>
         </div>
       </div>
       <div class="help-step">
         <span class="help-step-number">4</span>
         <div>
-          <p class="help-step-title">You're connected</p>
-          <p class="help-step-copy">New Krisp transcripts now appear automatically below the notes box, ready to import with one click.</p>
+          <p class="help-step-title">Return to Pathfinder and press ARM KRISP</p>
+          <p class="help-step-copy">Send a test lesson from Krisp. The first received transcript confirms the connection. Krisp stays armed for later lessons until you press DISARM KRISP.</p>
         </div>
       </div>
     </div>
