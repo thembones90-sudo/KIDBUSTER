@@ -35,6 +35,7 @@ function makeServer(state){
     if (url.pathname === '/api/krisp-session') {
       if (req.method === 'GET') {
         state.calls.push('GET');
+        if (state.serviceError) {res.writeHead(503,{'content-type':'application/json'}); return res.end('{"error":"synthetic outage"}');}
         if (!state.entitled) { res.writeHead(403, { 'content-type': 'application/json' }); return res.end('{"error":"no"}'); }
         res.writeHead(200, { 'content-type': 'application/json' });
         return res.end(JSON.stringify({ webhookUrl: state.webhookUrl, waiting: state.waiting,
@@ -46,6 +47,7 @@ function makeServer(state){
         let action = ''; let parsed = {};
         try { parsed = JSON.parse(body); action = parsed.action; } catch (e) { /* ignore */ }
         state.calls.push(action);
+        if(state.actionError){res.writeHead(503,{'content-type':'application/json'});return res.end('{"error":"synthetic action failure"}');}
         if (action === 'wait') state.waiting = true;
         if (action === 'cancel-wait') state.waiting = false;
         if (action === 'regenerate') state.webhookUrl = 'https://example.test/api/krisp-webhook?t=REGENERATED';
@@ -135,8 +137,25 @@ module.exports = async function run(){
     await toggleBtn(page); i = await info(page);
     check('header opens all Krisp controls in one popover', i.expanded === 'true' && i.panelVisible && i.sectionVisible);
     check('a link alone is NOT a verified connection', await page.$eval('#krispConnectionState',el=>el.textContent==='Awaiting first delivery'));
+    check('intentional disarm is neutral, not a red error',await page.$eval('#krispIntegrationBtn',el=>el.dataset.health==='neutral'));
     check('raw webhook link stays hidden',await page.$eval('#krispWebhookUrlField',el=>el.hidden));
     check('ARM KRISP is a visible command, not a hidden switch label',await page.$eval('#krispWaitBtn .krisp-btn-label',el=>el.textContent==='ARM KRISP' && el.getBoundingClientRect().width>60 && getComputedStyle(el).clipPath==='none'));
+    await page.click('#krispWaitBtn'); await sleep(350);
+    check('armed without a delivery is amber, never falsely green',await page.$eval('#krispIntegrationBtn',el=>el.dataset.health==='pending'));
+    state.serviceError = true;
+    await page.click('#krispWaitBtn'); await sleep(200);
+    await page.click('#krispWaitBtn'); await sleep(350);
+    check('service outage shows a red cross without clearing ARM',await page.evaluate(()=>document.querySelector('#krispIntegrationBtn .krisp-state-badge').dataset.state==='error' && document.querySelector('#krispIntegrationBtn .krisp-state-badge').dataset.symbol==='×' && document.getElementById('krispWaitBtn').dataset.waiting==='true'));
+    state.serviceError = false;
+    await page.click('#krispWaitBtn'); await sleep(200);
+    await page.click('#krispWaitBtn'); await sleep(350);
+    check('service recovery clears red back to pending',await page.$eval('#krispIntegrationBtn',el=>el.dataset.health==='pending'));
+    await page.click('#krispWaitBtn'); await sleep(200);
+    state.actionError = true;
+    await page.click('#krispWaitBtn'); await sleep(350);
+    check('rejected ARM request never earns a green tick',await page.$eval('#krispIntegrationBtn',el=>el.dataset.health==='error'));
+    state.actionError = false;
+    await page.click('#krispWaitBtn'); await sleep(200);
     check('copy action is available without opening Advanced',await page.$eval('#krispCopyUrlBtn',el=>el.getBoundingClientRect().height>=44 && !el.closest('details')));
     check('default panel is compact (under 430px tall)',await page.$eval('#krispIntegrationPanel',el=>el.getBoundingClientRect().height<430));
     check('connection maintenance is collapsed by default',await page.$eval('#krispConnectionDetails',el=>!el.open));
@@ -161,6 +180,7 @@ module.exports = async function run(){
     await toggleBtn(page); i = await info(page);
     check('click opens the settings', i.expanded === 'true' && i.sectionVisible && i.urlField === state.webhookUrl);
     check('actual delivery confirms connection',await page.$eval('#krispConnectionState',el=>el.textContent==='Connection verified'));
+    state.calls = [];
     await page.keyboard.press('Escape'); await sleep(80);
     check('Escape dismisses the popover without disarming', !(await info(page)).panelVisible && !state.calls.includes('cancel-wait'));
     await toggleBtn(page);
@@ -175,6 +195,7 @@ module.exports = async function run(){
     i = await info(page);
     check('ARM KRISP arms (button says DISARM KRISP)', i.wait === 'DISARM KRISP' && i.waiting === 'true' && state.waiting === true);
     check('persistent status explicitly says Krisp armed',await page.$eval('#krispArmedState',el=>el.textContent==='Krisp armed'));
+    check('verified delivery plus server-confirmed ARM shows green ticks everywhere',await page.evaluate(()=>document.getElementById('krispIntegrationBtn').dataset.health==='ready' && [...document.querySelectorAll('.krisp-state-badge')].every(el=>el.dataset.state==='ready' && el.dataset.symbol==='✓')));
     await toggleBtn(page);
     check('DISARM KRISP remains visibly readable when armed',await page.$eval('#krispWaitBtn .krisp-btn-label',el=>el.textContent==='DISARM KRISP' && el.getBoundingClientRect().width>60 && getComputedStyle(el).clipPath==='none'));
     await toggleBtn(page);
