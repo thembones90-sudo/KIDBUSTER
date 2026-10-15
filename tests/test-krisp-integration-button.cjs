@@ -130,7 +130,11 @@ module.exports = async function run(){
     page = await open();
     i = await info(page);
     check('header button visible', i.btnVisible);
-    check('setup is open when no transcript has ever arrived', i.expanded === 'true' && i.sectionVisible);
+    check('single Krisp panel starts closed, even on first visit', i.expanded === 'false' && !i.panelVisible);
+    check('Krisp controls are outside the report form', await page.$eval('#krispIntegrationPanel',el=>el.parentElement===document.body));
+    await toggleBtn(page); i = await info(page);
+    check('header opens all Krisp controls in one popover', i.expanded === 'true' && i.panelVisible && i.sectionVisible);
+    check('a link alone is NOT a verified connection', await page.$eval('#krispConnectionState',el=>el.textContent==='Link ready · awaiting first delivery'));
     check('connection maintenance is collapsed by default',await page.$eval('#krispConnectionDetails',el=>!el.open));
     check('commands clearly identify link maintenance',await page.evaluate(()=>document.getElementById('krispCopyUrlBtn').textContent.includes('Copy link')&&document.getElementById('krispRegenerateBtn').textContent.includes('Replace connection link')));
     check('webhook URL is shown', i.urlField === state.webhookUrl);
@@ -152,6 +156,10 @@ module.exports = async function run(){
     check('collapsed after a transcript has been received', i.btnVisible && i.expanded === 'false' && !i.sectionVisible);
     await toggleBtn(page); i = await info(page);
     check('click opens the settings', i.expanded === 'true' && i.sectionVisible && i.urlField === state.webhookUrl);
+    check('actual delivery confirms connection',await page.$eval('#krispConnectionState',el=>el.textContent==='Connection verified'));
+    await page.keyboard.press('Escape'); await sleep(80);
+    check('Escape dismisses the popover without disarming', !(await info(page)).panelVisible && !state.calls.includes('cancel-wait'));
+    await toggleBtn(page);
     await toggleBtn(page); i = await info(page);
     check('second click closes the settings', i.expanded === 'false' && !i.sectionVisible);
 
@@ -163,6 +171,9 @@ module.exports = async function run(){
     i = await info(page);
     check('ARM KRISP arms (button says DISARM KRISP)', i.wait === 'DISARM KRISP' && i.waiting === 'true' && state.waiting === true);
     check('persistent status explicitly says Krisp armed',await page.$eval('#krispArmedState',el=>el.textContent==='Krisp armed'));
+    await toggleBtn(page);
+    await page.click('#krispPanelClose'); await sleep(100);
+    check('close button returns focus to header and keeps ARM',await page.evaluate(()=>document.activeElement.id==='krispIntegrationBtn') && state.waiting);
     await toggleBtn(page); i = await info(page);
     check('opening settings while armed keeps it armed', i.wait === 'DISARM KRISP' && state.waiting === true);
     await toggleBtn(page); i = await info(page);
@@ -202,11 +213,19 @@ module.exports = async function run(){
     i = await info(page);
     check('Regenerate sends exactly one request and shows the new URL', state.calls.filter(c => c === 'regenerate').length === 1 && /REGENERATED/.test(i.urlField));
     check('Regenerate leaves Krisp armed', i.wait === 'DISARM KRISP' && state.waiting === true);
+    check('replacement link requires a new delivery confirmation',await page.$eval('#krispConnectionState',el=>el.textContent==='Link ready · awaiting first delivery'));
+    await page.reload({waitUntil:'load'}); await sleep(600);
+    check('old delivery cannot re-verify a replaced link after reload',await page.$eval('#krispConnectionState',el=>el.dataset.verified==='false'));
+    state.lastReceivedAt = new Date().toISOString();
+    await page.reload({waitUntil:'load'}); await sleep(600);
+    check('new delivery verifies the replacement while retaining ARM',await page.$eval('#krispConnectionState',el=>el.dataset.verified==='true') && state.waiting);
     state.calls = [];
     await page.evaluate(() => document.getElementById('krispDisconnectBtn').click()); await sleep(400);
     check('Disconnect sends exactly one request', state.calls.filter(c => c === 'disconnect').length === 1);
+    check('disconnect reports not configured without changing ARM',await page.$eval('#krispConnectionState',el=>el.textContent==='Not configured') && state.waiting);
 
     console.log('\n8) Manual typing and counter');
+    await page.keyboard.press('Escape'); await sleep(80);
     await page.evaluate(() => { const t = document.getElementById('krispNotes'); t.value = ''; t.dispatchEvent(new Event('input', { bubbles: true })); });
     await page.click('#krispNotes');
     await page.keyboard.type('one two three');
@@ -275,7 +294,7 @@ module.exports = async function run(){
       check(vp.name + ': button fully on screen, tall enough to tap, not overlapping neighbours', lay.inView && lay.h >= 40 && lay.noOverlap);
       check(vp.name + ': no horizontal scrolling', lay.noHScroll);
       await page.evaluate(() => {
-        document.getElementById('krispIntegrationBtn').click();
+        if(document.getElementById('krispIntegrationBtn').getAttribute('aria-expanded')!=='true') document.getElementById('krispIntegrationBtn').click();
         document.getElementById('krispSetupSection').hidden = false;
         document.getElementById('krispConnectionDetails').open = true;
       });
