@@ -19,7 +19,7 @@ module.exports = function run(){
   // Note expected) — the baseline every mutation test below starts from,
   // so each test changes exactly one thing and nothing else.
   function baseReport({ stars = '⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐', superpowerCount = 1, missionCount = 1, parentNote = false, grammarPointsBody = '1. Rule one\n   👉 Example one.\n   👉 Example two.' } = {}){
-    const superpowerBlock = Array(superpowerCount).fill("Today's Superpower:\n🦸 Speaking\n\nGreat job today!").join('\n\n');
+    const superpowerBlock = Array(superpowerCount).fill("Today's Superpower:\n🦸 Speaking\n\nYou answered every animal question with a full sentence after one example from me.").join('\n\n');
     const missions = ['Vocabulary Mission 🎯\nTask one.', 'Grammar Mission 🎯\nTask two.', 'Speaking Mission 🎯\nTask three.'].slice(0, missionCount).join('\n');
     const parentNoteBlock = parentNote ? 'Parent Note:\nA note for the parent about today.\n\n' : '';
     const starsBlock = stars === null ? [] : ['Total Stars Today:', '', stars, ''];
@@ -167,6 +167,15 @@ module.exports = function run(){
 
     const one = KidbusterCore.analyzeMAOutput(baseReport({ superpowerCount: 1 }), '4', 'Layne');
     check('exactly 1 superpower block -> not flagged', !one.some(w => w.includes('Superpower emoji')));
+    check('exactly 1 meaningful superpower block -> not flagged as empty', !one.some(w => w.includes('not meaningful')));
+
+    // An emoji alone is not a section: the skill and a specific encouragement
+    // paragraph are required (2026-10-15 audit: Sugarcoat shipped without it).
+    const emojiOnly = baseReport().replace(/🦸 Speaking\n\n[^\n]+/, '🦸');
+    const emojiOnlyWarnings = KidbusterCore.analyzeMAOutput(emojiOnly, '4', 'Layne');
+    check('superpower emoji with no skill or paragraph -> flagged as not meaningful', emojiOnlyWarnings.some(w => w.includes('not meaningful')));
+    const generic = baseReport().replace(/(🦸 Speaking\n\n)[^\n]+/, '$1Good job!');
+    check('superpower with a two-word generic paragraph -> flagged as not meaningful', KidbusterCore.analyzeMAOutput(generic, '4', 'Layne').some(w => w.includes('not meaningful')));
   }
 
   console.log('\n5) Exactly one homework mission required');
@@ -192,11 +201,11 @@ module.exports = function run(){
 
   console.log('\n7) Forbidden formatting: no bold, no italics (shared across every protocol)');
   {
-    const withBold = baseReport().replace('Great job today!', '**Great job today!**');
+    const withBold = baseReport().replace('after one example from me.', '**after one example from me.**');
     const warnBold = KidbusterCore.analyzeMAOutput(withBold, '4', 'Layne');
     check('markdown bold (**text**) -> flagged', warnBold.some(w => w.toLowerCase().includes('bold')));
 
-    const withItalic = baseReport().replace('Great job today!', '_Great job today!_');
+    const withItalic = baseReport().replace('after one example from me.', '_after one example from me._');
     const warnItalic = KidbusterCore.analyzeMAOutput(withItalic, '4', 'Layne');
     check('markdown italic (_text_) -> flagged', warnItalic.some(w => w.toLowerCase().includes('italic')));
 

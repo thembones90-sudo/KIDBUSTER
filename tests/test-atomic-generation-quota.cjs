@@ -1,5 +1,6 @@
 'use strict';
 const {createChecker}=require('./helpers/assert.cjs');
+const {validReportForProviderBody}=require('./helpers/valid-reports.cjs');
 
 module.exports=async function run(){
   const {check,getFailures}=createChecker();
@@ -27,8 +28,8 @@ module.exports=async function run(){
     __resetForTests();
     const monthlyKey=await svc.getOrCreateFreeLicense('atomic-monthly@example.com');
     let providerCalls=0;
-    global.fetch=async()=>{providerCalls++;await new Promise(resolve=>setTimeout(resolve,5));return {
-      ok:true,json:async()=>({content:[{text:'A complete report'}],usage:{output_tokens:4}})
+    global.fetch=async(_url,options)=>{providerCalls++;await new Promise(resolve=>setTimeout(resolve,5));return {
+      ok:true,json:async()=>({content:[{text:validReportForProviderBody(options.body)}],usage:{output_tokens:4}})
     };};
     const monthly=await Promise.all(Array.from({length:64},()=>invoke(monthlyKey,'MA')));
     check('exactly the configured 20 concurrent requests receive reports',monthly.filter(x=>x.statusCode===200).length===licensing.FREE_MONTHLY_LIMIT);
@@ -48,27 +49,27 @@ module.exports=async function run(){
     console.log('\n3) known upstream failures compensate the reservation');
     __resetForTests();
     const retryKey=await svc.getOrCreateFreeLicense('atomic-release@example.com');
-    global.fetch=async()=>{throw new Error('synthetic network failure');};
+    global.fetch=async(_url,options)=>{throw new Error('synthetic network failure');};
     const failed=await invoke(retryKey,'MA');
     check('network failure is surfaced as 502',failed.statusCode===502);
     check('failed request returns the reserved monthly use',(await licensing.getUsageCount(retryKey))===0);
-    global.fetch=async()=>({ok:false,status:529,json:async()=>({error:{message:'overloaded'}})});
+    global.fetch=async(_url,options)=>({ok:false,status:529,json:async()=>({error:{message:'overloaded'}})});
     const rejected=await invoke(retryKey,'MA');
     check('provider rejection keeps provider status',rejected.statusCode===529);
     check('provider rejection also returns the reservation',(await licensing.getUsageCount(retryKey))===0);
-    global.fetch=async()=>({ok:true,json:async()=>({content:[]})});
+    global.fetch=async(_url,options)=>({ok:true,json:async()=>({content:[]})});
     const empty=await invoke(retryKey,'MA');
     check('empty provider result is rejected',empty.statusCode===502);
     check('empty result also returns the reservation',(await licensing.getUsageCount(retryKey))===0);
-    global.fetch=async()=>({ok:true,json:async()=>{throw new Error('synthetic invalid JSON');}});
+    global.fetch=async(_url,options)=>({ok:true,json:async()=>{throw new Error('synthetic invalid JSON');}});
     const invalidJson=await invoke(retryKey,'MA');
     check('invalid success JSON is rejected as an upstream failure',invalidJson.statusCode===502);
     check('invalid success JSON returns the reservation',(await licensing.getUsageCount(retryKey))===0);
-    global.fetch=async()=>({ok:true,json:async()=>({content:'not-an-array'})});
+    global.fetch=async(_url,options)=>({ok:true,json:async()=>({content:'not-an-array'})});
     const invalidShape=await invoke(retryKey,'MA');
     check('invalid success schema is rejected as an upstream failure',invalidShape.statusCode===502);
     check('invalid success schema returns the reservation',(await licensing.getUsageCount(retryKey))===0);
-    global.fetch=async()=>({ok:true,json:async()=>({content:[{text:'Delivered'}]})});
+    global.fetch=async(_url,options)=>({ok:true,json:async()=>({content:[{text:validReportForProviderBody(options.body)}]})});
     const recovered=await invoke(retryKey,'MA');
     check('a later successful retry still works',recovered.statusCode===200);
     check('only the delivered report remains counted',(await licensing.getUsageCount(retryKey))===1);
@@ -107,9 +108,9 @@ module.exports=async function run(){
     console.log('\n5) commit outage fails closed and the hold later self-heals');
     __resetForTests();
     const commitKey=await svc.getOrCreateFreeLicense('atomic-commit-outage@example.com');
-    global.fetch=async()=>({ok:true,json:async()=>{
+    global.fetch=async(_url,options)=>({ok:true,json:async()=>{
       __simulateOutage(true);
-      return {content:[{text:'Generated but not safely committed'}]};
+      return {content:[{text:validReportForProviderBody(options.body)}]};
     }});
     const commitFailure=await invoke(commitKey,'MA');
     __simulateOutage(false);
@@ -128,7 +129,7 @@ module.exports=async function run(){
     console.log('\n6) same-request retries cannot duplicate provider work or quota');
     __resetForTests();providerCalls=0;
     const idempotentKey=await svc.getOrCreateFreeLicense('idempotent-generation@example.com');
-    global.fetch=async()=>{providerCalls++;await new Promise(resolve=>setTimeout(resolve,20));return {ok:true,json:async()=>({content:[{text:'One delivered report'}]})};};
+    global.fetch=async(_url,options)=>{providerCalls++;await new Promise(resolve=>setTimeout(resolve,20));return {ok:true,json:async()=>({content:[{text:validReportForProviderBody(options.body)}]})};};
     const sameId='generation_request_1234567890';
     const duplicates=await Promise.all(Array.from({length:16},()=>invoke(idempotentKey,'MA',sameId)));
     check('one concurrent copy owns the generation request',duplicates.filter(x=>x.statusCode===200).length===1);
@@ -141,9 +142,9 @@ module.exports=async function run(){
     check('malformed request identities are rejected before provider or quota work',invalidId.statusCode===400&&providerCalls===1&&(await licensing.getUsageCount(idempotentKey))===1);
 
     const retryId='generation_retry_123456789012';
-    global.fetch=async()=>{providerCalls++;throw new Error('synthetic retryable failure');};
+    global.fetch=async(_url,options)=>{providerCalls++;throw new Error('synthetic retryable failure');};
     const firstRetry=await invoke(idempotentKey,'MA',retryId);
-    global.fetch=async()=>{providerCalls++;return {ok:true,json:async()=>({content:[{text:'Recovered safely'}]})};};
+    global.fetch=async(_url,options)=>{providerCalls++;return {ok:true,json:async()=>({content:[{text:validReportForProviderBody(options.body)}]})};};
     const secondRetry=await invoke(idempotentKey,'MA',retryId);
     check('known failure releases identity so exact same request can retry',firstRetry.statusCode===502&&secondRetry.statusCode===200);
     check('failed then successful same-id retry consumes quota only once',(await licensing.getUsageCount(idempotentKey))===2);
@@ -152,7 +153,7 @@ module.exports=async function run(){
     __resetForTests();providerCalls=0;
     const truncatedKey=await svc.getOrCreateFreeLicense('truncated-generation@example.com');
     const truncatedId='generation_truncated_1234567890';
-    global.fetch=async()=>{providerCalls++;return {ok:true,json:async()=>({
+    global.fetch=async(_url,options)=>{providerCalls++;return {ok:true,json:async()=>({
       content:[{text:'Only the first half of the student report.'}],
       stop_reason:'max_tokens'
     })};};
@@ -162,12 +163,12 @@ module.exports=async function run(){
       !truncated.jsonBody?.text&&truncated.jsonBody?.error?.includes('lesson notes'));
     check('partial response does not consume free quota',
       (await licensing.getUsageCount(truncatedKey))===0);
-    global.fetch=async()=>{providerCalls++;return {ok:true,json:async()=>({
-      content:[{text:'Fully completed student report.'}],stop_reason:'end_turn'
+    global.fetch=async(_url,options)=>{providerCalls++;return {ok:true,json:async()=>({
+      content:[{text:validReportForProviderBody(options.body)}],stop_reason:'end_turn'
     })};};
     const recoveredTruncated=await invoke(truncatedKey,'MA',truncatedId);
     check('same request may retry to valid end_turn and consume quota exactly once',
-      recoveredTruncated.statusCode===200&&recoveredTruncated.jsonBody?.text==='Fully completed student report.'&&
+      recoveredTruncated.statusCode===200&&recoveredTruncated.jsonBody?.text?.startsWith('Hi Test Student!')&&
       providerCalls===2&&(await licensing.getUsageCount(truncatedKey))===1);
 
     console.log('\n7) provider timeouts restore quota and ignore late responses');
@@ -181,22 +182,22 @@ module.exports=async function run(){
     const timedOut=await invoke(timeoutKey,'MA',timeoutId);
     check('provider deadline returns a deterministic retryable timeout',timedOut.statusCode===504&&timedOut.jsonBody.reason==='generation_timeout');
     check('aborted timeout restores the reserved quota',(await licensing.getUsageCount(timeoutKey))===0);
-    global.fetch=async()=>{providerCalls++;return {ok:true,json:async()=>({content:[{text:'Recovered after timeout'}]})};};
+    global.fetch=async(_url,options)=>{providerCalls++;return {ok:true,json:async()=>({content:[{text:validReportForProviderBody(options.body)}]})};};
     const timeoutRetry=await invoke(timeoutKey,'MA',timeoutId);
     check('the exact timed-out request identity can retry successfully',timeoutRetry.statusCode===200&&(await licensing.getUsageCount(timeoutKey))===1);
 
     __resetForTests();providerCalls=0;
     const lateKey=await svc.getOrCreateFreeLicense('late-generation@example.com');
     const lateId='generation_late_response_12345';
-    global.fetch=async()=>new Promise(resolve=>{
+    global.fetch=async(_url,options)=>new Promise(resolve=>{
       providerCalls++;
-      setTimeout(()=>resolve({ok:true,json:async()=>({content:[{text:'Too late to deliver'}]})}),70);
+      setTimeout(()=>resolve({ok:true,json:async()=>({content:[{text:validReportForProviderBody(options.body)}]})}),70);
     });
     const late=await invoke(lateKey,'MA',lateId);
     await new Promise(resolve=>setTimeout(resolve,90));
     check('a provider that ignores abort still times out promptly',late.statusCode===504&&late.jsonBody.reason==='generation_timeout');
     check('late success cannot commit quota after the handler timed out',(await licensing.getUsageCount(lateKey))===0&&providerCalls===1);
-    global.fetch=async()=>{providerCalls++;return {ok:true,json:async()=>({content:[{text:'Safe late-response retry'}]})};};
+    global.fetch=async(_url,options)=>{providerCalls++;return {ok:true,json:async()=>({content:[{text:validReportForProviderBody(options.body)}]})};};
     const lateRetry=await invoke(lateKey,'MA',lateId);
     check('late-response request marker is released for a safe retry',lateRetry.statusCode===200&&(await licensing.getUsageCount(lateKey))===1&&providerCalls===2);
 

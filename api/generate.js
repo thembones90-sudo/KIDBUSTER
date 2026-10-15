@@ -41,15 +41,44 @@ function buildCacheableSystemBlocks(systemPrompt) {
 import crypto from 'node:crypto';
 import { reserveGeneration, releaseGeneration, commitGeneration } from './_lib/license-service.js';
 import { ALWAYS_FREE_PROTOCOLS, TRIAL_GENERATIONS_PER_PROTOCOL } from './_lib/licensing.js';
-import { buildServerGeneration } from './_lib/server-generation.js';
+import { buildServerGeneration, evaluateGeneratedOutput, buildRepairMessage } from './_lib/server-generation.js';
 import {beginGenerationRequest,completeGenerationRequest,releaseGenerationRequest} from './_lib/kv-client.js';
 
-const DEFAULT_PROVIDER_TIMEOUT_MS=60000;
-function providerTimeoutMs(){
-  const configured=Number.parseInt(process.env.ANTHROPIC_TIMEOUT_MS||'',10);
-  return Number.isInteger(configured)&&configured>=10&&configured<=180000
-    ? configured : DEFAULT_PROVIDER_TIMEOUT_MS;
+const PROVIDER_URL='https://api.anthropic.com/v1/messages';
+const PROVIDER_MODEL='claude-sonnet-4-6';
+// vercel.json caps this function at 60 s. ALL provider work for one report —
+// the generation and at most one compliance repair — shares one deadline that
+// ends before that cap, so quota/request cleanup always gets to run.
+const DEFAULT_PROVIDER_TIMEOUT_MS=50000;
+const DEFAULT_GENERATION_BUDGET_MS=55000;
+const DEFAULT_MIN_REPAIR_WINDOW_MS=12000;
+function boundedEnvMs(name,fallback,min,max){
+  const configured=Number.parseInt(process.env[name]||'',10);
+  return Number.isInteger(configured)&&configured>=min&&configured<=max?configured:fallback;
 }
+function providerTimeoutMs(){return boundedEnvMs('ANTHROPIC_TIMEOUT_MS',DEFAULT_PROVIDER_TIMEOUT_MS,10,DEFAULT_GENERATION_BUDGET_MS);}
+function generationBudgetMs(){return boundedEnvMs('GENERATION_BUDGET_MS',DEFAULT_GENERATION_BUDGET_MS,20,DEFAULT_GENERATION_BUDGET_MS);}
+function minRepairWindowMs(){return boundedEnvMs('GENERATION_REPAIR_MIN_MS',DEFAULT_MIN_REPAIR_WINDOW_MS,10,30000);}
+
+// Token usage of the generation plus its repair, so the browser cost tracker
+// prices every call. Only numeric top-level counters are summed.
+function addUsage(a,b){
+  if(!b)return a||null;
+  if(!a)return {...b};
+  const sum={...a};
+  for(const [k,v] of Object.entries(b)){
+    if(typeof v==='number')sum[k]=(typeof sum[k]==='number'?sum[k]:0)+v;
+  }
+  return sum;
+}
+function providerText(data){
+  if(!Array.isArray(data?.content))return null;
+  return data.content.map(b=>b?.text||'').join('').trim()||null;
+}
+function wasTruncated(data){
+  return data?.stop_reason==='max_tokens'||data?.stop_reason==='model_context_window_exceeded';
+}
+function wordCount(text){return String(text||'').trim().split(/\s+/).filter(Boolean).length;}
 class ProviderTimeoutError extends Error{
   constructor(){super('Anthropic request timed out');this.name='ProviderTimeoutError';}
 }
@@ -82,9 +111,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  let systemPrompt,userMessage,protocol;
+  let systemPrompt,userMessage,protocol,form;
   try{
-    ({systemPrompt,userMessage,protocol}=buildServerGeneration((req.body||{}).generation));
+    ({systemPrompt,userMessage,protocol,form}=buildServerGeneration((req.body||{}).generation));
   }catch(err){
     return res.status(400).json({error:'Invalid generation request: '+err.message});
   }
@@ -152,9 +181,10 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server is not configured correctly (missing API key)' });
   }
 
+  const deadline=Date.now()+generationBudgetMs();
   let providerResult;
   try {
-    providerResult = await fetchProviderJsonWithTimeout('https://api.anthropic.com/v1/messages', {
+    providerResult = await fetchProviderJsonWithTimeout(PROVIDER_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -162,7 +192,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: PROVIDER_MODEL,
         // Beida's combined dual-field output (Learning Content up to 2000
         // chars + General/Detailed Performance up to 4000 chars, plus
         // header markers) can reach ~1500 tokens at the platform's own
@@ -176,7 +206,7 @@ export default async function handler(req, res) {
         system: buildCacheableSystemBlocks(systemPrompt),
         messages: [{ role: 'user', content: userMessage }]
       })
-    },providerTimeoutMs());
+    },Math.max(1,Math.min(providerTimeoutMs(),deadline-Date.now())));
   } catch (networkErr) {
     await releaseGeneration(entitlement.reservation).catch(err=>console.error('generate.js: reservation release failed:',err));
     await releaseRequest();
@@ -227,6 +257,82 @@ export default async function handler(req, res) {
     });
   }
 
+  // Final-output contract. A report is only delivered once the same trusted
+  // validators the browser uses find no blocking structural problem (hard
+  // length/field limits, required sections, delimiters, sign-off/identity,
+  // placeholders). One bounded repair is allowed, inside the same deadline,
+  // reservation and request marker; it never touches quota on its own.
+  let usage=data.usage||null;
+  let contract;
+  try{contract=evaluateGeneratedOutput(protocol,text,form);}
+  catch(contractErr){
+    await releaseGeneration(entitlement.reservation).catch(err=>console.error('generate.js: reservation release failed:',err));
+    await releaseRequest();
+    console.error('generate.js: output contract unavailable:',contractErr);
+    return res.status(500).json({error:'Report checks are temporarily unavailable. Nothing was charged and your lesson notes are safe; please try again shortly.',reason:'generation_unavailable'});
+  }
+  const repair={attempted:false,outcome:'not_needed'};
+  if(!contract.compliant||contract.softRepair){
+    const repairable=contract.blocking.every(f=>f.repairable);
+    const remaining=deadline-Date.now();
+    if(!repairable){
+      repair.outcome='not_repairable';
+    }else if(remaining<minRepairWindowMs()){
+      repair.outcome='no_time';
+    }else{
+      repair.attempted=true;
+      let repaired=null;
+      try{
+        const result=await fetchProviderJsonWithTimeout(PROVIDER_URL,{
+          method:'POST',
+          headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+          body:JSON.stringify({
+            model:PROVIDER_MODEL,
+            max_tokens:3000,
+            // Same cacheable protocol text as the first call (normally a cache
+            // read). The repair sees only the draft, never the transcript, so
+            // it can shorten or restructure but has no new facts to add.
+            system:buildCacheableSystemBlocks(systemPrompt),
+            messages:[{role:'user',content:buildRepairMessage(protocol,text,contract)}]
+          })
+        },remaining);
+        if(!result.response.ok||result.parseError){
+          repair.outcome='provider_error';
+        }else{
+          usage=addUsage(usage,result.data?.usage);
+          const candidate=providerText(result.data);
+          if(!candidate)repair.outcome='provider_error';
+          else if(wasTruncated(result.data))repair.outcome='truncated';
+          else repaired=candidate;
+        }
+      }catch(repairErr){
+        repair.outcome=repairErr?.name==='ProviderTimeoutError'?'timeout':'provider_error';
+      }
+      if(repaired!==null){
+        let repairedContract=null;
+        try{repairedContract=evaluateGeneratedOutput(protocol,repaired,form);}catch(err){console.error('generate.js: output contract failed on repair:',err);}
+        if(!repairedContract||!repairedContract.compliant){
+          repair.outcome='still_noncompliant';
+        }else if(!contract.compliant||wordCount(repaired)<wordCount(text)){
+          text=repaired;contract=repairedContract;repair.outcome='repaired';
+        }else{
+          repair.outcome='not_improved';
+        }
+      }
+    }
+  }
+  if(!contract.compliant){
+    await releaseGeneration(entitlement.reservation).catch(err=>console.error('generate.js: reservation release failed:',err));
+    await releaseRequest();
+    if(typeof res.setHeader==='function')res.setHeader('Retry-After','2');
+    return res.status(422).json({
+      error:'This report did not pass Pathfinder\'s format checks'+(repair.attempted?', even after one automatic correction':'')+'. Nothing was charged and your lesson notes are safe — please generate again.',
+      reason:'output_noncompliant',
+      checks:contract.blocking.map(f=>f.message),
+      repair
+    });
+  }
+
   // Commit the durable hold before returning report text. If the datastore
   // cannot confirm the commit, do not deliver the report; the abandoned hold
   // will be refunded after its lease expires on a later reservation attempt.
@@ -272,5 +378,10 @@ export default async function handler(req, res) {
   // frontend's cost tracker (see kidbusterStats() in index.html) can price
   // each token type correctly instead of treating everything as a normal
   // input token.
-  return res.status(200).json({ text, usage: data.usage || null, trialStatus });
+  return res.status(200).json({
+    text, usage, trialStatus,
+    // Structure passed the protocol contract. Educational accuracy is NOT
+    // verified by software: contentReviewed stays false until a teacher reviews.
+    outputContract:{compliant:true,contentReviewed:false,advisory:contract.advisory,repair}
+  });
 }

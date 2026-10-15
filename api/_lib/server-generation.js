@@ -75,7 +75,22 @@ export function buildServerGeneration(input){
     ? c.applyMASignoffEmoji(systemPrompt,form.teacherName,form.signoffEmoji)
     : c.applyProtocolSignoffEmoji(systemPrompt,form.teacherName,protocol,form.signoffEmoji);
   const userMessage=c.buildUserMessage({...form,notes:cleanedNotes});
-  return {protocol,systemPrompt,userMessage};
+  return {protocol,systemPrompt,userMessage,form};
+}
+
+// Final-output contract for a generated report, judged by the same trusted
+// core (and therefore the same validators the browser shows). Structural
+// compliance only: contentReviewed is always false.
+export function evaluateGeneratedOutput(protocol,text,form){
+  return core().evaluateOutputContract(protocol,text,{
+    rating:form.rating,teacherName:form.teacherName,lengthFormat:form.lengthFormat,
+    studentGender:(form.studentGender||'').toLowerCase(),signoffEmoji:form.signoffEmoji,
+    preplyModule:form.preplyModule,studentName:form.studentName,preplyTrialPerson:form.preplyTrialPerson
+  });
+}
+
+export function buildRepairMessage(protocol,draft,contract){
+  return core().buildComplianceRepairPrompt(protocol,draft,contract);
 }
 
 export function __resetServerGenerationForTests(){cachedCore=null;}

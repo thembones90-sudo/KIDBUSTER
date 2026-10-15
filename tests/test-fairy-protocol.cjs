@@ -7,7 +7,7 @@ module.exports=function run(){
   const {check,getFailures}=createChecker();
   console.log('\n=== test-fairy-protocol.cjs ===');
 
-  function report({rating='4',section=true,stars=true,signoff='Love,\nTeacher Layne',extra='',includeGrammar=true}={}){
+  function report({rating='4',section=true,stars=true,signoff='Love,\nTeacher Layne',extra='',includeGrammar=true,includePositive=true}={}){
     const sections=[
       'Hi Momo!',
       'Today we practiced how to describe magical animals.',
@@ -18,11 +18,13 @@ module.exports=function run(){
       '"The dragon is flying."',
       'Grammar Points We Covered:',
       'Present continuous: is flying.',
+      'Positive Feedback: You described the dragon with a full sentence after one example. 👍👏',
       'Mini Homework:',
       'Write two sentences describing a magical animal.'
     ];
     if(!section)sections.splice(sections.indexOf('Mini Homework:'),1);
     if(!includeGrammar)sections.splice(sections.indexOf('Grammar Points We Covered:'),1);
+    if(!includePositive)sections.splice(sections.findIndex(x=>x.startsWith('Positive Feedback:')),1);
     if(stars)sections.push('Total Stars Today:', '⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
     if(extra)sections.push(extra);
     sections.push(signoff);
@@ -36,6 +38,7 @@ module.exports=function run(){
   const valid=core.analyzeFairyOutput(report(), '4', 'Layne', core.LENGTH_TIERS.long);
   check('valid complete Fairy report has zero warnings', valid.length===0);
   check('missing homework is flagged',core.analyzeFairyOutput(report({section:false}),'4','Layne').some(w=>w.includes('Mini Homework')));
+  check('missing Positive Feedback section is flagged',core.analyzeFairyOutput(report({includePositive:false}),'4','Layne').some(w=>w.includes('Positive Feedback section is missing')));
   check('missing grammar points is flagged',core.analyzeFairyOutput(report({includeGrammar:false}),'4','Layne').some(w=>w.includes('Grammar Points We Covered')));
   check('wrong teacher signoff is flagged',core.analyzeFairyOutput(report({signoff:'Love,\nTeacher Nina'}),'4','Layne').some(w=>w.includes('Closing sign-off')));
   check('under-3 rating with stars is flagged',core.analyzeFairyOutput(report(),'2.5','Layne').some(w=>w.includes('omitted')));

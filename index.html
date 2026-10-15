@@ -2814,6 +2814,22 @@ const KidbusterCore = (function(){
     "6": "The student demonstrated truly extraordinary performance that went beyond normal expectations for their level. Celebrate exceptional mastery, independence, insight, or creativity supported by clear lesson evidence. Make the feedback memorable and genuinely celebratory without inventing achievements or treating enthusiasm alone as proof of excellence."
   };
   const RATING_EVIDENCE_GUARD = "The selected rating controls tone and level of encouragement, not the underlying facts. Use lesson notes and transcript evidence for claims about behavior, effort, mistakes, understanding, independence or achievements. Never infer lack of effort, inattention, misconduct or extraordinary mastery solely from a score. When evidence is missing or contradictory, report conservatively without inventing successes or failures. Keep feedback constructive at every rating. A 6/5 must be supported by extraordinary observed achievement; the score alone is not evidence.";
+  // Shared evidence discipline (Judgment layer, centralized). Added after the
+  // 2026-10-15 live-output audit found invented lesson history, scaffolded
+  // answers reported as independent mastery, pronunciation diagnoses read off
+  // speech-to-text spelling, and guaranteed outcomes. Every protocol embeds this
+  // block in its static (cacheable) text; each protocol keeps its own voice.
+  const EVIDENCE_GROUNDING_RULES = `EVIDENCE GROUNDING RULES (ALL PROTOCOLS, IMMUTABLE)
+• This lesson only. Never mention previous lessons, earlier sessions, habits or "as always/every lesson/again" history unless the lesson evidence explicitly describes it.
+• Support is not independence. When the teacher modeled, started or finished a sentence and the student repeated or completed it, describe it as practice with support. Call something independent, unprompted or mastered only when the student clearly produced it without a model.
+• A transcript records words, not sounds. Speech-to-text often mishears. Never diagnose how the student mispronounced a word (for example "said X instead of Y", "shortened the vowel", "dropped the ending") from transcribed spelling. If the teacher explicitly corrected or drilled a word's pronunciation, you may say the word was practiced and give its correct model pronunciation.
+• Odd words, garbled fragments and words split across speaker turns are usually transcription errors. Never present them as the student's mistakes, opinions, preferences or achievements.
+• Teacher questions, suggestions and modeled sentences are not student accomplishments. Never credit the student with something only the teacher said.
+• Homework, practice ideas and next steps are your recommendations. Never state they were assigned, agreed or completed unless the lesson evidence says so.
+• Never promise or guarantee results ("will definitely", "will click into place", "will soon master"). Recommend instead ("more practice with X would help").
+• Model correct, standard English. If the teacher used nonstandard phrasing (for example "very good" used as an adverb), never reproduce it as a model sentence, vocabulary note or grammar example; use the correct form.
+• The selected rating, module, length, pronoun and Special Remarks are authoritative settings. Follow them exactly, but never invent lesson events to justify them.
+• When evidence is thin, uncertain or contradictory, say less. Omission is always better than a confident claim the evidence does not support.`;
 
   // OF no longer shares MA's numeric rating scale at all. It has its own
   // 5-tier qualitative scale, selected directly by the teacher — this is
@@ -2859,7 +2875,7 @@ const KidbusterCore = (function(){
   // only a small block of runtime parameters (selected rating, computed
   // Parent Note flag) is appended after it at generation time.
   // ---------------------------------------------------------------------
-  const MA_PROTOCOL_V2_9_SOURCE = `MA PROTOCOL COMMAND CHAIN V2.9
+  const MA_PROTOCOL_V2_10_SOURCE = `MA PROTOCOL COMMAND CHAIN V2.10
 
 When instructed to generate "MA", always produce the complete Master Protocol child feedback using the IMMUTABLE MA TEMPLATE exactly as defined below.
 
@@ -2874,6 +2890,8 @@ ${LEVELS.map(lvl => '• ' + lvl + '/5 = ' + LEVEL_TONE_DESC[lvl]).join('\n')}
 
 RATING EVIDENCE RULE (ALL RATINGS)
 ${RATING_EVIDENCE_GUARD}
+
+${EVIDENCE_GROUNDING_RULES}
 
 ────────────────────────────────────────
 
@@ -2923,7 +2941,8 @@ Content
 Template Rules
 
 • Parent Note appears ONLY for ratings 1, 1.5, 2 and 2.5.
-• Pronunciation Focus appears ONLY if pronunciation was meaningfully practiced or corrected.
+• Pronunciation Focus appears ONLY if the teacher explicitly practiced or corrected a word's pronunciation in the lesson evidence. Each cue gives the correct model pronunciation (stress, syllables, a rhyme) — never a description of how the student said it wrong, which a transcript cannot show.
+• Each vocabulary Note describes what the evidence shows about the student's use of that word: used it in a sentence, used it with support, matched it in an activity, practiced it. Never write "said it clearly", "every time", "understood it quickly" or similar unless the evidence explicitly shows it.
 • Include up to 10 vocabulary items. If fewer meaningful words were taught, include only those actually covered — omit the unused lines completely. Never leave a blank, placeholder, or "not covered" line where a vocabulary item would have gone, and never invent vocabulary to fill empty slots. A 6-word lesson produces exactly 6 vocabulary lines, not 10 lines with 4 left empty.
 • Include only grammar points genuinely covered during the lesson. Do not invent grammar topics simply to complete the template. If no meaningful grammar instruction occurred during the lesson, omit the entire "Grammar Points We Covered" section — heading and all — rather than including it empty or with invented content. The "Grammar & Sentence Practice" example sentences are independent of this: keep them if they occurred naturally in the lesson, even when there's no formal grammar point to report alongside them.
 • Choose exactly one Today's Superpower — the student's strongest demonstrated skill during today's specific lesson, not a generic or randomly-selected positive trait.
@@ -3047,6 +3066,7 @@ Before returning the report, verify:
 ✓ Teacher Notes incorporated — including any behavioral or disciplinary concern, clearly reflected (in the Parent Note when one is required).
 ✓ Transcript cleaned.
 ✓ No invented lesson content.
+✓ Evidence Grounding Rules followed: no previous-lesson history, supported work not called independent, no pronunciation diagnosis from transcript spelling, no guaranteed outcomes, no nonstandard teacher phrasing reproduced as a model.
 ✓ Parent Note only for ratings 1–2.5.
 ✓ Exactly one Superpower selected.
 ✓ Exactly one Homework Mission selected.
@@ -3062,7 +3082,7 @@ Before returning the report, verify:
 ✓ No markdown formatting.
 ✓ Closing exactly matches the protocol.`;
 
-  const OF_PROTOCOL_V1_4_SOURCE = `OF PROTOCOL COMMAND CHAIN V1.4 (OVERALL FEEDBACK — TRIAL EVALUATION)
+  const OF_PROTOCOL_V1_5_SOURCE = `OF PROTOCOL COMMAND CHAIN V1.5 (OVERALL FEEDBACK — TRIAL EVALUATION)
 
 When instructed to generate "OF", always produce the complete Overall Feedback trial-lesson narrative using the IMMUTABLE OF TEMPLATE exactly as defined below.
 
@@ -3120,9 +3140,13 @@ Formatting
 • Never use markdown formatting.
 • No emojis — this is a concise professional narrative, not a parent-facing lesson recap.
 • Preserve the exact section order of the template: Strengths, then Areas for Improvement, then Learning Suggestions. No other sections.
-• Total length should stay between approximately 180 and 300 words across all three sections combined.
+• Total length should stay between approximately 180 and 300 words across all three sections combined. Aim for about 220-270 words; 300 is a ceiling, not a target. If there is more to say, keep only the best-evidenced points.
 
 Content
+
+${EVIDENCE_GROUNDING_RULES}
+
+• Evaluate at the level the evidence shows. Prefer precise phrasing such as "with a model to follow", "after repeated prompting" or "by the end of the lesson, with support" over inflated judgments such as "a solid ability", "a good ear" or "growing independence" unless the transcript clearly shows it.
 
 • Always incorporate any additional Teacher Notes supplied by Layne — treat them as high-priority factual input, not optional color. Teacher Notes always override transcript interpretation when the two conflict. If Teacher Notes describe a behavioral concern or something notable that happened during the trial lesson (for example, the student misbehaving, refusing to participate, or acting out), this must be clearly and specifically reflected — most often within Areas for Improvement — never vaguely alluded to, softened into meaninglessness, or left out entirely.
 • Never invent lesson content, abilities, weaknesses, or achievements that were not reasonably supported by the transcript or Teacher Notes.
@@ -3161,6 +3185,7 @@ Before returning the report, verify:
 ✓ Teacher Notes incorporated — including any behavioral or disciplinary concern, clearly reflected (most often within Areas for Improvement).
 ✓ Transcript cleaned.
 ✓ No invented content — anything unassessable was omitted, not fabricated.
+✓ Evidence Grounding Rules followed; supported work is not described as independent.
 ✓ No level, CEFR label, qualitative tier name, or platform field restated anywhere in the text.
 ✓ Strengths and Areas for Improvement each individually under 1300 characters.
 ✓ Total length approximately 180-300 words.
@@ -3224,6 +3249,9 @@ ${LEVELS.map(score => '  • ' + score + '/5: ' + LEVEL_TONE_DESC[score]).join('
 * Selected rating for this report: ${lvl}/5. Use this specific tone; never round a half-point.
 * Evidence rule for every rating: ${RATING_EVIDENCE_GUARD}
 * Keep the immutable Fairy template, child-friendly narration and teacher sign-off. The rating changes wording and emphasis, never established facts or report structure.
+* Imagination belongs in the storytelling voice, never in the facts. Every vocabulary note, grammar point and piece of praise must come from this lesson's evidence.
+
+${EVIDENCE_GROUNDING_RULES}
 
 * If there is "Irrelevant" or "Speaker" name in the transcript, I will completely ignore those parts.
 * No weird glyphs, no decorative nonsense, no visual garbage
@@ -3266,13 +3294,30 @@ Grammar Points We Covered
 [Grammar Rule 4] – [Brief explanation of the rule] 👉 [Two example sentences related to today’s lesson topic]
 [Grammar Rule 5] (optional) – [Brief explanation of the rule] 👉 [Two example sentences related to today’s lesson topic]
 
-Positive Feedback: [Encouragement with specific examples of progress, e.g. clear pronunciation, better sentence use, good listening, more confidence.] 👍👏
+Positive Feedback: [Encouragement with specific examples from today's evidence, e.g. a sentence the student built, an activity completed, good listening. Say "with help" when the teacher supported it.] 👍👏
 
 Mini Homework: [Simple practice task: repeat new words, make 2-3 sentences, or short speaking drill.]
 Total stars today: [randomized 10 stars from preferred star set]
 [Closing line with encouragement and goodbye]
 
-Love, Teacher [Name]`;
+Love, Teacher [Name]` + '\n\n────────────────────────────────────────\n\n' + buildFairyLengthRule(params && params.lengthFormat);
+  }
+
+  // Fairy's validator has always enforced the selected Short/Medium/Long
+  // character ceiling, but its prompt never stated one — the 2026-10-15 audit
+  // measured a Medium report at 3997 characters against the 3000 ceiling. This
+  // runtime tail states the ceiling and a Fairy-specific trim rule (Fairy has no
+  // Pronunciation Focus section, so MA's trim rule cannot be reused verbatim).
+  const FAIRY_TRIM_RULES = {
+    short: 'SHORT format: at most 6 vocabulary items, each Note 8 words or fewer; at most 1 grammar point; exactly 2 practice sentences; Positive Feedback at most 2 sentences; Mini Homework one sentence.',
+    medium: 'MEDIUM format: at most 8 vocabulary items, each Note 12 words or fewer; at most 3 grammar points; Positive Feedback at most 4 sentences; Mini Homework at most 2 sentences. Leave out words that were barely touched rather than padding the list.',
+    long: 'LONG format: no extra reduction beyond the template, but every line must still be grounded in the evidence.'
+  };
+  function buildFairyLengthRule(lengthFormatKey){
+    const tier = LENGTH_TIERS[lengthFormatKey] || LENGTH_TIERS.long;
+    return 'ABSOLUTE CHARACTER LIMIT FOR THIS REPORT (selected length: ' + tier.label + ')\n' +
+      'The complete report — every section, every star and the sign-off — must stay under ' + tier.hardCeiling + ' characters. The app enforces this ceiling; a report at or over it cannot be sent. Write toward ' + tier.softTarget + ' characters.\n' +
+      FAIRY_TRIM_RULES[tier.key] + ' These limits override the maximum counts shown in the template. Never drop a required section or the sign-off to save space.';
   }
 
   /**
@@ -3310,7 +3355,7 @@ Love, Teacher [Name]`;
 
   function buildMASystemPrompt(params){
     const runtimeParams = buildMARuntimeParams(params);
-    const combined = MA_PROTOCOL_V2_9_SOURCE + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
+    const combined = MA_PROTOCOL_V2_10_SOURCE + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
     const variantKey = pickClassicStyleVariant(params);
     const classicStyleRuntime =
       'CLASSIC STYLE VARIANT FOR THIS REPORT (hidden app choice; do not mention this to the user):\n' +
@@ -3331,7 +3376,7 @@ Love, Teacher [Name]`;
    * Integration, the character limit, every Universal Rule, the template,
    * the validation checklist — word for word. That content is NOT
    * duplicated into a second, separately-maintained copy: it's sliced
-   * live from MA_PROTOCOL_V2_9_SOURCE (everything from "LEVEL INTEGRATION"
+   * live from MA_PROTOCOL_V2_10_SOURCE (everything from "LEVEL INTEGRATION"
    * onward, i.e. every rule except MA's own three-paragraph opening
    * framing, which Sweet Protocol replaces with its own). This means any
    * future revision to MA's rules — a version bump, a new refinement —
@@ -3346,7 +3391,7 @@ Love, Teacher [Name]`;
    * Universal Rules and Template are used verbatim (not sliced from MA,
    * since this version writes its own). The Level Integration table, the
    * Absolute Character Limit rule, and the Validation Checklist ARE still
-   * sliced live from MA_PROTOCOL_V2_9_SOURCE — not duplicated — so any
+   * sliced live from MA_PROTOCOL_V2_10_SOURCE — not duplicated — so any
    * future revision to those three specific pieces of shared logic
    * carries through automatically.
    *
@@ -3362,16 +3407,16 @@ Love, Teacher [Name]`;
     const runtimeParams = buildMARuntimeParams(params);
 
     function extractMASection(startMarker, endMarker){
-      const startIdx = MA_PROTOCOL_V2_9_SOURCE.indexOf(startMarker);
-      const endIdx = endMarker ? MA_PROTOCOL_V2_9_SOURCE.indexOf(endMarker, startIdx) : undefined;
-      return MA_PROTOCOL_V2_9_SOURCE.slice(startIdx, endIdx).trim();
+      const startIdx = MA_PROTOCOL_V2_10_SOURCE.indexOf(startMarker);
+      const endIdx = endMarker ? MA_PROTOCOL_V2_10_SOURCE.indexOf(endMarker, startIdx) : undefined;
+      return MA_PROTOCOL_V2_10_SOURCE.slice(startIdx, endIdx).trim();
     }
     const levelIntegration = extractMASection('LEVEL INTEGRATION', 'ABSOLUTE CHARACTER LIMIT');
     const characterLimit = extractMASection('ABSOLUTE CHARACTER LIMIT (IMMUTABLE)', 'UNIVERSAL RULES');
     const validationChecklist = extractMASection('VALIDATION CHECKLIST');
 
     const sweetProtocol = [
-      'SWEET VOICE PROTOCOL COMMAND CHAIN V1.0',
+      'SWEET VOICE PROTOCOL COMMAND CHAIN V1.1',
       '',
       'Sweet Voice child feedback using the immutable SV template below.',
       '',
@@ -3386,6 +3431,10 @@ Love, Teacher [Name]`;
       '• Always use any extra information provided by Layne as a crucial, high-priority part of the feedback — never optional color, and it always overrides transcript interpretation when the two conflict. If it describes a behavioral concern or something notable that happened during the lesson (for example, the student misbehaving, refusing to participate, or acting out), reflect this clearly and specifically — most often within the Parent Note section when one is required (ratings 1, 1.5, 2, and 2.5) — in the same warm-but-honest voice as the rest of the report, never vaguely alluded to or left out entirely.',
       '• Vocabulary definitions must remain short and child-friendly.',
       "• Notes should be based on the student's actual performance whenever possible.",
+      '• Warmth comes from how lovingly you describe real moments from this lesson — never from invented ones. Never claim the child does something "every lesson" or "always", and never mention earlier lessons unless the evidence describes them.',
+      '• Each vocabulary Note describes what the evidence shows (used it in a sentence, used it with support, matched it in an activity, practiced it). Never write "said it clearly", "knew it right away" or similar unless the evidence explicitly shows it.',
+      '• Pronunciation Focus appears only if the teacher explicitly practiced or corrected a word\'s pronunciation. Each cue gives the correct model pronunciation, never a description of how the child said it wrong — a transcript cannot show sounds.',
+      "• Today's Superpower is mandatory: exactly one 🦸 skill, followed by the warm feedback paragraph about specific moments from today's lesson.",
       '• Keep the tone appropriate to the selected Level Integration score.',
       '• For ratings 1, 1.5, 2, and 2.5, Sweet Voice must still be honest about challenges evidenced by the notes or transcript. Keep language gentle but appropriately firmer than rating 3; never assume poor effort, weak focus, or behavior problems from the rating alone.',
       '• Ratings 3 and above must include exactly 10 star emojis together, on their own line near the end of the report, with no heading before them.',
@@ -3410,7 +3459,7 @@ Love, Teacher [Name]`;
       '',
       'Hi [Student Name]! 💖',
       '',
-      "[Write a sweet, loving opening that makes the child feel safe, appreciated, and excited about today's lesson.]",
+      "[Write a sweet, loving opening that makes the child feel safe, appreciated, and excited about today's lesson. Talk about today only.]",
       '',
       "Today's Lesson:",
       '📚 [Lesson Topic]',
@@ -3462,8 +3511,10 @@ Love, Teacher [Name]`;
       '👉 [Example sentence]',
       '👉 [Example sentence]',
       '',
-      '(Do not output this instruction. Simply write the section below, with no heading before it.)',
-      "Write warm, affectionate feedback that highlights specific moments from today's lesson. Celebrate effort first, progress second, and make the child feel genuinely proud.",
+      "Today's Superpower:",
+      '🦸 [Listening / Speaking / Reading / Pronunciation / Confidence / Teamwork / Focus / Creativity]',
+      '',
+      "[Warm, affectionate feedback that highlights specific moments from today's lesson. Celebrate effort first, progress second, and make the child feel genuinely proud — praising only what really happened.]",
       '',
       'Parent Note (Only for ratings 1, 1.5, 2 and 2.5)',
       '',
@@ -3518,7 +3569,7 @@ Love, Teacher [Name]`;
       '- This tier is guidance for tone only. It must never appear in the output as a score, label, heading, or recommendation, in this or any other form.'
     ].join('\n');
 
-    return OF_PROTOCOL_V1_4_SOURCE + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
+    return OF_PROTOCOL_V1_5_SOURCE + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
   }
 
   /**
@@ -3899,6 +3950,9 @@ Love, Teacher [Name]`;
     const superpowerCount = (text.match(/🦸/g) || []).length;
     if(superpowerCount === 0) warnings.push('No "Today\'s Superpower" emoji (🦸) found.');
     if(superpowerCount > 1) warnings.push('More than one Superpower emoji (🦸) found — should be exactly one.');
+    if(superpowerCount === 1 && !hasMeaningfulSuperpower(text)){
+      warnings.push('Today\'s Superpower section is not meaningful — it needs one named skill after 🦸 and a specific encouragement paragraph, not just the emoji.');
+    }
 
     // --- exactly one homework mission ---
     const missions = ['Vocabulary Mission','Grammar Mission','Speaking Mission'].filter(m => text.includes(m));
@@ -4044,9 +4098,9 @@ Love, Teacher [Name]`;
 
     const charCount = trimmed.length;
     if(charCount >= tier.hardCeiling){
-      warnings.push('CRITICAL: Report is ' + charCount + ' characters â€” at or over the absolute, immutable ' + tier.hardCeiling + '-character limit. This cannot be sent as-is.');
+      warnings.push('CRITICAL: Report is ' + charCount + ' characters — at or over the absolute, immutable ' + tier.hardCeiling + '-character limit. This cannot be sent as-is.');
     }else if(charCount > tier.softTarget){
-      warnings.push('Report is ' + charCount + ' characters â€” over the ' + tier.softTarget + ' working target. Trim before sending to stay safely under the ' + tier.hardCeiling + ' absolute limit.');
+      warnings.push('Report is ' + charCount + ' characters — over the ' + tier.softTarget + ' working target. Trim before sending to stay safely under the ' + tier.hardCeiling + ' absolute limit.');
     }
 
     warnings.push(...checkForbiddenFormatting(trimmed));
@@ -4059,7 +4113,7 @@ Love, Teacher [Name]`;
     }
 
     if(/\[[A-Za-z][^\]]*\]/.test(trimmed)){
-      warnings.push('Report contains an unfilled [placeholder] â€” replace it with the real student, vocabulary, grammar, or teacher detail before sending.');
+      warnings.push('Report contains an unfilled [placeholder] — replace it with the real student, vocabulary, grammar, or teacher detail before sending.');
     }
 
     const starsSectionMatch = trimmed.match(/total stars today:?\s*([\s\S]*?)(?:\n\s*\n|$)/i);
@@ -4084,6 +4138,9 @@ Love, Teacher [Name]`;
     }
     if(!/Mini Homework/i.test(trimmed)){
       warnings.push('Mini Homework section is missing.');
+    }
+    if(!/Positive Feedback:?\s*\S/i.test(trimmed)){
+      warnings.push('Positive Feedback section is missing.');
     }
 
     const emoji = (customEmoji || '').trim();
@@ -4224,7 +4281,7 @@ Love, Teacher [Name]`;
   // UI options — they're internal writing-style variants belonging to
   // Blitz. Exactly one is randomly selected per generation and its full
   // example text is shown to the model as a style guide (not a fill-in-
-  // the-blank template to copy verbatim) — see BLITZ_PROTOCOL_V1_0_SOURCE's
+  // the-blank template to copy verbatim) — see BLITZ_PROTOCOL_V1_1_SOURCE's
   // own instruction on this below. Adding an 11th model later means only
   // appending to this array — nothing else in the protocol changes.
   const BLITZ_VOICES = ['warm', 'simple', 'polished'];
@@ -4233,7 +4290,7 @@ Love, Teacher [Name]`;
   // Two-dimensional: Focus (10 archetypes, picked automatically via the
   // shuffle bag below, unchanged from V1.0) x Voice (3 selectable writing
   // voices, chosen by the teacher via a UI dropdown). Same comment focus,
-  // different sound — see BLITZ_PROTOCOL_V1_0_SOURCE's own WRITING MODEL
+  // different sound — see BLITZ_PROTOCOL_V1_1_SOURCE's own WRITING MODEL
   // section for how this gets used as a style example, never a template to
   // copy verbatim.
   const BLITZ_MODEL_POOL = {
@@ -4342,7 +4399,7 @@ Love, Teacher [Name]`;
     return blitzShuffleBag.pop();
   }
 
-  const BLITZ_PROTOCOL_V1_0_SOURCE = `BLITZ PROTOCOL COMMAND CHAIN V1.0
+  const BLITZ_PROTOCOL_V1_1_SOURCE = `BLITZ PROTOCOL COMMAND CHAIN V1.1
 
 PURPOSE
 
@@ -4385,6 +4442,8 @@ Unsafe conclusions (not stated, and therefore never assumed):
 - Vocabulary retention was excellent.
 
 Apply this same distinction to whatever lesson evidence is actually supplied for this generation, however much or little it is — only state what it reasonably supports, never a specific skill, activity, or improvement it doesn't mention.
+
+${EVIDENCE_GROUNDING_RULES}
 
 IMMUTABLE RULES
 
@@ -4482,7 +4541,7 @@ VALIDATION CHECKLIST
     if(typeof console !== 'undefined' && console.log){
       console.log('[Kidbuster Blitz] selected focus:', focusKey, '(' + focus.label + ') / voice:', voice);
     }
-    return BLITZ_PROTOCOL_V1_0_SOURCE
+    return BLITZ_PROTOCOL_V1_1_SOURCE
       .split('__BLITZ_MODEL_LABEL__').join(focus.label)
       .split('__BLITZ_MODEL_TEXT__').join(modelText);
   }
@@ -4602,7 +4661,7 @@ VALIDATION CHECKLIST
     try_harder:  { key: 'try_harder',  label: 'try harder please' }
   };
 
-  const BEIDA_PROTOCOL_V1_0_SOURCE = `BEIDA PROTOCOL COMMAND CHAIN V1.0
+  const BEIDA_PROTOCOL_V1_1_SOURCE = `BEIDA PROTOCOL COMMAND CHAIN V1.1
 
 PURPOSE
 
@@ -4622,6 +4681,8 @@ Treat all supplied lesson evidence as the complete factual record of the lesson 
 SAFE INFERENCE PRINCIPLE
 
 Distinguish clearly between safe and unsafe inference from the supplied lesson evidence, the same way a careful teacher would. Only state what the evidence reasonably supports — never a specific skill, activity, vocabulary word, or improvement it doesn't mention, however plausible it might sound.
+
+${EVIDENCE_GROUNDING_RULES}
 
 STUDENT PERFORMANCE RATING (IMMUTABLE)
 
@@ -4691,7 +4752,7 @@ VALIDATION CHECKLIST
 
   function buildBeidaSystemPrompt(params){
     const runtimeParams = buildBeidaRuntimeParams(params);
-    return BEIDA_PROTOCOL_V1_0_SOURCE + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
+    return BEIDA_PROTOCOL_V1_1_SOURCE + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
   }
 
   /**
@@ -4783,7 +4844,7 @@ VALIDATION CHECKLIST
   // Report, etc.) is a new entry in PREPLY_MODULES and nothing else —
   // no new protocol key, no new UI pattern, no change to how generation
   // or validation is wired.
-  const PREPLY_SHARED_HEADER = `PREPLY PROTOCOL COMMAND CHAIN V1.0
+  const PREPLY_SHARED_HEADER = `PREPLY PROTOCOL COMMAND CHAIN V1.1
 
 You are generating a private tutoring communication for Pathfinder, used
 by independent English tutors on platforms like Preply.
@@ -4805,6 +4866,15 @@ invent detail. Reasonable educational inference is allowed (a student
 who corrected their own mistake after a prompt is reasonably "building
 self-correction skills"); outright hallucination — an activity, a
 mistake, or a quote that never happened — is forbidden.
+
+${EVIDENCE_GROUNDING_RULES}
+
+VOICE RULE
+You are the tutor who taught this lesson, writing in your own voice.
+Refer to yourself in the first person ("I noticed", "we practiced",
+"I gave a model sentence to follow"). Never refer to yourself by name or as
+"the teacher"/"the tutor" in the third person — the reader knows who
+is writing. Any teacher name in the transcript is you.
 
 NATURAL LANGUAGE RULE
 Avoid corporate or AI-toned openers and closers — phrases like "We
@@ -4910,7 +4980,9 @@ participation and progress.
 Tone: warm but professional — 70% professional, 30% warm. Never
 patronizing: a parent is an adult who deserves a clear, respectful
 update, not just reassurance.
-Length: 90-150 words.
+Length: 90-150 words. Aim for about 110-130 words; 150 is the maximum,
+not a target. A parent reads this on a phone — keep only the clearest
+points.
 
 Refer to the child by name throughout, in third person ("Emma
 practiced...", not "you practiced..."), since this message is addressed
@@ -5009,7 +5081,107 @@ because it's about a single lesson.`
       warnings.push('Message contains an unfilled [placeholder] — replace it with the real name or detail before sending.');
     }
 
+    // The tutor is the author. Naming the teacher inside the message reads
+    // like an outside observer ("the sentence frames Nora offered him").
+    const teacher = (teacherName || '').trim();
+    if(teacher && new RegExp('(^|[^\\p{L}])' + teacher.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\p{L}])', 'iu').test(trimmed)){
+      warnings.push('Message refers to the teacher (' + teacher + ') in the third person — write as the tutor, in the first person ("I", "we").');
+    }
+
     return warnings;
+  }
+
+  function hasMeaningfulSuperpower(text){
+    const match = String(text || '').match(/🦸\s*([^\n]*)\n([\s\S]*?)(?=\n\s*(?:Parent Note|Mini Homework|Vocabulary Mission|Grammar Mission|Speaking Mission)|$)/i);
+    if(!match) return false;
+    const skill = match[1].replace(/[^\p{L}\s/]/gu, '').trim();
+    const encouragement = match[2].trim();
+    return skill.length >= 3 && encouragement.length >= 60;
+  }
+
+  // ---------- Final output contract (server-enforced) ----------
+  // Every protocol's analyze() remains the single source of truth for WHAT is
+  // checked (the browser shows the same warnings). This layer only decides
+  // which findings make a report not send-ready. Blocking findings are
+  // structural facts (hard length/field limits, required sections, delimiters,
+  // sign-off/identity facts, leaked placeholders). Everything else stays an
+  // advisory warning. A compliant result means the STRUCTURE passed; it says
+  // nothing about educational accuracy, which only a teacher can judge.
+  const BLOCKING_FINDINGS = [
+    { code:'length_hard', re:/^CRITICAL: (Report is \d+ characters|Comment is \d+ words)/ },
+    { code:'identity', re:/^CRITICAL: Student identity mismatch/ },
+    { code:'section', re:/No "Today's Superpower"|Superpower section is not meaningful|More than one Superpower|No homework mission found|Multiple homework missions|Parent Note section is (missing|present)|section is missing\.$|Missing required section|Sections are out of order/ },
+    { code:'structure', re:/Could not find both "LEARNING CONTENT:"/ },
+    { code:'length_field', re:/^(Strengths section|Areas for Improvement section|Learning Content|General and Detailed Performance) is \d+ characters/ },
+    { code:'signoff', re:/Closing sign-off does not exactly match|Custom teacher sign-off is missing|does not open with "Hi / },
+    { code:'placeholder', re:/placeholder/i },
+    { code:'pronoun', re:/^Report uses "(she|he)"/ },
+    { code:'tier_leak', re:/qualitative guidance tier label/ },
+    { code:'voice', re:/in the third person/ }
+  ];
+  const SOFT_WORD_TOLERANCE = 1.15;
+
+  function countWords(text){ return String(text || '').trim().split(/\s+/).filter(Boolean).length; }
+
+  function contractLimits(protocol, ctx){
+    if(protocol === 'MA' || protocol === 'MS' || protocol === 'FAIRY'){
+      const tier = LENGTH_TIERS[ctx.lengthFormat] || LENGTH_TIERS.long;
+      return { goal:'the complete report under ' + tier.softTarget + ' characters (absolute maximum ' + (tier.hardCeiling - 1) + ')' };
+    }
+    if(protocol === 'BLITZ') return { goal:'70-120 words of prose (absolute maximum 150)' };
+    if(protocol === 'BEIDA') return { goal:'Learning Content 200-2000 characters and General and Detailed Performance 200-4000 characters, as two separate fields' };
+    if(protocol === 'OF') return { goal:'about 220-270 words in total (never over 300), with Strengths and Areas for Improvement each under 1300 characters', targetWords:300 };
+    const module = PREPLY_MODULES[ctx.preplyModule] || PREPLY_MODULES.adult;
+    return { goal:'about ' + Math.round((module.minWords + module.maxWords) / 2) + ' words (never over ' + module.maxWords + ')', targetWords:module.maxWords };
+  }
+
+  function evaluateOutputContract(protocol, text, ctx){
+    ctx = ctx || {};
+    const definition = PROTOCOLS[protocol];
+    if(!definition) throw new Error('Unsupported protocol');
+    const body = String(text || '').trim();
+    if(!body){
+      return { compliant:false, contentReviewed:false, blocking:[{ code:'empty', message:'Output is empty.', repairable:false }], advisory:[], softRepair:false, limits:contractLimits(protocol, ctx) };
+    }
+    const findings = definition.analyze(body, ctx.rating, ctx.teacherName, ctx.lengthFormat, ctx.studentGender, ctx.signoffEmoji, ctx.preplyModule, ctx.studentName, ctx.preplyTrialPerson);
+    const blocking = [], advisory = [];
+    for(const message of findings){
+      const rule = BLOCKING_FINDINGS.find(r => r.re.test(message));
+      if(rule) blocking.push({ code:rule.code, message, repairable:true });
+      else advisory.push(message);
+    }
+    const limits = contractLimits(protocol, ctx);
+    let softRepair = false;
+    if(limits.targetWords){
+      const signed = (protocol === 'PREPLY') ? stripOptionalTeacherFooter(body, ctx.teacherName, ctx.signoffEmoji).body : body;
+      softRepair = countWords(signed) > Math.floor(limits.targetWords * SOFT_WORD_TOLERANCE);
+    }
+    return { compliant: blocking.length === 0, contentReviewed:false, blocking, advisory, softRepair, limits };
+  }
+
+  function buildComplianceRepairPrompt(protocol, draft, contract){
+    const problems = contract.blocking.map(f => f.message);
+    if(contract.softRepair) problems.push('The draft is well over the length target for this protocol.');
+    return [
+      'COMPLIANCE REVISION — ONE ATTEMPT ONLY',
+      '',
+      'Your draft report below failed these automatic checks:',
+      ...problems.map(p => '- ' + p),
+      '',
+      'Rewrite the complete report so it passes every check and follows the protocol in your instructions exactly.',
+      'Rules for this revision:',
+      '- Keep the same protocol voice and personality, section headings, section order, student name, teacher sign-off and settings.',
+      '- Use only facts already present in the draft. Do not add any new activity, achievement, quote, vocabulary word, lesson history or detail.',
+      '- To shorten, cut the least important details first (extra vocabulary items, long notes, extra grammar points, repeated praise). Never remove a required section, the star line or the sign-off.',
+      '- If a required section is missing, write it using only what the draft already says.',
+      '- Length goal: ' + contract.limits.goal + '.',
+      '- Output only the revised report, with nothing before or after it.',
+      '',
+      'DRAFT:',
+      '<<<',
+      String(draft || '').trim(),
+      '>>>'
+    ].join('\n');
   }
 
   // ProtocolManager: both official protocols implement the same interface
@@ -5132,7 +5304,7 @@ because it's about a single lesson.`
   };
 
   // Substitutes the __SOFT_TARGET__ / __HARD_CEILING__ / __LENGTH_TRIM_RULE__
-  // tokens embedded in MA_PROTOCOL_V2_9_SOURCE's character-limit language
+  // tokens embedded in MA_PROTOCOL_V2_10_SOURCE's character-limit language
   // with the numbers and mandatory content-reduction rule for whichever
   // tier was selected. Falls back to 'long' for any unknown or
   // missing key, so old drafts / callers that never pass a lengthFormat at
@@ -5153,13 +5325,13 @@ because it's about a single lesson.`
     OF_QUALITATIVE_TIER_DESC,
     MA_PARENT_NOTE_LEVELS,
     CLASSIC_STYLE_VARIANTS,
-    MA_PROTOCOL_V2_9_SOURCE,
-    OF_PROTOCOL_V1_4_SOURCE,
-    BLITZ_PROTOCOL_V1_0_SOURCE,
+    MA_PROTOCOL_V2_10_SOURCE,
+    OF_PROTOCOL_V1_5_SOURCE,
+    BLITZ_PROTOCOL_V1_1_SOURCE,
     BLITZ_MODEL_POOL,
     BLITZ_VOICES,
     BLITZ_DEFAULT_VOICE,
-    BEIDA_PROTOCOL_V1_0_SOURCE,
+    BEIDA_PROTOCOL_V1_1_SOURCE,
     BEIDA_RATING_TIERS,
     LENGTH_TIERS,
     isHalfPoint,
@@ -5189,6 +5361,9 @@ because it's about a single lesson.`
     checkForbiddenFormatting,
     buildPreplySystemPrompt,
     analyzePreplyOutput,
+    EVIDENCE_GROUNDING_RULES,
+    evaluateOutputContract,
+    buildComplianceRepairPrompt,
     PREPLY_MODULES,
     PROTOCOLS
   };
@@ -6610,6 +6785,9 @@ async function callClaude(generation){
       const err = new Error('This request already completed, but its report could not be recovered. Your lesson notes are still here.');
       err.requiresRegenerationConfirmation = true;
       throw err;
+    }
+    if(response.status === 422 && reason === 'output_noncompliant'){
+      throw new Error(detail || 'This report did not pass Pathfinder\'s format checks. Nothing was charged and your lesson notes are safe — please generate again.');
     }
     if(response.status === 504 && reason === 'generation_timeout'){
       throw new Error('Report generation took too long. Your lesson notes are still here—wait a moment, then try again.');
