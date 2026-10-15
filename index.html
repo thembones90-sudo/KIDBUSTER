@@ -3941,7 +3941,10 @@ Love, Teacher [Name]` + '\n\n─────────────────
     warnings.push(...checkForbiddenFormatting(text));
 
     // --- Parent Note gating ---
-    const hasParentNote = /Parent Note:/i.test(text);
+    // MA prints "Parent Note:"; Sweet Voice's template prints its headings
+    // without colons ("Parent Note"). Accept the heading either way, as a line
+    // of its own or followed by a colon — the section itself stays required.
+    const hasParentNote = /Parent Note:|(^|\n)\s*Parent Note\s*(\(|\n)/i.test(text);
     const expectParentNote = MA_PARENT_NOTE_LEVELS.includes(lvl);
     if(expectParentNote && !hasParentNote) warnings.push('Parent Note section is missing (required at ratings 1, 1.5, 2, and 2.5).');
     if(!expectParentNote && hasParentNote) warnings.push('Parent Note section is present but should be omitted above rating 2.5.');
@@ -4178,9 +4181,12 @@ Love, Teacher [Name]` + '\n\n─────────────────
     // requires a specific pronoun be present at all, since a report that
     // leans on the student's name instead of pronouns is a style choice,
     // not an error.
-    if(gender === 'boy' && /\b(she|her|hers)\b/i.test(text)){
+    // Quoted speech is ignored: a student's own sentence about a story
+    // character ("He is brave.") is not a pronoun for the student.
+    const unquoted = text.replace(/["“][^"”\n]*["”]/g, ' ');
+    if(gender === 'boy' && /\b(she|her|hers)\b/i.test(unquoted)){
       warnings.push('Report uses "she"/"her" despite the student pronoun being specified as Boy (he/him) — check for an incorrect pronoun.');
-    }else if(gender === 'girl' && /\b(he|him|his)\b/i.test(text)){
+    }else if(gender === 'girl' && /\b(he|him|his)\b/i.test(unquoted)){
       warnings.push('Report uses "he"/"him"/"his" despite the student pronoun being specified as Girl (she/her) — check for an incorrect pronoun.');
     }
 
@@ -5115,10 +5121,13 @@ because it's about a single lesson.`
     { code:'length_field', re:/^(Strengths section|Areas for Improvement section|Learning Content|General and Detailed Performance) is \d+ characters/ },
     { code:'signoff', re:/Closing sign-off does not exactly match|Custom teacher sign-off is missing|does not open with "Hi / },
     { code:'placeholder', re:/placeholder/i },
-    { code:'pronoun', re:/^Report uses "(she|he)"/ },
     { code:'tier_leak', re:/qualitative guidance tier label/ },
     { code:'voice', re:/in the third person/ }
   ];
+  // Deliberately advisory, not blocking: the OF pronoun check cannot tell the
+  // student from other people or story characters named in the report (live
+  // evaluation 2026-10-15 produced exactly that false positive). The selected
+  // pronoun is enforced as a Fact in the prompt and still shown as a warning.
   const SOFT_WORD_TOLERANCE = 1.15;
 
   function countWords(text){ return String(text || '').trim().split(/\s+/).filter(Boolean).length; }

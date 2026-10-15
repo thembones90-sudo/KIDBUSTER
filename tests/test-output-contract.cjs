@@ -58,7 +58,15 @@ module.exports=function run(){
 
   console.log('\n5) identity, voice and pronoun facts block delivery');
   check('wrong teacher sign-off is blocked',codes(evaluate('MA',validReport('MA'),{teacherName:'Nina'})).includes('signoff'));
-  check('OF wrong pronoun is blocked',codes(evaluate('OF',validReport('OF'),{studentGender:'girl'})).includes('pronoun'));
+  const wrongPronoun=evaluate('OF',validReport('OF'),{studentGender:'girl'});
+  check('OF wrong pronoun is reported to the teacher as a warning',wrongPronoun.advisory.some(a=>a.includes('student pronoun')));
+  check('OF wrong pronoun is advisory, not blocking (check cannot tell student from story characters)',wrongPronoun.compliant);
+  const girlOF=validReport('OF').replace(/\bHe\b/g,'She').replace(/\bhe\b/g,'she').replace(/\bhim\b/g,'her').replace(/\bhis\b/g,'her')
+    .replace('without hesitation','without hesitation, and she said "He is brave" about the firefighter in the story');
+  check('a quoted story sentence ("He is brave") is not flagged as the student pronoun',!evaluate('OF',girlOF,{studentGender:'girl'}).advisory.some(a=>a.includes('student pronoun')));
+  const sweetLow=validReport('MS',{rating:'2'}).replace('Parent Note:','Parent Note');
+  check('Sugarcoat at rating 2 with its own colon-less "Parent Note" heading is accepted',evaluate('MS',sweetLow,{rating:'2'}).compliant);
+  check('Sugarcoat at rating 2 with no Parent Note at all is still blocked',codes(evaluate('MS',validReport('MS',{rating:'4'}),{rating:'2'})).includes('section'));
   check('Beida greeting with the wrong teacher is blocked',codes(evaluate('BEIDA',validReport('BEIDA'),{teacherName:'Nina'})).includes('signoff'));
   const thirdPerson=validReport('PREPLY').replace('after I gave one example','after Layne gave one example');
   const tp=evaluate('PREPLY',thirdPerson);
