@@ -2320,6 +2320,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
       </div>
     </div>
     <div class="header-actions">
+      <button type="button" id="krispIntegrationBtn" class="btn-secondary account-btn krisp-integration-btn" aria-expanded="false" aria-controls="krispSetupSection" hidden><span class="krisp-logo-slot" aria-hidden="true"><img id="krispLogoImg" class="krisp-logo-img" alt="" width="22" height="22" hidden><svg id="krispLogoFallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></span><span class="krisp-integration-label">Krisp integration</span><span class="krisp-integration-caret" aria-hidden="true">&#9662;</span></button>
       <button class="btn-secondary account-btn help-btn" id="helpBtn" type="button" aria-label="Start here: open Pathfinder help guide">START HERE · FIRST TIME?</button>
       <button class="btn-secondary account-btn" id="accountBtn" type="button" aria-expanded="false" aria-controls="accountPanel"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>Account</button>
     </div>
@@ -2494,19 +2495,25 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
         </div>
                             <div id="krispImportStatus" aria-live="polite" style="display:none;font-size:13px;margin-top:6px;color:rgb(var(--toxin-rgb));transition:opacity 0.4s ease;"></div>
         <div class="field" id="krispIntegrationPanel" style="display:none">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <button type="button" id="krispWaitBtn" class="btn-secondary" style="border:1px solid rgba(var(--toxin-rgb),0.4);">ARM KRISP</button>
+          <div class="krisp-controls-row">
+            <span id="krispArmedState" class="krisp-armed-state" role="status">Krisp disarmed</span>
+            <button type="button" id="krispWaitBtn" class="btn-secondary krisp-premium-btn krisp-arm-btn" aria-pressed="false"><span class="krisp-logo-slot" aria-hidden="true"><img class="krisp-logo-img" alt="" width="22" height="22" hidden><svg class="krisp-logo-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></span><span class="krisp-btn-label">ARM KRISP</span></button>
             <span id="krispWaitDotWrap" style="display:none;align-items:center;gap:6px;">
               <span class="krisp-heartbeat-dot" aria-hidden="true"></span>
               <span id="krispWaitStatus" aria-live="polite" style="font-size:13px;opacity:0.85;"></span>
             </span>
           </div>
-          <div style="margin-top:10px;font-size:12px;opacity:0.7;">Your personal Krisp webhook URL (paste into Krisp's Settings &rarr; Integrations &rarr; Webhook): <span class="info-icon krisp-help-lit" id="krispHelpBtn" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:rgba(var(--toxin-rgb),0.22);border:2px solid rgba(var(--toxin-rgb),0.8);color:rgb(var(--toxin-rgb));font-weight:800;font-size:15px;vertical-align:middle;" tabindex="0" role="button" aria-label="How to connect Krisp -- important, click for setup steps">?</span></div>
-          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;">
+          <div id="krispSetupSection" role="region" aria-label="Krisp integration settings" hidden>
+          <details id="krispConnectionDetails"><summary>Connection settings</summary>
+          <p class="krisp-connection-help">Paste this link into Krisp’s Settings → Integrations → Webhook. <button type="button" id="krispHelpBtn" class="krisp-setup-help">Setup help</button></p>
+          <div class="krisp-webhook-row">
             <input type="text" id="krispWebhookUrlField" readonly style="flex:1;min-width:220px;font-size:12px;padding:6px 8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:inherit;">
-            <button type="button" id="krispCopyUrlBtn" class="btn-secondary" style="border:1px solid rgba(var(--toxin-rgb),0.4);">Copy</button>
-            <button type="button" id="krispRegenerateBtn" class="btn-secondary" style="border:1px solid rgba(var(--toxin-rgb),0.4);">Regenerate</button>
-            <button type="button" id="krispDisconnectBtn" class="btn-secondary" style="border:1px solid rgba(var(--toxin-rgb),0.4);">Disconnect</button>
+            <button type="button" id="krispCopyUrlBtn" class="btn-secondary krisp-premium-btn krisp-action-btn"><svg class="krisp-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><span class="krisp-btn-label">Copy</span></button>
+            <button type="button" id="krispRegenerateBtn" class="btn-secondary krisp-premium-btn krisp-action-btn"><svg class="krisp-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.5-4M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 4M20 20v-4h-4"/></svg><span class="krisp-btn-label">Regenerate</span></button>
+            <button type="button" id="krispDisconnectBtn" class="btn-secondary krisp-premium-btn krisp-action-btn krisp-danger-btn"><svg class="krisp-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7V3M15 7V3M7 7h10v4a5 5 0 0 1-10 0V7zM12 16v5"/></svg><span class="krisp-btn-label">Disconnect</span></button>
+          </div>
+          <p class="krisp-connection-help">Replacing the connection link disables the previous link. Update it in Krisp afterward; pending imports are kept.</p>
+          </details>
           </div>
           <div id="krispLastReceived" style="display:none;font-size:11px;opacity:0.5;margin-top:8px;"></div>
           <div id="krispPendingWrap" style="display:none;margin-top:20px;">
@@ -6308,6 +6315,9 @@ function promptForAccessKey(){
       accessSettled=true;
       cleanupAccess();
       refreshAccountPanel();
+      // Tell page features that depend on the key (the Krisp panel) to
+      // initialise now, instead of only at page load.
+      try{ document.dispatchEvent(new CustomEvent('kidbuster:access-key-saved')); }catch(e){ /* non-critical */ }
       resolve(key);
     }
 
@@ -7832,9 +7842,66 @@ restoreDraft();
   50% { box-shadow: 0 0 24px 7px rgba(var(--toxin-rgb),0.95), 0 0 42px 12px rgba(var(--toxin-rgb),0.6); transform: scale(1.12); }
 }
 .krisp-help-lit { animation: krisp-help-pulse 1.6s ease-in-out infinite; }
-.krisp-wait-active { background: rgba(var(--toxin-rgb),0.16) !important; border-color: rgba(var(--toxin-rgb),0.65) !important; color: rgb(var(--toxin-rgb)) !important; font-weight: 600; }
+/* Separate everyday arming from occasional connection maintenance. */
+.krisp-armed-state{font-size:13px;font-weight:600;color:var(--text-dim)}
+#krispWaitBtn{display:inline-flex;align-items:center;gap:12px;min-height:48px;min-width:220px;padding:6px 12px;border-radius:12px;background:linear-gradient(#20262A,#14191C);border:1px solid #465048;color:#DFE6E1;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+#krispWaitBtn.krisp-wait-active{border-color:rgba(var(--toxin-rgb),.55);background:linear-gradient(#243026,#171F19);color:#EAF5E5}
+#krispWaitBtn .krisp-logo-slot{display:inline-flex}
+#krispWaitBtn::after{display:block}
+#krispConnectionDetails{border-top:1px solid var(--border);margin-top:14px;padding-top:10px}
+#krispConnectionDetails>summary{cursor:pointer;font-size:13px;color:#C3CDC5;padding:10px 0}
+.krisp-connection-help{font-size:13px;line-height:1.55;color:#A8B7AD;margin:8px 0}
+.krisp-setup-help{border:0;background:none;color:#C3D5B7;text-decoration:underline;text-underline-offset:3px;padding:4px 6px;font:inherit;cursor:pointer}
+#krispIntegrationBtn[aria-expanded="true"]{border-color:#626C62;background:#232923;box-shadow:none;color:#DFE7DD}
+#krispIntegrationBtn[data-armed="true"]{border-color:rgba(var(--toxin-rgb),.6);color:rgb(var(--toxin-rgb))}
+@media(max-width:760px){#krispRegenerateBtn{flex-basis:100%;white-space:normal;min-height:44px}.krisp-armed-state{flex-basis:100%}}
+/* ===== Krisp controls: refined graphite treatment (accent from --toxin-rgb, used only for state) ===== */
+.krisp-logo-slot { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex: none; border-radius: 9px; background: linear-gradient(160deg, #23282d 0%, #0e1113 100%); border: 1px solid rgba(255,255,255,.09); box-shadow: inset 0 1px 0 rgba(255,255,255,.07); }
+.krisp-logo-slot svg { width: 18px; min-width: 18px; height: 18px; flex: none; }
+.krisp-logo-img { width: 22px; height: 22px; object-fit: contain; display: block; }
+.krisp-btn-icon { width: 16px; height: 16px; flex: none; opacity: .75; }
+.krisp-btn-label { line-height: 1; white-space: nowrap; }
+
+/* Header entry point */
+button.btn-secondary.account-btn.krisp-integration-btn { font-family: inherit; text-shadow: none; height: auto; display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 40px; padding: 3px 14px 3px 4px; border-radius: 999px; border: 1px solid rgba(255,255,255,.12); background: linear-gradient(180deg, #1b1f23 0%, #121517 100%); color: #e6eaed; font-weight: 600; letter-spacing: .01em; text-transform: none; font-size: 13.5px; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 1px 2px rgba(0,0,0,.5); transition: border-color .2s ease, background .2s ease, box-shadow .2s ease; }
+button.btn-secondary.account-btn.krisp-integration-btn[hidden] { display: none !important; }
+button.btn-secondary.account-btn.krisp-integration-btn .krisp-logo-slot { width: 32px; height: 32px; border-radius: 999px; }
+button.btn-secondary.account-btn.krisp-integration-btn .krisp-logo-img { width: 20px; height: 20px; }
+button.btn-secondary.account-btn.krisp-integration-btn:hover { border-color: rgba(var(--toxin-rgb),.55); background: linear-gradient(180deg, #20252a 0%, #151819 100%); color: #fff; }
+button.btn-secondary.account-btn.krisp-integration-btn:focus-visible { outline: 2px solid rgb(var(--toxin-rgb)); outline-offset: 3px; }
+button.btn-secondary.account-btn.krisp-integration-btn[aria-expanded="true"] { border-color: rgba(var(--toxin-rgb),.7); box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 0 0 3px rgba(var(--toxin-rgb),.12); }
+.krisp-integration-caret { display: inline-block; font-size: 10px; opacity: .6; transition: transform .2s ease; }
+button.btn-secondary.account-btn.krisp-integration-btn[aria-expanded="true"] .krisp-integration-caret { transform: rotate(180deg); }
+
+/* Shared quiet button (ARM / Copy / Regenerate / Disconnect) */
+.btn-secondary.krisp-premium-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 0 16px; border-radius: 11px; border: 1px solid rgba(255,255,255,.1); background: linear-gradient(180deg, #1a1e22 0%, #121516 100%); color: #dfe4e8; font-family: inherit; font-size: 13px; font-weight: 600; letter-spacing: .01em; text-transform: none; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 1px 2px rgba(0,0,0,.45); transition: border-color .2s ease, background .2s ease, color .2s ease, box-shadow .2s ease; }
+.btn-secondary.krisp-premium-btn:hover { color: #fff; border-color: rgba(255,255,255,.22); background: linear-gradient(180deg, #20252a 0%, #161a1c 100%); }
+.btn-secondary.krisp-premium-btn:hover .krisp-btn-icon { opacity: 1; }
+.btn-secondary.krisp-premium-btn:active { background: #101314; }
+.btn-secondary.krisp-premium-btn:focus-visible { outline: 2px solid rgb(var(--toxin-rgb)); outline-offset: 3px; }
+.btn-secondary.krisp-premium-btn.krisp-copied { color: rgb(var(--toxin-rgb)); border-color: rgba(var(--toxin-rgb),.6); }
+
+/* ARM / DISARM: a single control with a switch, the one memorable element */
+.btn-secondary.krisp-arm-btn { flex: 0 1 auto; min-width: 240px; justify-content: flex-start; gap: 12px; padding: 0 14px 0 8px; min-height: 52px; border-radius: 14px; font-size: 14px; letter-spacing: .04em; }
+.krisp-arm-btn .krisp-logo-slot { width: 36px; height: 36px; border-radius: 10px; }
+.krisp-arm-btn .krisp-logo-img { width: 24px; height: 24px; }
+.krisp-arm-btn .krisp-btn-label { flex: 1; text-align: left; }
+.krisp-arm-btn::after { content: ""; flex: none; width: 38px; height: 22px; margin-left: 10px; border-radius: 999px; background: #0a0c0d radial-gradient(circle at 11px 11px, #8a949b 0 8px, transparent 8.5px) no-repeat 0 0; border: 1px solid rgba(255,255,255,.12); box-shadow: inset 0 1px 3px rgba(0,0,0,.6); transition: background-position .22s ease, border-color .22s ease, box-shadow .22s ease; box-sizing: border-box; }
+.btn-secondary.krisp-arm-btn.krisp-wait-active { color: #fff; border-color: rgba(var(--toxin-rgb),.55); background: linear-gradient(180deg, #1c2226 0%, #131719 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 0 0 3px rgba(var(--toxin-rgb),.10); }
+.krisp-arm-btn.krisp-wait-active::after { background: rgb(var(--toxin-rgb)) radial-gradient(circle at 11px 11px, #fff 0 8px, transparent 8.5px) no-repeat 16px 0; border-color: rgba(var(--toxin-rgb),.9); box-shadow: 0 0 12px -2px rgba(var(--toxin-rgb),.7); }
+.krisp-arm-btn.krisp-wait-active .krisp-logo-slot { border-color: rgba(var(--toxin-rgb),.5); }
+
+/* Webhook row */
+.btn-secondary.krisp-action-btn { flex: 0 0 auto; min-height: 40px; padding: 0 14px; font-size: 12.5px; }
+.btn-secondary.krisp-danger-btn { color: #f08a8a; }
+.btn-secondary.krisp-danger-btn:hover { color: #ffb3b3; border-color: rgba(255,107,107,.55); background: linear-gradient(180deg, rgba(255,107,107,.12) 0%, rgba(255,107,107,.04) 100%), #121516; }
+#krispWebhookUrlField { min-height: 40px; padding: 0 12px !important; border-radius: 11px !important; border: 1px solid rgba(255,255,255,.09) !important; background: #0c0e10 !important; color: #b9c2c8; font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace); font-size: 12.5px; letter-spacing: 0; box-shadow: inset 0 1px 3px rgba(0,0,0,.6); }
+#krispWebhookUrlField:focus { outline: 2px solid rgb(var(--toxin-rgb)); outline-offset: 2px; }
+@media (max-width: 520px) { .btn-secondary.krisp-arm-btn { flex: 1 1 100%; min-width: 0; } .header-actions>button.krisp-integration-btn { flex: 1 1 100%; } .btn-secondary.krisp-action-btn { flex: 1 1 calc(33% - 8px); padding: 0 6px; font-size: 12px; } .krisp-action-btn .krisp-btn-icon { display: none; } }
+@media (prefers-reduced-motion: reduce) { .krisp-integration-btn, .btn-secondary.krisp-premium-btn, .krisp-arm-btn::after, .krisp-integration-caret { transition: none; } }
 @media (prefers-reduced-motion: reduce) {
   .krisp-help-lit { animation: none; }
+  .krisp-integration-caret { transition: none; }
   .generate-btn-shake { animation: none; box-shadow: 0 0 0 3px rgba(229,72,77,0.85) !important; }
 }
 @keyframes generate-btn-shake {
@@ -7844,6 +7911,126 @@ restoreDraft();
   40%, 60% { transform: translateX(4px); }
 }
 .generate-btn-shake { animation: generate-btn-shake 0.4s ease-in-out; box-shadow: 0 0 0 3px rgba(229,72,77,0.85) !important; }
+
+/* Krisp controls: restrained workspace hierarchy, Generate remains primary. */
+.krisp-controls-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:0 0 14px; }
+.krisp-webhook-row { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:9px; }
+.krisp-integration-btn {
+  min-height:40px; padding:5px 13px 5px 7px; gap:8px; border-radius:10px;
+  border:1px solid rgba(var(--toxin-rgb),.27);
+  background:rgba(var(--toxin-rgb),.055); color:rgb(var(--toxin-rgb));
+  font-size:12px; font-weight:650; letter-spacing:.025em;
+  text-transform:none; box-shadow:none; transform:none;
+  transition:background .15s ease,border-color .15s ease;
+}
+.krisp-integration-btn .krisp-logo-slot {
+  width:26px; height:26px; border-radius:7px; background:#202427;
+  box-shadow:none; border-color:rgba(255,255,255,.10);
+}
+.krisp-integration-btn .krisp-logo-img { width:19px; height:19px; filter:none; }
+.krisp-integration-btn:hover,
+.krisp-integration-btn[aria-expanded="true"] {
+  background:rgba(var(--toxin-rgb),.085); border-color:rgba(var(--toxin-rgb),.42);
+  box-shadow:none; transform:none; color:rgb(var(--toxin-rgb));
+}
+.krisp-integration-btn .krisp-integration-caret { opacity:.7; }
+.btn-secondary.krisp-premium-btn {
+  min-height:40px; border-radius:9px; padding:0 13px; gap:8px;
+  border:1px solid rgba(255,255,255,.17); background:#222527;
+  box-shadow:none; color:#d6dcd9; transform:none;
+  font-family:var(--font-body); font-size:12px; font-weight:600;
+  letter-spacing:.01em; text-transform:none;
+  transition:background .15s ease,border-color .15s ease,color .15s ease;
+}
+.btn-secondary.krisp-premium-btn::after { display:none; }
+.btn-secondary.krisp-premium-btn:hover {
+  background:rgba(var(--toxin-rgb),.085); border-color:rgba(var(--toxin-rgb),.38);
+  color:#edf3e9; box-shadow:none; transform:none;
+}
+.btn-secondary.krisp-premium-btn:active { background:rgba(var(--toxin-rgb),.12); transform:none; }
+.btn-secondary.krisp-premium-btn.krisp-copied {
+  background:rgba(var(--toxin-rgb),.11); border-color:rgba(var(--toxin-rgb),.5);
+  color:rgb(var(--toxin-rgb));
+}
+.krisp-controls-row .krisp-arm-btn {
+  flex:0 0 auto; min-width:160px; min-height:40px; padding:0 15px;
+  justify-content:center; gap:0; font-size:12px; letter-spacing:.02em;
+  border-color:rgba(var(--toxin-rgb),.31); color:#dce9d8;
+  background:rgba(var(--toxin-rgb),.07);
+}
+.krisp-controls-row .krisp-arm-btn .krisp-logo-slot { display:none; }
+.btn-secondary.krisp-arm-btn.krisp-wait-active {
+  background:rgba(var(--toxin-rgb),.095); border-color:rgba(var(--toxin-rgb),.46);
+  box-shadow:none; color:rgb(var(--toxin-rgb));
+}
+.krisp-controls-row #krispWaitDotWrap { gap:9px; color:#b9c3be; }
+.krisp-controls-row #krispWaitStatus { font-size:12px !important; opacity:.78 !important; }
+.krisp-controls-row .krisp-heartbeat-dot {
+  width:7px; height:7px; background:rgb(var(--toxin-rgb));
+  box-shadow:none; animation:none;
+}
+.krisp-webhook-row #krispWebhookUrlField {
+  flex:1 1 380px !important; min-width:240px !important; min-height:40px;
+  padding:0 12px !important; border-radius:9px !important;
+  border:1px solid rgba(255,255,255,.17) !important;
+  background:#15181a !important; box-shadow:none; color:#d6dcd9;
+  font-size:12px;
+}
+.krisp-webhook-row .krisp-action-btn {
+  flex:0 0 auto; min-height:40px; padding:0 13px;
+  font-size:12px; letter-spacing:0; text-transform:none;
+}
+.krisp-webhook-row .krisp-btn-icon { width:15px; height:15px; opacity:.75; }
+.btn-secondary.krisp-danger-btn {
+  color:#d6a3a3; background:#222124;
+  border-color:rgba(220,110,110,.25); box-shadow:none;
+}
+.btn-secondary.krisp-danger-btn:hover {
+  background:rgba(220,110,110,.09); border-color:rgba(220,110,110,.48);
+  color:#f0b9b9; box-shadow:none; transform:none;
+}
+.krisp-help-lit {
+  animation:none !important; box-shadow:none !important;
+  background:rgba(var(--toxin-rgb),.08) !important;
+  border:1px solid rgba(var(--toxin-rgb),.4) !important;
+  width:20px !important; height:20px !important; font-size:12px !important;
+}
+@media (max-width:760px) {
+  .krisp-webhook-row #krispWebhookUrlField { flex-basis:100% !important; min-width:0 !important; }
+  .krisp-webhook-row .krisp-action-btn { flex:1 1 auto; }
+}
+@media (max-width:520px) {
+  .krisp-controls-row .krisp-arm-btn { flex:0 0 auto; min-width:148px; }
+  .krisp-webhook-row .krisp-action-btn { min-width:0; padding:0 9px; font-size:11px; }
+  .krisp-webhook-row .krisp-action-btn .krisp-btn-icon { display:none; }
+}
+
+
+/* Override the existing button.btn-secondary.account-btn.krisp-integration-btn
+   selector. Header button is a quiet integration shortcut, not a primary CTA. */
+button.btn-secondary.account-btn.krisp-integration-btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  flex:0 1 auto; min-height:40px; padding:5px 13px 5px 7px;
+  border-radius:10px; border:1px solid rgba(var(--toxin-rgb),.27);
+  background:rgba(var(--toxin-rgb),.055);
+  color:rgb(var(--toxin-rgb)); font-size:12px; font-weight:650;
+  letter-spacing:.025em; text-transform:none; box-shadow:none; transform:none;
+}
+button.btn-secondary.account-btn.krisp-integration-btn:hover,
+button.btn-secondary.account-btn.krisp-integration-btn[aria-expanded="true"] {
+  border-color:rgba(var(--toxin-rgb),.42);
+  background:rgba(var(--toxin-rgb),.085);
+  color:rgb(var(--toxin-rgb)); box-shadow:none; transform:none;
+}
+button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
+  outline:2px solid rgb(var(--toxin-rgb)); outline-offset:3px;
+}
+@media (max-width:520px) {
+  .header-actions>button.btn-secondary.account-btn.krisp-integration-btn {
+    flex:0 1 auto; min-width:0; max-width:100%; padding:5px 11px 5px 6px;
+  }
+}
+
 </style>
 <script>
 (function(){
@@ -7910,6 +8097,20 @@ restoreDraft();
     pollTimer = setInterval(refreshKrispSession, 5000);
   }
 
+  // Buttons carry an icon/logo next to their label, so text changes go to
+  // the label span only (textContent on the button would delete the icon).
+  function setKrispBtnLabel(btn, text){
+    if(btn && btn.id==='krispWaitBtn'){
+      var armed=text==='DISARM KRISP';
+      var stateLabel=document.getElementById('krispArmedState');
+      if(stateLabel)stateLabel.textContent=armed?'Krisp armed':'Krisp disarmed';
+      document.getElementById('krispIntegrationBtn')?.setAttribute('data-armed',String(armed));
+    }
+    if(!btn) return;
+    var labelEl = btn.querySelector('.krisp-btn-label');
+    if(labelEl) labelEl.textContent = text; else btn.textContent = text;
+  }
+
   function handleWorkspaceReset(){
     // New Student should create a fresh import target, not disarm Krisp.
     // Clear only client-side duplicate memory so the next transcript can
@@ -7974,15 +8175,39 @@ restoreDraft();
   }
 
   async function handleMatchedImport(record){
-    if(!record) return;
+    if(!record) return false;
     if(isWorkspaceReadyForAutoImport()){
       applyTranscriptWithFullFlow(record);
-      return;
+      return true;
     }
     var deferred = await deferMatchedImport(record);
     if(!deferred){
       showKrispError('Krisp transcript received, but your current report is still open. Press New Student, then Refresh.');
     }
+    return !!deferred;
+  }
+
+  // Handles a matched transcript and only THEN confirms receipt to the
+  // server, which keeps offering it (leased, a few times) until confirmed.
+  // A transcript that could be neither applied nor safely stored is not
+  // confirmed and is offered again after the lease lapses.
+  async function settleMatchedImport(record){
+    if(!record) return;
+    var handled = false;
+    try{ handled = await handleMatchedImport(record); }catch(e){ handled = false; }
+    if(!handled){
+      if(record.meetingId) delete announcedIds[record.meetingId];
+      return;
+    }
+    var key = getSavedKey();
+    if(!key || !record.meetingId) return;
+    try{
+      await fetch('/api/krisp-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-app-key': key },
+        body: JSON.stringify({ action: 'ack-matched', meetingId: record.meetingId })
+      });
+    }catch(e){ /* the lease lapses and the transcript is simply offered again */ }
   }
 
   // --- Friendly timestamp formatting -----------------------------------
@@ -8305,7 +8530,7 @@ restoreDraft();
     var btn = document.getElementById('krispWaitBtn');
     var status = document.getElementById('krispWaitStatus');
     var dotWrap = document.getElementById('krispWaitDotWrap');
-    if(btn){ btn.textContent = 'DISARM KRISP'; btn.dataset.waiting = 'true'; btn.classList.add('krisp-wait-active'); }
+    if(btn){ setKrispBtnLabel(btn, 'DISARM KRISP'); btn.dataset.waiting = 'true'; btn.classList.add('krisp-wait-active'); btn.setAttribute('aria-pressed', 'true'); }
     if(status){ status.style.color = ''; status.textContent = 'Waiting for Krisp transcript...'; }
     if(dotWrap) dotWrap.style.display = 'inline-flex';
     ensurePolling();
@@ -8326,7 +8551,7 @@ restoreDraft();
     var btn = document.getElementById('krispWaitBtn');
     var status = document.getElementById('krispWaitStatus');
     var dotWrap = document.getElementById('krispWaitDotWrap');
-    if(btn){ btn.textContent = 'ARM KRISP'; btn.dataset.waiting = 'false'; btn.classList.remove('krisp-wait-active'); }
+    if(btn){ setKrispBtnLabel(btn, 'ARM KRISP'); btn.dataset.waiting = 'false'; btn.classList.remove('krisp-wait-active'); btn.setAttribute('aria-pressed', 'false'); }
     if(status) status.textContent = '';
     if(dotWrap) dotWrap.style.display = 'none';
   }
@@ -8347,7 +8572,7 @@ restoreDraft();
         var alreadyAnnounced = json.matched.meetingId && announcedIds[json.matched.meetingId];
         if(!alreadyAnnounced){
           if(json.matched.meetingId) announcedIds[json.matched.meetingId] = true;
-          handleMatchedImport(json.matched);
+          settleMatchedImport(json.matched);
           // ARM KRISP is a persistent toggle now -- a match does NOT
           // disarm it. It stays armed for the next transcript until the
           // teacher explicitly presses DISARM KRISP.
@@ -8373,9 +8598,11 @@ restoreDraft();
     }
     var btn = document.getElementById('krispCopyUrlBtn');
     if(btn){
-      var original = btn.textContent;
-      btn.textContent = 'Copied!';
-      setTimeout(function(){ btn.textContent = original; }, 1500);
+      var labelEl = btn.querySelector('.krisp-btn-label');
+      var original = labelEl ? labelEl.textContent : btn.textContent;
+      setKrispBtnLabel(btn, 'Copied!');
+      btn.classList.add('krisp-copied');
+      setTimeout(function(){ setKrispBtnLabel(btn, original); btn.classList.remove('krisp-copied'); }, 1500);
     }
   }
 
@@ -8410,7 +8637,63 @@ restoreDraft();
     }catch(e){}
   }
 
+  // --- Krisp integration entrypoint: shows/hides the webhook setup
+  // controls only. Independent of ARM KRISP -- never touches armed state.
+  function setKrispSetupExpanded(expanded, reveal){
+    setKrispBtnLabel(document.getElementById('krispCopyUrlBtn'),'Copy link');
+    setKrispBtnLabel(document.getElementById('krispRegenerateBtn'),'Replace connection link');
+    var integrationBtn = document.getElementById('krispIntegrationBtn');
+    var section = document.getElementById('krispSetupSection');
+    if(section) section.hidden = !expanded;
+    if(integrationBtn) integrationBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    if(expanded && reveal){
+      // The button lives in the page header; bring the settings into view.
+      var panel = document.getElementById('krispIntegrationPanel');
+      if(panel && typeof panel.scrollIntoView === 'function'){
+        try{ panel.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' }); }catch(e){}
+      }
+    }
+  }
+
+  // The header button is shown only when the Krisp panel is (entitled
+  // account). Showing or hiding it never changes the armed state.
+  function setKrispHeaderButtonVisible(visible){
+    var integrationBtn = document.getElementById('krispIntegrationBtn');
+    if(integrationBtn) integrationBtn.hidden = !visible;
+  }
+
+  // Optional official Krisp mark: if a logo file is placed at one of these
+  // paths it replaces the neutral fallback icon. Nothing is drawn here.
+  function loadKrispLogo(){
+    var imgs = document.querySelectorAll('img.krisp-logo-img');
+    if(!imgs.length || imgs[0].dataset.probed === 'true') return;
+    for(var k = 0; k < imgs.length; k++) imgs[k].dataset.probed = 'true';
+    var sources = ['assets/logos/krisp-logo.svg', 'assets/logos/krisp-logo.png'];
+    (function tryNext(i){
+      if(i >= sources.length) return;
+      var probe = new Image();
+      probe.onload = function(){
+        for(var j = 0; j < imgs.length; j++){
+          imgs[j].src = sources[i]; imgs[j].hidden = false;
+          var slot = imgs[j].parentNode;
+          var fb = slot && slot.querySelector('svg');
+          if(fb) fb.style.display = 'none';
+        }
+      };
+      probe.onerror = function(){ tryNext(i + 1); };
+      probe.src = sources[i];
+    })(0);
+  }
+
   function wireButtons(){
+    var integrationBtn = document.getElementById('krispIntegrationBtn');
+    if(integrationBtn && integrationBtn.dataset.wired !== 'true'){
+      integrationBtn.dataset.wired = 'true';
+      integrationBtn.addEventListener('click', function(){
+        var willExpand = integrationBtn.getAttribute('aria-expanded') !== 'true';
+        setKrispSetupExpanded(willExpand, willExpand);
+      });
+    }
     var waitBtn = document.getElementById('krispWaitBtn');
     // Read actual current state off the button itself (set by startWaiting/
     // stopWaiting, and restored from the server) instead of a
@@ -8421,19 +8704,26 @@ restoreDraft();
     // to agree again.
     if(waitBtn && waitBtn.dataset.wired !== 'true'){
       waitBtn.dataset.wired = 'true';
-      waitBtn.dataset.waiting = 'false';
+      if(waitBtn.dataset.waiting !== 'true') waitBtn.dataset.waiting = 'false';
       waitBtn.addEventListener('click', function(){
         if(waitBtn.dataset.waiting === 'true'){ stopWaiting(true); } else { startWaiting(); }
       });
     }
-    var copyBtn = document.getElementById('krispCopyUrlBtn');
-    if(copyBtn) copyBtn.addEventListener('click', handleCopyUrl);
-    var regenBtn = document.getElementById('krispRegenerateBtn');
-    if(regenBtn) regenBtn.addEventListener('click', handleRegenerate);
-    var disconnectBtn = document.getElementById('krispDisconnectBtn');
-    if(disconnectBtn) disconnectBtn.addEventListener('click', handleDisconnect);
+    // wireButtons() can now run more than once (page load, then again when
+    // a key is saved later), so every handler is attached exactly once.
+    function wireOnce(el, type, handler){
+      if(!el) return;
+      var flag = 'wired' + type;
+      if(el.dataset[flag] === 'true') return;
+      el.dataset[flag] = 'true';
+      el.addEventListener(type, handler);
+    }
+    wireOnce(document.getElementById('krispCopyUrlBtn'), 'click', handleCopyUrl);
+    wireOnce(document.getElementById('krispRegenerateBtn'), 'click', handleRegenerate);
+    wireOnce(document.getElementById('krispDisconnectBtn'), 'click', handleDisconnect);
     var krispHelpBtn = document.getElementById('krispHelpBtn');
-    if(krispHelpBtn){
+    if(krispHelpBtn && krispHelpBtn.dataset.wired !== 'true'){
+      krispHelpBtn.dataset.wired = 'true';
       var openKrispHelp = function(){ if(typeof window.openHelpModal === 'function') window.openHelpModal(); };
       krispHelpBtn.addEventListener('click', openKrispHelp);
       krispHelpBtn.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openKrispHelp(); } });
@@ -8447,24 +8737,35 @@ restoreDraft();
     if(!key) return;
     try{
       var res = await fetch('/api/krisp-session', { headers: { 'x-app-key': key } });
-      if(!res.ok) return;
+      if(!res.ok){
+        // Not entitled (or key rejected): keep/return to hidden, fail safe.
+        var hiddenPanel = document.getElementById('krispIntegrationPanel');
+        if(hiddenPanel) hiddenPanel.style.display = 'none';
+        setKrispHeaderButtonVisible(false);
+        return;
+      }
       var json = await res.json();
       var panel = document.getElementById('krispIntegrationPanel');
       if(panel) panel.style.display = '';
+      setKrispHeaderButtonVisible(true);
+      loadKrispLogo();
       setWebhookUrlField(json.webhookUrl);
+      // Open setup until Krisp has delivered at least once; afterwards the
+      // Krisp integration button keeps it one click away.
+      setKrispSetupExpanded(!json.lastReceivedAt);
       updateLastReceived(json.lastReceivedAt);
       renderPending(json.pending);
       if(json.waiting){
         var wb = document.getElementById('krispWaitBtn');
         var wStatus = document.getElementById('krispWaitStatus');
         var wDotWrap = document.getElementById('krispWaitDotWrap');
-        if(wb){ wb.textContent = 'DISARM KRISP'; wb.dataset.waiting = 'true'; wb.classList.add('krisp-wait-active'); }
+        if(wb){ setKrispBtnLabel(wb, 'DISARM KRISP'); wb.dataset.waiting = 'true'; wb.classList.add('krisp-wait-active'); wb.setAttribute('aria-pressed', 'true'); }
         if(wStatus){ wStatus.style.color = ''; wStatus.textContent = 'Waiting for Krisp transcript...'; }
         if(wDotWrap) wDotWrap.style.display = 'inline-flex';
       }
       if(json.matched){
         if(json.matched.meetingId) announcedIds[json.matched.meetingId] = true;
-        handleMatchedImport(json.matched);
+        settleMatchedImport(json.matched);
       }
       wireButtons();
       if(pollTimer) clearInterval(pollTimer);
@@ -8474,6 +8775,9 @@ restoreDraft();
   }
 
   document.addEventListener('kidbuster:workspace-reset', handleWorkspaceReset);
+  // A key saved after page load (sign-in window) must reveal the Krisp
+  // integration immediately -- previously it only appeared after a reload.
+  document.addEventListener('kidbuster:access-key-saved', initKrispPanel);
 
   if(document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', initKrispPanel);
