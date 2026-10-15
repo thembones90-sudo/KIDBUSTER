@@ -14,6 +14,7 @@
 import { isFounderLicenseKey, getLicense, isLicenseExpired, effectiveSubscriptionLicense } from './_lib/licensing.js';
 import { getOrCreateKrispToken, regenerateKrispToken, disconnectKrisp } from './_lib/krisp-token.js';
 import crypto from 'crypto';
+import { krispWebhookUrlForToken } from './_lib/krisp-webhook-url.js';
 import { kv, acquirePaymentLock, releasePaymentLock } from './_lib/kv-client.js';
 
 const PENDING_LIST_MAX = 20;
@@ -89,7 +90,7 @@ export default async function handler(req, res){
   // keyed by identity, not by token, so they're untouched either way.
   if(req.method === 'POST' && (req.body || {}).action === 'regenerate'){
     const newToken = await regenerateKrispToken(licenseKey);
-    return res.status(200).json({ webhookUrl: 'https://kidbuster.vercel.app/api/krisp-webhook?token=' + newToken });
+    return res.status(200).json({ webhookUrl: krispWebhookUrlForToken(newToken) });
   }
   if(req.method === 'POST' && (req.body || {}).action === 'disconnect'){
     await disconnectKrisp(licenseKey);
@@ -132,7 +133,7 @@ export default async function handler(req, res){
       pending,
       pendingCount: pending.length,
       lastReceivedAt,
-      webhookUrl: 'https://kidbuster.vercel.app/api/krisp-webhook?token=' + token
+      webhookUrl: krispWebhookUrlForToken(token)
     });
   }
 

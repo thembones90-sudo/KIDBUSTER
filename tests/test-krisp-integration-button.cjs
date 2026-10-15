@@ -134,7 +134,10 @@ module.exports = async function run(){
     check('Krisp controls are outside the report form', await page.$eval('#krispIntegrationPanel',el=>el.parentElement===document.body));
     await toggleBtn(page); i = await info(page);
     check('header opens all Krisp controls in one popover', i.expanded === 'true' && i.panelVisible && i.sectionVisible);
-    check('a link alone is NOT a verified connection', await page.$eval('#krispConnectionState',el=>el.textContent==='Link ready · awaiting first delivery'));
+    check('a link alone is NOT a verified connection', await page.$eval('#krispConnectionState',el=>el.textContent==='Awaiting first delivery'));
+    check('raw webhook link stays hidden',await page.$eval('#krispWebhookUrlField',el=>el.hidden));
+    check('copy action is available without opening Advanced',await page.$eval('#krispCopyUrlBtn',el=>el.getBoundingClientRect().height>=44 && !el.closest('details')));
+    check('default panel is compact (under 430px tall)',await page.$eval('#krispIntegrationPanel',el=>el.getBoundingClientRect().height<430));
     check('connection maintenance is collapsed by default',await page.$eval('#krispConnectionDetails',el=>!el.open));
     check('commands clearly identify link maintenance',await page.evaluate(()=>document.getElementById('krispCopyUrlBtn').textContent.includes('Copy link')&&document.getElementById('krispRegenerateBtn').textContent.includes('Replace connection link')));
     check('webhook URL is shown', i.urlField === state.webhookUrl);
@@ -213,7 +216,7 @@ module.exports = async function run(){
     i = await info(page);
     check('Regenerate sends exactly one request and shows the new URL', state.calls.filter(c => c === 'regenerate').length === 1 && /REGENERATED/.test(i.urlField));
     check('Regenerate leaves Krisp armed', i.wait === 'DISARM KRISP' && state.waiting === true);
-    check('replacement link requires a new delivery confirmation',await page.$eval('#krispConnectionState',el=>el.textContent==='Link ready · awaiting first delivery'));
+    check('replacement link requires a new delivery confirmation',await page.$eval('#krispConnectionState',el=>el.textContent==='Awaiting first delivery'));
     await page.reload({waitUntil:'load'}); await sleep(600);
     check('old delivery cannot re-verify a replaced link after reload',await page.$eval('#krispConnectionState',el=>el.dataset.verified==='false'));
     state.lastReceivedAt = new Date().toISOString();
@@ -300,7 +303,7 @@ module.exports = async function run(){
       });
       const expanded = await page.evaluate(() => {
         const card = document.getElementById('krispIntegrationPanel').getBoundingClientRect();
-        const ids = ['krispWaitBtn','krispWebhookUrlField','krispCopyUrlBtn','krispRegenerateBtn','krispDisconnectBtn'];
+        const ids = ['krispWaitBtn','krispCopyUrlBtn','krispRegenerateBtn','krispDisconnectBtn'];
         const boxes = ids.map(id => document.getElementById(id).getBoundingClientRect());
         const overlap = (a,b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
         return {boxes:boxes.map(r=>({x:r.x,y:r.y,w:r.width,h:r.height})),contained: boxes.every(r => r.left >= card.left + 12 && r.right <= card.right - 12),
