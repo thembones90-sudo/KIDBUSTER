@@ -5082,7 +5082,7 @@ because it's about a single lesson.`
     }
 
     // The tutor is the author. Naming the teacher inside the message reads
-    // like an outside observer ("the sentence frames Nora offered him").
+    // like an outside observer ("the sentence frames Nora offered her").
     const teacher = (teacherName || '').trim();
     if(teacher && new RegExp('(^|[^\\p{L}])' + teacher.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\p{L}])', 'iu').test(trimmed)){
       warnings.push('Message refers to the teacher (' + teacher + ') in the third person — write as the tutor, in the first person ("I", "we").');
