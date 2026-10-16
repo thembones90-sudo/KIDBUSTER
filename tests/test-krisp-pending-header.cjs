@@ -44,25 +44,31 @@ module.exports=async function(){
     await page.waitForFunction(()=>!document.getElementById('krispPendingBtn').hidden);
     assert.equal(await page.$eval('#krispInboxBadge',e=>e.textContent),'2');
     const pulse=await page.$eval('#krispPendingBtn',e=>{const s=getComputedStyle(e);return {name:s.animationName,count:s.animationIterationCount,duration:s.animationDuration};});
-    assert.deepEqual(pulse,{name:'krispInboxArrival',count:'2',duration:'1s'},'new pending items trigger only two gentle pulses');
-    await page.$eval('#krispPendingBtn',async e=>{await Promise.all(e.getAnimations().map(a=>a.finished.catch(()=>{})));});
-    assert.equal(await page.$eval('#krispPendingBtn',e=>e.classList.contains('krisp-inbox-arrival')),false);
-    assert.notEqual(await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).boxShadow),'none','steady glow remains after pulses');
+    assert.deepEqual(pulse,{name:'krispInboxBreathing',count:'infinite',duration:'2.4s'},'pending transcripts continuously glow until cleared');
+    const frames=await page.$eval('#krispPendingBtn',e=>{
+      const a=e.getAnimations().find(a=>a.animationName==='krispInboxBreathing');
+      a.currentTime=0;const low=getComputedStyle(e).boxShadow;
+      a.currentTime=1200;const high=getComputedStyle(e).boxShadow;
+      a.currentTime=6000;return {low,high,later:getComputedStyle(e).boxShadow,running:a.playState};
+    });
+    assert.notEqual(frames.low,frames.high,'actual rendered glow changes between low and high frames');
+    assert.equal(frames.high,frames.later,'glow still reaches its peak after more than two cycles');
+    assert.equal(frames.running,'running');
     await page.evaluate(()=>window.testKrispPoll());
-    assert.equal(await page.$eval('#krispPendingBtn',e=>e.classList.contains('krisp-inbox-arrival')),false,'unchanged polling must not restart animation');
+    assert.equal(await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).animationIterationCount),'infinite','polling preserves continuous glow');
     await page.evaluate(()=>document.dispatchEvent(new Event('kidbuster:workspace-reset')));
-    assert.equal(await page.$eval('#krispPendingBtn',e=>e.classList.contains('krisp-inbox-arrival')),false,'workspace reset must not reannounce existing inbox');
+    assert.equal(await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).animationName),'krispInboxBreathing','workspace reset preserves glow while transcripts remain');
     state.pending[1]=item('arrival');await page.evaluate(()=>window.testKrispPoll());
-    assert.equal(await page.$eval('#krispPendingBtn',e=>e.classList.contains('krisp-inbox-arrival')),true,'new identity pulses even with unchanged total count');
+    assert.equal(await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).animationName),'krispInboxBreathing');
     assert.ok(await page.evaluate(()=>document.getElementById('krispIntegrationBtn').getBoundingClientRect().right<=document.getElementById('krispPendingBtn').getBoundingClientRect().left));
     await page.click('#krispPendingBtn');
-    assert.equal(await page.$eval('#krispPendingBtn',e=>e.classList.contains('krisp-inbox-arrival')),false,'opening inbox stops pulse');
+    assert.equal(await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).animationName),'krispInboxBreathing','opening inbox does not stop animation while items remain');
     assert.equal(await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')),true);
     assert.equal(await page.$$eval('#krispInboxPanel .krisp-pending-card',els=>els.length),2);
     assert.equal(await page.$eval('#krispIntegrationPanel',e=>e.matches(':popover-open')),false);
     assert.deepEqual(state.actions,[],'opening inbox is read-only');
     state.pending[1]=item('arrival-open');await page.evaluate(()=>window.testKrispPoll());
-    assert.equal(await page.$eval('#krispPendingBtn',e=>e.classList.contains('krisp-inbox-arrival')),false,'no pulse while inbox is open');
+    assert.equal(await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).animationName),'krispInboxBreathing');
     await page.click('#krispInboxPanel .krisp-insert-btn');
     await page.waitForFunction(()=>document.getElementById('krispInboxBadge').textContent==='1');
     assert.ok(await page.$eval('#krispNotes',e=>e.value.includes('Synthetic notes')));
@@ -73,7 +79,7 @@ module.exports=async function(){
     state.error=false;state.pending=[];await page.evaluate(()=>window.testKrispPoll());
     assert.equal(await page.$eval('#krispInboxBadge',e=>e.textContent),'0');
     assert.equal(await page.$eval('#krispInboxEmpty',e=>e.hidden),false);
-    assert.equal(await page.$eval('#krispPendingBtn',e=>e.classList.contains('krisp-inbox-arrival')),false,'empty inbox removes arrival animation');
+    assert.equal(await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).animationName),'none','empty inbox stops animation');
     await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
     state.pending=[item('three')];await page.evaluate(()=>window.testKrispPoll());
     assert.equal(await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).animationName),'none');
@@ -107,7 +113,7 @@ module.exports=async function(){
     assert.equal(await page.$eval('#krispPendingBtn',e=>e.hidden),true,'sign-out hides inbox entry');
     assert.equal(await page.$$eval('#krispPendingItems>*',els=>els.length),0,'sign-out clears old inbox');
     assert.deepEqual(errors,[]);
-    console.log('PASS pending header, two finite arrival pulses, steady themed glow, reduced motion, no repeat-poll pulse, independent inbox, import/dismiss, account isolation and persistent ARM');
+    console.log('PASS continuous pending glow with visibly different rendered frames beyond two cycles, zero-count stop, reduced motion, themed colour, inbox workflow and persistent ARM');
     return 0;
   }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
 };
