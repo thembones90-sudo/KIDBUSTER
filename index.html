@@ -8682,8 +8682,12 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
 .header-actions>button.krisp-pending-btn{gap:9px;padding:8px 14px;border:1px solid #52605280;border-radius:999px;background:linear-gradient(145deg,#252e27,#1b211d);color:#dce6de;font:600 12px/1.3 var(--font-body);letter-spacing:0;text-transform:none;}
 .krisp-pending-btn>svg{width:19px;height:19px;flex:none;}
 .krisp-inbox-badge{display:inline-grid;place-items:center;min-width:23px;height:23px;padding:0 5px;box-sizing:border-box;border-radius:50%;background:#ffffff0a;color:#aab7ac;font-size:11px;font-variant-numeric:tabular-nums;}
-#krispPendingBtn[data-has-pending="true"]{border-color:rgba(var(--toxin-rgb),.5);}
-#krispPendingBtn[data-has-pending="true"] .krisp-inbox-badge{background:rgba(var(--toxin-rgb),.16);color:rgb(var(--toxin-rgb));}
+#krispPendingBtn{transition:border-color .3s ease,box-shadow .4s ease;}
+#krispPendingBtn[data-has-pending="true"]{border-color:rgba(var(--toxin-rgb),.55);box-shadow:0 0 16px rgba(var(--toxin-rgb),.14),inset 0 0 12px rgba(var(--toxin-rgb),.045);}
+#krispPendingBtn[data-has-pending="true"] .krisp-inbox-badge{background:rgba(var(--toxin-rgb),.2);color:rgb(var(--toxin-rgb));box-shadow:0 0 9px rgba(var(--toxin-rgb),.18);}
+#krispPendingBtn.krisp-inbox-arrival[data-has-pending="true"]{animation:krispInboxArrival 1s ease-in-out 2;}
+@keyframes krispInboxArrival{0%,100%{box-shadow:0 0 16px rgba(var(--toxin-rgb),.14),inset 0 0 12px rgba(var(--toxin-rgb),.045);}50%{box-shadow:0 0 26px rgba(var(--toxin-rgb),.32),0 0 0 3px rgba(var(--toxin-rgb),.08),inset 0 0 16px rgba(var(--toxin-rgb),.07);}}
+@media(prefers-reduced-motion:reduce){#krispPendingBtn{animation:none!important;transition:none!important;}}
 #krispPendingBtn:focus-visible,#krispInboxPanel button:focus-visible{outline:2px solid rgb(var(--toxin-rgb));outline-offset:4px;}
 #krispInboxPanel{position:fixed;inset:auto;margin:0;width:min(520px,calc(100vw - 32px));max-height:calc(100dvh - 32px);box-sizing:border-box;padding:26px;overflow:auto;overscroll-behavior:contain;border:1px solid #68786a60;border-radius:22px;background:linear-gradient(145deg,#222a24,#171d19 65%);color:#dce6de;box-shadow:0 24px 80px #0009;}
 #krispInboxPanel:not(:popover-open){display:none;}
@@ -8706,6 +8710,22 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
   var renderedPendingIds = {};
   var announcedIds = {};
   var pendingAccountKey = null;
+  var pendingArrivalIds = {};
+  var pendingArrivalTimer = null;
+
+  function stopPendingArrival(){
+    clearTimeout(pendingArrivalTimer);
+    document.getElementById('krispPendingBtn')?.classList.remove('krisp-inbox-arrival');
+  }
+  function notifyPendingArrival(){
+    var button = document.getElementById('krispPendingBtn');
+    var panel = document.getElementById('krispInboxPanel');
+    if(!button || prefersReducedMotion() || (panel && panel.matches(':popover-open'))) return;
+    stopPendingArrival();
+    void button.offsetWidth;
+    button.classList.add('krisp-inbox-arrival');
+    pendingArrivalTimer = setTimeout(stopPendingArrival,2200);
+  }
 
   function getSavedKey(){
     try{ return localStorage.getItem(ACCESS_KEY_STORAGE_KEY); }catch(e){ return null; }
@@ -9118,6 +9138,7 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
 
   function updatePendingCount(count){
     count = Math.max(0, Math.floor(Number(count) || 0));
+    if(!count) stopPendingArrival();
     var button = document.getElementById('krispPendingBtn');
     var badge = document.getElementById('krispInboxBadge');
     if(badge) badge.textContent = String(count);
@@ -9147,7 +9168,11 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
     if(!wrap || !list) return;
     items = items || [];
 
+    var newlyPending = items.some(function(item){return !pendingArrivalIds[item.meetingId];});
+    pendingArrivalIds = {};
+    items.forEach(function(item){pendingArrivalIds[item.meetingId] = true;});
     updatePendingCount(items.length);
+    if(newlyPending) notifyPendingArrival();
 
     var currentIdMap = {};
     items.forEach(function(i){ currentIdMap[i.meetingId] = true; });
@@ -9510,11 +9535,17 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
       pendingBtn.dataset.wired = 'true';
       var inbox = document.getElementById('krispInboxPanel');
       document.getElementById('krispInboxContent').appendChild(document.getElementById('krispPendingWrap'));
-      inbox.addEventListener('toggle',function(){pendingBtn.setAttribute('aria-expanded',String(inbox.matches(':popover-open')));});
+      inbox.addEventListener('toggle',function(){
+        var open = inbox.matches(':popover-open');
+        pendingBtn.setAttribute('aria-expanded',String(open));
+        if(open) stopPendingArrival();
+      });
+      pendingBtn.addEventListener('animationend',function(event){if(event.animationName === 'krispInboxArrival') stopPendingArrival();});
       document.getElementById('krispInboxClose').addEventListener('click',function(){inbox.hidePopover();pendingBtn.focus();});
       window.addEventListener('resize',positionKrispInbox);
       pendingBtn.addEventListener('click',function(){
         if(inbox.matches(':popover-open')){inbox.hidePopover();return;}
+        stopPendingArrival();
         inbox.showPopover(); positionKrispInbox();
         refreshKrispSession();
       });
@@ -9576,6 +9607,7 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
     var key = getSavedKey();
     if(key !== pendingAccountKey){
       pendingAccountKey = key;
+      pendingArrivalIds = {}; stopPendingArrival();
       renderedPendingIds = {}; announcedIds = {};
       document.getElementById('krispPendingItems').replaceChildren();
       updatePendingCount(0);
