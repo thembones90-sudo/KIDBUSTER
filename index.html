@@ -2326,6 +2326,27 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
   .info-icon:hover::after,.info-icon:focus-visible::after{transform:translateY(0)}
 }
 </style>
+<style>
+/* ===== Visual pass 2026-10-16: placeholders, privacy note, mobile Generate bar ===== */
+#specialRemarks::placeholder,#teacherSignoffEmoji::placeholder{color:rgba(228,232,235,.34);font-style:italic}
+.small-note{font-family:var(--font-body);font-size:13px;line-height:1.5;color:var(--text-dim);margin-top:12px}
+.mobile-generate-bar{display:none}
+.panel .field:has(>#krispNotesLabel){position:relative}
+.generate-summary{position:absolute;top:0;right:0;max-width:62%;margin:0;text-align:right;font-size:13px;color:var(--text-dim);line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.generate-summary button{font:inherit;line-height:inherit;vertical-align:baseline;color:var(--warm,#f0c27a);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+@media (max-width:760px){
+  body{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+  .mobile-generate-bar:not([hidden]){display:flex;align-items:center;gap:12px;position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:900;
+    padding:8px 8px 8px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(19,22,24,.94);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 10px 30px -8px rgba(0,0,0,.8)}
+  .mobile-generate-summary{flex:1;min-width:0;font-size:14px;font-weight:600;color:#e4e8eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mobile-generate-btn{flex:none;min-height:44px;padding:0 22px;border-radius:999px;border:0;font:inherit;font-size:15px;font-weight:700;cursor:pointer;
+    color:#0f1214;background:rgb(var(--toxin-rgb));box-shadow:0 0 16px rgba(var(--toxin-rgb),.35)}
+  .mobile-generate-btn:disabled{opacity:.5;cursor:default}
+  .mobile-generate-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+}
+@media (prefers-reduced-motion:reduce){.mobile-generate-bar{backdrop-filter:none}}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -2533,6 +2554,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
       <div class="panel">
         <div class="field">
           <label class="field-label" id="krispNotesLabel" for="krispNotes">Krisp notes</label>
+          <p class="generate-summary" id="generateSummary" aria-live="polite"></p>
           <p class="field-hint">Paste the lesson notes, choose a protocol, pick a rating, then generate.</p>
           <textarea id="krispNotes" rows="6" placeholder="Paste the raw lesson summary or transcript here..."></textarea>
           <div class="field-counter" id="krispCounter">0 words · 0 characters</div>
@@ -2589,9 +2611,13 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
 
         <div class="field">
           <label class="field-label" for="specialRemarks">Special remarks (optional)</label>
-          <textarea id="specialRemarks" rows="2" placeholder="Please review TH pronunciation. Homework: pages 12-14."></textarea>
+          <textarea id="specialRemarks" rows="2" placeholder="e.g. Please review TH pronunciation. Homework: pages 12-14."></textarea>
         </div>
         <button class="generate-btn" id="generateBtn"><span class="btn-label">Generate feedback</span></button>
+        <div class="mobile-generate-bar" id="mobileGenerateBar" hidden>
+          <span class="mobile-generate-summary" id="mobileGenerateSummary"></span>
+          <button type="button" class="mobile-generate-btn" id="mobileGenerateBtn">Generate</button>
+        </div>
       </div>
 
       <div class="panel">
@@ -6562,29 +6588,132 @@ async function createActivationBatch(){
   }catch(e){output.textContent += '\nStopped: '+e.message+' Copy any completed codes before making another batch.';}
   finally{btn.disabled=false;}
 }
-// Owner feedback hub: a compact text digest (textContent only — comments are
-// untrusted teacher input). The full dashboard is /feedback-dashboard.html.
+// Owner feedback hub: star ratings + stats. Built with DOM nodes / textContent
+// only — comments are untrusted teacher input. Full dashboard: /feedback-dashboard.html.
+function fbEl(tag, cls, text){
+  const n = document.createElement(tag);
+  if(cls) n.className = cls;
+  if(text != null) n.textContent = text;
+  return n;
+}
+function fbStars(avg, cls){
+  const wrap = fbEl('span', 'fb-stars' + (cls ? ' ' + cls : ''));
+  wrap.setAttribute('role', 'img');
+  wrap.setAttribute('aria-label', avg == null ? 'No ratings yet' : avg.toFixed(1) + ' out of 5 stars');
+  wrap.appendChild(fbEl('span', 'fb-stars-base', '★★★★★'));
+  const fill = fbEl('span', 'fb-stars-fill', '★★★★★');
+  fill.style.width = (avg == null ? 0 : Math.max(0, Math.min(5, avg)) / 5 * 100) + '%';
+  wrap.appendChild(fill);
+  return wrap;
+}
+function fbTile(value, label, tone){
+  const t = fbEl('div', 'fb-tile' + (tone ? ' fb-tile-' + tone : ''));
+  t.appendChild(fbEl('b', null, String(value)));
+  t.appendChild(fbEl('span', null, label));
+  return t;
+}
+function fbItem(it){
+  const row = fbEl('li', 'fb-item');
+  const head = fbEl('div', 'fb-item-head');
+  if(it.score != null) head.appendChild(fbStars(it.score, 'fb-stars-sm'));
+  head.appendChild(fbEl('span', 'fb-chip', it.protocol || '?'));
+  if(it.repairOutcome && it.repairOutcome !== 'not_needed') head.appendChild(fbEl('span', 'fb-chip fb-chip-warn', 'repair: ' + it.repairOutcome));
+  head.appendChild(fbEl('span', 'fb-meta', [it.teacherName, it.at ? new Date(it.at).toLocaleDateString() : ''].filter(Boolean).join(' · ')));
+  row.appendChild(head);
+  if(it.comment) row.appendChild(fbEl('p', 'fb-comment', it.comment));
+  return row;
+}
+function fbList(title, items, emptyText, tone){
+  const sec = fbEl('section', 'fb-section');
+  const h = fbEl('h4', 'fb-h');
+  h.appendChild(fbEl('span', null, title));
+  h.appendChild(fbEl('em', 'fb-count' + (items.length && tone ? ' fb-count-' + tone : ''), String(items.length)));
+  sec.appendChild(h);
+  if(!items.length){ sec.appendChild(fbEl('p', 'fb-empty', emptyText)); return sec; }
+  const ul = fbEl('ul', 'fb-items');
+  items.slice(0, 10).forEach(it => ul.appendChild(fbItem(it)));
+  sec.appendChild(ul);
+  if(items.length > 10) sec.appendChild(fbEl('p', 'fb-more', '+ ' + (items.length - 10) + ' more in the full dashboard'));
+  return sec;
+}
+function renderOwnerFeedback(output, data){
+  const s = data.summary || {}, o = s.overall || {};
+  const rated = (data.items || []).filter(i => Number.isInteger(i.score) && i.score >= 1 && i.score <= 5);
+  const dist = [0, 0, 0, 0, 0, 0];
+  rated.forEach(i => dist[i.score]++);
+  const maxDist = Math.max(1, ...dist.slice(1));
+  const frag = document.createDocumentFragment();
+
+  const hero = fbEl('div', 'fb-hero');
+  const left = fbEl('div', 'fb-hero-score');
+  left.appendChild(fbEl('b', 'fb-avg', o.avgScore == null ? '–' : o.avgScore.toFixed(1)));
+  left.appendChild(fbStars(o.avgScore == null ? null : o.avgScore, 'fb-stars-lg'));
+  left.appendChild(fbEl('span', 'fb-sub', rated.length ? rated.length + (rated.length === 1 ? ' rating' : ' ratings') : 'No ratings yet'));
+  hero.appendChild(left);
+  const bars = fbEl('div', 'fb-dist');
+  bars.setAttribute('role', 'list');
+  for(let n = 5; n >= 1; n--){
+    const r = fbEl('div', 'fb-dist-row' + (n <= 2 ? ' fb-dist-low' : ''));
+    r.setAttribute('role', 'listitem');
+    r.setAttribute('aria-label', n + ' star: ' + dist[n]);
+    r.appendChild(fbEl('span', 'fb-dist-n', n + '★'));
+    const track = fbEl('span', 'fb-dist-track');
+    const fill = fbEl('i');
+    fill.style.width = (dist[n] / maxDist * 100) + '%';
+    track.appendChild(fill);
+    r.appendChild(track);
+    r.appendChild(fbEl('span', 'fb-dist-v', String(dist[n])));
+    bars.appendChild(r);
+  }
+  hero.appendChild(bars);
+  frag.appendChild(hero);
+
+  const tiles = fbEl('div', 'fb-tiles');
+  tiles.appendChild(fbTile(s.total || 0, 'items'));
+  tiles.appendChild(fbTile(s.accounts || 0, 'teachers'));
+  tiles.appendChild(fbTile(o.low || 0, 'low ratings', o.low ? 'warn' : ''));
+  tiles.appendChild(fbTile(o.bugs || 0, 'bugs', o.bugs ? 'bad' : ''));
+  tiles.appendChild(fbTile(o.ideas || 0, 'ideas', o.ideas ? 'idea' : ''));
+  frag.appendChild(tiles);
+
+  const proto = Object.entries(s.byProtocol || {}).sort((a, b) => b[1].count - a[1].count);
+  const ps = fbEl('section', 'fb-section');
+  const ph = fbEl('h4', 'fb-h'); ph.appendChild(fbEl('span', null, 'By protocol')); ps.appendChild(ph);
+  if(!proto.length) ps.appendChild(fbEl('p', 'fb-empty', 'No feedback yet. Ratings will appear here once teachers start rating reports.'));
+  else {
+    const list = fbEl('div', 'fb-proto');
+    proto.forEach(([k, v]) => {
+      const r = fbEl('div', 'fb-proto-row');
+      r.appendChild(fbEl('span', 'fb-proto-name', k));
+      r.appendChild(fbStars(v.avgScore, 'fb-stars-sm'));
+      r.appendChild(fbEl('span', 'fb-proto-avg', v.avgScore == null ? '–' : v.avgScore.toFixed(1)));
+      const meta = [v.count + (v.count === 1 ? ' item' : ' items')];
+      if(v.low) meta.push(v.low + ' low');
+      if(v.bugs) meta.push(v.bugs + (v.bugs === 1 ? ' bug' : ' bugs'));
+      r.appendChild(fbEl('span', 'fb-meta', meta.join(' · ')));
+      list.appendChild(r);
+    });
+    ps.appendChild(list);
+  }
+  frag.appendChild(ps);
+
+  frag.appendChild(fbList('Bugs', s.bugs || [], 'No bug reports.', 'bad'));
+  frag.appendChild(fbList('Low ratings', s.lowScores || [], 'No ratings of 1–2 stars.', 'warn'));
+  frag.appendChild(fbList('Ideas', s.ideas || [], 'No ideas submitted yet.', 'idea'));
+  output.replaceChildren(frag);
+}
 async function showOwnerFeedback(){
   const output = document.getElementById('ownerFeedbackResult');
-  output.style.display = ''; output.textContent = 'Loading feedback...';
+  output.style.display = ''; output.style.whiteSpace = 'normal';
+  output.classList.add('fb-root');
+  output.textContent = 'Loading feedback...';
   const ownerKey = getStoredAccessKey();
   if(!ownerKey){ output.textContent = 'Owner login is required.'; return; }
   try{
     const response = await fetch('/api/feedback?limit=500', { headers: { 'x-app-key': ownerKey }, cache: 'no-store' });
     const data = await response.json().catch(() => ({}));
     if(!response.ok) throw new Error(data.error || 'Could not load feedback.');
-    const s = data.summary, o = s.overall || {};
-    const line = it => '- ' + (it.score != null ? it.score + '★ ' : '') + (it.protocol || '?') + (it.repairOutcome && it.repairOutcome !== 'not_needed' ? ' [repair: ' + it.repairOutcome + ']' : '') +
-      ' · ' + (it.teacherName || '') + ' · ' + new Date(it.at).toLocaleDateString() + (it.comment ? '\n  ' + it.comment : '');
-    const byProtocol = Object.entries(s.byProtocol).sort((a, b) => b[1].count - a[1].count)
-      .map(([k, v]) => '  ' + k + ': ' + v.count + ' items, avg ' + (v.avgScore == null ? '–' : v.avgScore.toFixed(2) + '★') + (v.low ? ', ' + v.low + ' low' : '') + (v.bugs ? ', ' + v.bugs + ' bugs' : ''));
-    output.textContent = [
-      s.total + ' items from ' + s.accounts + ' teachers · average ' + (o.avgScore == null ? '–' : o.avgScore.toFixed(2) + '★') + ' · ' + (o.low || 0) + ' low · ' + (o.bugs || 0) + ' bugs · ' + (o.ideas || 0) + ' ideas',
-      '', 'By protocol:', ...(byProtocol.length ? byProtocol : ['  none yet']),
-      '', 'Bugs (' + s.bugs.length + '):', ...(s.bugs.slice(0, 10).map(line)),
-      '', 'Low ratings (' + s.lowScores.length + '):', ...(s.lowScores.slice(0, 10).map(line)),
-      '', 'Ideas (' + s.ideas.length + '):', ...(s.ideas.slice(0, 10).map(line))
-    ].join('\n');
+    renderOwnerFeedback(output, data);
   }catch(e){ output.textContent = e.message; }
 }
 function wireOwnerBatchTools(){
@@ -9819,5 +9948,121 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 
 
 
+<script>
+// Mobile Generate bar: on phones the main Generate button sits below all
+// settings, so a compact bar shows the chosen protocol and rating and
+// presses the real Generate button (same validation and flow). It hides
+// whenever the real button is on screen.
+(function(){
+  const bar=document.getElementById('mobileGenerateBar');
+  const summary=document.getElementById('mobileGenerateSummary');
+  const btn=document.getElementById('mobileGenerateBtn');
+  const main=document.getElementById('generateBtn');
+  if(!bar||!summary||!btn||!main)return;
+  let mainVisible=true;
+  function protocolName(){
+    const r=document.querySelector('input[name="protocol"]:checked');
+    if(!r||!r.parentElement)return '';
+    const t=[...r.parentElement.childNodes].find(n=>n.nodeType===3&&n.textContent.trim());
+    return t?t.textContent.trim():r.value;
+  }
+  function ratingText(){
+    const rf=document.getElementById('ratingField');
+    if(!rf||getComputedStyle(rf).display==='none')return '';
+    const v=(typeof state!=='undefined'&&state&&state.rating)?String(state.rating):'';
+    return v?(/^[0-9.]+$/.test(v)?v+'★':v):'no rating yet';
+  }
+  const line=document.getElementById('generateSummary');
+  function lengthText(){
+    const lf=document.getElementById('lengthFormatField');
+    if(!lf||getComputedStyle(lf).display==='none')return '';
+    const r=document.querySelector('input[name="lengthFormat"]:checked');
+    return r?r.value.charAt(0).toUpperCase()+r.value.slice(1):'';
+  }
+  function refreshLine(){
+    if(!line)return;
+    const rating=ratingText();
+    line.replaceChildren();
+    if(rating==='no rating yet'){
+      line.append(protocolName()+' · ');
+      const b=document.createElement('button');b.type='button';b.textContent='Pick a performance rating';
+      b.addEventListener('click',()=>{const rf=document.getElementById('ratingField');if(rf){rf.scrollIntoView({behavior:'smooth',block:'center'});const first=rf.querySelector('button,[tabindex]');if(first)first.focus({preventScroll:true});}});
+      line.append(b);
+    }else{
+      line.textContent=[protocolName(),rating,lengthText()].filter(Boolean).join(' · ');
+    }
+  }
+  function refresh(){
+    refreshLine();
+    summary.textContent=[protocolName(),ratingText()].filter(Boolean).join(' · ');
+    btn.disabled=main.disabled;
+    bar.hidden=mainVisible;
+  }
+  if('IntersectionObserver' in window){
+    new IntersectionObserver(entries=>{mainVisible=entries.some(e=>e.isIntersecting);refresh();}).observe(main);
+  }else{mainVisible=true;}
+  btn.addEventListener('click',()=>{
+    if(main.disabled)return;
+    main.click();
+    // Progress, validation errors and the report all appear in Output.
+    const out=document.getElementById('outputBox');
+    if(out)setTimeout(()=>out.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'}),30);
+  });
+  document.addEventListener('change',refresh,true);
+  document.addEventListener('click',()=>setTimeout(refresh,0),true);
+  new MutationObserver(refresh).observe(main,{attributes:true,attributeFilter:['disabled','class']});
+  refresh();
+})();
+</script>
+<style>
+/* ===== Teacher feedback: stars + stats (graphite; amber stars, colour only for state) ===== */
+#accountPanel .fb-root{padding:14px;display:grid;gap:16px;font-family:var(--font-body);color:#d7dce0}
+.fb-root .fb-stars{position:relative;display:inline-block;line-height:1;letter-spacing:.08em;white-space:nowrap;font-size:15px;vertical-align:middle}
+.fb-root .fb-stars-base{color:rgba(255,255,255,.14)}
+.fb-root .fb-stars-fill{position:absolute;left:0;top:0;overflow:hidden;color:#E8B84A;white-space:nowrap}
+.fb-root .fb-stars-lg{font-size:22px}
+.fb-root .fb-stars-sm{font-size:12px}
+.fb-root .fb-hero{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:center;padding:14px 16px;border-radius:12px;background:#101214;border:1px solid rgba(255,255,255,.07)}
+.fb-root .fb-hero-score{display:grid;gap:6px;justify-items:start;min-width:96px}
+.fb-root .fb-avg{font-family:var(--font-display);font-size:44px;line-height:1;font-weight:700;color:#ECEDEF;letter-spacing:-.02em}
+.fb-root .fb-sub,.fb-root .fb-meta{font-size:12px;color:#9A9CA1}
+.fb-root .fb-dist{display:grid;gap:5px}
+.fb-root .fb-dist-row{display:grid;grid-template-columns:26px minmax(0,1fr) 28px;gap:8px;align-items:center;font-size:12px;color:#9A9CA1}
+.fb-root .fb-dist-track{height:6px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden}
+.fb-root .fb-dist-track i{display:block;height:100%;border-radius:3px;background:#E8B84A;min-width:0}
+.fb-root .fb-dist-low .fb-dist-track i{background:#E5735F}
+.fb-root .fb-dist-v{text-align:right;font-variant-numeric:tabular-nums;color:#ECEDEF}
+.fb-root .fb-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.fb-root .fb-tile{display:grid;gap:2px;padding:10px 8px;border-radius:10px;background:#101214;border:1px solid rgba(255,255,255,.07);text-align:center}
+.fb-root .fb-tile b{font-family:var(--font-display);font-size:22px;line-height:1.1;color:#ECEDEF;font-variant-numeric:tabular-nums}
+.fb-root .fb-tile span{font-size:11px;color:#9A9CA1}
+.fb-root .fb-tile-warn b{color:#E8B84A}.fb-root .fb-tile-bad b{color:#E5735F}.fb-root .fb-tile-idea b{color:#8FB4E8}
+.fb-root .fb-section{display:grid;gap:8px}
+.fb-root .fb-h{display:flex;align-items:center;justify-content:space-between;margin:0;font-family:var(--font-display);font-size:13px;font-weight:600;color:#ECEDEF;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.07)}
+.fb-root .fb-count{font-style:normal;font-size:12px;min-width:22px;text-align:center;padding:1px 7px;border-radius:999px;background:rgba(255,255,255,.07);color:#9A9CA1}
+.fb-root .fb-count-bad{background:rgba(229,115,95,.16);color:#F0A596}
+.fb-root .fb-count-warn{background:rgba(232,184,74,.16);color:#E8B84A}
+.fb-root .fb-count-idea{background:rgba(143,180,232,.16);color:#8FB4E8}
+.fb-root .fb-proto{display:grid;gap:2px}
+.fb-root .fb-proto-row{display:grid;grid-template-columns:76px auto 28px minmax(0,1fr);gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px}
+.fb-root .fb-proto-row:last-child{border-bottom:0}
+.fb-root .fb-proto-name{font-weight:600;color:#ECEDEF;overflow-wrap:anywhere}
+.fb-root .fb-proto-avg{font-variant-numeric:tabular-nums;color:#ECEDEF;text-align:right}
+.fb-root .fb-items{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.fb-root .fb-item{padding:10px 12px;border-radius:10px;background:#101214;border:1px solid rgba(255,255,255,.06)}
+.fb-root .fb-item-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.fb-root .fb-chip{font-size:11px;padding:1px 8px;border-radius:999px;background:rgba(255,255,255,.07);color:#c9d0d5}
+.fb-root .fb-chip-warn{background:rgba(232,184,74,.14);color:#E8B84A}
+.fb-root .fb-item-head .fb-meta{margin-left:auto}
+.fb-root .fb-comment{margin:6px 0 0;font-size:13px;line-height:1.5;color:#c9d0d5;overflow-wrap:anywhere;white-space:pre-wrap}
+.fb-root .fb-empty,.fb-root .fb-more{margin:0;font-size:12.5px;color:#9A9CA1}
+@media (max-width:560px){
+  .fb-root .fb-hero{grid-template-columns:1fr;gap:14px}
+  .fb-root .fb-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .fb-root .fb-proto-row{grid-template-columns:1fr auto 28px;}
+  .fb-root .fb-proto-row .fb-meta{grid-column:1/-1}
+  .fb-root .fb-item-head .fb-meta{margin-left:0;width:100%}
+}
+</style>
 </body>
 </html>
