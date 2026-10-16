@@ -42,6 +42,9 @@ module.exports=async function(){
     await page.setViewport({width:1440,height:1000});
     await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'load'});
     await page.waitForFunction(()=>!document.getElementById('krispPendingBtn').hidden);
+    assert.equal(await page.$$eval('#krispPendingBtn .krisp-envelope-icon rect',els=>els.length),1,'pending shortcut uses a rounded envelope icon');
+    const pill=await page.$eval('#krispIntegrationBtn',e=>{const s=getComputedStyle(e);return {radius:parseFloat(s.borderTopLeftRadius),height:e.getBoundingClientRect().height};});
+    assert.ok(pill.radius>=pill.height/2,'Krisp integration has a fully rounded pill silhouette');
     assert.equal(await page.$eval('#krispInboxBadge',e=>e.textContent),'2');
     const pulse=await page.$eval('#krispPendingBtn',e=>{const s=getComputedStyle(e);return {name:s.animationName,count:s.animationIterationCount,duration:s.animationDuration};});
     assert.deepEqual(pulse,{name:'krispInboxBreathing',count:'infinite',duration:'2.4s'},'pending transcripts continuously glow until cleared');
