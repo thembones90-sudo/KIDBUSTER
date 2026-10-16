@@ -77,15 +77,15 @@ output contract.
 
 1. The public alias does not send `X-Robots-Tag: noindex`, so search engines
    can index it.
-2. More than 40 older preview deployments are now publicly reachable at their
-   own URLs. Some run code from before the throttle and the output contract.
-   They still reject invalid keys, but a holder of a valid key could use the
-   older behaviour.
+2. **Resolved 2026-10-16 (owner-approved):** the 34 older preview deployments
+   were deleted. Only the current preview (`of6b7q6m8`, behind both aliases)
+   and the old production-target deployment (`czgcp0en9`, see item 3) remain.
+   Deleted URLs return 404.
 3. `pathfinder-v2-staging.vercel.app` (the project's production domain) serves
    an old deployment with no variables. It is public, and generation fails
    closed with 500 "Could not verify your license". It is broken and confusing
    for testers.
-4. Options for 2 and 3: delete old deployments, or move staging to the
+4. Option for 3: delete that deployment, or move staging to the
    project's Production target with Standard Protection. Standard Protection
    keeps the production domain public and protects the per-deployment URLs.
 
