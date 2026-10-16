@@ -2337,6 +2337,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
     </div>
     <div class="header-actions">
       <button type="button" id="krispIntegrationBtn" class="btn-secondary account-btn krisp-integration-btn" aria-expanded="false" aria-controls="krispSetupSection" hidden><span class="krisp-logo-slot" aria-hidden="true"><img id="krispLogoImg" class="krisp-logo-img" alt="" width="22" height="22" hidden><svg id="krispLogoFallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></span><span class="krisp-integration-label">Krisp integration</span><span class="krisp-integration-caret" aria-hidden="true">&#9662;</span></button>
+      <button type="button" id="krispPendingBtn" class="btn-secondary account-btn krisp-pending-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="krispInboxPanel" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4zM4 14h5l2 3h2l2-3h5M8 8h8M8 11h5"/></svg><span>Pending transcripts</span><span id="krispInboxBadge" class="krisp-inbox-badge" aria-hidden="true">…</span></button>
       <button class="btn-secondary account-btn help-btn" id="helpBtn" type="button" aria-label="Start here: open Pathfinder help guide">START HERE · FIRST TIME?</button>
       <button class="btn-secondary account-btn" id="accountBtn" type="button" aria-expanded="false" aria-controls="accountPanel"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>Account</button>
     </div>
@@ -2344,6 +2345,13 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
 
 
 
+  <section id="krispInboxPanel" popover="auto" role="dialog" aria-labelledby="krispInboxTitle">
+    <div class="krisp-inbox-heading"><div><p class="krisp-inbox-eyebrow">LESSON INBOX</p><h2 id="krispInboxTitle">Pending transcripts</h2></div><button type="button" id="krispInboxClose" aria-label="Close pending transcripts">×</button></div>
+    <p class="krisp-inbox-description">Lesson notes you haven’t imported yet. Choose a transcript when you’re ready.</p>
+    <p id="krispInboxStatus" role="status" aria-live="polite">Checking your inbox…</p>
+    <p id="krispInboxEmpty" hidden>You’re all caught up. New unused transcripts will appear here.</p>
+    <div id="krispInboxContent"></div>
+  </section>
   <div class="account-panel" id="accountPanel" style="display:none;">
     <div class="account-panel-head">
       <div>
@@ -8670,6 +8678,26 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
   }
 }
 
+#krispPendingBtn[hidden]{display:none!important}
+.header-actions>button.krisp-pending-btn{gap:9px;padding:8px 14px;border:1px solid #52605280;border-radius:999px;background:linear-gradient(145deg,#252e27,#1b211d);color:#dce6de;font:600 12px/1.3 var(--font-body);letter-spacing:0;text-transform:none;}
+.krisp-pending-btn>svg{width:19px;height:19px;flex:none;}
+.krisp-inbox-badge{display:inline-grid;place-items:center;min-width:23px;height:23px;padding:0 5px;box-sizing:border-box;border-radius:50%;background:#ffffff0a;color:#aab7ac;font-size:11px;font-variant-numeric:tabular-nums;}
+#krispPendingBtn[data-has-pending="true"]{border-color:rgba(var(--toxin-rgb),.5);}
+#krispPendingBtn[data-has-pending="true"] .krisp-inbox-badge{background:rgba(var(--toxin-rgb),.16);color:rgb(var(--toxin-rgb));}
+#krispPendingBtn:focus-visible,#krispInboxPanel button:focus-visible{outline:2px solid rgb(var(--toxin-rgb));outline-offset:4px;}
+#krispInboxPanel{position:fixed;inset:auto;margin:0;width:min(520px,calc(100vw - 32px));max-height:calc(100dvh - 32px);box-sizing:border-box;padding:26px;overflow:auto;overscroll-behavior:contain;border:1px solid #68786a60;border-radius:22px;background:linear-gradient(145deg,#222a24,#171d19 65%);color:#dce6de;box-shadow:0 24px 80px #0009;}
+#krispInboxPanel:not(:popover-open){display:none;}
+#krispInboxPanel::backdrop{background:transparent;}
+.krisp-inbox-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.krisp-inbox-eyebrow{margin:0 0 6px;font:600 10px/1.4 var(--font-body);letter-spacing:.13em;color:#a7b8aa;}
+#krispInboxTitle{margin:0;font:700 23px/1.25 var(--font-display);letter-spacing:-.025em;}
+#krispInboxClose{width:36px;height:36px;min-height:36px;flex:none;padding:0;border:1px solid #ffffff14;border-radius:50%;background:#ffffff05;color:#bdcec2;font:300 25px/1 var(--font-body);cursor:pointer;}
+.krisp-inbox-description{font-size:13px;line-height:1.65;color:#aebfb3;margin:16px 0;}
+#krispInboxStatus{font-size:12px;line-height:1.6;color:#d4dfd6;}
+#krispInboxEmpty{padding:24px 18px;margin:16px 0 0;border:1px dashed #ffffff20;border-radius:13px;text-align:center;font-size:13px;line-height:1.7;color:#aebfb3;}
+#krispInboxPanel .krisp-pending-card{min-width:0;overflow-wrap:anywhere;}
+@media(max-width:650px){#krispInboxPanel{inset:auto 12px 12px;width:calc(100vw - 24px);max-height:calc(100dvh - 24px);padding:22px;}#krispInboxPanel::backdrop{background:#0006;}}
+@media(max-width:420px){#krispInboxPanel .krisp-pending-card{flex-wrap:wrap;}#krispInboxPanel .krisp-pending-card>div:last-child{flex-direction:row!important;flex:1 0 100%;min-width:0!important;}.header-actions>button.krisp-pending-btn{padding:8px 10px;font-size:11px;}}
 </style>
 <script>
 (function(){
@@ -8677,6 +8705,7 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
   var pollTimer = null;
   var renderedPendingIds = {};
   var announcedIds = {};
+  var pendingAccountKey = null;
 
   function getSavedKey(){
     try{ return localStorage.getItem(ACCESS_KEY_STORAGE_KEY); }catch(e){ return null; }
@@ -9088,6 +9117,16 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
   }
 
   function updatePendingCount(count){
+    count = Math.max(0, Math.floor(Number(count) || 0));
+    var button = document.getElementById('krispPendingBtn');
+    var badge = document.getElementById('krispInboxBadge');
+    if(badge) badge.textContent = String(count);
+    if(button){ button.dataset.hasPending = String(count > 0); button.setAttribute('aria-label','Pending transcripts — ' + count + ' unused'); button.removeAttribute('title'); }
+    var empty = document.getElementById('krispInboxEmpty');
+    if(empty) empty.hidden = count > 0;
+    var status = document.getElementById('krispInboxStatus');
+    if(status) status.textContent = count ? count + (count === 1 ? ' transcript ready to import' : ' transcripts ready to import') : 'No pending transcripts';
+    if(!count){ var wrap = document.getElementById('krispPendingWrap'); if(wrap) wrap.style.display = 'none'; }
     var el = document.getElementById('krispPendingCount');
     if(!el) return;
     if(count > 0){
@@ -9295,8 +9334,9 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
     if(!key) return null;
     try{
       var res = await fetch('/api/krisp-session', { headers: { 'x-app-key': key } });
-      if(!res.ok){ krispServiceError = true; renderKrispHealth(); return null; }
+      if(!res.ok){ krispServiceError = true; renderKrispHealth(); showPendingRefreshError(); return null; }
       var json = await res.json();
+      if(key !== getSavedKey()) return null;
       krispServiceError = false;
       krispServerArmed = !!json.waiting;
       if(krispServerArmed === krispRequestedArmed) krispActionError = false;
@@ -9313,7 +9353,24 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
         }
       }
       return json;
-    }catch(e){ krispServiceError = true; renderKrispHealth(); return null; }
+    }catch(e){ krispServiceError = true; renderKrispHealth(); showPendingRefreshError(); return null; }
+  }
+
+  function showPendingRefreshError(){
+    var status = document.getElementById('krispInboxStatus');
+    if(status) status.textContent = 'Could not refresh your inbox. Showing the last checked list; try again shortly.';
+    var button = document.getElementById('krispPendingBtn');
+    if(button) button.title = 'Inbox refresh unavailable. Count is from the last successful check.';
+  }
+
+  function positionKrispInbox(){
+    var panel = document.getElementById('krispInboxPanel');
+    var button = document.getElementById('krispPendingBtn');
+    if(!panel || !button || !panel.matches(':popover-open')) return;
+    if(innerWidth <= 650){ panel.style.left = ''; panel.style.top = ''; return; }
+    var box = button.getBoundingClientRect();
+    panel.style.left = Math.max(16, Math.min(box.right - panel.offsetWidth, innerWidth - panel.offsetWidth - 16)) + 'px';
+    panel.style.top = Math.max(16, Math.min(box.bottom + 12, innerHeight - panel.offsetHeight - 16)) + 'px';
   }
 
   // --- Webhook URL controls -------------------------------------------
@@ -9415,6 +9472,12 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
   function setKrispHeaderButtonVisible(visible){
     var integrationBtn = document.getElementById('krispIntegrationBtn');
     if(integrationBtn) integrationBtn.hidden = !visible;
+    var pendingBtn = document.getElementById('krispPendingBtn');
+    if(pendingBtn) pendingBtn.hidden = !visible;
+    if(!visible){
+      var inbox = document.getElementById('krispInboxPanel');
+      if(inbox && inbox.matches(':popover-open')) inbox.hidePopover();
+    }
   }
 
   // Optional official Krisp mark: if a logo file is placed at one of these
@@ -9442,6 +9505,20 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
   }
 
   function wireButtons(){
+    var pendingBtn = document.getElementById('krispPendingBtn');
+    if(pendingBtn && pendingBtn.dataset.wired !== 'true'){
+      pendingBtn.dataset.wired = 'true';
+      var inbox = document.getElementById('krispInboxPanel');
+      document.getElementById('krispInboxContent').appendChild(document.getElementById('krispPendingWrap'));
+      inbox.addEventListener('toggle',function(){pendingBtn.setAttribute('aria-expanded',String(inbox.matches(':popover-open')));});
+      document.getElementById('krispInboxClose').addEventListener('click',function(){inbox.hidePopover();pendingBtn.focus();});
+      window.addEventListener('resize',positionKrispInbox);
+      pendingBtn.addEventListener('click',function(){
+        if(inbox.matches(':popover-open')){inbox.hidePopover();return;}
+        inbox.showPopover(); positionKrispInbox();
+        refreshKrispSession();
+      });
+    }
     var integrationBtn = document.getElementById('krispIntegrationBtn');
     if(integrationBtn && integrationBtn.dataset.wired !== 'true'){
       integrationBtn.dataset.wired = 'true';
@@ -9497,6 +9574,14 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
   // failure) leaves the panel hidden -- fail safe, not fail open. -----
   async function initKrispPanel(){
     var key = getSavedKey();
+    if(key !== pendingAccountKey){
+      pendingAccountKey = key;
+      renderedPendingIds = {}; announcedIds = {};
+      document.getElementById('krispPendingItems').replaceChildren();
+      updatePendingCount(0);
+      document.getElementById('krispInboxBadge').textContent = '…';
+      setKrispHeaderButtonVisible(false);
+    }
     if(!key) return;
     try{
       var res = await fetch('/api/krisp-session', { headers: { 'x-app-key': key } });
@@ -9508,6 +9593,7 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
         return;
       }
       var json = await res.json();
+      if(key !== getSavedKey()) return;
       krispDisconnected = false;
       krispServerArmed = !!json.waiting;
       krispServiceError = false;
@@ -9544,6 +9630,12 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
   // A key saved after page load (sign-in window) must reveal the Krisp
   // integration immediately -- previously it only appeared after a reload.
   document.addEventListener('kidbuster:access-key-saved', initKrispPanel);
+  ['accountSignOutBtn','accountChangeKeyBtn'].forEach(function(id){
+    document.getElementById(id)?.addEventListener('click',initKrispPanel);
+  });
+  window.addEventListener('storage',function(event){
+    if(event.key === ACCESS_KEY_STORAGE_KEY) initKrispPanel();
+  });
 
   if(document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', initKrispPanel);
