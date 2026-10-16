@@ -22,6 +22,7 @@
 // not appended as a tail), so for Blitz the whole prompt is cached as one
 // block instead — still a real win whenever the same teacher gets the
 // same model again from the shuffle bag.
+import { HAIKU_MODEL, HAIKU_MAX_TOKENS, estimateHaikuCost } from './_lib/haiku-provider.js';
 const SYSTEM_PROMPT_DIVIDER = '\n\n────────────────────────────────────────\n\n';
 
 function buildCacheableSystemBlocks(systemPrompt) {
@@ -51,10 +52,10 @@ const PROVIDER_URL='https://api.anthropic.com/v1/messages';
 // effort high it reached the 8000 ceiling on 2 of 14 real-transcript reports. ANTHROPIC_MODEL=claude-sonnet-4-6 is the rollback: it restores
 // the previous request exactly (3000 tokens, no output_config).
 const MODEL_REQUESTS={
-  'claude-haiku-5-5':{max_tokens:16000,output_config:{effort:'high'}},
+  [HAIKU_MODEL]:{max_tokens:HAIKU_MAX_TOKENS,thinking:{type:'adaptive'},output_config:{effort:'high'}},
   'claude-sonnet-4-6':{max_tokens:3000}
 };
-const DEFAULT_PROVIDER_MODEL='claude-haiku-5-5';
+const DEFAULT_PROVIDER_MODEL=HAIKU_MODEL;
 function providerModel(){
   const configured=String(process.env.ANTHROPIC_MODEL||'').trim();
   return Object.hasOwn(MODEL_REQUESTS,configured)?configured:DEFAULT_PROVIDER_MODEL;
@@ -246,7 +247,7 @@ export default async function handler(req, res) {
   try {
     if(parseError)throw parseError;
     if(!Array.isArray(data?.content)) throw new Error('Provider response content is not an array');
-    text = data.content.map(b => b?.text || '').join('').trim();
+    text = data.content.filter(b => !b?.type || b.type === 'text').map(b => b?.text || '').join('').trim();
   } catch (parseErr) {
     await releaseGeneration(entitlement.reservation).catch(err=>console.error('generate.js: reservation release failed:',err));
     await releaseRequest();
@@ -262,6 +263,11 @@ export default async function handler(req, res) {
 
   // A successful HTTP response can still contain an incomplete report.
   // Never deliver or charge quota for a provider response cut off by output limits.
+  if (data?.stop_reason === 'refusal') {
+    await releaseGeneration(entitlement.reservation).catch(()=>{});
+    await releaseRequest();
+    return res.status(502).json({ error: 'The AI provider could not produce this report. Your lesson notes are safe.', reason: 'provider_refusal' });
+  }
   if (data?.stop_reason === 'max_tokens' || data?.stop_reason === 'model_context_window_exceeded') {
     await releaseGeneration(entitlement.reservation).catch(err=>console.error('generate.js: truncated response reservation release failed:',err));
     await releaseRequest();
@@ -311,6 +317,10 @@ export default async function handler(req, res) {
         },remaining);
         if(!result.response.ok||result.parseError){
           repair.outcome='provider_error';
+        }else if(result.data?.stop_reason==='refusal'){
+          // A refused repair is never delivered; no fallback model is tried.
+          usage=addUsage(usage,result.data?.usage);
+          repair.outcome='refusal';
         }else{
           usage=addUsage(usage,result.data?.usage);
           const candidate=providerText(result.data);
@@ -391,8 +401,12 @@ export default async function handler(req, res) {
   // frontend's cost tracker (see kidbusterStats() in index.html) can price
   // each token type correctly instead of treating everything as a normal
   // input token.
+  const model = data.model || providerModel();
   return res.status(200).json({
-    text, usage, trialStatus,
+    text, usage, trialStatus, model,
+    // List-price estimate across the generation and any repair (null for the
+    // non-Haiku rollback model).
+    estimatedCostUsd: estimateHaikuCost(usage, model),
     // Structure passed the protocol contract. Educational accuracy is NOT
     // verified by software: contentReviewed stays false until a teacher reviews.
     outputContract:{compliant:true,contentReviewed:false,advisory:contract.advisory,repair}

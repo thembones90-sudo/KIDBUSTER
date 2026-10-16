@@ -121,6 +121,9 @@ module.exports=async function run(){
     scriptProvider([{text:overlongFairy},{status:529}]);
     const pe=await invoke(eKey,fairy);
     check('provider error during repair -> 422, not charged',pe.statusCode===422&&pe.jsonBody.repair.outcome==='provider_error'&&(await licensing.getTrialUsageCount(eKey,'FAIRY'))===0);
+    scriptProvider([{text:overlongFairy},{text:goodFairy,stop:'refusal'}]);
+    const rf=await invoke(eKey,fairy);
+    check('a refused repair is never delivered, even with text, and is not charged',rf.statusCode===422&&rf.jsonBody.repair.outcome==='refusal'&&!rf.jsonBody.text&&(await licensing.getTrialUsageCount(eKey,'FAIRY'))===0);
     scriptProvider([{text:overlongFairy},{text:goodFairy.slice(0,200),stop:'max_tokens'}]);
     const tr=await invoke(eKey,fairy);
     check('truncated repair is never delivered',tr.statusCode===422&&tr.jsonBody.repair.outcome==='truncated'&&(await licensing.getTrialUsageCount(eKey,'FAIRY'))===0);

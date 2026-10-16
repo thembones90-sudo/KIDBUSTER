@@ -36,7 +36,7 @@ const PROFILES = {
   // Haiku 5.5 tuning arm (owner decision 2026-10-16): effort raised from its
   // default 'medium' to 'high'; other models unchanged from thinking-headroom.
   'haiku-high': { maxTokens:3000, maxTokensByModel:{ 'claude-haiku-5-5':16000, 'claude-sonnet-5-5':8000 },
-    extra:{}, extraByModel:{ 'claude-haiku-5-5':{ output_config:{ effort:'high' } } },
+    extra:{}, extraByModel:{ 'claude-haiku-5-5':{ thinking:{ type:'adaptive' }, output_config:{ effort:'high' } } },
     generationBudgetMs:110000, minRepairWindowMs:12000,
     description:'thinking-headroom plus output_config.effort=high for Haiku 5.5 only.' }
 };
