@@ -57,6 +57,9 @@ module.exports=async function(){
     assert.notEqual(frames.low,frames.high,'actual rendered glow changes between low and high frames');
     assert.equal(frames.high,frames.later,'glow still reaches its peak after more than two cycles');
     assert.equal(frames.running,'running');
+    assert.match(frames.high,/224, 190, 126/,'pending halo is champagne gold, not protocol green');
+    assert.equal(await page.$eval('#krispInboxBadge',e=>getComputedStyle(e).color),'rgb(40, 33, 22)','gold badge has dark readable numbers');
+    if(process.env.V2_PENDING_SCREENSHOTS)await page.screenshot({path:path.join(process.env.V2_PENDING_SCREENSHOTS,'pending-gold-active.png')});
     const interpolation=await page.$eval('#krispPendingBtn',e=>{
       const a=e.getAnimations().find(a=>a.animationName==='krispInboxBreathing');
       const at=t=>{a.currentTime=t;return getComputedStyle(e).boxShadow;};
@@ -96,8 +99,10 @@ module.exports=async function(){
     assert.equal(await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).animationName),'none');
     assert.notEqual(await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).boxShadow),'none','reduced motion keeps a steady glow');
     const classicColor=await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).getPropertyValue('--toxin-rgb'));
+    const goldShadow=await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).boxShadow);
     await page.evaluate(()=>document.querySelector('#protocolSelect input[value="PREPLY"]').click());
-    assert.notEqual(await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).getPropertyValue('--toxin-rgb')),classicColor,'glow uses active protocol colour');
+    assert.notEqual(await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).getPropertyValue('--toxin-rgb')),classicColor,'protocol theme still changes normally');
+    assert.equal(await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).boxShadow),goldShadow,'pending notification stays gold across protocol themes');
     assert.equal(await page.$eval('#krispInboxBadge',e=>e.textContent),'1');
     assert.equal(await page.$eval('#krispPendingBtn',e=>e.dataset.hasPending),'true');
     await page.click('#krispInboxPanel .krisp-pending-card button:last-child');
