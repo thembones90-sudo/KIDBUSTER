@@ -1843,6 +1843,18 @@ body.protocol-beida .grid #outputBox.empty::before{height:25px;width:22px;backgr
 #accountPanel .btn-secondary{border-color:#48533E;background:#242D21;color:#D0DDC7;border-radius:10px}
 #accountPanel .btn-secondary:hover{border-color:#829775;background:#35432F}
 @media(max-width:560px){#licenseModalOverlay .access-modal,#accountPanel{padding:20px;border-radius:18px}#licenseModalOverlay .license-modal-title{font-size:24px}#licenseModalOverlay .license-modal-choice{padding:16px}.license-modal-choice-labels{flex-wrap:wrap}}
+/* Quiet product copy and progressive report-length details. */
+.header-brand-copy .brand-promise{display:flex;flex-wrap:wrap;gap:0 5px;max-width:380px;font-family:var(--font-display);font-size:15px;line-height:1.5;letter-spacing:-.015em;color:var(--text-dim);}
+.header-brand-copy .brand-promise strong{font-weight:600;color:var(--text);}
+.length-summary{position:relative;display:flex;align-items:center;gap:10px;margin-top:12px;padding:2px 0;color:var(--text-dim);font-family:var(--font-body);font-size:13px;line-height:1.5;}
+#lengthFormatCaption{font-weight:500;font-variant-numeric:tabular-nums;}
+.length-details summary{display:grid;place-items:center;list-style:none;width:26px;height:26px;border:1px solid var(--border);border-radius:50%;color:var(--text-dim);background:rgba(255,255,255,.025);font:600 12px/1 var(--font-body);cursor:pointer;transition:color .15s,border-color .15s;}
+.length-details summary::-webkit-details-marker{display:none;}
+.length-details summary:hover,.length-details[open] summary{color:var(--text);border-color:rgba(var(--toxin-rgb),.5);}
+.length-details summary:focus-visible{outline:2px solid var(--toxin-bright);outline-offset:3px;}
+.length-details p{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:20;margin:0;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);box-shadow:0 12px 30px rgba(0,0,0,.35);font:400 13px/1.6 var(--font-body);}
+@media(max-width:560px){.header-brand-copy .brand-promise{font-size:13px;gap:0 4px;}.length-summary{font-size:13px;}}
+@media(prefers-reduced-motion:reduce){.length-details summary{transition:none;}}
 </style>
 
 <style>
@@ -2320,7 +2332,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
       <img class="kb-logo" id="kbLogo" data-logo-preply="assets/logos/premium-v1/logo-preply.png" data-logo-beida="assets/logos/premium-v1/logo-beida.png" data-logo-blitz="assets/logos/premium-v1/logo-blitz.png" data-logo-of="assets/logos/premium-v1/logo-of.png" data-logo-ms="assets/logos/premium-v1/logo-sugarcoat-fairy.png" src="assets/logos/premium-v1/logo-classic.png" width="1987" height="791" decoding="async" alt="Pathfinder logo">
       <div class="header-brand-copy">
         <h1 class="title"><span class="mode-badge" id="protocolBadge">Classic</span></h1>
-        <p class="brand-promise">AI-assisted lesson reports for online English teachers — grounded in your evidence, shaped by your protocol.</p>
+        <p class="brand-promise"><span>Lesson notes.</span> <strong>Professional feedback.</strong></p>
       </div>
     </div>
     <div class="header-actions">
@@ -2433,7 +2445,13 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
             <label><input type="radio" name="lengthFormat" value="medium"> Medium</label>
             <label><input type="radio" name="lengthFormat" value="long" checked> Long</label>
           </div>
-          <div class="rating-caption" id="lengthFormatCaption"></div>
+          <div class="length-summary">
+            <span id="lengthFormatCaption"></span>
+            <details class="length-details" id="lengthDetails">
+              <summary aria-label="Report length details" title="Report length details">i</summary>
+              <p id="lengthFormatDetails"></p>
+            </details>
+          </div>
         </div>
         <div class="field" id="blitzVoiceField" style="display:none;">
           <label class="field-label" for="blitzVoiceSelect">Voice</label>
@@ -7477,7 +7495,10 @@ function updateLengthFormatCaption(){
   const key = (document.querySelector('input[name="lengthFormat"]:checked') || {}).value || 'long';
   const tier = KidbusterCore.LENGTH_TIERS[key] || KidbusterCore.LENGTH_TIERS.long;
   document.getElementById('lengthFormatCaption').textContent =
-    'Target ~' + tier.softTarget.toLocaleString() + ' characters (hard ceiling ' + tier.hardCeiling.toLocaleString() + ').';
+    'Up to ' + tier.hardCeiling.toLocaleString('en-US') + ' characters';
+  document.getElementById('lengthFormatDetails').textContent =
+    'Aim for about ' + tier.softTarget.toLocaleString('en-US') + ' characters. The full report, including its sign-off, must stay below ' + tier.hardCeiling.toLocaleString('en-US') + ' characters.';
+  document.getElementById('lengthDetails').open = false;
 }
 document.getElementById('lengthFormatSelect').addEventListener('change', () => {
   updateLengthFormatCaption();
