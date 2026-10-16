@@ -55,6 +55,10 @@ module.exports=async function run(){
   }
   check('Fairy: medium trim rule caps vocabulary and grammar',prompts.FAIRY.includes('at most 8 vocabulary items')&&prompts.FAIRY.includes('at most 3 grammar points'));
   check('Fairy: Positive Feedback slot no longer suggests pronunciation praise',!prompts.FAIRY.includes('e.g. clear pronunciation'));
+  for(const [rating,omit] of [['1',true],['2.5',true],['3',false],['6',false]]){
+    const p=buildServerGeneration({...base,protocol:'FAIRY',rating}).systemPrompt;
+    check('Fairy rating '+rating+': prompt states the star rule the validator enforces ('+(omit?'omit':'10 stars')+')',omit?p.includes('OMIT the entire "Total stars today" line'):p.includes('include "Total stars today:" with exactly 10 stars'));
+  }
   check('Fairy: imagination limited to voice, not facts',prompts.FAIRY.includes('Imagination belongs in the storytelling voice'));
   check('OF: 300 words is a ceiling, not a target',prompts.OF.includes('300 is a ceiling, not a target'));
   check('OF: evaluation precision guidance',prompts.OF.includes('Evaluate at the level the evidence shows'));

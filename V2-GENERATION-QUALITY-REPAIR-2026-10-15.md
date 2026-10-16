@@ -64,7 +64,7 @@ Coverage: real authorized transcript × 7 protocols (Codex's exact settings), 5 
 Fictional-scenario outputs for all seven protocols are committed in `artifacts/generation-quality-2026-10-15/` for side-by-side review.
 
 ## 6. Length and structure compliance
-Every delivered report passed the blocking checks **in force when it was generated** (the server refuses otherwise). The final rules (`c9aaa1e`) are stricter than round 1's: applied retroactively to the 55 round-1/2 deliveries they produce 5 blocking hits, **all genuine** on manual review (2 transcript-based pronunciation diagnoses, 1 eleven-star line, 3 star lines at rating 2 — one report has two findings), 0 false positives; all 14 round-3 deliveries pass the final rules. Advisory-only findings on delivered reports under the final rules: Classic/Sugarcoat short-tier "omit Pronunciation Focus" (2), Sugarcoat over its 2800 soft target (1), Preply 2 words over target (2), Blitz shingle similarity to a style model (1).
+Every delivered report passed the blocking checks **in force when it was generated** (the server refuses otherwise). The final rules (`c9aaa1e`) are stricter than round 1's: applied retroactively to the 55 round-1/2 deliveries they produce 5 blocking hits. **Correction (2026-10-16):** the "eleven-star line" was a false positive (the star line had 10; a decorative 🌟 in the closing sentence was counted), found by the model benchmark and fixed in the star-line scoping; the 2 pronunciation diagnoses were genuine, and the rating-2 star findings need the same re-check (Sugarcoat cases may include closing-sentence stars); all 14 round-3 deliveries pass the final rules. Advisory-only findings on delivered reports under the final rules: Classic/Sugarcoat short-tier "omit Pronunciation Focus" (2), Sugarcoat over its 2800 soft target (1), Preply 2 words over target (2), Blitz shingle similarity to a style model (1).
 
 ## 7. Provider calls and cost
 - Valid first response: **1 call, no extra cost** (verified in tests and live).
@@ -94,3 +94,10 @@ Diff: `git diff 0256245..pathfinder-v2-genquality`. Verify:
 - Uncertain evidence: `EVIDENCE_GROUNDING_RULES`; blocking list `BLOCKING_FINDINGS`; pronoun-advisory rationale.
 - Personalities distinct: `test-generation-grounding.cjs` §4; read the committed fictional outputs per protocol.
 - Privacy: no transcripts, keys or customer data committed (`artifacts/` holds fictional text + metrics only; real-transcript rows are metrics without text). Evaluation runner and staging key live only in git-ignored `.v2-local`.
+
+## 11. Corrections found by the model benchmark (2026-10-16)
+The three-model benchmark exercised these checks on 158 more real-transcript drafts and exposed false positives in rules this repair had made blocking. All are fixed with regression tests (commit after `9a97edd`):
+- **Preply signature:** "Best regards, <teacher>" was treated as third-person self-reference (refused 4 Haiku reports). Only the message body is now checked.
+- **Sugarcoat stars:** without a star heading, every star emoji near the end was counted, so a decorative 🌟 in the closing sentence produced "11 stars" or "stars below 3" (refused 3 Sonnet 4.6 reports, the current production model). Only a star-only line now counts.
+- **OF bold headings:** `**Strengths**` was reported as "missing sections", misleading the repair. Sections are now recognised; whole-line bold headings are a separate, accurate formatting finding.
+- **Fairy star rule:** a fourth prompt defect — the Fairy prompt always asked for 10 stars and never stated the below-3 omission its validator enforces (all 6 rating-2 drafts, every model). The prompt now states the rule for the selected rating.

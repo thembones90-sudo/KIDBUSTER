@@ -100,6 +100,28 @@ module.exports=function run(){
   check('eleven stars at rating 4 block delivery',codes(evaluate('MA',validReport('MA').replace('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐','⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐'))).includes('rating_rule'));
   check('Fairy stars at rating 2 block delivery',codes(evaluate('FAIRY',validReport('FAIRY'),{rating:'2'})).includes('rating_rule'));
 
+  // Benchmark 2026-10-16: a decorative star inside the closing sentence was
+  // counted as an 11th star (and as "stars below 3"). Only a star-only line counts.
+  const sweetStars=validReport('MS').replace('Total Stars Today:\n\n','').replace('See you next time!','See you next time, superstar! 🌟');
+  check('Sugarcoat: 10-star line plus a decorative 🌟 in the closing sentence is compliant',evaluate('MS',sweetStars).compliant);
+  const sweetLowDecor=validReport('MS',{rating:'2'}).replace('Parent Note:','Parent Note').replace('See you next time!','You are a tiny superpower! 🌟');
+  check('Sugarcoat at rating 2: no star line but a decorative 🌟 in prose is compliant',evaluate('MS',sweetLowDecor,{rating:'2'}).compliant);
+  const sweetEleven=validReport('MS').replace('Total Stars Today:\n\n','').replace('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐','⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
+  check('Sugarcoat: an 11-star star line is still blocked',codes(evaluate('MS',sweetEleven)).includes('rating_rule'));
+  const sweetNoLine=validReport('MS').replace('Total Stars Today:\n\n⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐\n\n','');
+  check('Sugarcoat at rating 4 with no star line is still blocked',codes(evaluate('MS',sweetNoLine)).includes('rating_rule'));
+  const sweetLowLine=validReport('MS',{rating:'2'}).replace('Parent Note:','Parent Note').replace('See you next time!','⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐\n\nSee you next time!');
+  check('Sugarcoat at rating 2 with a real star line is still blocked',codes(evaluate('MS',sweetLowLine,{rating:'2'})).includes('rating_rule'));
+
+  // Benchmark 2026-10-16: OF headings written as **Strengths** were reported as
+  // "missing sections"; they are present but wrongly formatted.
+  const boldOF=validReport('OF').replace(/^Strengths$/m,'**Strengths**').replace(/^Areas for Improvement$/m,'**Areas for Improvement**').replace(/^Learning Suggestions$/m,'**Learning Suggestions**');
+  const bo=evaluate('OF',boldOF);
+  check('OF bold headings are recognised as present sections',!bo.blocking.some(b=>b.code==='section'));
+  check('...and blocked as a repairable formatting problem with an accurate message',bo.blocking.some(b=>b.code==='formatting'&&b.repairable));
+  const blanks=validReport('MS').replace('Say three sentences about ocean animals.','Say "It\'s a __" or "It\'s an __" for each animal.');
+  check('fill-in blanks (__ … __) are not mistaken for a bold heading',evaluate('MS',blanks).compliant);
+
   console.log('\n6c) pronunciation diagnoses read off speech-to-text are blocked');
   const diagnosed=validReport('MS').replace('Grammar & Sentence Practice:','Pronunciation Focus\n\n🗣 Swim → SWIM (not "swing")\n\nGrammar & Sentence Practice:');
   check('a 🗣 cue saying not "swing" is blocked as a grounding violation',codes(evaluate('MS',diagnosed)).includes('grounding'));

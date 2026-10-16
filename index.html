@@ -3250,6 +3250,7 @@ ${LEVELS.map(score => '  • ' + score + '/5: ' + LEVEL_TONE_DESC[score]).join('
 * Evidence rule for every rating: ${RATING_EVIDENCE_GUARD}
 * Keep the immutable Fairy template, child-friendly narration and teacher sign-off. The rating changes wording and emphasis, never established facts or report structure.
 * Imagination belongs in the storytelling voice, never in the facts. Every vocabulary note, grammar point and piece of praise must come from this lesson's evidence.
+* Stars follow the rating: ${MA_NO_STAR_LEVELS.includes(lvl) ? 'this report is rated ' + lvl + '/5 (below 3), so OMIT the entire "Total stars today" line — no stars anywhere in the report.' : 'this report is rated ' + lvl + '/5, so include "Total stars today:" with exactly 10 stars.'}
 
 ${EVIDENCE_GROUNDING_RULES}
 
@@ -3865,6 +3866,11 @@ Love, Teacher [Name]` + '\n\n─────────────────
       warnings.push('Italic text detected — the protocol forbids italic formatting.');
     }
 
+    // --- a whole line wrapped in markdown bold (a bold heading) ---
+    if(/^[ \t]*\*\*[^*\n]{1,80}\*\*[ \t]*:?[ \t]*$/m.test(text)){
+      warnings.push('Markdown bold heading detected (a line wrapped in **) — headings must be plain text; asterisks would be pasted literally.');
+    }
+
     // --- other markdown: headings, inline code, links ---
     if(/^#{1,6}\s/m.test(text) || /`[^`\n]+`/.test(text) || /\[[^\]]+\]\([^)]+\)/.test(text)){
       warnings.push('Markdown syntax detected (heading, code, or link) — plain text and emojis only.');
@@ -3922,7 +3928,12 @@ Love, Teacher [Name]` + '\n\n─────────────────
       if(homeworkIdx !== -1){
         const afterHomework = text.slice(homeworkIdx);
         const signoffRelIdx = afterHomework.search(new RegExp(escapedPhrase, 'i'));
-        starsScopeText = signoffRelIdx !== -1 ? afterHomework.slice(0, signoffRelIdx) : afterHomework;
+        const region = signoffRelIdx !== -1 ? afterHomework.slice(0, signoffRelIdx) : afterHomework;
+        // Without a heading, only a line made of star emojis IS the star line.
+        // A decorative 🌟 inside the closing sentence is not a star count
+        // (benchmark 2026-10-16: refused as "11 stars" / "stars below 3").
+        const starOnlyLine = new RegExp('^[\\s' + APPROVED_STARS_ALL.join('') + '\\uFE0F]+$', 'u');
+        starsScopeText = region.split('\n').filter(line => line.trim() && starOnlyLine.test(line)).join('\n');
       }
     }
     if(starsScopeText === null){
@@ -4211,7 +4222,7 @@ Love, Teacher [Name]` + '\n\n─────────────────
 
     // --- all 3 required sections present ---
     const sectionRegexes = OF_REQUIRED_SECTIONS.map(section =>
-      new RegExp('(^|\\n)\\s*' + section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*:?\\s*(\\n|$)', 'i')
+      new RegExp('(^|\\n)\\s*(?:\\*\\*|__)?' + section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:\\*\\*|__)?\\s*:?\\s*(\\n|$)', 'i')
     );
     const missingSections = OF_REQUIRED_SECTIONS.filter((section, i) => !sectionRegexes[i].test(text));
     if(missingSections.length > 0){
@@ -4235,13 +4246,13 @@ Love, Teacher [Name]` + '\n\n─────────────────
     // when the section was actually found (a missing section is already
     // flagged above).
     function extractSectionBody(sectionName, followingSectionNames){
-      const headerRegex = new RegExp('(^|\\n)\\s*' + sectionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*:?\\s*\\n', 'i');
+      const headerRegex = new RegExp('(^|\\n)\\s*(?:\\*\\*|__)?' + sectionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:\\*\\*|__)?\\s*:?\\s*\\n', 'i');
       const headerMatch = text.match(headerRegex);
       if(!headerMatch) return null;
       const startIdx = headerMatch.index + headerMatch[0].length;
       let endIdx = text.length;
       for(const nextName of followingSectionNames){
-        const nextRegex = new RegExp('\\n\\s*' + nextName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*:?\\s*\\n', 'i');
+        const nextRegex = new RegExp('\\n\\s*(?:\\*\\*|__)?' + nextName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:\\*\\*|__)?\\s*:?\\s*\\n', 'i');
         const nextMatch = text.slice(startIdx).match(nextRegex);
         if(nextMatch){
           endIdx = startIdx + nextMatch.index;
@@ -5151,6 +5162,7 @@ because it's about a single lesson.`
     { code:'signoff', re:/Closing sign-off does not exactly match|Custom teacher sign-off is missing|does not open with "Hi / },
     { code:'placeholder', re:/placeholder/i },
     { code:'tier_leak', re:/qualitative guidance tier label/ },
+    { code:'formatting', re:/^Markdown bold heading detected/ },
     { code:'voice', re:/in the third person/ },
     // Ratings are authoritative configuration: no stars below 3, exactly 10 at 3+.
     { code:'rating_rule', re:/Total Stars Today should be omitted|^Star count is \d+, expected exactly 10/i },
