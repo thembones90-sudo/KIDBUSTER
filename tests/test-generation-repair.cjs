@@ -69,6 +69,7 @@ module.exports=async function run(){
     const repairBody=calls[1];
     check('repair reuses the identical cacheable system prompt',JSON.stringify(repairBody.system)===JSON.stringify(calls[0].system));
     check('repair message contains the draft and the failed check',repairBody.messages[0].content.includes('COMPLIANCE REVISION')&&repairBody.messages[0].content.includes('CRITICAL: Report is'));
+    check('repair keeps the fixed per-report facts (student name) without the transcript',repairBody.messages[0].content.includes('FIXED FACTS FOR THIS REPORT')&&repairBody.messages[0].content.includes('Student: Test Student'));
     check('repair never re-sends the lesson transcript',!repairBody.messages[0].content.includes(NOTES)&&repairBody.messages.length===1);
 
     console.log('\n3) a second invalid response is a controlled, uncharged, retryable failure');

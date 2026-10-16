@@ -122,6 +122,18 @@ module.exports=function run(){
   const blanks=validReport('MS').replace('Say three sentences about ocean animals.','Say "It\'s a __" or "It\'s an __" for each animal.');
   check('fill-in blanks (__ … __) are not mistaken for a bold heading',evaluate('MS',blanks).compliant);
 
+  // Benchmark 2026-10-16: OF written about the student as "they" despite he/him.
+  const theyOF=validReport('OF').replace(/\bHe\b/g,'They').replace(/\bhe\b/g,'they').replace(/\bhim\b/g,'them').replace(/\bhis\b/g,'their');
+  check('OF that never uses the selected pronoun but uses "they" is blocked',codes(evaluate('OF',theyOF)).includes('pronoun_missing'));
+  check('OF using "he" and mentioning "they" for other people is fine',evaluate('OF',validReport('OF').replace('stayed engaged','stayed engaged while classmates said they liked it')).compliant);
+  check('OF with no pronoun set never triggers the pronoun-missing rule',!codes(evaluate('OF',theyOF,{studentGender:''})).includes('pronoun_missing'));
+  const twice=validReport('MS').replace('Hi Test Student!\n','Hi Test Student!\nHello, my dear Test Student! ');
+  check('Sugarcoat greeting the student twice is blocked (repairable)',codes(evaluate('MS',twice)).includes('greeting'));
+  check('a single greeting is fine',!codes(evaluate('MS',validReport('MS'))).includes('greeting'));
+  const facts='Student: Test Student\nStudent pronoun: use he/him/his throughout.';
+  const withFacts=core.buildComplianceRepairPrompt('OF',theyOF,evaluate('OF',theyOF),facts);
+  check('repair prompt carries the fixed per-report facts when given',withFacts.includes('FIXED FACTS FOR THIS REPORT')&&withFacts.includes('he/him/his'));
+
   console.log('\n6c) pronunciation diagnoses read off speech-to-text are blocked');
   const diagnosed=validReport('MS').replace('Grammar & Sentence Practice:','Pronunciation Focus\n\n🗣 Swim → SWIM (not "swing")\n\nGrammar & Sentence Practice:');
   check('a 🗣 cue saying not "swing" is blocked as a grounding violation',codes(evaluate('MS',diagnosed)).includes('grounding'));

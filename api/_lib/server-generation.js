@@ -91,8 +91,16 @@ export function evaluateGeneratedOutput(protocol,text,form){
   });
 }
 
-export function buildRepairMessage(protocol,draft,contract){
-  return core().buildComplianceRepairPrompt(protocol,draft,contract);
+// The repair never sees the transcript, but it must keep the per-report facts
+// (name, teacher, pronoun, rating, module): everything in the user message
+// before the lesson evidence.
+export function repairFacts(form){
+  const msg=core().buildUserMessage({...form,notes:''});
+  const cut=msg.search(/\n(Krisp notes|Lesson evidence)/);
+  return cut>=0?msg.slice(0,cut):msg;
+}
+export function buildRepairMessage(protocol,draft,contract,form){
+  return core().buildComplianceRepairPrompt(protocol,draft,contract,form?repairFacts(form):'');
 }
 
 export function __resetServerGenerationForTests(){cachedCore=null;}

@@ -192,7 +192,7 @@ async function runJob({ job, prompt, profile, fetchImpl, apiKey, evaluateGenerat
       else{
         record.repair.attempted = true;
         const body2 = buildRequestBody({ model:job.model, systemPrompt:prompt.systemPrompt,
-          messages:[{ role:'user', content:buildRepairMessage(job.protocol, text, contract) }], profile });
+          messages:[{ role:'user', content:buildRepairMessage(job.protocol, text, contract, prompt.form) }], profile });
         const c2 = await callProvider({ fetchImpl, apiKey, body:body2, timeoutMs:remaining, now });
         const o2 = classify(c2);
         calls.push({ kind:'repair', ...c2, outcome:o2 });

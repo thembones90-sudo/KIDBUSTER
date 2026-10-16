@@ -2827,10 +2827,12 @@ const KidbusterCore = (function(){
 • Teacher questions, suggestions and modeled sentences are not student accomplishments. Never credit the student with something only the teacher said.
 • Credit the student only with words the student said. If a word or sentence appears only in a Teacher line, the student practised it with support — never write that the student said, repeated, built or knew it.
 • Never describe facial expressions, smiles, laughter, tone of voice, gestures, body language or feelings. A transcript cannot show them.
-• Transcript lines are labelled Teacher: and Student: from automatic speaker detection. A line ending in "…" followed by a line starting "(split)" marks a speech-to-text break: the words after "(split)" up to the first full stop may have been said by either speaker. Never use them as evidence that the student finished, or failed to finish, that sentence.
+• Transcript lines are labelled Teacher: and Student: from automatic speaker detection. A line labelled Unclear: holds words that speech-to-text placed at a speaker change; either speaker may have said them. Never credit Unclear words to the student (do not quote the student's sentence as if it included them), and never use them as evidence that the student failed to finish.
 • Homework, practice ideas and next steps are your recommendations. Never state they were assigned, agreed or completed unless the lesson evidence says so.
 • Never promise or guarantee results ("will definitely", "will click into place", "will soon master"). Recommend instead ("more practice with X would help").
 • Model correct, standard English. If the teacher used nonstandard phrasing (for example "very good" used as an adverb), never reproduce it as a model sentence, vocabulary note or grammar example; use the correct form.
+• Never present a sentence with an error as an example or achievement, even when the student really said it. Give the corrected sentence instead and say it was practised (for example: practised "I can kick the ball very well").
+• Words keep the meaning they have in this lesson. If the lesson uses "football" for soccer, football means soccer; define and use words the way the lesson does.
 • The selected rating, module, length, pronoun and Special Remarks are authoritative settings. Follow them exactly, but never invent lesson events to justify them.
 • When evidence is thin, uncertain or contradictory, say less. Omission is always better than a confident claim the evidence does not support.`;
 
@@ -3463,7 +3465,7 @@ Love, Teacher [Name]` + '\n\n─────────────────
       '',
       'Hi [Student Name]! 💖',
       '',
-      "[Write a sweet, loving opening that makes the child feel safe, appreciated, and excited about today's lesson. Talk about today only.]",
+      "[Write a sweet, loving opening that makes the child feel safe, appreciated, and excited about today's lesson. Talk about today only. The line above is the only greeting: do not start this sentence with another \"Hi\", \"Hello\" or \"Dear\".]",
       '',
       "Today's Lesson:",
       '📚 [Lesson Topic]',
@@ -3800,21 +3802,26 @@ Love, Teacher [Name]` + '\n\n─────────────────
       if(prev && prev.label === label) prev.body += ' ' + body;
       else merged.push({ label, body });
     }
-    for(let i = 1; i < merged.length; i++){
-      const prev = merged[i - 1], cur = merged[i];
-      // Ambiguous only when the next speaker opens with a 1-2 word fragment AND
-      // restates it ("Ball. I can pass the ball."): the classic complete-and-
-      // model shape. A student genuinely answering a prompt ("I can pass.",
-      // "It's Tuesday. We learn to run.") is not marked.
+    // Ambiguous only when the next speaker opens with a 1-2 word fragment AND
+    // restates it ("Ball. I can pass the ball."): the classic complete-and-
+    // model shape. A student genuinely answering a prompt ("I can pass.",
+    // "It's Tuesday. We learn to run.") is not marked. The fragment moves to
+    // its own "Unclear:" line so it visibly belongs to neither speaker (Haiku
+    // still credited a "(split)" fragment inside a Teacher line to the student).
+    const out = [];
+    for(let i = 0; i < merged.length; i++){
+      const cur = merged[i], prev = out[out.length - 1];
       const frag = cur.body.match(/^([A-Za-z'’-]+(?: [A-Za-z'’-]+)?)\.(?:\s|$)/);
       const lastWord = frag && frag[1].split(' ').pop().replace(/[^A-Za-z]/g, '');
-      const restated = !!(frag && lastWord && new RegExp('\\b' + lastWord + '\\b', 'i').test(cur.body.slice(frag[0].length)));
-      if(SPLIT_DANGLING_WORDS.test(prev.body) && frag && restated){
+      const rest = frag ? cur.body.slice(frag[0].length).trim() : '';
+      const restated = !!(frag && lastWord && new RegExp('\\b' + lastWord + '\\b', 'i').test(rest));
+      if(prev && prev.label !== 'Unclear' && SPLIT_DANGLING_WORDS.test(prev.body) && frag && restated){
         prev.body = prev.body.replace(/\.$/, ' …');
-        cur.body = '(split) ' + cur.body;
-      }
+        out.push({ label:'Unclear', body:frag[1] + '.' });
+        if(rest) out.push({ label:cur.label, body:rest });
+      }else out.push({ label:cur.label, body:cur.body });
     }
-    return [...preamble, ...merged.map(t => t.label + ': ' + t.body)].join('\n');
+    return [...preamble, ...out.map(t => t.label + ': ' + t.body)].join('\n');
   }
 
   /**
@@ -4030,6 +4037,12 @@ Love, Teacher [Name]` + '\n\n─────────────────
     const expectParentNote = MA_PARENT_NOTE_LEVELS.includes(lvl);
     if(expectParentNote && !hasParentNote) warnings.push('Parent Note section is missing (required at ratings 1, 1.5, 2, and 2.5).');
     if(!expectParentNote && hasParentNote) warnings.push('Parent Note section is present but should be omitted above rating 2.5.');
+
+    // --- one greeting only (Haiku wrote "Hi Mia! 💖" then "Hello, my dear Mia!") ---
+    const openingLines = text.trim().split('\n').map(l => l.trim()).filter(Boolean);
+    if(openingLines.length > 1 && /^(hi|hello|hey|dear)\b/i.test(openingLines[0]) && /^(hi|hello|hey|dear)\b/i.test(openingLines[1])){
+      warnings.push('Report greets the student twice — keep only the template greeting line.');
+    }
 
     // --- exactly one Superpower ---
     const superpowerCount = (text.match(/🦸/g) || []).length;
@@ -4278,6 +4291,13 @@ Love, Teacher [Name]` + '\n\n─────────────────
       warnings.push('Report uses "she"/"her" despite the student pronoun being specified as Boy (he/him) — check for an incorrect pronoun.');
     }else if(gender === 'girl' && /\b(he|him|his)\b/i.test(unquoted)){
       warnings.push('Report uses "he"/"him"/"his" despite the student pronoun being specified as Girl (she/her) — check for an incorrect pronoun.');
+    }
+    // A set pronoun that never appears, while "they/them/their" does, means the
+    // student was written about as "they" (benchmark 2026-10-16, Haiku). Strict
+    // on purpose: zero uses of the chosen pronoun in a third-person report.
+    const chosen = gender === 'boy' ? /\b(he|him|his|himself)\b/i : gender === 'girl' ? /\b(she|her|hers|herself)\b/i : null;
+    if(chosen && !chosen.test(unquoted) && /\b(they|them|their|themselves)\b/i.test(unquoted)){
+      warnings.push('Student pronoun not used: the report never says "' + (gender === 'boy' ? 'he/him' : 'she/her') + '" but uses "they/them" — use the selected pronoun for the student.');
     }
 
     // --- internal qualitative tier must never leak into the output ---
@@ -5234,6 +5254,8 @@ because it's about a single lesson.`
     { code:'placeholder', re:/placeholder/i },
     { code:'tier_leak', re:/qualitative guidance tier label/ },
     { code:'formatting', re:/^Markdown bold heading detected/ },
+    { code:'pronoun_missing', re:/^Student pronoun not used/ },
+    { code:'greeting', re:/^Report greets the student twice/ },
     { code:'voice', re:/in the third person/ },
     // Ratings are authoritative configuration: no stars below 3, exactly 10 at 3+.
     { code:'rating_rule', re:/Total Stars Today should be omitted|^Star count is \d+, expected exactly 10/i },
@@ -5285,7 +5307,10 @@ because it's about a single lesson.`
     return { compliant: blocking.length === 0, contentReviewed:false, blocking, advisory, softRepair, limits };
   }
 
-  function buildComplianceRepairPrompt(protocol, draft, contract){
+  // facts: the report's fixed per-request facts (student, teacher, pronoun,
+  // rating, module) WITHOUT the lesson evidence. Without them a repair lost the
+  // selected OF pronoun (benchmark 2026-10-16: 5 of 6 "they" cases were repairs).
+  function buildComplianceRepairPrompt(protocol, draft, contract, facts){
     const problems = contract.blocking.map(f => f.message);
     if(contract.softRepair) problems.push('The draft is well over the length target for this protocol.');
     return [
@@ -5302,6 +5327,7 @@ because it's about a single lesson.`
       '- If a required section is missing, write it using only what the draft already says.',
       '- Length goal: ' + contract.limits.goal + '.',
       '- Output only the revised report, with nothing before or after it.',
+      ...(facts ? ['', 'FIXED FACTS FOR THIS REPORT (still apply exactly):', String(facts).trim()] : []),
       '',
       'DRAFT:',
       '<<<',
