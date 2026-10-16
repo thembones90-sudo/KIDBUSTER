@@ -35,9 +35,9 @@ const PROFILES = {
     description:'Production request, but max_tokens 8000 for models that think by default (Haiku 5.5, Sonnet 5.5); Sonnet 4.6 unchanged at 3000.' },
   // Haiku 5.5 tuning arm (owner decision 2026-10-16): effort raised from its
   // default 'medium' to 'high'; other models unchanged from thinking-headroom.
-  'haiku-high': { maxTokens:3000, maxTokensByModel:{ 'claude-haiku-5-5':8000, 'claude-sonnet-5-5':8000 },
+  'haiku-high': { maxTokens:3000, maxTokensByModel:{ 'claude-haiku-5-5':16000, 'claude-sonnet-5-5':8000 },
     extra:{}, extraByModel:{ 'claude-haiku-5-5':{ output_config:{ effort:'high' } } },
-    generationBudgetMs:55000, minRepairWindowMs:12000,
+    generationBudgetMs:110000, minRepairWindowMs:12000,
     description:'thinking-headroom plus output_config.effort=high for Haiku 5.5 only.' }
 };
 

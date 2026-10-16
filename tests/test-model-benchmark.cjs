@@ -48,7 +48,7 @@ module.exports=async function run(){
     check('thinking-headroom keeps Sonnet 4.6 byte-identical to production',JSON.stringify(hb('claude-sonnet-4-6'))===JSON.stringify(bench));
     check('thinking-headroom raises only max_tokens for thinking models',['claude-haiku-5-5','claude-sonnet-5-5'].every(m=>{const b=hb(m);return b.max_tokens===8000&&JSON.stringify({...b,model:0,max_tokens:0})===JSON.stringify({...bench,model:0,max_tokens:0});}));
     const hh=m=>B.buildRequestBody({model:m,systemPrompt:built.systemPrompt,messages:[{role:'user',content:built.userMessage}],profile:'haiku-high'});
-    check('haiku-high sends effort high (and 8000 max_tokens) for Haiku only',hh('claude-haiku-5-5').output_config?.effort==='high'&&hh('claude-haiku-5-5').max_tokens===8000);
+    check('haiku-high sends effort high (and 16000 max_tokens) for Haiku only',hh('claude-haiku-5-5').output_config?.effort==='high'&&hh('claude-haiku-5-5').max_tokens===16000);
     check('haiku-high leaves Sonnet 4.6 byte-identical to production',JSON.stringify(hh('claude-sonnet-4-6'))===JSON.stringify(bench));
     check('haiku-high adds no effort to Sonnet 5.5',!('output_config' in hh('claude-sonnet-5-5')));
     check('models outside the allow-list are refused',(()=>{try{B.buildRequestBody({model:'claude-opus-5-5',systemPrompt:'x',messages:[]});return false;}catch{return true;}})());

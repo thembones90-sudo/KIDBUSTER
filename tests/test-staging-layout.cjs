@@ -29,8 +29,8 @@ module.exports=async function run(){
    !localServer.includes("'GET /api/ping':'ping.js'"));
  check('staging ignores secrets, local tools, tests and private files',
    ['.v2-local/','.v2-tmp/','tests/','tools/','.env*'].every(x=>ignored.includes(x)));
- check('non-ping V2 generation duration remains unchanged',
-   conf.functions?.['api/generate.js']?.maxDuration===60);
+ check('generation function duration covers the 110 s provider budget (Haiku effort high)',
+   conf.functions?.['api/generate.js']?.maxDuration===120);
  return getFailures();
 };
 if(require.main===module)module.exports().then(n=>process.exit(n?1:0)).catch(e=>{console.error(e);process.exit(1)});

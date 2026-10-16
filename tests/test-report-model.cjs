@@ -26,7 +26,7 @@ module.exports=async function run(){
     const d=await once(undefined);
     check('default report model is Claude Haiku 5.5',d.sent.model==='claude-haiku-5-5');
     check('Haiku runs at effort high',d.sent.output_config&&d.sent.output_config.effort==='high');
-    check('Haiku gets an 8000-token ceiling for thinking plus report',d.sent.max_tokens===8000);
+    check('Haiku gets a 16000-token ceiling for thinking plus report',d.sent.max_tokens===16000);
     check('a thinking block plus report text is delivered as just the report',d.status===200&&!/thinking/.test(d.body.text)&&d.body.text.startsWith('LEARNING CONTENT:'));
     const r=await once('claude-sonnet-4-6');
     check('rollback env restores Sonnet 4.6 exactly (3000 tokens, no output_config)',r.sent.model==='claude-sonnet-4-6'&&r.sent.max_tokens===3000&&!('output_config' in r.sent));

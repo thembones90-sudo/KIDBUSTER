@@ -47,11 +47,11 @@ import {beginGenerationRequest,completeGenerationRequest,releaseGenerationReques
 const PROVIDER_URL='https://api.anthropic.com/v1/messages';
 // Report model (owner decision 2026-10-16, after the three-model benchmark):
 // Claude Haiku 5.5 at effort 'high'. Haiku thinks before writing and the
-// thinking counts toward max_tokens, so it needs 8000 (at 3000 it was cut off
-// 3/7 times). ANTHROPIC_MODEL=claude-sonnet-4-6 is the rollback: it restores
+// thinking counts toward max_tokens: at 3000 it was cut off 3/7 times, and at
+// effort high it reached the 8000 ceiling on 2 of 14 real-transcript reports. ANTHROPIC_MODEL=claude-sonnet-4-6 is the rollback: it restores
 // the previous request exactly (3000 tokens, no output_config).
 const MODEL_REQUESTS={
-  'claude-haiku-5-5':{max_tokens:8000,output_config:{effort:'high'}},
+  'claude-haiku-5-5':{max_tokens:16000,output_config:{effort:'high'}},
   'claude-sonnet-4-6':{max_tokens:3000}
 };
 const DEFAULT_PROVIDER_MODEL='claude-haiku-5-5';
@@ -63,11 +63,14 @@ function providerRequest(){
   const model=providerModel();
   return {model,...MODEL_REQUESTS[model]};
 }
-// vercel.json caps this function at 60 s. ALL provider work for one report —
-// the generation and at most one compliance repair — shares one deadline that
-// ends before that cap, so quota/request cleanup always gets to run.
-const DEFAULT_PROVIDER_TIMEOUT_MS=50000;
-const DEFAULT_GENERATION_BUDGET_MS=55000;
+// vercel.json caps this function at 120 s (Hobby + Fluid compute allows up to
+// 300 s). ALL provider work for one report — the generation and at most one
+// compliance repair — shares one deadline that ends before that cap, so
+// quota/request cleanup always gets to run. Haiku 5.5 at effort high thinks
+// for up to ~8000 tokens on a 25-minute transcript at ~215 tokens/s (~36 s);
+// a 16000-token ceiling therefore needs up to ~75 s.
+const DEFAULT_PROVIDER_TIMEOUT_MS=100000;
+const DEFAULT_GENERATION_BUDGET_MS=110000;
 const DEFAULT_MIN_REPAIR_WINDOW_MS=12000;
 function boundedEnvMs(name,fallback,min,max){
   const configured=Number.parseInt(process.env[name]||'',10);
