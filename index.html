@@ -2340,9 +2340,9 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
     </div>
     <div class="header-actions">
       <button type="button" id="krispIntegrationBtn" class="btn-secondary account-btn krisp-integration-btn" aria-expanded="false" aria-controls="krispSetupSection" hidden><span class="krisp-logo-slot" aria-hidden="true"><img id="krispLogoImg" class="krisp-logo-img" alt="" width="22" height="22" hidden><svg id="krispLogoFallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></span><span class="krisp-integration-label">Krisp integration</span><span class="krisp-integration-caret" aria-hidden="true">&#9662;</span></button>
-      <button type="button" id="krispPendingBtn" class="btn-secondary account-btn krisp-pending-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="krispInboxPanel" hidden><svg class="krisp-envelope-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 6.8 5.1a2 2 0 0 0 2.4 0L20 7M4 17l4.5-4M20 17l-4.5-4"/></svg><span>Pending transcripts</span><span id="krispInboxBadge" class="krisp-inbox-badge" aria-hidden="true">…</span></button>
+      <button type="button" id="krispPendingBtn" class="btn-secondary account-btn krisp-pending-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="krispInboxPanel" hidden><span class="pill-chip" aria-hidden="true"><svg class="krisp-envelope-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 6.8 5.1a2 2 0 0 0 2.4 0L20 7M4 17l4.5-4M20 17l-4.5-4"/></svg></span><span>Pending transcripts</span><span id="krispInboxBadge" class="krisp-inbox-badge" aria-hidden="true">…</span></button>
       <button class="btn-secondary account-btn help-btn" id="helpBtn" type="button" aria-label="Start here: open Pathfinder help guide">START HERE · FIRST TIME?</button>
-      <button class="btn-secondary account-btn" id="accountBtn" type="button" aria-expanded="false" aria-controls="accountPanel"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>Account</button>
+      <button class="btn-secondary account-btn" id="accountBtn" type="button" aria-expanded="false" aria-controls="accountPanel"><span class="pill-chip" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg></span>Account</button>
     </div>
   </div>
 
@@ -2389,6 +2389,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
     </div></details>
     <div class="account-trials" id="accountTrials" style="display:none;"></div>
     <div class="account-owner-tools" id="accountOwnerTools" style="display:none;">
+      <details class="owner-fold"><summary>Owner tools</summary>
       <p class="account-trials-title">Teacher feedback</p>
       <p class="account-summary">Ratings, bug reports and ideas from teachers, linked to the report each one is about.</p>
       <div class="license-modal-inline" style="flex-wrap:wrap;">
@@ -2417,7 +2418,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
       <div class="account-owner-result" id="resetClaimResult" style="display:none;"></div>
       <hr class="help-divider">
       <p class="account-trials-title">September 11 inventory replacement</p>
-      <p class="account-summary">Paste the 20 old codes from Claude below. Preview first. Only expired manual codes issued September 11 are retired; renewed and active customer accounts are protected. Your master key is never changed.</p>
+      <p class="account-summary">Paste the 20 old codes below. Preview first. Only expired manual codes issued September 11 are retired; renewed and active customer accounts are protected. Your master key is never changed.</p>
       <textarea id="retireBatchKeys" rows="5" spellcheck="false" placeholder="Paste the old 20 codes, one per line"></textarea>
       <div class="license-modal-inline" style="margin-top:8px;flex-wrap:wrap;">
         <button class="btn-secondary" id="previewRetireBtn" type="button">Preview old codes</button>
@@ -2432,6 +2433,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
         <button class="btn-secondary" id="copyActivationBatchBtn" type="button" style="display:none;">Copy all new codes</button>
       </div>
       <div class="account-owner-result" id="activationBatchResult" style="display:none;white-space:pre-wrap;overflow-wrap:anywhere;"></div>
+      </details>
     </div>
     <div class="account-actions">
       <button class="btn-secondary account-change-key-btn" id="accountChangeKeyBtn" type="button">Switch account</button>
@@ -8789,6 +8791,82 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
 #krispInboxPanel .krisp-pending-card{min-width:0;overflow-wrap:anywhere;}
 @media(max-width:650px){#krispInboxPanel{inset:auto 12px 12px;width:calc(100vw - 24px);max-height:calc(100dvh - 24px);padding:22px;}#krispInboxPanel::backdrop{background:#0006;}}
 @media(max-width:420px){#krispInboxPanel .krisp-pending-card{flex-wrap:wrap;}#krispInboxPanel .krisp-pending-card>div:last-child{flex-direction:row!important;flex:1 0 100%;min-width:0!important;}.header-actions>button.krisp-pending-btn{padding:8px 10px;font-size:11px;}}
+
+/* ===== Header pills + Account panel: unified graphite (accent colour only for state) ===== */
+.header-actions>button#krispIntegrationBtn,
+.header-actions>button#krispPendingBtn,
+.header-actions>button#accountBtn,
+.header-actions>button#helpBtn.onboarding-done{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  height:44px;min-height:44px;box-sizing:border-box;padding:0 16px 0 7px;
+  border-radius:999px;border:1px solid rgba(255,255,255,.11);
+  background:linear-gradient(180deg,#1d2124 0%,#131618 100%);
+  color:#e4e8eb;font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 1px 2px rgba(0,0,0,.5);
+  transition:border-color .2s ease,background .2s ease,color .2s ease;animation:none;
+}
+.header-actions>button#krispIntegrationBtn:hover,
+.header-actions>button#krispPendingBtn:hover,
+.header-actions>button#accountBtn:hover,
+.header-actions>button#helpBtn.onboarding-done:hover,
+.header-actions>button#accountBtn[aria-expanded="true"],
+.header-actions>button#krispIntegrationBtn[aria-expanded="true"],
+.header-actions>button#krispPendingBtn[aria-expanded="true"]{
+  border-color:rgba(255,255,255,.26);background:linear-gradient(180deg,#252a2e 0%,#171a1d 100%);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 1px 2px rgba(0,0,0,.5);
+}
+.header-actions>button#krispIntegrationBtn:focus-visible,
+.header-actions>button#krispPendingBtn:focus-visible,
+.header-actions>button#accountBtn:focus-visible,
+.header-actions>button#helpBtn:focus-visible{outline:2px solid rgb(var(--toxin-rgb));outline-offset:3px}
+.header-actions>button#krispIntegrationBtn[data-armed="true"]{border-color:rgba(255,255,255,.2);color:#e4e8eb}
+.header-actions>button#krispIntegrationBtn[data-armed="true"] .krisp-integration-label::after{background:rgb(var(--toxin-rgb));box-shadow:0 0 8px rgba(var(--toxin-rgb),.55)}
+.header-actions>button#krispIntegrationBtn .krisp-logo-slot{width:30px;height:30px;padding:3px;border-radius:999px;background:#0e1113;border:1px solid rgba(255,255,255,.08);box-shadow:none}
+.header-actions>button#krispPendingBtn{padding:0 12px 0 7px}
+.header-actions>button#krispPendingBtn[data-has-pending="true"]{border-color:rgba(var(--pending-gold-rgb),.55)}
+/* Pending transcripts is a status signal: keep its gold breathing glow (reduced-motion still disables it). */
+.header-actions>button#krispPendingBtn[data-has-pending="true"]{animation:krispInboxBreathing 3.6s ease-in-out infinite}
+.pill-chip{display:inline-flex;align-items:center;justify-content:center;flex:none;width:30px;height:30px;border-radius:999px;background:#0e1113;border:1px solid rgba(255,255,255,.08);color:#aab3ba}
+.pill-chip svg{width:16px;height:16px;flex:none}
+button#krispPendingBtn>.pill-chip .krisp-envelope-icon{width:16px;height:16px}
+button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,button#accountBtn[aria-expanded="true"] .pill-chip{color:#fff}
+#helpBtn.onboarding-done::before{width:30px;height:30px;border-radius:999px;background:#0e1113;border:1px solid rgba(255,255,255,.08);color:#aab3ba;box-shadow:none}
+.krisp-inbox-badge{background:rgba(255,255,255,.07)!important;color:#aab3ba}
+#krispPendingBtn[data-has-pending="true"] .krisp-inbox-badge{background:linear-gradient(145deg,#f0d7a4,#d8b775)!important;color:#282116}
+
+/* Account panel */
+#accountPanel.account-panel{background:linear-gradient(180deg,#1a1d20 0%,#131517 100%);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:26px;box-shadow:0 18px 40px -26px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.04)}
+#accountPanel .account-title{font-size:22px;color:#f2f4f5}
+#accountPanel .account-summary{color:#9aa3a9;font-size:13px}
+#accountPanel .account-metric{background:#101214;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px}
+#accountPanel .account-label{color:#8a949b;font-size:12px}
+#accountPanel .account-value{color:#f2f4f5;font-size:18px;font-weight:650}
+#accountPanel .account-support{color:#9aa3a9}
+#accountPanel .account-support>summary,#accountPanel .owner-fold>summary{font-size:14px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font-weight:600;color:#c9d0d5}
+#accountPanel .account-support>summary::-webkit-details-marker,#accountPanel .owner-fold>summary::-webkit-details-marker{display:none}
+#accountPanel .account-support>summary::before,#accountPanel .owner-fold>summary::before{content:"";width:6px;height:6px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;transform:rotate(-45deg);transition:transform .15s ease;opacity:.7}
+#accountPanel .account-support[open]>summary::before,#accountPanel .owner-fold[open]>summary::before{transform:rotate(45deg)}
+#accountPanel .account-owner-tools{background:#101214;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:6px 20px}
+#accountPanel .owner-fold>summary{padding:14px 0}
+#accountPanel .owner-fold[open]>summary{border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:18px}
+#accountPanel .account-owner-tools .account-trials-title{font-family:var(--font-body);font-size:14px;font-weight:650;letter-spacing:0;text-transform:none;color:#eef1f3;margin:0 0 4px}
+#accountPanel .account-owner-tools .account-summary{margin:0 0 12px;max-width:72ch}
+#accountPanel .account-owner-tools .help-divider{border:0;border-top:1px solid rgba(255,255,255,.07);margin:22px 0}
+#accountPanel .account-owner-tools .license-modal-inline{display:grid;grid-template-columns:minmax(0,1fr) 176px;gap:10px;margin-top:0}
+#accountPanel .account-owner-tools .license-modal-inline:not(:has(>input)){display:flex;flex-wrap:wrap}
+#accountPanel .account-owner-tools .license-modal-inline:not(:has(>input))>.btn-secondary{flex:0 0 176px;width:176px}
+#accountPanel .account-owner-tools input,#accountPanel .account-owner-tools textarea{background:#0a0b0c;border:1px solid rgba(255,255,255,.09);border-radius:11px;color:#e4e8eb;min-height:40px;padding:0 14px;font-size:13px}
+#accountPanel .account-owner-tools textarea{padding:12px 14px;width:100%;box-sizing:border-box}
+#accountPanel .account-owner-tools input:focus,#accountPanel .account-owner-tools textarea:focus{outline:2px solid rgb(var(--toxin-rgb));outline-offset:1px}
+#accountPanel .account-owner-result{background:#0a0b0c;border:1px solid rgba(255,255,255,.07);color:#c9d0d5;border-radius:11px}
+#accountPanel .btn-secondary,#accountPanel a.btn-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 16px;border-radius:11px;border:1px solid rgba(255,255,255,.11);background:linear-gradient(180deg,#1d2124 0%,#131618 100%);color:#e4e8eb;font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.05);text-decoration:none;transition:border-color .2s ease,background .2s ease,color .2s ease}
+#accountPanel .btn-secondary:hover,#accountPanel a.btn-secondary:hover{border-color:rgba(255,255,255,.26);background:linear-gradient(180deg,#252a2e 0%,#171a1d 100%);color:#fff}
+#accountPanel .btn-secondary:focus-visible{outline:2px solid rgb(var(--toxin-rgb));outline-offset:2px}
+#accountPanel .btn-secondary:disabled{opacity:.45}
+#accountPanel .account-actions{border-top:1px solid rgba(255,255,255,.07)}
+#accountPanel #accountUpgradeBtn{background:#e9ecee;border-color:#e9ecee;color:#0f1214}
+#accountPanel #accountUpgradeBtn:hover{background:#fff;border-color:#fff;color:#0f1214}
+@media (max-width:700px){#accountPanel .account-owner-tools .license-modal-inline,#accountPanel .account-owner-tools .license-modal-inline:not(:has(>input)){display:flex;flex-direction:column;align-items:stretch}#accountPanel .account-owner-tools .license-modal-inline:not(:has(>input))>.btn-secondary{flex:none;width:100%}}
+@media (prefers-reduced-motion:reduce){.header-actions>button,#accountPanel .btn-secondary{transition:none}}
 </style>
 <script>
 (function(){

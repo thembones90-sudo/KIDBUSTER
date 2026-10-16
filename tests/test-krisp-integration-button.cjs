@@ -278,11 +278,16 @@ module.exports = async function run(){
     await sleep(900);
     const themeB = await page.evaluate(() => ({ color: getComputedStyle(document.getElementById('krispIntegrationBtn')).color,
       rgb: getComputedStyle(document.getElementById('krispIntegrationBtn')).getPropertyValue('--toxin-rgb').trim() }));
-    const toRgb = s => 'rgb(' + s.split(',').map(x => x.trim()).join(', ') + ')';
-    check('button colour equals the active --toxin-rgb', themeA.color.replace(/\s+/g, '') === toRgb(themeA.rgb).replace(/\s+/g, ''));
+    // Owner design 2026-10-16: header pills are neutral graphite; the
+    // protocol colour (var(--toxin-rgb)) marks state only — the armed dot.
+    const toRgb = s => ('rgb(' + s.split(',').map(x => x.trim()).join(', ') + ')').replace(/\s+/g, '');
     check('protocol switch exists in the page', switched);
-    if (!(switched && themeB.color.replace(/\s+/g, '') === toRgb(themeB.rgb).replace(/\s+/g, ''))) console.log('    debug theme:', JSON.stringify({ themeA, themeB }));
-    check('button colour follows a protocol change (and differs from Classic)', switched && themeB.color !== themeA.color && themeB.color.replace(/\s+/g, '') === toRgb(themeB.rgb).replace(/\s+/g, ''));
+    check('protocol theme variable still changes with the protocol', switched && themeA.rgb && themeB.rgb && themeA.rgb !== themeB.rgb);
+    check('pill text stays neutral graphite, not the protocol colour', themeA.color.replace(/\s+/g, '') !== toRgb(themeA.rgb) && themeB.color.replace(/\s+/g, '') !== toRgb(themeB.rgb));
+    check('pill text does not change colour on a protocol switch', themeA.color === themeB.color);
+    const armedRule = await page.evaluate(() => [...document.styleSheets].flatMap(sh => { try { return [...sh.cssRules]; } catch (e) { return []; } })
+      .some(r => r.selectorText && r.selectorText.includes('[data-armed="true"]') && r.selectorText.includes('krisp-integration-label::after') && /--toxin-rgb/.test(r.style.cssText)));
+    check('armed indicator dot is themed with var(--toxin-rgb)', armedRule);
     await page.close();
 
     console.log('\n10) Sign in AFTER page load reveals the button (the original defect)');
