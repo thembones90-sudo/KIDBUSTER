@@ -22,8 +22,10 @@ const PRICING_SOURCE = 'Claude API skill model table, cached 2026-10-06 (first-p
 // `model` (no thinking/effort/temperature parameters; max_tokens 3000; same
 // cacheable system split; same single-repair rule and 55 s provider budget).
 const PROFILES = {
+  // Legacy production (Sonnet 4.6 era, before 2026-10-16) and today's rollback
+  // (ANTHROPIC_MODEL=claude-sonnet-4-6). Current production = 'haiku-high' for Haiku.
   production: { maxTokens:3000, extra:{}, generationBudgetMs:55000, minRepairWindowMs:12000,
-    description:'Exactly what production would send if only the model ID changed.' },
+    description:'Legacy production request (Sonnet 4.6 era), varying only the model ID; equals the Sonnet 4.6 rollback.' },
   // Initial run finding: Haiku 5.5 and Sonnet 5.5 think by default and the
   // thinking counts toward max_tokens; at 3000 Haiku was cut off 3/7 times.
   // This profile gives thinking models output headroom and nothing else

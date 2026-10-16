@@ -22,16 +22,25 @@ module.exports=async function run(){
     __resetForTests();
     const key=await svc.getOrCreateFreeLicense('benchmark-parity@example.com');
     const prior=global.fetch,priorKey=process.env.ANTHROPIC_API_KEY;process.env.ANTHROPIC_API_KEY='isolated_test_key';
-    let productionBody=null;
-    global.fetch=async(_u,o)=>{productionBody=JSON.parse(o.body);return {ok:true,json:async()=>({content:[{text:validReportForProviderBody(o.body,{teacher:'Nora'})}]})};};
+    // Production since 2026-10-16 = Haiku 5.5 / effort high / 8000 = benchmark
+    // profile 'haiku-high' for Haiku. The rollback (ANTHROPIC_MODEL=
+    // claude-sonnet-4-6) = benchmark profile 'production' for Sonnet 4.6.
+    let productionBody=null,rollbackBody=null;
+    const priorModel=process.env.ANTHROPIC_MODEL;
+    global.fetch=async(_u,o)=>{const b=JSON.parse(o.body);if(b.model==='claude-sonnet-4-6')rollbackBody=b;else productionBody=b;return {ok:true,json:async()=>({content:[{text:validReportForProviderBody(o.body,{teacher:'Nora'})}]})};};
+    const res={status(){return this;},json(){return this;},setHeader(){}};
     try{
-      await generate({method:'POST',headers:{'x-app-key':key,'x-installation-id':'benchmark-parity'},body:{generation:form}},{status(){return this;},json(){return this;},setHeader(){}});
-    }finally{global.fetch=prior;if(priorKey===undefined)delete process.env.ANTHROPIC_API_KEY;else process.env.ANTHROPIC_API_KEY=priorKey;}
+      delete process.env.ANTHROPIC_MODEL;
+      await generate({method:'POST',headers:{'x-app-key':key,'x-installation-id':'benchmark-parity'},body:{generation:form}},res);
+      process.env.ANTHROPIC_MODEL='claude-sonnet-4-6';
+      await generate({method:'POST',headers:{'x-app-key':key,'x-installation-id':'benchmark-parity'},body:{generation:form}},res);
+    }finally{global.fetch=prior;if(priorKey===undefined)delete process.env.ANTHROPIC_API_KEY;else process.env.ANTHROPIC_API_KEY=priorKey;if(priorModel===undefined)delete process.env.ANTHROPIC_MODEL;else process.env.ANTHROPIC_MODEL=priorModel;}
     const built=sg.buildServerGeneration(form);
     const bench=B.buildRequestBody({model:'claude-sonnet-4-6',systemPrompt:built.systemPrompt,messages:[{role:'user',content:built.userMessage}]});
-    check('production request was captured',!!productionBody);
-    check('same model ID as production for the Sonnet 4.6 arm',productionBody.model===bench.model);
-    check('identical max_tokens, cacheable system blocks and messages',JSON.stringify({...productionBody,model:0})===JSON.stringify({...bench,model:0}));
+    const benchHaiku=B.buildRequestBody({model:'claude-haiku-5-5',systemPrompt:built.systemPrompt,messages:[{role:'user',content:built.userMessage}],profile:'haiku-high'});
+    check('production and rollback requests were captured',!!productionBody&&!!rollbackBody);
+    check('production request is byte-identical to the benchmark haiku-high arm',JSON.stringify(productionBody)===JSON.stringify(benchHaiku));
+    check('rollback request is byte-identical to the benchmark legacy production arm',JSON.stringify(rollbackBody)===JSON.stringify(bench));
     check('production profile adds no thinking/effort/temperature parameters',!('thinking' in bench)&&!('output_config' in bench)&&!('temperature' in bench));
     for(const m of ['claude-haiku-5-5','claude-sonnet-5-5'])
       check(m+' differs from production only in model',JSON.stringify({...B.buildRequestBody({model:m,systemPrompt:built.systemPrompt,messages:[{role:'user',content:built.userMessage}]}),model:0})===JSON.stringify({...bench,model:0}));

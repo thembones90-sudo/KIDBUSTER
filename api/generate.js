@@ -45,7 +45,24 @@ import { buildServerGeneration, evaluateGeneratedOutput, buildRepairMessage } fr
 import {beginGenerationRequest,completeGenerationRequest,releaseGenerationRequest} from './_lib/kv-client.js';
 
 const PROVIDER_URL='https://api.anthropic.com/v1/messages';
-const PROVIDER_MODEL='claude-sonnet-4-6';
+// Report model (owner decision 2026-10-16, after the three-model benchmark):
+// Claude Haiku 5.5 at effort 'high'. Haiku thinks before writing and the
+// thinking counts toward max_tokens, so it needs 8000 (at 3000 it was cut off
+// 3/7 times). ANTHROPIC_MODEL=claude-sonnet-4-6 is the rollback: it restores
+// the previous request exactly (3000 tokens, no output_config).
+const MODEL_REQUESTS={
+  'claude-haiku-5-5':{max_tokens:8000,output_config:{effort:'high'}},
+  'claude-sonnet-4-6':{max_tokens:3000}
+};
+const DEFAULT_PROVIDER_MODEL='claude-haiku-5-5';
+function providerModel(){
+  const configured=String(process.env.ANTHROPIC_MODEL||'').trim();
+  return Object.hasOwn(MODEL_REQUESTS,configured)?configured:DEFAULT_PROVIDER_MODEL;
+}
+function providerRequest(){
+  const model=providerModel();
+  return {model,...MODEL_REQUESTS[model]};
+}
 // vercel.json caps this function at 60 s. ALL provider work for one report —
 // the generation and at most one compliance repair — shares one deadline that
 // ends before that cap, so quota/request cleanup always gets to run.
@@ -192,17 +209,11 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: PROVIDER_MODEL,
-        // Beida's combined dual-field output (Learning Content up to 2000
-        // chars + General/Detailed Performance up to 4000 chars, plus
-        // header markers) can reach ~1500 tokens at the platform's own
-        // stated maximums — right at the edge of truncation with no
-        // margin. Every other protocol's realistic maximum sits well
-        // under this; raised here for all of them uniformly since a
-        // higher ceiling costs nothing extra (Anthropic bills actual
-        // output tokens generated, not the max allowed) and there's no
-        // reason to run any protocol this close to a cutoff.
-        max_tokens: 3000,
+        ...providerRequest(),
+        // max_tokens comes from MODEL_REQUESTS: Beida's two fields alone can
+        // reach ~1500 report tokens, and Haiku's thinking is billed against
+        // the same ceiling. A higher ceiling costs nothing by itself
+        // (Anthropic bills tokens actually generated).
         system: buildCacheableSystemBlocks(systemPrompt),
         messages: [{ role: 'user', content: userMessage }]
       })
@@ -287,13 +298,12 @@ export default async function handler(req, res) {
           method:'POST',
           headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
           body:JSON.stringify({
-            model:PROVIDER_MODEL,
-            max_tokens:3000,
+            ...providerRequest(),
             // Same cacheable protocol text as the first call (normally a cache
             // read). The repair sees only the draft, never the transcript, so
             // it can shorten or restructure but has no new facts to add.
             system:buildCacheableSystemBlocks(systemPrompt),
-            messages:[{role:'user',content:buildRepairMessage(protocol,text,contract)}]
+            messages:[{role:'user',content:buildRepairMessage(protocol,text,contract,form)}]
           })
         },remaining);
         if(!result.response.ok||result.parseError){
