@@ -59,7 +59,22 @@ function transcriptSpec(id, readPrivate){
 // Builds each prompt ONCE per transcript x protocol x repetition and shares it
 // across models: Blitz's random style model and Classic's random style variant
 // would otherwise give each model a different prompt.
-function planJobs({ phase, buildServerGeneration, readPrivate, models }){
+// Blitz (shuffle-bag style model) and Classic (style variant) use Math.random
+// when a prompt is built. Plans must be reproducible so an approval code keeps
+// matching: prompts are built under a seeded generator with a fresh protocol
+// core, then the real Math.random is restored.
+function seededRandom(seed){
+  let x = parseInt(sha('plan:' + seed).slice(0, 8), 16) || 1;
+  return () => ((x = (x * 1103515245 + 12345) >>> 0) / 4294967296);
+}
+function planJobs(opts){
+  const realRandom = Math.random;
+  if(opts.resetCore) opts.resetCore();
+  Math.random = seededRandom(opts.phase);
+  try{ return buildPlan(opts); }
+  finally{ Math.random = realRandom; if(opts.resetCore) opts.resetCore(); }
+}
+function buildPlan({ phase, buildServerGeneration, readPrivate, models }){
   const ph = C.PHASES[phase];
   if(!ph) throw new Error('Unknown phase ' + phase);
   const modelIds = models || Object.keys(C.MODELS);

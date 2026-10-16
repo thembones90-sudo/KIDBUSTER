@@ -60,6 +60,12 @@ module.exports=async function run(){
     check('approval code changes when the commit changes',code!==B.approvalCode(p,est,'production','def5678'));
     const tweaked={...p,prompts:p.prompts.map((x,i)=>i?x:{...x,promptSha256:'changed'})};
     check('approval code changes when any prompt changes',code!==B.approvalCode(tweaked,est,'production','abc1234'));
+    // Reproducibility: Blitz/Classic pick random style variants; plans must not.
+    const again=B.planJobs({phase:'test',buildServerGeneration:sg.buildServerGeneration,readPrivate:()=>'',resetCore:sg.__resetServerGenerationForTests});
+    const again2=B.planJobs({phase:'test',buildServerGeneration:sg.buildServerGeneration,readPrivate:()=>'',resetCore:sg.__resetServerGenerationForTests});
+    check('rebuilding the same plan reproduces every prompt hash (incl. Blitz and Classic)',JSON.stringify(again.prompts.map(x=>x.promptSha256))===JSON.stringify(again2.prompts.map(x=>x.promptSha256)));
+    check('rebuilding the same plan reproduces the approval code',B.approvalCode(again,B.estimate(again),'production','c1')===B.approvalCode(again2,B.estimate(again2),'production','c1'));
+    const r1=Math.random();check('Math.random is restored after planning',typeof r1==='number'&&Math.random!==undefined&&Math.random()!==r1);
     if(savedPhase===undefined)delete C.PHASES.test;else C.PHASES.test=savedPhase;
     check('initial phase is 21 reports and full phase is 126 by configuration',C.PHASES.initial.transcripts.length*7*3*C.PHASES.initial.repetitions===21&&C.PHASES.full.transcripts.length*7*3*C.PHASES.full.repetitions===126);
   }

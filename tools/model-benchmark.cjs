@@ -59,11 +59,11 @@ function evalKey(a){
 const usd = x => '$' + x.toFixed(x < 1 ? 3 : 2);
 
 async function makePlan(a){
-  const { buildServerGeneration } = await import('../api/_lib/server-generation.js');
+  const { buildServerGeneration, __resetServerGenerationForTests } = await import('../api/_lib/server-generation.js');
   const phase = a.phase || 'initial';
   const profile = a.profile || 'production';
   if(!C.PROFILES[profile]) throw new Error('Unknown profile');
-  const plan = B.planJobs({ phase, buildServerGeneration, readPrivate });
+  const plan = B.planJobs({ phase, buildServerGeneration, readPrivate, resetCore:__resetServerGenerationForTests });
   const est = B.estimate(plan);
   const info = commitInfo();
   return { plan, est, profile, info, code:B.approvalCode(plan, est, profile, info.commit) };
