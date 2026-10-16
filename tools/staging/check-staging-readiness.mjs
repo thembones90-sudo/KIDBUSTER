@@ -29,14 +29,20 @@ export function evaluateStagingReadiness(metadata={}){
     .map(item=>item.name).sort();
   const blockers=[];
   if(metadata.projectId!=='prj_8AQEDibYCzspPx67Wc0F7EpCFQGY') blockers.push('unexpected_project_identity');
-  if(metadata.ssoProtection!=='all_deployments') blockers.push('sso_all_deployments_unverified');
+  // SSO on for all deployments, or deliberately off by a recorded owner
+  // decision (2026-10-16 public staging; V2-PUBLIC-ACCESS-AND-APP-SECURITY.md).
+  // Off without a dated record still blocks.
+  const ssoOn=metadata.ssoProtection==='all_deployments';
+  const publicApproved=!ssoOn&&[null,undefined,'none','disabled'].includes(metadata.ssoProtection)&&
+    typeof metadata.publicAccessApprovedOn==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(metadata.publicAccessApprovedOn);
+  if(!ssoOn&&!publicApproved) blockers.push('sso_all_deployments_unverified');
   if(Number(metadata.deploymentCount||0)!==0) blockers.push('deployment_state_requires_review');
   if(missing.length) blockers.push('missing_preview_environment_names');
   if(wrongTarget.length) blockers.push('environment_target_not_preview_only');
   if(metadata.upstashOwnershipConfirmed!==true) blockers.push('upstash_ownership_unverified');
-  if(metadata.webhookAutomationBypassApproved!==true) blockers.push('webhook_sso_path_unapproved');
+  if(ssoOn&&metadata.webhookAutomationBypassApproved!==true) blockers.push('webhook_sso_path_unapproved');
   if(metadata.testEmailDeliveryConfirmed!==true) blockers.push('test_email_delivery_unverified');
-  return {ready:blockers.length===0,blockers,missingEnvironmentNames:missing,wrongTargetNames:wrongTarget};
+  return {ready:blockers.length===0,blockers,access:ssoOn?'sso_all_deployments':publicApproved?'public_owner_approved':'unverified',missingEnvironmentNames:missing,wrongTargetNames:wrongTarget};
 }
 
 function localLayout(){

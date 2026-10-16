@@ -34,6 +34,21 @@ module.exports=async function run(){
   upstashOwnershipConfirmed:true,webhookAutomationBypassApproved:true,testEmailDeliveryConfirmed:true
  });
  check('non-Preview environment target blocks readiness',wrong.wrongTargetNames.includes('SITE_URL')&&!wrong.ready);
+ const base={projectId:'prj_8AQEDibYCzspPx67Wc0F7EpCFQGY',deploymentCount:0,
+  environmentVariables:audit.REQUIRED_PREVIEW_ENV.map(name=>({name,targets:['preview']})),
+  upstashOwnershipConfirmed:true,testEmailDeliveryConfirmed:true};
+ const silentlyOff=audit.evaluateStagingReadiness({...base,ssoProtection:null});
+ check('SSO off WITHOUT a recorded owner decision still blocks',
+  !silentlyOff.ready&&silentlyOff.blockers.includes('sso_all_deployments_unverified')&&silentlyOff.access==='unverified');
+ const publicOk=audit.evaluateStagingReadiness({...base,ssoProtection:null,publicAccessApprovedOn:'2026-10-16'});
+ check('owner-approved public staging is not flagged as an SSO failure',
+  publicOk.ready&&publicOk.access==='public_owner_approved');
+ check('a malformed approval record does not count',
+  !audit.evaluateStagingReadiness({...base,ssoProtection:null,publicAccessApprovedOn:'yes'}).ready);
+ check('an unknown SSO mode never counts as approved public access',
+  !audit.evaluateStagingReadiness({...base,ssoProtection:'preview',publicAccessApprovedOn:'2026-10-16'}).ready);
+ check('with SSO on, the webhook bypass approval is still required',
+  audit.evaluateStagingReadiness({...base,ssoProtection:'all_deployments'}).blockers.includes('webhook_sso_path_unapproved'));
  return getFailures();
 };
 if(require.main===module)module.exports().then(n=>process.exit(n?1:0));

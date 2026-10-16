@@ -54,8 +54,7 @@ output contract.
 - No email provider key is set, so self-service signup cannot deliver a key.
   Testers need a key issued by the owner.
 - Redis (`KV_REST_API_*`) belongs to staging and is separate from production.
-- Still unverified: whether the staging `ANTHROPIC_API_KEY` is a separate,
-  spend-limited key. Now that the site is public, this should be confirmed.
+- `ANTHROPIC_API_KEY`: owner closed this item on 2026-10-16 ("it is done").
 
 ## Will anything restore the SSO gate?
 
@@ -66,17 +65,21 @@ output contract.
   pointer here: `AGENTS.md`, `CODEX-V2-CONTINUATION-2026-10-12.md`,
   `V2-STAGING-ISOLATION-2026-10-12.md`,
   `V2-STAGING-PAYMENT-READINESS-2026-10-12.md` and `V2-KRISP-INGRESS.md`.
-- `tools/staging/check-staging-readiness.mjs` still reports
-  `sso_all_deployments_unverified` when SSO is off. That blocker means "owner
-  decision pending in the tool", **not** "re-enable SSO". Changing the checker
-  to recognise the approved public mode needs owner sign-off.
+- `tools/staging/check-staging-readiness.mjs` accepts this mode when the
+  metadata carries `publicAccessApprovedOn: "2026-10-16"` (reported as
+  `access: public_owner_approved`). SSO off **without** a dated record still
+  blocks as `sso_all_deployments_unverified`.
 - The Krisp ingress hostname override and the deny-all routing rule are now
   redundant but harmless. Leave them in place.
 
 ## Open exposure items (owner decisions; no changes made)
 
-1. The public alias does not send `X-Robots-Tag: noindex`, so search engines
-   can index it.
+1. Search indexing: a staging-project routing rule that adds
+   `X-Robots-Tag: noindex, nofollow` to every response is **staged but not
+   live** (version `1adfc2ca-badc-4fc3-826e-a07b2b856403`). Promoting it needs
+   the owner: Vercel → `pathfinder-v2-staging` → Routing → publish. It affects
+   only the staging project; `vercel.json` was deliberately left unchanged so
+   production cannot inherit it.
 2. **Resolved 2026-10-16 (owner-approved):** the 34 older preview deployments
    were deleted. Only the current preview (`of6b7q6m8`, behind both aliases)
    and the old production-target deployment (`czgcp0en9`, see item 3) remain.
