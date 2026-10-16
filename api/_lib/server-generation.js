@@ -66,7 +66,9 @@ export function buildServerGeneration(input){
   if(protocol==='OF'&&!['boy','girl'].includes(form.studentGender.toLowerCase())){
     throw new Error('OF requires a valid studentGender');
   }
-  const cleanedNotes=c.cleanTranscript(form.notes);
+  // Clean mechanical noise, then label Krisp speakers Teacher/Student and mark
+  // likely turn splits (no-op for notes that are not in Krisp format).
+  const cleanedNotes=c.normalizeSpeakerTranscript(c.cleanTranscript(form.notes),{teacherName:form.teacherName,studentName:form.studentName});
   if(!cleanedNotes)throw new Error('notes are empty after cleaning');
   let systemPrompt=c.applyTeacherIdentity(definition.buildSystemPrompt({
     rating:form.rating,lengthFormat:form.lengthFormat,voice:form.blitzVoice,module:form.preplyModule

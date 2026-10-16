@@ -2825,6 +2825,9 @@ const KidbusterCore = (function(){
 • A transcript records words, not sounds. Speech-to-text often mishears. Never diagnose how the student mispronounced a word (for example "said X instead of Y", "shortened the vowel", "dropped the ending") from transcribed spelling. If the teacher explicitly corrected or drilled a word's pronunciation, you may say the word was practiced and give its correct model pronunciation.
 • Odd words, garbled fragments and words split across speaker turns are usually transcription errors. Never present them as the student's mistakes, opinions, preferences or achievements.
 • Teacher questions, suggestions and modeled sentences are not student accomplishments. Never credit the student with something only the teacher said.
+• Credit the student only with words the student said. If a word or sentence appears only in a Teacher line, the student practised it with support — never write that the student said, repeated, built or knew it.
+• Never describe facial expressions, smiles, laughter, tone of voice, gestures, body language or feelings. A transcript cannot show them.
+• Transcript lines are labelled Teacher: and Student: from automatic speaker detection. A line ending in "…" followed by a line starting "(split)" marks a speech-to-text break: the words after "(split)" up to the first full stop may have been said by either speaker. Never use them as evidence that the student finished, or failed to finish, that sentence.
 • Homework, practice ideas and next steps are your recommendations. Never state they were assigned, agreed or completed unless the lesson evidence says so.
 • Never promise or guarantee results ("will definitely", "will click into place", "will soon master"). Recommend instead ("more practice with X would help").
 • Model correct, standard English. If the teacher used nonstandard phrasing (for example "very good" used as an adverb), never reproduce it as a model sentence, vocabulary note or grammar example; use the correct form.
@@ -3744,6 +3747,74 @@ Love, Teacher [Name]` + '\n\n─────────────────
     cleaned = cleaned.replace(/\n{2,}/g, '\n');
     cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');
     return cleaned.trim();
+  }
+
+  /**
+   * Speaker normalization for Krisp-style transcripts ("Name | 00:12" header
+   * lines). Deterministic; runs after cleanTranscript. It (1) relabels the
+   * known teacher/student as "Teacher:"/"Student:" so the model never has to
+   * guess who is who, (2) drops timestamps and merges consecutive turns of the
+   * same speaker, and (3) MARKS likely speech-to-text turn splits instead of
+   * guessing: when a turn ends on a dangling word ("I played with my.") and the
+   * next speaker's turn opens with a 1-3 word fragment ("Dad. With my dad."),
+   * the fragment could have been said by either speaker, so it is flagged as
+   * "(split)" and the grounding rules forbid using it as evidence either way.
+   * Text that is not in this format is returned unchanged.
+   */
+  const SPLIT_DANGLING_WORDS = /\b(the|a|an|my|your|his|her|our|their|to|with|very|can|is|are|am|i'm|and|of|for|on|in|at|it's|we|i)\.$/i;
+  function normalizeSpeakerTranscript(text, names){
+    const raw = String(text || '');
+    const header = /^\s*(.{1,40}?)\s*\|\s*\d{1,2}:\d{2}(?::\d{2})?\s*$/;
+    const lines = raw.split('\n');
+    if(lines.filter(l => header.test(l)).length < 3) return raw;
+    const teacher = String((names && names.teacherName) || '').trim().toLowerCase();
+    const student = String((names && names.studentName) || '').trim().toLowerCase();
+    const preamble = [], turns = [];
+    for(const line of lines){
+      const m = line.match(header);
+      if(m){ turns.push({ speaker:m[1].trim(), text:[] }); continue; }
+      if(!line.trim()) continue;
+      (turns.length ? turns[turns.length - 1].text : preamble).push(line.trim());
+    }
+    const speakers = [...new Set(turns.map(t => t.speaker))];
+    const role = {};
+    for(const s of speakers){
+      const k = s.toLowerCase();
+      if(teacher && k === teacher) role[s] = 'Teacher';
+      else if(student && k === student) role[s] = 'Student';
+    }
+    // With exactly two speakers and one identified, the other is the other role.
+    if(speakers.length === 2){
+      const known = speakers.filter(s => role[s]);
+      if(known.length === 1){
+        const other = speakers.find(s => !role[s]);
+        role[other] = role[known[0]] === 'Teacher' ? 'Student' : 'Teacher';
+      }
+    }
+    const merged = [];
+    for(const t of turns){
+      const label = role[t.speaker] || t.speaker;
+      const body = t.text.join(' ').replace(/\s+/g, ' ').trim();
+      if(!body) continue;
+      const prev = merged[merged.length - 1];
+      if(prev && prev.label === label) prev.body += ' ' + body;
+      else merged.push({ label, body });
+    }
+    for(let i = 1; i < merged.length; i++){
+      const prev = merged[i - 1], cur = merged[i];
+      // Ambiguous only when the next speaker opens with a 1-2 word fragment AND
+      // restates it ("Ball. I can pass the ball."): the classic complete-and-
+      // model shape. A student genuinely answering a prompt ("I can pass.",
+      // "It's Tuesday. We learn to run.") is not marked.
+      const frag = cur.body.match(/^([A-Za-z'’-]+(?: [A-Za-z'’-]+)?)\.(?:\s|$)/);
+      const lastWord = frag && frag[1].split(' ').pop().replace(/[^A-Za-z]/g, '');
+      const restated = !!(frag && lastWord && new RegExp('\\b' + lastWord + '\\b', 'i').test(cur.body.slice(frag[0].length)));
+      if(SPLIT_DANGLING_WORDS.test(prev.body) && frag && restated){
+        prev.body = prev.body.replace(/\.$/, ' …');
+        cur.body = '(split) ' + cur.body;
+      }
+    }
+    return [...preamble, ...merged.map(t => t.label + ': ' + t.body)].join('\n');
   }
 
   /**
@@ -5401,6 +5472,7 @@ because it's about a single lesson.`
     buildBlitzSystemPrompt,
     resetBlitzShuffleBag,
     cleanTranscript,
+    normalizeSpeakerTranscript,
     buildUserMessage,
     applyTeacherIdentity,
     applyMASignoffEmoji,
