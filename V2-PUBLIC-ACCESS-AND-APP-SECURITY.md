@@ -74,12 +74,13 @@ output contract.
 
 ## Open exposure items (owner decisions; no changes made)
 
-1. Search indexing: a staging-project routing rule that adds
-   `X-Robots-Tag: noindex, nofollow` to every response is **staged but not
-   live** (version `1adfc2ca-badc-4fc3-826e-a07b2b856403`). Promoting it needs
-   the owner: Vercel → `pathfinder-v2-staging` → Routing → publish. It affects
-   only the staging project; `vercel.json` was deliberately left unchanged so
-   production cannot inherit it.
+1. **Resolved 2026-10-16 (owner-published):** routing rule
+   `V2 staging - noindex all responses` is live alongside the Krisp ingress
+   rule, with no pending drafts. Verified: `pathfinder-v2-staging-preview` and
+   `pathfinder-v2-staging.vercel.app` both return 200 with
+   `X-Robots-Tag: noindex, nofollow`. This discourages indexing only; it is
+   not access control. `vercel.json` is unchanged, so production cannot
+   inherit it. No further routing change or redeploy is needed.
 2. **Resolved 2026-10-16 (owner-approved):** the 34 older preview deployments
    were deleted. Only the current preview (`of6b7q6m8`, behind both aliases)
    and the old production-target deployment (`czgcp0en9`, see item 3) remain.
@@ -94,3 +95,24 @@ output contract.
 
 Production (`kidbuster` project, `kidbuster.vercel.app`) is not affected by any
 of this.
+
+## Readiness checker status (2026-10-16)
+
+Input: `tools/staging/staging-metadata-2026-10-16.json` (names/targets only,
+records the public-access decision). `access: public_owner_approved`.
+Remaining blockers:
+
+- `missing_preview_environment_names`: `LEMONSQUEEZY_API_KEY`,
+  `LEMONSQUEEZY_STORE_ID`, `LEMONSQUEEZY_PRO_VARIANT_ID`,
+  `LEMONSQUEEZY_WEBHOOK_SECRET`, `RESEND_API_KEY`, `PATHFINDER_EMAIL_FROM`.
+- `test_email_delivery_unverified`.
+- `upstash_ownership_unverified`: the owner reported claiming it, and staging
+  Redis still answers on 2026-10-16, after the guest expiry of 2026-10-15
+  (license lookups return 401 rather than the 500 seen when Redis is missing).
+  Strong evidence, but not confirmed in the Upstash account.
+- `deployment_state_requires_review`: 2 deployments exist (the current
+  preview plus the old production-target one). The rule assumes an empty
+  project and predates staging use; this needs review, not cleanup.
+
+With SSO off, Lemon Squeezy webhooks can reach staging directly, so the
+earlier "webhook SSO bypass" blocker no longer applies.

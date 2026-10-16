@@ -1,0 +1,24 @@
+{
+  "_comment": "Sanitized staging metadata (names/targets only, never values) for check-staging-readiness.mjs. Captured 2026-10-16 from Vercel project prj_8AQEDibYCzspPx67Wc0F7EpCFQGY.",
+  "projectId": "prj_8AQEDibYCzspPx67Wc0F7EpCFQGY",
+  "ssoProtection": null,
+  "publicAccessApprovedOn": "2026-10-16",
+  "deploymentCount": 2,
+  "environmentVariables": [
+    {"name": "ANTHROPIC_API_KEY", "targets": ["preview"]},
+    {"name": "SITE_URL", "targets": ["preview"]},
+    {"name": "PATHFINDER_APP_URL", "targets": ["preview"]},
+    {"name": "GENERATE_RATE_LIMIT_PER_MINUTE", "targets": ["preview"]},
+    {"name": "GENERATE_MAX_CONCURRENT", "targets": ["preview"]},
+    {"name": "APP_ACCESS_KEY", "targets": ["preview"]},
+    {"name": "EMAIL_PROVIDER", "targets": ["preview"]},
+    {"name": "PAYMENT_PROVIDER", "targets": ["preview"]},
+    {"name": "FREE_MONTHLY_LIMIT", "targets": ["preview"]},
+    {"name": "OWNER_LICENSE_KEYS", "targets": ["preview"]},
+    {"name": "KV_REST_API_URL", "targets": ["preview"]},
+    {"name": "KV_REST_API_TOKEN", "targets": ["preview"]}
+  ],
+  "upstashOwnershipConfirmed": false,
+  "webhookAutomationBypassApproved": false,
+  "testEmailDeliveryConfirmed": false
+}
