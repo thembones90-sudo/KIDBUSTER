@@ -71,6 +71,10 @@ module.exports=function run(){
   const thirdPerson=validReport('PREPLY').replace('after I gave one example','after Layne gave one example');
   const tp=evaluate('PREPLY',thirdPerson);
   check('Preply naming the teacher in the third person is blocked',codes(tp).includes('voice'));
+  for(const signoff of ['\n\nBest regards,\nLayne','\n\nKind regards, Layne','\n\nThanks,\nTeacher Layne','\n\n— Layne']){
+    check('Preply signed "'+signoff.trim().replace(/\n/g,' / ')+'" is not third-person self-reference',evaluate('PREPLY',validReport('PREPLY')+signoff).compliant);
+  }
+  check('...but naming the teacher in the body is still blocked even with a signature',codes(evaluate('PREPLY',thirdPerson+'\n\nBest regards,\nLayne')).includes('voice'));
   check('a teacher name that is only part of another word is not flagged',evaluate('PREPLY',validReport('PREPLY'),{teacherName:'Ann'}).compliant);
   check('student greeting mismatch is blocked',codes(evaluate('MA',validReport('MA',{student:'Somebody'}))).includes('identity'));
   check('leaked placeholder is blocked',codes(evaluate('BLITZ',validReport('BLITZ').replace('Thank you','[Student] thank you'))).includes('placeholder'));

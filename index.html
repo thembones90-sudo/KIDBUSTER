@@ -5097,8 +5097,15 @@ because it's about a single lesson.`
 
     // The tutor is the author. Naming the teacher inside the message reads
     // like an outside observer ("the sentence frames Nora offered her").
+    // A closing signature ("Best regards,\nNora") is the tutor signing, not
+    // third-person self-reference; only the message body is checked (benchmark
+    // 2026-10-16 found the signature refused as a false positive).
     const teacher = (teacherName || '').trim();
-    if(teacher && new RegExp('(^|[^\\p{L}])' + teacher.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\p{L}])', 'iu').test(trimmed)){
+    const escapedTeacher = teacher.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const unsigned = teacher ? trimmed
+      .replace(new RegExp('\\n\\s*(?:[A-Za-z][A-Za-z ]{0,30},\\s*\\n\\s*)?(?:Teacher\\s+|[-—–]\\s*)?' + escapedTeacher + '\\s*$', 'iu'), '')
+      .replace(new RegExp('\\n\\s*[A-Za-z][A-Za-z ]{0,30},\\s*(?:Teacher\\s+)?' + escapedTeacher + '\\s*$', 'iu'), '') : trimmed;
+    if(teacher && new RegExp('(^|[^\\p{L}])' + escapedTeacher + '(?![\\p{L}])', 'iu').test(unsigned)){
       warnings.push('Message refers to the teacher (' + teacher + ') in the third person — write as the tutor, in the first person ("I", "we").');
     }
 
