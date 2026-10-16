@@ -6626,7 +6626,8 @@ async function callClaude(generation){
   const data = await response.json();
   if(!data.text) throw new Error('The server returned an empty response. Try regenerating.');
   clearGenerationAttempt(attempt);
-  return { text: data.text, usage: data.usage || null, trialStatus: data.trialStatus || null };
+  return { text: data.text, usage: data.usage || null, trialStatus: data.trialStatus || null,
+    model: data.model || null, estimatedCostUsd: data.estimatedCostUsd ?? null };
 }
 
 // ---------- field-test feedback card ----------
@@ -6863,36 +6864,25 @@ async function generate(){
 
   const generationStartedAt = performance.now();
   try{
-    const { text, usage, trialStatus } = await callClaude(form);
+    const { text, usage, trialStatus, model, estimatedCostUsd } = await callClaude(form);
     renderTrialStatus(trialStatus);
     const durationMs = Math.round(performance.now() - generationStartedAt);
     if(usage){
-      // Real, measured cost from Anthropic's own usage field — not an
-      // estimate. claude-sonnet-4-6 standard rate: $3/MTok input, $15/MTok
-      // output. Now that the backend (api/generate.js) marks the large,
-      // static bulk of the system prompt as cacheable, `usage` can also
-      // include cache_creation_input_tokens (first time this exact prefix
-      // is sent — billed at a premium, ~1.25x base input rate for the
-      // default 5-minute TTL) and cache_read_input_tokens (a genuine cache
-      // hit — billed at ~0.1x base input rate, a 90% discount). Both are
-      // priced explicitly here rather than folded into a generic
-      // "input_tokens" number, or this cost log would be wrong the moment
-      // caching actually kicks in — either overstating cost on a cache hit,
-      // or understating it on a cache write.
+      // Measured token usage, priced server-side for the selected model.
+      // The result is a list-price estimate, not a billing invoice.
       const cacheCreationTokens = usage.cache_creation_input_tokens || 0;
       const cacheReadTokens = usage.cache_read_input_tokens || 0;
-      const inputCost = usage.input_tokens * 3 / 1_000_000;
-      const cacheCreationCost = cacheCreationTokens * (3 * 1.25) / 1_000_000;
-      const cacheReadCost = cacheReadTokens * (3 * 0.1) / 1_000_000;
-      const outputCost = usage.output_tokens * 15 / 1_000_000;
-      const totalCost = inputCost + cacheCreationCost + cacheReadCost + outputCost;
+      // Pricing comes from the server-selected model, not stale Sonnet rates.
+      const costKnown = Number.isFinite(estimatedCostUsd) && estimatedCostUsd >= 0;
+      const totalCost = costKnown ? estimatedCostUsd : 0;
       console.log(
         '[Kidbuster cost] protocol=' + form.protocol +
         ' input_tokens=' + usage.input_tokens +
         ' cache_creation_tokens=' + cacheCreationTokens +
         ' cache_read_tokens=' + cacheReadTokens +
         ' output_tokens=' + usage.output_tokens +
-        ' cost=$' + totalCost.toFixed(4) +
+        ' model=' + (model || 'unknown') +
+        ' estimated_cost=' + (costKnown ? '$' + totalCost.toFixed(6) : 'unknown') +
         ' report_chars=' + text.trim().length
       );
       recordGeneration(form.protocol, totalCost, {

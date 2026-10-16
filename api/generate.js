@@ -22,6 +22,7 @@
 // not appended as a tail), so for Blitz the whole prompt is cached as one
 // block instead — still a real win whenever the same teacher gets the
 // same model again from the shuffle bag.
+import { HAIKU_MODEL, HAIKU_MAX_TOKENS, estimateHaikuCost } from './_lib/haiku-provider.js';
 const SYSTEM_PROMPT_DIVIDER = '\n\n────────────────────────────────────────\n\n';
 
 function buildCacheableSystemBlocks(systemPrompt) {
@@ -162,7 +163,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: HAIKU_MODEL,
         // Beida's combined dual-field output (Learning Content up to 2000
         // chars + General/Detailed Performance up to 4000 chars, plus
         // header markers) can reach ~1500 tokens at the platform's own
@@ -172,7 +173,9 @@ export default async function handler(req, res) {
         // higher ceiling costs nothing extra (Anthropic bills actual
         // output tokens generated, not the max allowed) and there's no
         // reason to run any protocol this close to a cutoff.
-        max_tokens: 3000,
+        max_tokens: HAIKU_MAX_TOKENS,
+        thinking: { type: 'adaptive' },
+        output_config: { effort: 'medium' },
         system: buildCacheableSystemBlocks(systemPrompt),
         messages: [{ role: 'user', content: userMessage }]
       })
@@ -202,7 +205,7 @@ export default async function handler(req, res) {
   try {
     if(parseError)throw parseError;
     if(!Array.isArray(data?.content)) throw new Error('Provider response content is not an array');
-    text = data.content.map(b => b?.text || '').join('').trim();
+    text = data.content.filter(b => !b?.type || b.type === 'text').map(b => b?.text || '').join('').trim();
   } catch (parseErr) {
     await releaseGeneration(entitlement.reservation).catch(err=>console.error('generate.js: reservation release failed:',err));
     await releaseRequest();
@@ -218,6 +221,11 @@ export default async function handler(req, res) {
 
   // A successful HTTP response can still contain an incomplete report.
   // Never deliver or charge quota for a provider response cut off by output limits.
+  if (data?.stop_reason === 'refusal') {
+    await releaseGeneration(entitlement.reservation).catch(()=>{});
+    await releaseRequest();
+    return res.status(502).json({ error: 'The AI provider could not produce this report. Your lesson notes are safe.', reason: 'provider_refusal' });
+  }
   if (data?.stop_reason === 'max_tokens' || data?.stop_reason === 'model_context_window_exceeded') {
     await releaseGeneration(entitlement.reservation).catch(err=>console.error('generate.js: truncated response reservation release failed:',err));
     await releaseRequest();
@@ -272,5 +280,7 @@ export default async function handler(req, res) {
   // frontend's cost tracker (see kidbusterStats() in index.html) can price
   // each token type correctly instead of treating everything as a normal
   // input token.
-  return res.status(200).json({ text, usage: data.usage || null, trialStatus });
+  const model = data.model || HAIKU_MODEL;
+  return res.status(200).json({ text, usage: data.usage || null, trialStatus, model,
+    estimatedCostUsd: estimateHaikuCost(data.usage,model) });
 }
