@@ -163,9 +163,31 @@ function cmdBlind(a){
   console.log('Blinded packet: ' + review + ' (' + packet.key.length + ' reports, seed ' + seed + ')');
 }
 
-function cmdReport(a){
+async function cmdReport(a){
   const dir = runDir(a);
-  const { records } = loadRun(dir);
+  let { records } = loadRun(dir);
+  // --recheck-contract: re-judge saved drafts with the CURRENT validator
+  // (offline, no provider calls). A record is accepted if its first draft, or
+  // else its saved repair, passes; rejections caused by since-fixed validator
+  // bugs are corrected without re-spending.
+  let recheckNote = null;
+  if(a['recheck-contract']){
+    const sg = await import('../api/_lib/server-generation.js');
+    const prompts = JSON.parse(fs.readFileSync(path.join(dir, 'prompts.private.json'), 'utf8'));
+    const byPrompt = Object.fromEntries(prompts.map(p => [p.promptId, p]));
+    let changed = 0;
+    records = records.map(r => {
+      const pr = byPrompt[r.jobId.split('__').slice(0, 3).join('__')];
+      if(!pr || !r.rawText) return r;
+      const first = sg.evaluateGeneratedOutput(r.protocol, r.rawText, pr.form);
+      const rep = r.repairText ? sg.evaluateGeneratedOutput(r.protocol, r.repairText, pr.form) : null;
+      const accepted = first.compliant || !!(rep && rep.compliant);
+      if(accepted !== r.accepted) changed++;
+      return { ...r, accepted, finalText:first.compliant ? r.rawText : (rep && rep.compliant ? r.repairText : null), firstContract:first };
+    });
+    recheckNote = 'Contracts re-checked offline with the current validator: ' + changed + ' acceptance decision(s) changed versus the original run.';
+  }
+  const label = a['reviewer-label'] ? String(a['reviewer-label']) : null;
   const keyFile = path.join(dir, 'review', 'KEY-DO-NOT-SHARE-WITH-REVIEWERS.json');
   const key = fs.existsSync(keyFile) ? JSON.parse(fs.readFileSync(keyFile, 'utf8')).key : null;
   const scores = a.scores ? fs.readFileSync(path.resolve(String(a.scores)), 'utf8') : null;
@@ -191,9 +213,21 @@ function cmdReport(a){
   let total = 0;
   for(const [p, e] of Object.entries(cmp.economical)){ lines.push('- ' + p + ': ' + (e ? e.model + ' at ' + usd(e.costPerAcceptedUsd) + '/accepted report (' + e.basis + ')' : 'no model met the bar')); if(e) total += e.costPerAcceptedUsd; }
   lines.push('', 'Mean cost per accepted report for that mix: ' + usd(total / 7) + '. One sample per cell is not a reliability estimate.');
-  fs.writeFileSync(path.join(dir, 'COMPARISON.md'), lines.join('\n') + '\n');
-  fs.writeFileSync(path.join(dir, 'comparison.json'), JSON.stringify(cmp, null, 2));
-  console.log(lines.join('\n'));
+  if(recheckNote) lines.splice(3, 0, recheckNote);
+  // Non-teacher scores (e.g. an AI pre-review) are relabelled everywhere and
+  // written to separate files so they can never be mistaken for teacher review.
+  let text = lines.join('\n');
+  if(label){
+    text = '> Quality scores in this file are from ' + label + ', NOT teacher review.\n\n' + text
+      .replace(/Teacher scores:/g, label + ' scores:').replace(/teacher scores/g, label + ' scores')
+      .replace(/Confirmed \(teacher\)/g, 'Confirmed (' + label + ')').replace(/teacher review/g, label + ' review');
+  }else if(scores){
+    throw new Error('--scores requires --reviewer-label unless the scores come from teacher review; pass --reviewer-label teacher to confirm');
+  }
+  const suffix = label && label !== 'teacher' ? '-' + label.replace(/[^A-Za-z0-9-]/g, '') : '';
+  fs.writeFileSync(path.join(dir, 'COMPARISON' + suffix + '.md'), text + '\n');
+  fs.writeFileSync(path.join(dir, 'comparison' + suffix + '.json'), JSON.stringify({ reviewer:label || 'none', recheckNote, ...cmp }, null, 2));
+  console.log(text);
 }
 
 (async () => {
