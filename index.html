@@ -8655,7 +8655,7 @@ body .krisp-compact-header .krisp-logo-slot.krisp-custom-icon img.krisp-logo-img
    selector. Header button is a quiet integration shortcut, not a primary CTA. */
 button.btn-secondary.account-btn.krisp-integration-btn {
   display:inline-flex; align-items:center; justify-content:center; gap:8px;
-  flex:0 1 auto; min-height:46px; padding:8px 19px 8px 13px;
+  flex:0 1 auto; height:44px; min-height:44px; box-sizing:border-box; padding:4px 19px 4px 13px;
   border-radius:999px; border:1px solid #435047;
   background:linear-gradient(145deg,#253027,#1a221d);
   color:rgb(var(--toxin-rgb)); font-size:12px; font-weight:650;
@@ -8687,8 +8687,9 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
 #krispPendingBtn{transition:border-color .3s ease,box-shadow .4s ease;}
 #krispPendingBtn[data-has-pending="true"]{border-color:rgba(var(--toxin-rgb),.55);box-shadow:0 0 16px rgba(var(--toxin-rgb),.14),inset 0 0 12px rgba(var(--toxin-rgb),.045);}
 #krispPendingBtn[data-has-pending="true"] .krisp-inbox-badge{background:rgba(var(--toxin-rgb),.2);color:rgb(var(--toxin-rgb));box-shadow:0 0 9px rgba(var(--toxin-rgb),.18);}
-#krispPendingBtn[data-has-pending="true"]{animation:krispInboxBreathing 2.4s ease-in-out infinite;}
-@keyframes krispInboxBreathing{0%,100%{box-shadow:0 0 14px rgba(var(--toxin-rgb),.2),0 0 0 1px rgba(var(--toxin-rgb),.05),inset 0 0 12px rgba(var(--toxin-rgb),.045);}50%{box-shadow:0 0 30px rgba(var(--toxin-rgb),.55),0 0 52px rgba(var(--toxin-rgb),.18),0 0 0 2px rgba(var(--toxin-rgb),.14),inset 0 0 18px rgba(var(--toxin-rgb),.12);}}
+/* Matching shadow layers let every frame interpolate, including the loop seam. */
+#krispPendingBtn[data-has-pending="true"]{animation:krispInboxBreathing 3.6s ease-in-out infinite;}
+@keyframes krispInboxBreathing{0%,100%{box-shadow:0 0 24px rgba(var(--toxin-rgb),.16),0 0 42px rgba(var(--toxin-rgb),.04),0 0 0 1px rgba(var(--toxin-rgb),.07),inset 0 0 14px rgba(var(--toxin-rgb),.04);}50%{box-shadow:0 0 24px rgba(var(--toxin-rgb),.38),0 0 42px rgba(var(--toxin-rgb),.12),0 0 0 1px rgba(var(--toxin-rgb),.14),inset 0 0 14px rgba(var(--toxin-rgb),.09);}}
 @media(prefers-reduced-motion:reduce){#krispPendingBtn{animation:none!important;transition:none!important;}}
 #krispPendingBtn:focus-visible,#krispInboxPanel button:focus-visible{outline:2px solid rgb(var(--toxin-rgb));outline-offset:4px;}
 #krispInboxPanel{position:fixed;inset:auto;margin:0;width:min(520px,calc(100vw - 32px));max-height:calc(100dvh - 32px);box-sizing:border-box;padding:26px;overflow:auto;overscroll-behavior:contain;border:1px solid #68786a60;border-radius:22px;background:linear-gradient(145deg,#222a24,#171d19 65%);color:#dce6de;box-shadow:0 24px 80px #0009;}

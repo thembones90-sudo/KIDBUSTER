@@ -47,16 +47,24 @@ module.exports=async function(){
     assert.ok(pill.radius>=pill.height/2,'Krisp integration has a fully rounded pill silhouette');
     assert.equal(await page.$eval('#krispInboxBadge',e=>e.textContent),'2');
     const pulse=await page.$eval('#krispPendingBtn',e=>{const s=getComputedStyle(e);return {name:s.animationName,count:s.animationIterationCount,duration:s.animationDuration};});
-    assert.deepEqual(pulse,{name:'krispInboxBreathing',count:'infinite',duration:'2.4s'},'pending transcripts continuously glow until cleared');
+    assert.deepEqual(pulse,{name:'krispInboxBreathing',count:'infinite',duration:'3.6s'},'pending transcripts continuously glow until cleared');
     const frames=await page.$eval('#krispPendingBtn',e=>{
       const a=e.getAnimations().find(a=>a.animationName==='krispInboxBreathing');
       a.currentTime=0;const low=getComputedStyle(e).boxShadow;
-      a.currentTime=1200;const high=getComputedStyle(e).boxShadow;
-      a.currentTime=6000;return {low,high,later:getComputedStyle(e).boxShadow,running:a.playState};
+      a.currentTime=1800;const high=getComputedStyle(e).boxShadow;
+      a.currentTime=9000;return {low,high,later:getComputedStyle(e).boxShadow,running:a.playState};
     });
     assert.notEqual(frames.low,frames.high,'actual rendered glow changes between low and high frames');
     assert.equal(frames.high,frames.later,'glow still reaches its peak after more than two cycles');
     assert.equal(frames.running,'running');
+    const interpolation=await page.$eval('#krispPendingBtn',e=>{
+      const a=e.getAnimations().find(a=>a.animationName==='krispInboxBreathing');
+      const at=t=>{a.currentTime=t;return getComputedStyle(e).boxShadow;};
+      return {start:at(0),quarter:at(900),middle:at(1800),end:at(3600)};
+    });
+    assert.notEqual(interpolation.quarter,interpolation.start,'pulse interpolates rather than snapping');
+    assert.notEqual(interpolation.quarter,interpolation.middle,'pulse has a genuine intermediate frame');
+    assert.equal(interpolation.start,interpolation.end,'pulse loops without a discontinuity');
     await page.evaluate(()=>window.testKrispPoll());
     assert.equal(await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).animationIterationCount),'infinite','polling preserves continuous glow');
     await page.evaluate(()=>document.dispatchEvent(new Event('kidbuster:workspace-reset')));
@@ -98,6 +106,8 @@ module.exports=async function(){
     for(const width of [1440,1024,768,390,320]){
       await page.setViewport({width,height:1000});
       await page.evaluate(()=>window.dispatchEvent(new Event('resize')));
+      const heights=await page.$$eval('.header-actions>button.account-btn',els=>els.filter(e=>!e.hidden).map(e=>e.getBoundingClientRect().height));
+      assert.ok(Math.max(...heights)-Math.min(...heights)<1,'all header pills share a height at '+width);
       const layout=await page.evaluate(()=>{const r=document.getElementById('krispInboxPanel').getBoundingClientRect();return {left:r.left,right:r.right,overflow:document.documentElement.scrollWidth-innerWidth};});
       assert.ok(layout.left>=0&&layout.right<=width,'inbox fits '+width);assert.ok(layout.overflow<=1,'header fits '+width);
       if(process.env.V2_PENDING_SCREENSHOTS&&[1440,390].includes(width))await page.screenshot({path:path.join(process.env.V2_PENDING_SCREENSHOTS,'pending-header-'+width+'.png')});
