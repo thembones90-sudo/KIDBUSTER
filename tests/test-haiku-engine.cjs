@@ -34,7 +34,7 @@ module.exports=async function(){
       const res={status(code){status=code;return res;},json(value){result=value;return res;},setHeader(){}};
       await generate(req,res);
       assert.equal(sent.model,HAIKU_MODEL);assert.equal(sent.max_tokens,10000);
-      assert.deepEqual(sent.thinking,{type:'adaptive'});assert.deepEqual(sent.output_config,{effort:'medium'});
+      assert.deepEqual(sent.thinking,{type:'adaptive'});assert.deepEqual(sent.output_config,{effort:'high'});
       assert.equal(calls,1,'no automatic paid retry');
       const count=await licensing.getUsageCount(key,licensing.currentUsagePeriod());
       if(stop==='end_turn'){

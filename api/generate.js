@@ -175,7 +175,7 @@ export default async function handler(req, res) {
         // reason to run any protocol this close to a cutoff.
         max_tokens: HAIKU_MAX_TOKENS,
         thinking: { type: 'adaptive' },
-        output_config: { effort: 'medium' },
+        output_config: { effort: 'high' },
         system: buildCacheableSystemBlocks(systemPrompt),
         messages: [{ role: 'user', content: userMessage }]
       })

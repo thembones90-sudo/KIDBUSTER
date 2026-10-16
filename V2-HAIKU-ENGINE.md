@@ -2,7 +2,9 @@
 
 Owner selected `claude-haiku-5-5` after reviewing the October 16 benchmark. All seven protocols use the same model. The existing direct Anthropic integration and V2-only Preview key remain; no Gateway migration, automatic Sonnet escalation, or automatic paid retry was added.
 
-Requests use adaptive thinking at medium effort and a 10,000-token combined thinking/report budget. Protocol-specific character and word limits are unchanged. Larger provider headroom is not a larger allowed report. Thinking blocks are not returned as report text. Refusals and truncated responses fail without consuming report quota.
+Requests use adaptive thinking at high effort and a 10,000-token combined thinking/report budget. Protocol-specific character and word limits are unchanged. Larger provider headroom is not a larger allowed report. Thinking blocks are not returned as report text. Refusals and truncated responses fail without consuming report quota.
+
+The owner approved high effort on October 16, 2026. Token unit prices are unchanged; actual cost and latency depend on usage. The existing token ceiling and timeout remain unchanged. This setting is not evidence that factual attribution or protocol adherence has improved; that requires comparative report review.
 
 Successful responses include the returned provider model and a server-side standard-global list-price estimate. Output usage already includes thinking; do not double count it. Cache writes/reads are priced separately and the higher Haiku tier applies when total prompt tokens exceed 100,000. Rates are estimates, not invoices; refresh them when Anthropic changes pricing. Historical stored estimates are not rewritten.
 
