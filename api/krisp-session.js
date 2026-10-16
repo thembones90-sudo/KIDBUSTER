@@ -11,28 +11,51 @@
 // stable license identity, resolved the same way, so pending imports
 // survive token regeneration and Krisp reconnects. See
 // _lib/krisp-token.js for the token<->identity design.
-import { isFounderLicenseKey, getLicense, isLicenseExpired, effectiveSubscriptionLicense } from './_lib/licensing.js';
-import { getOrCreateKrispToken, regenerateKrispToken, disconnectKrisp } from './_lib/krisp-token.js';
+import { isEntitledToKrisp, readImportQueue, writeImportQueue, krispRetentionDays } from './_lib/krisp-retention.js';
+import { getOrCreateKrispToken, regenerateKrispToken, disconnectKrisp, KrispTokenBusyError } from './_lib/krisp-token.js';
 import crypto from 'crypto';
 import { krispWebhookUrlForToken } from './_lib/krisp-webhook-url.js';
 import { kv, acquirePaymentLock, releasePaymentLock } from './_lib/kv-client.js';
 
 const PENDING_LIST_MAX = 20;
+// A matched (armed) transcript is LEASED to the polling browser, not deleted
+// on read. If the response is lost (sleeping phone, dropped connection) the
+// lease lapses and the same transcript is offered again; the browser confirms
+// receipt with the 'ack-matched' action, which is what removes it. A client
+// that never acknowledges stops being offered the item after a few attempts.
+const MATCHED_LEASE_MS = 45 * 1000;
+const MAX_MATCHED_DELIVERIES = 20;
+const PRODUCTION_FALLBACK_ORIGIN = 'https://kidbuster.vercel.app';
+
+// The webhook URL a teacher pastes into Krisp must point at the deployment
+// they are actually signed in to. It was previously hard-coded to production,
+// which handed staging accounts a URL whose token production cannot resolve.
+// Order: explicit configuration, then the request's own host, then production.
+function webhookOrigin(req){
+  for(const configured of [process.env.PATHFINDER_APP_URL, process.env.SITE_URL]){
+    const raw = String(configured || '').trim();
+    if(!raw) continue;
+    try{
+      const parsed = new URL(raw);
+      if(parsed.protocol === 'https:' || (parsed.protocol === 'http:' && /^(localhost|127\.0\.0\.1)$/.test(parsed.hostname))){
+        return parsed.origin;
+      }
+    }catch(_err){ /* ignore a malformed value and try the next source */ }
+  }
+  const host = String((req && req.headers && (req.headers['x-forwarded-host'] || req.headers.host)) || '').split(',')[0].trim();
+  if(/^[A-Za-z0-9.-]+(:\d{1,5})?$/.test(host)){
+    const local = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host);
+    return (local ? 'http://' : 'https://') + host;
+  }
+  return PRODUCTION_FALLBACK_ORIGIN;
+}
+function krispWebhookUrl(req, token){
+  if(process.env.VERCEL_ENV === 'preview') return krispWebhookUrlForToken(token);
+  return webhookOrigin(req) + '/api/krisp-webhook?token=' + token;
+}
 
 function dataKeyPrefix(userIdentity){
   return 'krisp:data:' + userIdentity + ':';
-}
-
-async function isEntitledToKrisp(licenseKey){
-  if(!licenseKey) return false;
-  if(isFounderLicenseKey(licenseKey)) return true;
-  const license = effectiveSubscriptionLicense(await getLicense(licenseKey));
-  if(!license) return false;
-  if(license.plan !== 'pro' || license.status !== 'active') return false;
-  // Stock keys cannot use Krisp before their first browser activation.
-  if(license.manual === true && license.activationPending === true) return false;
-  if(isLicenseExpired(license)) return false;
-  return true;
 }
 
 function sortPendingByMeetingStart(pending){
@@ -65,7 +88,7 @@ function normalizeDeferredImport(record){
     meetingStartTime: record.meetingStartTime || record.startTime || null,
     startTime: record.startTime || record.meetingStartTime || null,
     durationSeconds: Number.isFinite(Number(record.durationSeconds)) ? Number(record.durationSeconds) : null,
-    receivedAt: record.receivedAt || new Date().toISOString(),
+    receivedAt: record.receivedAt || new Date(Date.now()).toISOString(),
     assigned: false,
     deferred: true
   };
@@ -88,16 +111,22 @@ export default async function handler(req, res){
   // can only ever affect the caller's own integration. Neither action
   // touches krisp:data:<licenseKey>:* at all -- pending imports are
   // keyed by identity, not by token, so they're untouched either way.
+  const tokenBusy = () => res.status(503).json({ error: 'Krisp settings are busy. Retry in a moment.', reason: 'busy' });
   if(req.method === 'POST' && (req.body || {}).action === 'regenerate'){
-    const newToken = await regenerateKrispToken(licenseKey);
-    return res.status(200).json({ webhookUrl: krispWebhookUrlForToken(newToken) });
+    let newToken;
+    try{ newToken = await regenerateKrispToken(licenseKey); }
+    catch(err){ if(err instanceof KrispTokenBusyError) return tokenBusy(); throw err; }
+    return res.status(200).json({ webhookUrl: krispWebhookUrl(req, newToken) });
   }
   if(req.method === 'POST' && (req.body || {}).action === 'disconnect'){
-    await disconnectKrisp(licenseKey);
+    try{ await disconnectKrisp(licenseKey); }
+    catch(err){ if(err instanceof KrispTokenBusyError) return tokenBusy(); throw err; }
     return res.status(200).json({ disconnected: true });
   }
 
-  const token = await getOrCreateKrispToken(licenseKey);
+  let token;
+  try{ token = await getOrCreateKrispToken(licenseKey); }
+  catch(err){ if(err instanceof KrispTokenBusyError) return tokenBusy(); throw err; }
   const prefix = dataKeyPrefix(licenseKey);
 
   const waitingKey = prefix + 'waitingSince';
@@ -115,12 +144,24 @@ export default async function handler(req, res){
 
   if(req.method === 'GET'){
     const read=await withMutationLock(async()=>{
+      const nowMs=Date.now();
       const legacy=await kv.getdel(matchedKey);
-      const queue=(await kv.get(matchedQueueKey))||[];
-      if(legacy)queue.unshift(legacy);
-      const matched=queue.shift()||null;
-      await kv.set(matchedQueueKey,queue);
-      return {matched,pendingRaw:(await kv.get(pendingKey))||[]};
+      let queue=await readImportQueue(matchedQueueKey,nowMs);
+      if(legacy&&typeof legacy==='object'){
+        if(!legacy.receivedAt)legacy.receivedAt=new Date(nowMs).toISOString();
+        queue.unshift(legacy);
+      }
+      queue=queue.filter(item=>(item.deliveryCount||0)<MAX_MATCHED_DELIVERIES);
+      const head=queue.find(item=>!item.leasedUntil||item.leasedUntil<=nowMs)||null;
+      let matched=null;
+      if(head){
+        head.leasedUntil=nowMs+MATCHED_LEASE_MS;
+        head.deliveryCount=(head.deliveryCount||0)+1;
+        matched={...head};
+        delete matched.leasedUntil;delete matched.deliveryCount;
+      }
+      await writeImportQueue(matchedQueueKey,queue,nowMs);
+      return {matched,pendingRaw:await readImportQueue(pendingKey,nowMs)};
     });
     if(read.busy)return res.status(503).json({error:'Krisp inbox is busy. Retry shortly.'});
     const waitingSince = await kv.get(waitingKey);
@@ -132,8 +173,9 @@ export default async function handler(req, res){
       waiting: !!waitingSince,
       pending,
       pendingCount: pending.length,
+      retentionDays: krispRetentionDays(),
       lastReceivedAt,
-      webhookUrl: krispWebhookUrlForToken(token)
+      webhookUrl: krispWebhookUrl(req, token)
     });
   }
 
@@ -143,6 +185,22 @@ export default async function handler(req, res){
     if(action === 'wait'){
       await kv.set(waitingKey, new Date().toISOString());
       return res.status(200).json({ waiting: true });
+    }
+
+    if(action === 'ack-matched'){
+      const meetingId = (req.body || {}).meetingId;
+      if(!meetingId || typeof meetingId !== 'string'){
+        return res.status(400).json({ error: 'meetingId is required to acknowledge a transcript.' });
+      }
+      const acked=await withMutationLock(async()=>{
+        const queue=await readImportQueue(matchedQueueKey);
+        const remaining=queue.filter(item=>item.meetingId!==meetingId);
+        if(remaining.length===queue.length)return false;
+        await writeImportQueue(matchedQueueKey,remaining);
+        return true;
+      });
+      if(acked.busy)return res.status(409).json({error:'Krisp inbox changed. Please retry.'});
+      return res.status(200).json({ acked: acked.value });
     }
 
     if(action === 'cancel-wait'){
@@ -156,11 +214,11 @@ export default async function handler(req, res){
         return res.status(400).json({ error: 'meetingId is required to claim a pending import.' });
       }
       const claim=await withMutationLock(async()=>{
-        const pending=(await kv.get(pendingKey))||[];
+        const pending=await readImportQueue(pendingKey);
         const index=pending.findIndex(item=>item.meetingId===meetingId);
         if(index===-1)return null;
         const [claimed]=pending.splice(index,1);
-        await kv.set(pendingKey,pending);
+        await writeImportQueue(pendingKey,pending);
         return {claimed,pendingCount:pending.length};
       });
       if(claim.busy)return res.status(409).json({error:'Krisp inbox changed. Please retry.'});
@@ -176,11 +234,11 @@ export default async function handler(req, res){
         return res.status(400).json({ error: 'A valid Krisp import record is required to defer.' });
       }
       const deferred=await withMutationLock(async()=>{
-        const pending=(await kv.get(pendingKey))||[];
+        const pending=await readImportQueue(pendingKey);
         const existingIndex=pending.findIndex(item=>item.meetingId===record.meetingId);
         if(existingIndex===-1)pending.unshift(record);else pending[existingIndex]={...pending[existingIndex],...record};
         if(pending.length>PENDING_LIST_MAX)pending.length=PENDING_LIST_MAX;
-        await kv.set(pendingKey,pending);
+        await writeImportQueue(pendingKey,pending);
         return sortPendingByMeetingStart(pending);
       });
       if(deferred.busy)return res.status(409).json({error:'Krisp inbox changed. Please retry.'});
@@ -194,11 +252,11 @@ export default async function handler(req, res){
         return res.status(400).json({ error: 'meetingId is required to dismiss a pending import.' });
       }
       const dismissed=await withMutationLock(async()=>{
-        const pending=(await kv.get(pendingKey))||[];
+        const pending=await readImportQueue(pendingKey);
         const index=pending.findIndex(item=>item.meetingId===meetingId);
         if(index===-1)return null;
         pending.splice(index,1);
-        await kv.set(pendingKey,pending);
+        await writeImportQueue(pendingKey,pending);
         return pending.length;
       });
       if(dismissed.busy)return res.status(409).json({error:'Krisp inbox changed. Please retry.'});

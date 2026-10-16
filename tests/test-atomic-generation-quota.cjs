@@ -12,6 +12,10 @@ module.exports=async function run(){
   const priorKey=process.env.ANTHROPIC_API_KEY;
   const priorTimeout=process.env.ANTHROPIC_TIMEOUT_MS;
   process.env.ANTHROPIC_API_KEY='isolated_test_key';
+  // This file stress-tests QUOTA atomicity with 64 simultaneous requests from one key;
+  // lift the abuse guard (tested separately in test-generate-throttle.cjs) so it does not intercept them.
+  const priorRate=process.env.GENERATE_RATE_LIMIT_PER_MINUTE,priorConc=process.env.GENERATE_MAX_CONCURRENT;
+  process.env.GENERATE_RATE_LIMIT_PER_MINUTE='1000';process.env.GENERATE_MAX_CONCURRENT='200';
 
   function invoke(key,protocol='MA',requestId=''){
     const req={method:'POST',headers:{'x-app-key':key,'x-installation-id':'quota-test-browser',...(requestId?{'x-generation-id':requestId}:{})},body:{generation:{
@@ -216,6 +220,8 @@ module.exports=async function run(){
     global.fetch=priorFetch;
     if(priorKey===undefined)delete process.env.ANTHROPIC_API_KEY;else process.env.ANTHROPIC_API_KEY=priorKey;
     if(priorTimeout===undefined)delete process.env.ANTHROPIC_TIMEOUT_MS;else process.env.ANTHROPIC_TIMEOUT_MS=priorTimeout;
+    if(priorRate===undefined)delete process.env.GENERATE_RATE_LIMIT_PER_MINUTE;else process.env.GENERATE_RATE_LIMIT_PER_MINUTE=priorRate;
+    if(priorConc===undefined)delete process.env.GENERATE_MAX_CONCURRENT;else process.env.GENERATE_MAX_CONCURRENT=priorConc;
   }
   return getFailures();
 };

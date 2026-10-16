@@ -204,6 +204,36 @@ export async function reserveBoundedCounter(key,limit,ttlSeconds=0){
   return Number(result)<0?null:Number(result);
 }
 
+// Fixed-window counter: ONE atomic step increments and makes sure the key has
+// an expiry. The old pattern (INCR, then EXPIRE only when the result was 1)
+// left a counter with no expiry forever if the worker died between the two
+// calls, which silently locked that email or IP out for good. The Redis script
+// also repairs any such already-orphaned counter (TTL < 0) on its next hit.
+// The window is anchored at the first hit and is NOT extended by later hits.
+export async function incrementWindowCounter(key,ttlSeconds){
+  if(!Number.isInteger(ttlSeconds)||ttlSeconds<1)throw new Error('Window TTL must be a positive integer');
+  if(process.env.KIDBUSTER_TEST_KV==='1'){
+    failIfOutage();
+    const expires=memoryExpiry.get(key);
+    if(expires&&expires<=Date.now()){memoryExpiry.delete(key);memoryStore.delete(key);}
+    const next=(Number(memoryStore.get(key))||0)+1;
+    memoryStore.set(key,next);
+    if(next===1||!memoryExpiry.has(key))memoryExpiry.set(key,Date.now()+ttlSeconds*1000);
+    return next;
+  }
+  if(useLocal){
+    const item=localData[key];
+    if(item?.until&&item.until<=Date.now())delete localData[key];
+    const cur=localData[key];
+    const next=(Number(cur?.value)||0)+1;
+    const until=(next===1||!cur?.until)?Date.now()+ttlSeconds*1000:cur.until;
+    localData[key]={value:next,until};persistLocal();return next;
+  }
+  return Number(await vercelKv.eval(
+    'local n=redis.call("INCR",KEYS[1]); if n==1 or redis.call("TTL",KEYS[1])<0 then redis.call("EXPIRE",KEYS[1],ARGV[1]) end; return n',
+    [key],[String(ttlSeconds)]));
+}
+
 // Compensates a reservation only for a generation known not to have produced
 // a report. The compare/decrement is atomic and never makes a counter negative.
 export async function releaseBoundedCounter(key){
@@ -257,6 +287,41 @@ export async function reserveCounterHold(key,token,limit,{counterTtlSeconds=0,ho
     'local h=redis.call("HGETALL",KEYS[2]); local n=tonumber(redis.call("GET",KEYS[1]) or "0"); for i=1,#h,2 do if tonumber(h[i+1])<=tonumber(ARGV[4]) then redis.call("HDEL",KEYS[2],h[i]); if n>0 then n=redis.call("DECR",KEYS[1]) end end end; if n>=tonumber(ARGV[1]) then return -1 end; n=redis.call("INCR",KEYS[1]); redis.call("HSET",KEYS[2],ARGV[2],tonumber(ARGV[4])+tonumber(ARGV[3])*1000); if tonumber(ARGV[5])>0 then redis.call("EXPIRE",KEYS[1],ARGV[5]) end; redis.call("EXPIRE",KEYS[2],math.max(tonumber(ARGV[3])*2,86400)); return n',
     [key,holdsKey],[String(limit),token,String(holdTtlSeconds),String(nowMs),String(counterTtlSeconds)]);
   return Number(result)<0?null:Number(result);
+}
+
+// Refunds every EXPIRED hold on a counter without reserving anything new.
+// Reservation attempts already do this implicitly, but an entitlement check
+// that rejects a request at the limit never reaches the reservation step, so
+// an abandoned hold sitting exactly at the allowance would otherwise stay
+// charged forever. Committed usage has no hold entry and is never refunded.
+// Returns the number of holds refunded.
+export async function reclaimExpiredCounterHolds(key,{nowMs=Date.now()}={}){
+  const holdsKey=key+':holds';
+  if(process.env.KIDBUSTER_TEST_KV==='1'){
+    failIfOutage();
+    const holds={...(memoryStore.get(holdsKey)||{})};
+    let current=Number(memoryStore.get(key))||0,refunded=0;
+    for(const [id,expiresAt] of Object.entries(holds)){
+      if(Number(expiresAt)<=nowMs){delete holds[id];refunded++;current=Math.max(0,current-1);}
+    }
+    if(refunded){memoryStore.set(key,current);memoryStore.set(holdsKey,holds);}
+    return refunded;
+  }
+  if(useLocal){
+    const holds={...(localData[holdsKey]?.value||{})};
+    let current=Number(localData[key]?.value)||0,refunded=0;
+    for(const [id,expiresAt] of Object.entries(holds)){
+      if(Number(expiresAt)<=nowMs){delete holds[id];refunded++;current=Math.max(0,current-1);}
+    }
+    if(refunded){
+      localData[key]={value:current,until:localData[key]?.until??null};
+      localData[holdsKey]={value:holds,until:null};persistLocal();
+    }
+    return refunded;
+  }
+  return Number(await vercelKv.eval(
+    'local h=redis.call("HGETALL",KEYS[2]); local n=tonumber(redis.call("GET",KEYS[1]) or "0"); local r=0; for i=1,#h,2 do if tonumber(h[i+1])<=tonumber(ARGV[1]) then redis.call("HDEL",KEYS[2],h[i]); r=r+1; if n>0 then n=redis.call("DECR",KEYS[1]) end end end; return r',
+    [key,holdsKey],[String(nowMs)]))||0;
 }
 
 export async function commitCounterHold(key,token){

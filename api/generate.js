@@ -42,14 +42,29 @@ function buildCacheableSystemBlocks(systemPrompt) {
 import crypto from 'node:crypto';
 import { reserveGeneration, releaseGeneration, commitGeneration } from './_lib/license-service.js';
 import { ALWAYS_FREE_PROTOCOLS, TRIAL_GENERATIONS_PER_PROTOCOL } from './_lib/licensing.js';
-import { buildServerGeneration } from './_lib/server-generation.js';
+import { buildServerGeneration, GenerationRequestError } from './_lib/server-generation.js';
 import {beginGenerationRequest,completeGenerationRequest,releaseGenerationRequest} from './_lib/kv-client.js';
+import {acquireGenerateThrottle} from './_lib/generate-throttle.js';
 
-const DEFAULT_PROVIDER_TIMEOUT_MS=60000;
+// vercel.json gives this function a 60s platform limit (maxDuration). The
+// provider deadline MUST fire earlier, otherwise the platform kills the worker
+// before the graceful 504 and the quota/request-marker cleanup can run.
+// tests/test-quota-hold-boundary.cjs keeps both numbers consistent.
+const DEFAULT_PROVIDER_TIMEOUT_MS=50000;
+const MAX_PROVIDER_TIMEOUT_MS=55000;
 function providerTimeoutMs(){
   const configured=Number.parseInt(process.env.ANTHROPIC_TIMEOUT_MS||'',10);
-  return Number.isInteger(configured)&&configured>=10&&configured<=180000
+  return Number.isInteger(configured)&&configured>=10&&configured<=MAX_PROVIDER_TIMEOUT_MS
     ? configured : DEFAULT_PROVIDER_TIMEOUT_MS;
+}
+// The protocol quality certification was run against this model. ANTHROPIC_MODEL
+// lets you move to a newer one without a code change/redeploy of this file, but
+// a malformed value falls back to the certified model instead of failing every
+// request. Re-run the 21-case human review after changing it.
+const DEFAULT_MODEL='claude-sonnet-4-6';
+function providerModel(){
+  const configured=String(process.env.ANTHROPIC_MODEL||'').trim();
+  return /^claude-[a-z0-9][a-z0-9.-]{2,60}$/.test(configured)?configured:DEFAULT_MODEL;
 }
 class ProviderTimeoutError extends Error{
   constructor(){super('Anthropic request timed out');this.name='ProviderTimeoutError';}
@@ -78,7 +93,34 @@ async function fetchProviderJsonWithTimeout(url,options,timeoutMs){
   }finally{clearTimeout(timer);}
 }
 
+// Abuse guard in front of the whole pipeline: per-key rate + concurrency caps.
+// Requests without a key or with the wrong method fall straight through to the
+// normal 405/401 handling; the guard never changes those responses.
 export default async function handler(req, res) {
+  const licenseKey = req.method === 'POST' ? req.headers['x-app-key'] : '';
+  if (!licenseKey) return runGeneration(req, res);
+
+  let throttle;
+  try {
+    throttle = await acquireGenerateThrottle(licenseKey);
+  } catch (err) {
+    // The guard is protection, not entitlement: if its counters are briefly
+    // unavailable, entitlement below still decides who may generate.
+    console.error('generate.js: throttle unavailable, continuing without it:', err);
+    throttle = { allowed: true, release: async () => {} };
+  }
+  if (!throttle.allowed) {
+    if (typeof res.setHeader === 'function') res.setHeader('Retry-After', String(throttle.retryAfterSeconds));
+    return res.status(429).json({ error: throttle.message, reason: throttle.reason });
+  }
+  try {
+    return await runGeneration(req, res);
+  } finally {
+    await throttle.release().catch(err => console.error('generate.js: throttle release failed:', err));
+  }
+}
+
+async function runGeneration(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -87,7 +129,13 @@ export default async function handler(req, res) {
   try{
     ({systemPrompt,userMessage,protocol}=buildServerGeneration((req.body||{}).generation));
   }catch(err){
-    return res.status(400).json({error:'Invalid generation request: '+err.message});
+    if(err instanceof GenerationRequestError){
+      return res.status(400).json({error:'Invalid generation request: '+err.message});
+    }
+    // Not the teacher's fault (e.g. the trusted protocol core could not be
+    // loaded). No quota is reserved and the provider is never called.
+    console.error('generate.js: could not build trusted generation:',err);
+    return res.status(500).json({error:'Report generation is temporarily unavailable. Your lesson notes are safe; please try again shortly.',reason:'generation_unavailable'});
   }
 
   // --- per-license entitlement gate ---

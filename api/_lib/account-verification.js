@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { kv } from './kv-client.js';
+import { kv, incrementWindowCounter } from './kv-client.js';
 import { normalizeEmail } from './licensing.js';
 
 export const VERIFICATION_TTL_SECONDS = 15 * 60;
@@ -24,8 +24,7 @@ export function getRequestIp(req){
 export async function enforceVerificationRateLimit({ email, ip }){
   for(const [scope, value] of [['email', normalizeEmail(email)], ['ip', ip || 'unknown']]){
     const key = rateKey(scope, value);
-    const count = await kv.incr(key);
-    if(count === 1) await kv.expire(key, VERIFICATION_TTL_SECONDS);
+    const count = await incrementWindowCounter(key, VERIFICATION_TTL_SECONDS);
     if(count > VERIFICATION_REQUEST_LIMIT) return false;
   }
   return true;

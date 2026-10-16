@@ -2782,15 +2782,15 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
               <button class="btn-secondary" id="licenseModalRecoverBtn" type="button"><span id="licenseModalRecoverBtnLabel">Email sign-in link</span></button>
             </div>
           </div>
-          <details class="license-modal-advanced">
-            <summary>Use an access key instead</summary>
-            <label class="license-modal-field-label" for="licenseModalKeyInput">Access key</label>
+          <details class="license-modal-advanced" open>
+            <summary>Or sign in with an access key</summary>
+            <label class="license-modal-field-label" for="licenseModalKeyInput">Existing access or owner key</label>
             <div class="license-modal-inline">
-              <input type="text" id="licenseModalKeyInput" placeholder="kb_live_..." autocomplete="off">
+              <input type="text" id="licenseModalKeyInput" placeholder="Enter your existing Pathfinder key" autocomplete="off">
               <button class="btn-secondary" id="licenseModalKeyBtn" type="button">Use key</button>
             </div>
           </details>
-          <p class="license-modal-step-note">Use the email from checkout. For your security, access is only sent by email.</p>
+          <p class="license-modal-step-note">Use the email from checkout for a sign-in link, or enter an existing access key above.</p>
         </div>
       </details>
     </div>
@@ -4063,9 +4063,9 @@ Love, Teacher [Name]`;
 
     const charCount = trimmed.length;
     if(charCount >= tier.hardCeiling){
-      warnings.push('CRITICAL: Report is ' + charCount + ' characters â€” at or over the absolute, immutable ' + tier.hardCeiling + '-character limit. This cannot be sent as-is.');
+      warnings.push('CRITICAL: Report is ' + charCount + ' characters — at or over the absolute, immutable ' + tier.hardCeiling + '-character limit. This cannot be sent as-is.');
     }else if(charCount > tier.softTarget){
-      warnings.push('Report is ' + charCount + ' characters â€” over the ' + tier.softTarget + ' working target. Trim before sending to stay safely under the ' + tier.hardCeiling + ' absolute limit.');
+      warnings.push('Report is ' + charCount + ' characters — over the ' + tier.softTarget + ' working target. Trim before sending to stay safely under the ' + tier.hardCeiling + ' absolute limit.');
     }
 
     warnings.push(...checkForbiddenFormatting(trimmed));
@@ -4078,7 +4078,7 @@ Love, Teacher [Name]`;
     }
 
     if(/\[[A-Za-z][^\]]*\]/.test(trimmed)){
-      warnings.push('Report contains an unfilled [placeholder] â€” replace it with the real student, vocabulary, grammar, or teacher detail before sending.');
+      warnings.push('Report contains an unfilled [placeholder] — replace it with the real student, vocabulary, grammar, or teacher detail before sending.');
     }
 
     const starsSectionMatch = trimmed.match(/total stars today:?\s*([\s\S]*?)(?:\n\s*\n|$)/i);
@@ -5267,7 +5267,7 @@ function updateLogo(){
                 : key === 'BEIDA' ? kbLogo.dataset.logoBeida
                 : key === 'PREPLY' ? kbLogo.dataset.logoPreply
                 : LOGO_DEFAULT_SRC;
-  // Resolve relative asset paths before comparison; unchanged logos must not animate.
+  // dataset values are relative file paths; kbLogo.src is always absolute, so resolve before comparing.
   if(new URL(nextSrc, document.baseURI).href === kbLogo.src) return; // no actual change — skip the flourish
   kbLogo.src = nextSrc;
   if(prefersReducedMotion || typeof kbLogo.animate !== 'function') return;
@@ -5281,6 +5281,13 @@ function updateLogo(){
     { duration:480, easing:'ease-out' }
   );
 }
+
+// The per-protocol logos are separate files now. Warm the browser cache once so
+// switching protocols swaps instantly instead of flashing an empty logo.
+Object.keys(kbLogo.dataset).filter(k => k.indexOf('logo') === 0).forEach(k => {
+  const warmImg = new Image();
+  warmImg.src = kbLogo.dataset[k];
+});
 
 // Vivid, UI-only numeric rating palette. Leave KidbusterCore.ratingColor,
 // OF's qualitative palette, and Beida's two-tier colors untouched.
@@ -5740,7 +5747,7 @@ function renderLint(warnings){
   }else{
     box.className = 'lint-box lint-warn';
     box.innerHTML = '<div class="lint-title">⚠ ' + warnings.length + ' check' + (warnings.length > 1 ? 's' : '') + ' flagged — review before sending</div><ul>' +
-      warnings.map(w => '<li>' + w + '</li>').join('') + '</ul>';
+      warnings.map(w => '<li>' + escapeHtml(w) + '</li>').join('') + '</ul>';
   }
 }
 
@@ -5799,8 +5806,8 @@ function getAccessInstallationId(){
 
 function maskAccessKey(key){
   if(!key) return 'None';
-  if(key.length <= 12) return key;
-  return key.slice(0, 8) + '...' + key.slice(-4);
+  if(key.length <= 4) return '••••';
+  return '••••' + key.slice(-4);
 }
 
 function getAccountEls(){
@@ -6436,11 +6443,36 @@ function promptForAccessKey(){
       }
     }
 
-    function onKeyClick(){
+    async function onKeyClick(){
       const key = keyInput.value.trim();
       if(!key){ showError('Please paste your Pathfinder key.'); return; }
       errorEl.style.display = 'none';
-      finish(key);
+      const oldButtonText = keyBtn.textContent;
+      keyBtn.disabled = true;
+      keyBtn.textContent = 'Checking key...';
+      try{
+        const res = await fetch('/api/license-status', {
+          method: 'GET',
+          headers: {
+            'x-app-key': key,
+            'x-installation-id': getAccessInstallationId()
+          }
+        });
+        const data = await res.json().catch(() => ({}));
+        if(accessSettled) return;
+        if(!res.ok || data.status !== 'active'){
+          showError(data.error || 'This access key is not active or was not recognized.');
+          return;
+        }
+        finish(key);
+      }catch(e){
+        if(!accessSettled) showError('Could not verify the key. Please check your connection and retry.');
+      }finally{
+        if(!accessSettled){
+          keyBtn.disabled = false;
+          keyBtn.textContent = oldButtonText;
+        }
+      }
     }
 
     async function onRecoverClick(){

@@ -23,7 +23,7 @@
 
 import crypto from 'crypto';
 import { kv, reserveBoundedCounter, releaseBoundedCounter,
-  reserveCounterHold,commitCounterHold,releaseCounterHold } from './kv-client.js';
+  reserveCounterHold,commitCounterHold,releaseCounterHold,reclaimExpiredCounterHolds } from './kv-client.js';
 
 // ---------- configuration ----------
 
@@ -395,6 +395,11 @@ export async function reserveUsageHold(licenseKey,{kind,period,protocol,token,no
   return await reserveCounterHold(key,token,monthly?FREE_MONTHLY_LIMIT:TRIAL_GENERATIONS_PER_PROTOCOL,{
     counterTtlSeconds:monthly?60*60*24*40:0,holdTtlSeconds:15*60,nowMs
   });
+}
+export async function reclaimExpiredUsageHolds(licenseKey,{kind,period,protocol,nowMs}={}){
+  const monthly=kind==='monthly';
+  const key=monthly?usageKeyFor(licenseKey,period||currentUsagePeriod()):trialUsageKeyFor(licenseKey,protocol);
+  return await reclaimExpiredCounterHolds(key,{nowMs});
 }
 export async function commitUsageHold(reservation){
   const key=reservation.kind==='monthly'

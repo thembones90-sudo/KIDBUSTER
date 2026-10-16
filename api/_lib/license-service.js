@@ -27,7 +27,7 @@ import {
   getLicenseKeyByPaymentCustomerId, savePaymentCustomerIndex,
   getUsageCount, incrementUsage, getTrialUsageCount, incrementTrialUsage,
   reserveMonthlyUsage, releaseMonthlyUsage, reserveTrialUsage, releaseTrialUsage,
-  reserveUsageHold,commitUsageHold,releaseUsageHold,
+  reserveUsageHold,commitUsageHold,releaseUsageHold,reclaimExpiredUsageHolds,
   normalizeEmail, isFounderLicenseKey, ALWAYS_FREE_PROTOCOLS, expiresInDays,
   getManualClaim, tryCreateManualClaim, clearManualClaim,
   effectiveSubscriptionLicense
@@ -555,13 +555,22 @@ export async function recordUsage(licenseKey, protocol){
  * gate; checkEntitlement remains the read-only status/preview operation.
  */
 export async function reserveGeneration(licenseKey,protocol,installationId){
-  const entitlement=await checkEntitlement(licenseKey,protocol,installationId);
+  const period=currentUsagePeriod();
+  const kind=ALWAYS_FREE_PROTOCOLS.includes(protocol)?'monthly':'trial';
+  let entitlement=await checkEntitlement(licenseKey,protocol,installationId);
+  // The entitlement check reads the raw counter, which still includes the
+  // charge of an ABANDONED hold (worker crash, platform kill, unconfirmed
+  // commit). At the limit that would reject the request before the
+  // reservation step could refund the expired hold, permanently losing the
+  // last allowed report. Sweep expired holds and re-evaluate once.
+  if(!entitlement.allowed&&(entitlement.reason==='limit_reached'||entitlement.reason==='trial_exhausted')){
+    const refunded=await reclaimExpiredUsageHolds(licenseKey,{kind,period,protocol});
+    if(refunded>0)entitlement=await checkEntitlement(licenseKey,protocol,installationId);
+  }
   if(!entitlement.allowed)return {...entitlement,reservation:null};
   if(isFounderLicenseKey(licenseKey)||entitlement.license?.plan==='pro'){
     return {...entitlement,reservation:null};
   }
-  const period=currentUsagePeriod();
-  const kind=ALWAYS_FREE_PROTOCOLS.includes(protocol)?'monthly':'trial';
   const token=crypto.randomBytes(24).toString('hex');
   const count=await reserveUsageHold(licenseKey,{kind,period,protocol,token});
   if(count===null){

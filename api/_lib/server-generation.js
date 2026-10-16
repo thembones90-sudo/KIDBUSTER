@@ -7,8 +7,17 @@ import {readFileSync} from 'node:fs';
 const START='const KidbusterCore = (function(){';
 const END='\n})();';
 let cachedCore=null;
+let simulateCoreFailure=false;
+
+// Raised ONLY for problems in the teacher's/browser's request. Anything else
+// thrown while building a generation is a server fault and must not be
+// reported to the teacher as an invalid request.
+export class GenerationRequestError extends Error{
+  constructor(message){super(message);this.name='GenerationRequestError';}
+}
 
 function core(){
+  if(simulateCoreFailure)throw new Error('Trusted protocol core is unavailable (simulated)');
   if(cachedCore)return cachedCore;
   const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8');
   const start=html.indexOf(START);
@@ -22,19 +31,19 @@ function core(){
 
 function text(value,max,label,required=false){
   if(value===undefined||value===null)value='';
-  if(typeof value!=='string')throw new Error(label+' must be text');
+  if(typeof value!=='string')throw new GenerationRequestError(label+' must be text');
   const clean=value.trim();
-  if(required&&!clean)throw new Error(label+' is required');
-  if(clean.length>max)throw new Error(label+' is too long');
+  if(required&&!clean)throw new GenerationRequestError(label+' is required');
+  if(clean.length>max)throw new GenerationRequestError(label+' is too long');
   return clean;
 }
 
 export function buildServerGeneration(input){
-  if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('generation must be an object');
+  if(!input||typeof input!=='object'||Array.isArray(input))throw new GenerationRequestError('generation must be an object');
   const c=core();
   const protocol=text(input.protocol,20,'protocol',true).toUpperCase();
   const definition=c.PROTOCOLS[protocol];
-  if(!definition)throw new Error('Unsupported protocol');
+  if(!definition)throw new GenerationRequestError('Unsupported protocol');
   const form={
     protocol,
     teacherName:text(input.teacherName,80,'teacherName')||'Layne',
@@ -56,18 +65,18 @@ export function buildServerGeneration(input){
   // An optional signature is a short emoji choice, never a second free-text prompt.
   // This also blocks direct API callers from injecting instructions through it.
   if(form.signoffEmoji&&!/^[\p{Extended_Pictographic}\p{Emoji_Component} ]+$/u.test(form.signoffEmoji)){
-    throw new Error('signoffEmoji must contain emoji only');
+    throw new GenerationRequestError('signoffEmoji must contain emoji only');
   }
-  if(!allowedRatings.includes(form.rating))throw new Error('Unsupported rating for protocol');
-  if(!Object.hasOwn(c.LENGTH_TIERS,form.lengthFormat))throw new Error('Unsupported lengthFormat');
-  if(!c.BLITZ_VOICES.includes(form.blitzVoice))throw new Error('Unsupported blitzVoice');
-  if(!Object.hasOwn(c.PREPLY_MODULES,form.preplyModule))throw new Error('Unsupported preplyModule');
-  if(!['adult','child'].includes(form.preplyTrialPerson))throw new Error('Unsupported preplyTrialPerson');
+  if(!allowedRatings.includes(form.rating))throw new GenerationRequestError('Unsupported rating for protocol');
+  if(!Object.hasOwn(c.LENGTH_TIERS,form.lengthFormat))throw new GenerationRequestError('Unsupported lengthFormat');
+  if(!c.BLITZ_VOICES.includes(form.blitzVoice))throw new GenerationRequestError('Unsupported blitzVoice');
+  if(!Object.hasOwn(c.PREPLY_MODULES,form.preplyModule))throw new GenerationRequestError('Unsupported preplyModule');
+  if(!['adult','child'].includes(form.preplyTrialPerson))throw new GenerationRequestError('Unsupported preplyTrialPerson');
   if(protocol==='OF'&&!['boy','girl'].includes(form.studentGender.toLowerCase())){
-    throw new Error('OF requires a valid studentGender');
+    throw new GenerationRequestError('OF requires a valid studentGender');
   }
   const cleanedNotes=c.cleanTranscript(form.notes);
-  if(!cleanedNotes)throw new Error('notes are empty after cleaning');
+  if(!cleanedNotes)throw new GenerationRequestError('notes are empty after cleaning');
   let systemPrompt=c.applyTeacherIdentity(definition.buildSystemPrompt({
     rating:form.rating,lengthFormat:form.lengthFormat,voice:form.blitzVoice,module:form.preplyModule
   }),form.teacherName);
@@ -79,3 +88,4 @@ export function buildServerGeneration(input){
 }
 
 export function __resetServerGenerationForTests(){cachedCore=null;}
+export function __simulateCoreFailureForTests(value){simulateCoreFailure=!!value;cachedCore=null;}
