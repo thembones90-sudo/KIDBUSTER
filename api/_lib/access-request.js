@@ -15,7 +15,7 @@ export async function requestVerifiedAccess(req, res, { intent }){
 
   const allowed = await enforceVerificationRateLimit({ email, ip: getRequestIp(req) });
   if(!allowed){
-    return res.status(429).json({ error: 'Too many requests. Please wait 15 minutes and try again.' });
+    return res.status(429).json({ error: 'Too many requests for this email address or network. If you already asked for a secure link, check your inbox and spam folder: it stays valid for 15 minutes. Otherwise please wait 15 minutes and try again.' });
   }
 
   const existingKey = await getLicenseKeyByEmail(email);

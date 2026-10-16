@@ -323,12 +323,19 @@ module.exports = async function run(){
   console.log('\n3) License modal: shows Pro/Free/existing-key paths, validates client-side, stores a pasted key without needing a live backend');
   {
     await page.evaluate(() => {
-      window.fetch = async (url) => {
+      window.fetch = async (url, options = {}) => {
         if(String(url).includes('/api/create-checkout-session')){
           return new Response(JSON.stringify({
             url: window.location.href.split('#')[0] + '#checkout',
             licenseKey: 'kb_live_checkout_saved'
           }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        // Pasted keys are now verified before sign-in: one active, one rejected.
+        if(String(url).includes('/api/license-status')){
+          const key = (options.headers || {})['x-app-key'];
+          const active = key === 'kb_live_test_pasted_key';
+          return new Response(JSON.stringify(active ? { status:'active', plan:'free' } : { error:'This access key is not active or was not recognized.' }),
+            { status: active ? 200 : 404, headers: { 'Content-Type': 'application/json' } });
         }
         throw new Error('Unexpected browser-smoke fetch: ' + url);
       };
@@ -403,13 +410,23 @@ module.exports = async function run(){
     });
     check('empty recover email -> client-side validation error shown, no crash', emptyRecoverEmailError.visible && emptyRecoverEmailError.text.includes('email'));
 
-    // Pasting an existing key and clicking Continue should work entirely
-    // client-side (no network call needed for this path at all) and
-    // resolve the pending promise.
-    await page.click('.license-modal-advanced > summary');
+    // A pasted key is verified with /api/license-status before sign-in. The
+    // existing-key section may already be open; never toggle it shut.
+    await page.evaluate(() => { const d = document.querySelector('.license-modal-advanced'); if(d) d.open = true; });
+    await page.type('#licenseModalKeyInput', 'kb_live_rejected_key');
+    await page.click('#licenseModalKeyBtn');
+    await new Promise(r => setTimeout(r, 120));
+    const rejectedPaste = await page.evaluate(() => {
+      const err = document.getElementById('licenseModalError');
+      let stored = null; try{ stored = localStorage.getItem(ACCESS_KEY_STORAGE); }catch(e){}
+      return { errorVisible: err.style.display !== 'none' && /not active|not recognized/i.test(err.textContent),
+        overlayOpen: getComputedStyle(document.getElementById('licenseModalOverlay')).display !== 'none', stored };
+    });
+    check('a rejected pasted key shows an error and does not sign in', rejectedPaste.errorVisible && rejectedPaste.overlayOpen && rejectedPaste.stored !== 'kb_live_rejected_key');
+    await page.evaluate(() => { document.getElementById('licenseModalKeyInput').value = ''; });
     await page.type('#licenseModalKeyInput', 'kb_live_test_pasted_key');
     await page.click('#licenseModalKeyBtn');
-    await new Promise(r => setTimeout(r, 80));
+    await new Promise(r => setTimeout(r, 120));
 
     const afterPaste = await page.evaluate(async () => {
       const resolvedKey = await window.__testModalPromise;
@@ -453,7 +470,8 @@ module.exports = async function run(){
       };
     });
     check('Access panel opens from the header', accountPanel.visible);
-    check('Access panel shows the saved access code in masked form', accountPanel.keyText === 'kb_live_..._key');
+    check('Access panel shows the saved access code in masked form (last 4 only)', accountPanel.keyText === '••••_key');
+    check('Access panel never shows the key prefix', !accountPanel.keyText.includes('kb_live'));
     check('Access panel renders a usable local/server status', accountPanel.planText.length > 0);
 
     const duplicateUx = await page.evaluate(async () => {

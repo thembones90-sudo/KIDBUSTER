@@ -42,8 +42,9 @@ function buildCacheableSystemBlocks(systemPrompt) {
 import crypto from 'node:crypto';
 import { reserveGeneration, releaseGeneration, commitGeneration } from './_lib/license-service.js';
 import { ALWAYS_FREE_PROTOCOLS, TRIAL_GENERATIONS_PER_PROTOCOL } from './_lib/licensing.js';
-import { buildServerGeneration, evaluateGeneratedOutput, buildRepairMessage } from './_lib/server-generation.js';
+import { buildServerGeneration, evaluateGeneratedOutput, buildRepairMessage, GenerationRequestError } from './_lib/server-generation.js';
 import {beginGenerationRequest,completeGenerationRequest,releaseGenerationRequest} from './_lib/kv-client.js';
+import {acquireGenerateThrottle} from './_lib/generate-throttle.js';
 
 const PROVIDER_URL='https://api.anthropic.com/v1/messages';
 // Report model (owner decision 2026-10-16, after the three-model benchmark):
@@ -94,7 +95,8 @@ function addUsage(a,b){
 }
 function providerText(data){
   if(!Array.isArray(data?.content))return null;
-  return data.content.map(b=>b?.text||'').join('').trim()||null;
+  // Text blocks only: thinking blocks never reach the teacher (repair path too).
+  return data.content.filter(b=>!b?.type||b.type==='text').map(b=>b?.text||'').join('').trim()||null;
 }
 function wasTruncated(data){
   return data?.stop_reason==='max_tokens'||data?.stop_reason==='model_context_window_exceeded';
@@ -127,7 +129,34 @@ async function fetchProviderJsonWithTimeout(url,options,timeoutMs){
   }finally{clearTimeout(timer);}
 }
 
+// Abuse guard in front of the whole pipeline: per-key rate + concurrency caps.
+// Requests without a key or with the wrong method fall straight through to the
+// normal 405/401 handling; the guard never changes those responses.
 export default async function handler(req, res) {
+  const licenseKey = req.method === 'POST' ? req.headers['x-app-key'] : '';
+  if (!licenseKey) return runGeneration(req, res);
+
+  let throttle;
+  try {
+    throttle = await acquireGenerateThrottle(licenseKey);
+  } catch (err) {
+    // The guard is protection, not entitlement: if its counters are briefly
+    // unavailable, entitlement below still decides who may generate.
+    console.error('generate.js: throttle unavailable, continuing without it:', err);
+    throttle = { allowed: true, release: async () => {} };
+  }
+  if (!throttle.allowed) {
+    if (typeof res.setHeader === 'function') res.setHeader('Retry-After', String(throttle.retryAfterSeconds));
+    return res.status(429).json({ error: throttle.message, reason: throttle.reason });
+  }
+  try {
+    return await runGeneration(req, res);
+  } finally {
+    await throttle.release().catch(err => console.error('generate.js: throttle release failed:', err));
+  }
+}
+
+async function runGeneration(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -136,7 +165,13 @@ export default async function handler(req, res) {
   try{
     ({systemPrompt,userMessage,protocol,form}=buildServerGeneration((req.body||{}).generation));
   }catch(err){
-    return res.status(400).json({error:'Invalid generation request: '+err.message});
+    if(err instanceof GenerationRequestError){
+      return res.status(400).json({error:'Invalid generation request: '+err.message});
+    }
+    // Not the teacher's fault (e.g. the trusted protocol core could not be
+    // loaded). No quota is reserved and the provider is never called.
+    console.error('generate.js: could not build trusted generation:',err);
+    return res.status(500).json({error:'Report generation is temporarily unavailable. Your lesson notes are safe; please try again shortly.',reason:'generation_unavailable'});
   }
 
   // --- per-license entitlement gate ---

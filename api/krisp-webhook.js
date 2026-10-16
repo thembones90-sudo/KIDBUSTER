@@ -23,6 +23,7 @@
 import crypto from 'crypto';
 import { kv, acquirePaymentLock, releasePaymentLock } from './_lib/kv-client.js';
 import { resolveKrispToken } from './_lib/krisp-token.js';
+import { isEntitledToKrisp, readImportQueue, writeImportQueue } from './_lib/krisp-retention.js';
 
 const DEDUPE_TTL_SECONDS = 60 * 60 * 24 * 7; // one week is far more than enough to catch retries
 const PENDING_LIST_MAX = 20; // cap so this never grows unbounded if imports go unclaimed
@@ -185,6 +186,14 @@ export default async function handler(req, res){
 
   console.log('[krisp-webhook] received');
 
+  // A lapsed, expired or downgraded account must not keep accumulating
+  // lesson transcripts. Acknowledge with 200 so Krisp does not keep retrying
+  // a delivery that can never be stored; nothing is written.
+  if(!await isEntitledToKrisp(userIdentity)){
+    console.log('[krisp-webhook] account not entitled, delivery discarded');
+    return res.status(200).json({ stored: false, reason: 'This account is not currently entitled to Krisp imports.' });
+  }
+
   const normalized = normalizeKrispPayload(req.body);
   if(!normalized){
     return res.status(400).json({ error: 'Malformed payload: request body is not a usable JSON object.' });
@@ -235,7 +244,7 @@ export default async function handler(req, res){
       detectedStudentName: studentInfo.name,
       detectionSource: studentInfo.source,
       detectedContext: studentInfo.context,
-      receivedAt: new Date().toISOString(),
+      receivedAt: new Date(Date.now()).toISOString(),
       assigned: false
     };
 
@@ -246,10 +255,10 @@ export default async function handler(req, res){
     const waitingSince = await kv.get(waitingKey);
     if(waitingSince){
       record.assigned = true;
-      const matchedQueue=(await kv.get(matchedQueueKey))||[];
+      const matchedQueue=await readImportQueue(matchedQueueKey);
       if(!matchedQueue.some(item=>(item.meetingId||item.eventId)===dedupeKey)) matchedQueue.push(record);
       if(matchedQueue.length>PENDING_LIST_MAX)matchedQueue.splice(0,matchedQueue.length-PENDING_LIST_MAX);
-      await kv.set(matchedQueueKey,matchedQueue);
+      await writeImportQueue(matchedQueueKey,matchedQueue);
       // Deliberately NOT clearing waitingKey here -- ARM KRISP is a
       // persistent toggle, not a one-shot "wait for a single transcript."
       // It stays armed across every subsequent match until the teacher
@@ -268,7 +277,7 @@ export default async function handler(req, res){
     // Every pending item is preserved (up to the cap) rather than only
     // the newest -- ordering for display is handled at read time in
     // krisp-session.js, sorted by meeting start time, not arrival order.
-    const pending = (await kv.get(pendingKey)) || [];
+    const pending = await readImportQueue(pendingKey);
     // A previous attempt may have persisted the queue and then failed before
     // writing lastReceivedAt or the dedupe marker. Provider retries must repair
     // that partial commit rather than inserting a duplicate which could evict
@@ -279,7 +288,7 @@ export default async function handler(req, res){
     if(pending.length > PENDING_LIST_MAX){
       pending.length = PENDING_LIST_MAX;
     }
-    await kv.set(pendingKey, pending);
+    await writeImportQueue(pendingKey, pending);
     await kv.set(prefix + 'lastReceivedAt', record.receivedAt);
     await kv.set(dedupeMarkerKey, true, { ex: DEDUPE_TTL_SECONDS });
     console.log('[krisp-webhook] pending import created (id=' + dedupeKey + ')');
