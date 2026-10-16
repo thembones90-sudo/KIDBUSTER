@@ -1,4 +1,7 @@
 # Pathfinder V2: Protected Staging Infrastructure
+
+> **Superseded 2026-10-16:** project SSO on `pathfinder-v2-staging` is now deliberately **off** by owner decision (public staging for external testers). Application-level license/quota/owner gates remain enforced. Do not re-enable SSO from statements below; see `V2-PUBLIC-ACCESS-AND-APP-SECURITY.md`.
+
 Date: 2026-10-12
 
 ## Confirmed created (Vercel)

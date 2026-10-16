@@ -9,7 +9,8 @@ You are working on the **development clone**, not the official Pathfinder deploy
 - Do not read, copy, or reuse production secrets or customer data from any other local project, Vercel environment, or connected service.
 - No live payment actions, Krisp deliveries, emails to real customers, or production datastore modifications.
 - Do not copy `.env.local` from `A:\PATHFINDER OFFLINE` or any other existing project. V2 currently has no environment credentials on purpose.
-- V2 has an isolated SSO-protected **empty** Vercel project `pathfinder-v2-staging` (created 2026-10-12). Persistent staging Redis, Lemon Squeezy test-mode credentials, and approved nonproduction deployment are still missing. An isolated *temporary* Upstash guest DB was used solely for real Redis concurrency checks and expires 2026-10-15 unless claimed. Never connect production credentials.
+- **Public staging (2026-10-16):** project SSO on `pathfinder-v2-staging` is deliberately **disabled** by owner decision so external testers can open the app. Do not re-enable it without a new owner decision; application gates (license, quota, throttle, owner-only admin) are the protection. See `V2-PUBLIC-ACCESS-AND-APP-SECURITY.md`.
+- V2 has an isolated (originally SSO-protected) Vercel project `pathfinder-v2-staging` (created 2026-10-12). Persistent staging Redis, Lemon Squeezy test-mode credentials, and approved nonproduction deployment are still missing. An isolated *temporary* Upstash guest DB was used solely for real Redis concurrency checks and expires 2026-10-15 unless claimed. Never connect production credentials.
 
 ## Architecture/product rules
 - Read **`CODEX-V2-CONTINUATION-2026-10-12.md` first**, then `PATHFINDER-constitution.md`, `V2-DEVELOPMENT.md`, `V2-MASTER-PLAN.md` and `DECISIONS.md` before structural changes. The older `CODEX-V2-HANDOFF-2026-10-12.md` is historical and describes already-fixed bugs.

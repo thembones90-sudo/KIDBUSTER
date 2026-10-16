@@ -1,5 +1,7 @@
 # V2 Krisp webhook ingress
 
+> **Superseded 2026-10-16:** project SSO on `pathfinder-v2-staging` is now deliberately **off** by owner decision (public staging for external testers). Application-level license/quota/owner gates remain enforced. Do not re-enable SSO from statements below; see `V2-PUBLIC-ACCESS-AND-APP-SECURITY.md`.
+
 Vercel SSO prevents Krisp from delivering to the protected app hostname. V2 therefore uses a dedicated hostname on the same isolated project:
 
 - Protected app: `pathfinder-v2-staging-preview.vercel.app`

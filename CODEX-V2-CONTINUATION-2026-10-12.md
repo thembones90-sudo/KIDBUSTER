@@ -1,4 +1,7 @@
 # PATHFINDER V2 — CODEX CONTINUATION HANDOFF
+
+> **Superseded 2026-10-16:** project SSO on `pathfinder-v2-staging` is now deliberately **off** by owner decision (public staging for external testers). Application-level license/quota/owner gates remain enforced. Do not re-enable SSO from statements below; see `V2-PUBLIC-ACCESS-AND-APP-SECURITY.md`.
+
 **Verified:** October 12, 2026
 **Status:** Active local development; protected staging infrastructure partly configured; **NOT deployed and NOT production-ready**.
 **Read this handoff BEFORE the historical `CODEX-V2-HANDOFF-2026-10-12.md`.** Historical audit recommendations now include bugs that have already been fixed and obsolete infrastructure assertions.
