@@ -1164,6 +1164,9 @@ body.protocol-preply .generate-btn.loading{
   border-radius:8px;
   background:rgba(var(--toxin-rgb),0.04);
 }
+.feedback-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.feedback-tab{font:inherit;font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--toxin-border);background:transparent;color:var(--text-dim);cursor:pointer}
+.feedback-tab.active{background:rgba(var(--toxin-rgb),0.14);color:var(--toxin);border-color:rgba(var(--toxin-rgb),0.5)}
 .feedback-card-row{
   display:flex;
   align-items:center;
@@ -2386,6 +2389,14 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
     </div></details>
     <div class="account-trials" id="accountTrials" style="display:none;"></div>
     <div class="account-owner-tools" id="accountOwnerTools" style="display:none;">
+      <p class="account-trials-title">Teacher feedback</p>
+      <p class="account-summary">Ratings, bug reports and ideas from teachers, linked to the report each one is about.</p>
+      <div class="license-modal-inline" style="flex-wrap:wrap;">
+        <button class="btn-secondary" id="ownerFeedbackBtn" type="button">Show feedback</button>
+        <a class="btn-secondary" id="ownerFeedbackFullLink" href="/feedback-dashboard.html" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;">Full dashboard</a>
+      </div>
+      <div class="account-owner-result" id="ownerFeedbackResult" style="display:none;white-space:pre-wrap;overflow-wrap:anywhere;"></div>
+      <hr class="help-divider">
       <p class="account-trials-title">Owner code tools</p>
       <p class="account-summary">Create a 30-day Pro access code for someone who paid you personally.</p>
       <div class="license-modal-inline">
@@ -2595,7 +2606,12 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
           <button class="btn-secondary" id="newStudentBtn" disabled>New Student</button>
         </div>
         <div id="feedbackCard" class="feedback-card" style="display:none;">
-          <div class="feedback-card-row">
+          <div class="feedback-tabs" id="feedbackTabs" role="tablist" aria-label="Feedback type">
+            <button type="button" class="feedback-tab active" role="tab" aria-selected="true" data-category="quality">Rate report</button>
+            <button type="button" class="feedback-tab" role="tab" aria-selected="false" data-category="bug">Report a bug</button>
+            <button type="button" class="feedback-tab" role="tab" aria-selected="false" data-category="idea">Suggest an idea</button>
+          </div>
+          <div class="feedback-card-row" id="feedbackStarsRow">
             <span class="feedback-card-label">How was this report?</span>
             <div class="feedback-stars" id="feedbackStars">
               <button type="button" class="feedback-star" data-score="1">★</button>
@@ -6544,8 +6560,34 @@ async function createActivationBatch(){
   }catch(e){output.textContent += '\nStopped: '+e.message+' Copy any completed codes before making another batch.';}
   finally{btn.disabled=false;}
 }
+// Owner feedback hub: a compact text digest (textContent only — comments are
+// untrusted teacher input). The full dashboard is /feedback-dashboard.html.
+async function showOwnerFeedback(){
+  const output = document.getElementById('ownerFeedbackResult');
+  output.style.display = ''; output.textContent = 'Loading feedback...';
+  const ownerKey = getStoredAccessKey();
+  if(!ownerKey){ output.textContent = 'Owner login is required.'; return; }
+  try{
+    const response = await fetch('/api/feedback?limit=500', { headers: { 'x-app-key': ownerKey }, cache: 'no-store' });
+    const data = await response.json().catch(() => ({}));
+    if(!response.ok) throw new Error(data.error || 'Could not load feedback.');
+    const s = data.summary, o = s.overall || {};
+    const line = it => '- ' + (it.score != null ? it.score + '★ ' : '') + (it.protocol || '?') + (it.repairOutcome && it.repairOutcome !== 'not_needed' ? ' [repair: ' + it.repairOutcome + ']' : '') +
+      ' · ' + (it.teacherName || '') + ' · ' + new Date(it.at).toLocaleDateString() + (it.comment ? '\n  ' + it.comment : '');
+    const byProtocol = Object.entries(s.byProtocol).sort((a, b) => b[1].count - a[1].count)
+      .map(([k, v]) => '  ' + k + ': ' + v.count + ' items, avg ' + (v.avgScore == null ? '–' : v.avgScore.toFixed(2) + '★') + (v.low ? ', ' + v.low + ' low' : '') + (v.bugs ? ', ' + v.bugs + ' bugs' : ''));
+    output.textContent = [
+      s.total + ' items from ' + s.accounts + ' teachers · average ' + (o.avgScore == null ? '–' : o.avgScore.toFixed(2) + '★') + ' · ' + (o.low || 0) + ' low · ' + (o.bugs || 0) + ' bugs · ' + (o.ideas || 0) + ' ideas',
+      '', 'By protocol:', ...(byProtocol.length ? byProtocol : ['  none yet']),
+      '', 'Bugs (' + s.bugs.length + '):', ...(s.bugs.slice(0, 10).map(line)),
+      '', 'Low ratings (' + s.lowScores.length + '):', ...(s.lowScores.slice(0, 10).map(line)),
+      '', 'Ideas (' + s.ideas.length + '):', ...(s.ideas.slice(0, 10).map(line))
+    ].join('\n');
+  }catch(e){ output.textContent = e.message; }
+}
 function wireOwnerBatchTools(){
   const ids = [
+    ['ownerFeedbackBtn',showOwnerFeedback],
     ['previewRetireBtn',previewSeptemberBatch],
     ['retireExpiredBtn',retireSeptemberBatch],
     ['createActivationBatchBtn',createActivationBatch]
@@ -7018,7 +7060,8 @@ async function callClaude(generation){
   if(!data.text) throw new Error('The server returned an empty response. Try regenerating.');
   clearGenerationAttempt(attempt);
   return { text: data.text, usage: data.usage || null, trialStatus: data.trialStatus || null,
-    model: data.model || null, estimatedCostUsd: data.estimatedCostUsd ?? null };
+    model: data.model || null, estimatedCostUsd: data.estimatedCostUsd ?? null,
+    generationRef: typeof data.generationRef === 'string' ? data.generationRef : null };
 }
 
 // ---------- field-test feedback card ----------
@@ -7031,18 +7074,51 @@ const feedbackCard = document.getElementById('feedbackCard');
 const feedbackStars = document.getElementById('feedbackStars');
 const feedbackComment = document.getElementById('feedbackComment');
 const feedbackStatus = document.getElementById('feedbackStatus');
-let feedbackContext = null; // { protocol, ratingTier, preplyModule, preplyTrialPerson } for the report currently on screen
+let feedbackContext = null; // { protocol, ratingTier, preplyModule, preplyTrialPerson, generationRef } for the report currently on screen
 let feedbackSelectedScore = null;
+let feedbackCategory = 'quality'; // 'quality' (stars required) | 'bug' | 'idea' (text required)
 const feedbackSubmitBtn = document.getElementById('feedbackSubmitBtn');
+const feedbackTabs = document.getElementById('feedbackTabs');
+const feedbackStarsRow = document.getElementById('feedbackStarsRow');
+const FEEDBACK_PLACEHOLDERS = {
+  quality: 'Optional: what worked, what was missing, what should improve...',
+  bug: 'What went wrong? What did you expect instead?',
+  idea: 'What would make Pathfinder more useful for you?'
+};
 
-function showFeedbackCard(protocol, ratingTier, preplyModule, preplyTrialPerson){
-  feedbackContext = { protocol, ratingTier, preplyModule: preplyModule || null, preplyTrialPerson: preplyTrialPerson || null };
+function feedbackReady(){
+  if(feedbackCategory === 'quality') return !!feedbackSelectedScore;
+  return feedbackComment.value.trim().length > 0;
+}
+function refreshFeedbackSubmit(){ feedbackSubmitBtn.disabled = !feedbackReady(); }
+
+function setFeedbackCategory(category){
+  feedbackCategory = category;
+  feedbackTabs.querySelectorAll('.feedback-tab').forEach(tab => {
+    const active = tab.dataset.category === category;
+    tab.classList.toggle('active', active);
+    tab.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  feedbackStarsRow.style.display = category === 'idea' ? 'none' : '';
+  feedbackComment.placeholder = FEEDBACK_PLACEHOLDERS[category];
+  feedbackStatus.textContent = '';
+  feedbackStatus.className = 'feedback-status';
+  refreshFeedbackSubmit();
+}
+feedbackTabs.querySelectorAll('.feedback-tab').forEach(tab => {
+  tab.addEventListener('click', () => setFeedbackCategory(tab.dataset.category));
+});
+feedbackComment.addEventListener('input', refreshFeedbackSubmit);
+
+function showFeedbackCard(protocol, ratingTier, preplyModule, preplyTrialPerson, generationRef){
+  feedbackContext = { protocol, ratingTier, preplyModule: preplyModule || null, preplyTrialPerson: preplyTrialPerson || null, generationRef: generationRef || null };
   feedbackSelectedScore = null;
   feedbackComment.value = '';
   feedbackStatus.textContent = '';
   feedbackStatus.className = 'feedback-status';
   feedbackSubmitBtn.disabled = true;
   feedbackStars.querySelectorAll('.feedback-star').forEach(s => s.classList.remove('filled'));
+  setFeedbackCategory('quality');
   feedbackCard.style.display = '';
 }
 
@@ -7070,7 +7146,7 @@ feedbackStars.querySelectorAll('.feedback-star').forEach(starBtn => {
   starBtn.addEventListener('click', () => {
     feedbackSelectedScore = Number(starBtn.dataset.score);
     paintStars(feedbackSelectedScore);
-    feedbackSubmitBtn.disabled = false;
+    refreshFeedbackSubmit();
     feedbackStatus.textContent = '';
     feedbackStatus.className = 'feedback-status';
   });
@@ -7081,8 +7157,8 @@ feedbackStars.addEventListener('mouseleave', () => {
 });
 
 feedbackSubmitBtn.addEventListener('click', () => {
-  if(feedbackSelectedScore){
-    submitFeedback(feedbackSelectedScore);
+  if(feedbackReady()){
+    submitFeedback(feedbackCategory === 'idea' ? null : feedbackSelectedScore);
   }
 });
 
@@ -7108,6 +7184,8 @@ async function submitFeedback(score){
     ratingTier: feedbackContext.ratingTier,
     preplyModule: feedbackContext.preplyModule,
     preplyTrialPerson: feedbackContext.preplyTrialPerson,
+    generationRef: feedbackContext.generationRef,
+    category: feedbackCategory,
     score,
     comment: feedbackComment.value.trim()
   };
@@ -7119,7 +7197,12 @@ async function submitFeedback(score){
       body: JSON.stringify(payload)
     });
     if(response.ok){
-      feedbackStatus.textContent = 'Thanks — feedback sent.';
+      // Cleared so switching tabs can send a separate bug/idea without
+      // resending this text; the sent confirmation stays until then.
+      feedbackComment.value = '';
+      feedbackSelectedScore = null;
+      paintStars(0);
+      feedbackStatus.textContent = feedbackCategory === 'bug' ? 'Thanks — bug reported.' : feedbackCategory === 'idea' ? 'Thanks — idea sent.' : 'Thanks — feedback sent.';
       feedbackStatus.className = 'feedback-status sent';
     }else{
       feedbackStatus.textContent = 'Could not send feedback. Your report is unaffected.';
@@ -7255,7 +7338,7 @@ async function generate(){
 
   const generationStartedAt = performance.now();
   try{
-    const { text, usage, trialStatus, model, estimatedCostUsd } = await callClaude(form);
+    const { text, usage, trialStatus, model, estimatedCostUsd, generationRef } = await callClaude(form);
     renderTrialStatus(trialStatus);
     const durationMs = Math.round(performance.now() - generationStartedAt);
     if(usage){
@@ -7313,7 +7396,7 @@ async function generate(){
     const isBeidaOutput = form.protocol === 'BEIDA';
     document.getElementById('copyBeidaPerformanceBtn').disabled = !isBeidaOutput;
     newStudentBtn.disabled = false;
-    showFeedbackCard(form.protocol, form.rating, form.protocol === 'PREPLY' ? form.preplyModule : null, (form.protocol === 'PREPLY' && form.preplyModule === 'trial') ? form.preplyTrialPerson : null);
+    showFeedbackCard(form.protocol, form.rating, form.protocol === 'PREPLY' ? form.preplyModule : null, (form.protocol === 'PREPLY' && form.preplyModule === 'trial') ? form.preplyTrialPerson : null, generationRef);
     document.getElementById('actionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
     renderLint(lint);
     if(isBeidaOutput){

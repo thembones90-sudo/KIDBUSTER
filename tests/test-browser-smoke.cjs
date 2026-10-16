@@ -459,6 +459,41 @@ module.exports = async function run(){
     check('checkout success panel clearly shows the Pro access key', checkoutPanel.keyText === 'kb_live_checkout_visible' && checkoutPanel.outputText.includes('Your Pro key is ready'));
     check('checkout success panel offers Copy code and Continue to app actions', checkoutPanel.hasCopy && checkoutPanel.hasContinue && checkoutPanel.continueText === 'Continue to app');
 
+    const feedbackFlow = await page.evaluate(async () => {
+      const sent = [];
+      const realFetch = window.fetch;
+      window.fetch = async (url, opts) => {
+        if(String(url).includes('/api/feedback')){ sent.push(JSON.parse(opts.body)); return new Response('{"status":"ok"}', { status: 200 }); }
+        return realFetch(url, opts);
+      };
+      try{
+        showFeedbackCard('MA', '4', null, null, '0123456789abcdef');
+        const submit = document.getElementById('feedbackSubmitBtn');
+        const tab = c => document.querySelector('.feedback-tab[data-category="' + c + '"]');
+        const r = { tabs: document.querySelectorAll('.feedback-tab').length, disabledAtStart: submit.disabled };
+        document.querySelector('.feedback-star[data-score="2"]').click();
+        r.enabledAfterStar = !submit.disabled;
+        submit.click(); await new Promise(res => setTimeout(res, 50));
+        tab('bug').click();
+        r.bugNeedsText = submit.disabled;
+        const box = document.getElementById('feedbackComment');
+        box.value = 'Copy button did nothing'; box.dispatchEvent(new Event('input'));
+        r.bugEnabledWithText = !submit.disabled;
+        submit.click(); await new Promise(res => setTimeout(res, 50));
+        tab('idea').click();
+        r.ideaHidesStars = getComputedStyle(document.getElementById('feedbackStarsRow')).display === 'none';
+        r.sent = sent;
+        return r;
+      }finally{ window.fetch = realFetch; }
+    });
+    check('feedback card offers Rate report, Report a bug and Suggest an idea', feedbackFlow.tabs === 3);
+    check('a quality rating needs a star before Submit is enabled', feedbackFlow.disabledAtStart && feedbackFlow.enabledAfterStar);
+    check('a bug report needs a description before Submit is enabled', feedbackFlow.bugNeedsText && feedbackFlow.bugEnabledWithText);
+    check('ideas hide the star row', feedbackFlow.ideaHidesStars);
+    check('feedback carries the category and the report reference',
+      feedbackFlow.sent.length === 2 && feedbackFlow.sent[0].category === 'quality' && feedbackFlow.sent[0].score === 2 &&
+      feedbackFlow.sent[0].generationRef === '0123456789abcdef' && feedbackFlow.sent[1].category === 'bug' && feedbackFlow.sent[1].comment === 'Copy button did nothing');
+
     await page.click('#accountBtn');
     await new Promise(r => setTimeout(r, 120));
     const accountPanel = await page.evaluate(() => {

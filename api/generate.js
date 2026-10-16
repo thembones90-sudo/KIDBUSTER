@@ -45,6 +45,7 @@ import { ALWAYS_FREE_PROTOCOLS, TRIAL_GENERATIONS_PER_PROTOCOL } from './_lib/li
 import { buildServerGeneration, evaluateGeneratedOutput, buildRepairMessage, GenerationRequestError } from './_lib/server-generation.js';
 import {beginGenerationRequest,completeGenerationRequest,releaseGenerationRequest} from './_lib/kv-client.js';
 import {acquireGenerateThrottle} from './_lib/generate-throttle.js';
+import { recordGenerationTelemetry } from './_lib/feedback-store.js';
 
 const PROVIDER_URL='https://api.anthropic.com/v1/messages';
 // Report model (owner decision 2026-10-16, after the three-model benchmark):
@@ -237,7 +238,8 @@ async function runGeneration(req, res) {
     return res.status(500).json({ error: 'Server is not configured correctly (missing API key)' });
   }
 
-  const deadline=Date.now()+generationBudgetMs();
+  const startedAt=Date.now();
+  const deadline=startedAt+generationBudgetMs();
   let providerResult;
   try {
     providerResult = await fetchProviderJsonWithTimeout(PROVIDER_URL, {
@@ -437,8 +439,14 @@ async function runGeneration(req, res) {
   // each token type correctly instead of treating everything as a normal
   // input token.
   const model = data.model || providerModel();
+  // Content-free telemetry so later teacher feedback can be joined to the
+  // facts of this report on the server. Never blocks or fails delivery.
+  const generationRef = await recordGenerationTelemetry({
+    licenseKey, form, model, repair, advisory: contract.advisory,
+    latencyMs: Date.now()-startedAt, outputChars: text.length
+  });
   return res.status(200).json({
-    text, usage, trialStatus, model,
+    text, usage, trialStatus, model, generationRef,
     // List-price estimate across the generation and any repair (null for the
     // non-Haiku rollback model).
     estimatedCostUsd: estimateHaikuCost(usage, model),

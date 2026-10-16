@@ -139,8 +139,17 @@ module.exports = async function run(){
       process.env.GOOGLE_SHEET_WEBHOOK_URL = 'https://example.test/feedback';
       global.fetch = async () => ({ ok: false });
 
+      // The datastore is now the primary record; a failed Sheet mirror no
+      // longer loses the feedback.
       const result = await callFeedback({ key: 'admin_test_key' });
-      check('bad sheet response returns 502', result.statusCode === 502 && result.jsonBody.error === 'Failed to record feedback');
+      check('bad sheet response still stores the feedback (200, sheet failed)',
+        result.statusCode === 200 && result.jsonBody.stored === true && result.jsonBody.sheet === 'failed');
+      const { __simulateOutage } = await import('../api/_lib/kv-client.js');
+      __simulateOutage(true);
+      try{
+        const both = await callFeedback({ key: 'admin_test_key' });
+        check('store AND sheet both failing returns 502', both.statusCode === 502 && both.jsonBody.error === 'Failed to record feedback');
+      }finally{ __simulateOutage(false); }
     }
     console.log('\n6) Preply module info is actually forwarded to the sheet, not silently dropped');
     {

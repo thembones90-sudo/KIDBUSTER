@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Pathfinder Feedback</title>
+<style>
+:root{color-scheme:dark;--bg:#101416;--panel:#191f20;--line:#34403c;--text:#ebf1ed;--muted:#b9c9c1;--accent:#a4f052;--warn:#ffb86b;--bad:#ff7a7a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,"Segoe UI",Arial,sans-serif;line-height:1.5}
+main{max-width:1100px;margin:0 auto;padding:28px 16px 64px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.05rem;margin:0 0 10px}
+.muted{color:var(--muted);font-size:.85rem}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+input,button{font:inherit;border-radius:8px;border:1px solid var(--line);background:#141a1b;color:var(--text);padding:8px 12px}
+input{flex:1;min-width:220px}button{cursor:pointer;background:#24331f;border-color:#49603b}button:hover{border-color:var(--accent)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:16px 0}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi b{display:block;font-size:1.5rem}.kpi span{color:var(--muted);font-size:.8rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.85rem}th,td{text-align:left;padding:5px 6px;border-bottom:1px solid #263030;vertical-align:top}
+th{color:var(--muted);font-weight:600}
+.low{color:var(--bad)}.mid{color:var(--warn)}.good{color:var(--accent)}
+.item{border-top:1px solid #263030;padding:9px 0}.item:first-child{border-top:0}
+.tag{display:inline-block;font-size:.72rem;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-right:4px}
+.comment{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:3px}
+#status{min-height:1.4em}
+</style>
+</head>
+<body>
+<main>
+  <h1>Feedback intelligence</h1>
+  <p class="muted">Owner only. Ratings, bugs and ideas from teachers, joined to each report's protocol, model and repair outcome. No lesson notes, student data or report text is stored.</p>
+  <div class="bar">
+    <input id="key" type="password" autocomplete="off" placeholder="Owner license key (uses the one saved in this browser if blank)">
+    <button id="load" type="button">Load</button>
+  </div>
+  <div id="status" class="muted"></div>
+  <div id="out"></div>
+</main>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const el = (tag, props, kids) => {
+    const n = document.createElement(tag);
+    if(props) for(const [k,v] of Object.entries(props)){ if(k === 'text') n.textContent = v; else n.setAttribute(k, v); }
+    (kids || []).forEach(c => c && n.appendChild(c));
+    return n;
+  };
+  const scoreClass = s => s == null ? '' : s <= 2 ? 'low' : s < 4 ? 'mid' : 'good';
+  function storedKey(){ try{ return localStorage.getItem('kidbuster_access_key') || ''; }catch(e){ return ''; } }
+
+  function table(title, map){
+    const rows = Object.entries(map).sort((a,b) => b[1].count - a[1].count);
+    const body = rows.map(([k,v]) => el('tr', null, [
+      el('td', {text:k}), el('td', {text:String(v.count)}),
+      el('td', {text:v.avgScore == null ? '–' : v.avgScore.toFixed(2), class:scoreClass(v.avgScore)}),
+      el('td', {text:String(v.low), class:v.low ? 'low' : ''}), el('td', {text:String(v.bugs)}), el('td', {text:String(v.ideas)})
+    ]));
+    return el('div', {class:'card'}, [el('h2', {text:title}), el('table', null, [
+      el('thead', null, [el('tr', null, ['', 'Items', 'Avg ★', 'Low (≤2)', 'Bugs', 'Ideas'].map(h => el('th', {text:h})))]),
+      el('tbody', null, body.length ? body : [el('tr', null, [el('td', {text:'No data yet'})])])
+    ])]);
+  }
+
+  function list(title, items){
+    const kids = items.length ? items.map(it => el('div', {class:'item'}, [
+      el('div', null, [
+        el('span', {class:'tag', text:it.category}),
+        it.score != null ? el('span', {class:'tag ' + scoreClass(it.score), text:it.score + '★'}) : null,
+        it.protocol ? el('span', {class:'tag', text:it.protocol}) : null,
+        it.model ? el('span', {class:'tag', text:it.model}) : null,
+        it.repairOutcome && it.repairOutcome !== 'not_needed' ? el('span', {class:'tag', text:'repair: ' + it.repairOutcome}) : null,
+        el('span', {class:'muted', text:' ' + (it.teacherName || '') + ' · ' + new Date(it.at).toLocaleString()})
+      ]),
+      it.comment ? el('div', {class:'comment', text:it.comment}) : null,
+      it.advisory && it.advisory.length ? el('div', {class:'muted', text:'Checks flagged: ' + it.advisory.join(' | ')}) : null
+    ])) : [el('p', {class:'muted', text:'None.'})];
+    return el('div', {class:'card'}, [el('h2', {text:title + ' (' + items.length + ')'}), ...kids]);
+  }
+
+  function render(data){
+    const s = data.summary, o = s.overall || {};
+    const kpi = (v, label, cls) => el('div', {class:'kpi'}, [el('b', {text:String(v), class:cls || ''}), el('span', {text:label})]);
+    const out = $('out'); out.replaceChildren(
+      el('div', {class:'kpis'}, [
+        kpi(s.total, 'feedback items'),
+        kpi(o.avgScore == null ? '–' : o.avgScore.toFixed(2) + '★', 'average rating (' + (o.rated || 0) + ' rated)', scoreClass(o.avgScore)),
+        kpi(o.low || 0, 'low ratings (≤2★)', o.low ? 'low' : ''),
+        kpi(o.bugs || 0, 'bug reports', o.bugs ? 'mid' : ''),
+        kpi(o.ideas || 0, 'ideas'),
+        kpi(s.accounts, 'distinct teachers'),
+        kpi(s.total ? Math.round(s.linkedToReport / s.total * 100) + '%' : '–', 'linked to a report')
+      ]),
+      el('div', {class:'grid'}, [list('Bugs', s.bugs), list('Low ratings', s.lowScores)]),
+      el('div', {class:'grid', style:'margin-top:14px'}, [table('By protocol', s.byProtocol), table('By model', s.byModel), table('By repair outcome', s.byRepairOutcome), table('By length', s.byLength), table('By teacher', s.byTeacher)]),
+      el('div', {class:'grid', style:'margin-top:14px'}, [list('Ideas', s.ideas)])
+    );
+  }
+
+  async function load(){
+    const key = $('key').value.trim() || storedKey();
+    if(!key){ $('status').textContent = 'Enter the owner license key.'; return; }
+    $('status').textContent = 'Loading…';
+    try{
+      const r = await fetch('/api/feedback?limit=500', {headers:{'x-app-key':key}, cache:'no-store'});
+      if(r.status === 403){ $('status').textContent = 'That key is not an owner key.'; return; }
+      if(!r.ok){ $('status').textContent = 'Could not load feedback (' + r.status + ').'; return; }
+      render(await r.json());
+      $('status').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    }catch(e){ $('status').textContent = 'Network error.'; }
+  }
+  $('load').addEventListener('click', load);
+  $('key').addEventListener('keydown', e => { if(e.key === 'Enter') load(); });
+  if(storedKey()) load();
+})();
+</script>
+</body>
+</html>

@@ -1,20 +1,40 @@
-// Kidbuster field-test feedback endpoint.
+// Kidbuster feedback endpoint.
 //
-// Receives a star score + optional comment about a generated report's
-// quality (not a rating of the student/lesson — that's a separate,
-// existing concept) and forwards it to a Google Sheet via an Apps Script
-// webhook, so feedback lands somewhere the developer can actually see it
-// instead of being trapped in each teacher's own browser localStorage.
+// POST: a teacher rates a delivered report (1-5 stars), reports a bug, or
+// suggests an idea. The item is stored in Pathfinder's own datastore, joined
+// on the server to that report's content-free telemetry (see
+// _lib/feedback-store.js). If GOOGLE_SHEET_WEBHOOK_URL is configured, the
+// row is also forwarded to the Sheet as before (best effort).
+//
+// GET: owner only. Returns the aggregated feedback intelligence plus recent
+// items. Lives in this handler (not a new file) to stay within the
+// deployment's serverless function budget.
 
 import { getLicense, isFounderLicenseKey } from './_lib/licensing.js';
+import { FEEDBACK_CATEGORIES, recordFeedback, listFeedback, summarizeFeedback } from './_lib/feedback-store.js';
+
+async function ownerFeedback(req, res){
+  if(!isFounderLicenseKey(req.headers['x-app-key'])){
+    return res.status(403).json({ error: 'Owner license required' });
+  }
+  try{
+    const items = await listFeedback({ limit: req.query?.limit });
+    res.setHeader?.('Cache-Control', 'no-store');
+    return res.status(200).json({ summary: summarizeFeedback(items), items });
+  }catch(err){
+    console.error('feedback: owner listing failed:', err);
+    return res.status(503).json({ error: 'Feedback store unavailable' });
+  }
+}
 
 export default async function handler(req, res) {
+  if (req.method === 'GET') return ownerFeedback(req, res);
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   // Same lightweight shared-secret gate as /api/generate — keeps random
-  // strangers who find the URL from spamming the sheet with junk rows.
+  // strangers who find the URL from spamming the store with junk rows.
   const expectedKey = process.env.APP_ACCESS_KEY;
   const providedKey = req.headers['x-app-key'];
   let keyAllowed = !!(expectedKey && providedKey === expectedKey);
@@ -31,48 +51,67 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Invalid or missing access key' });
   }
 
-  const { teacherName, protocol, ratingTier, score, comment, preplyModule, preplyTrialPerson } = req.body || {};
+  const { teacherName, protocol, ratingTier, score, comment, preplyModule, preplyTrialPerson, generationRef } = req.body || {};
+  const category = FEEDBACK_CATEGORIES.includes(req.body?.category) ? req.body.category : 'quality';
 
-  const numericScore = Number(score);
-  if (!Number.isInteger(numericScore) || numericScore < 1 || numericScore > 5) {
+  // Stars are required for a quality rating; optional for a bug or an idea,
+  // which must instead say something.
+  let numericScore = null;
+  if (score !== undefined && score !== null && score !== '') {
+    numericScore = Number(score);
+    if (!Number.isInteger(numericScore) || numericScore < 1 || numericScore > 5) {
+      return res.status(400).json({ error: 'score must be an integer from 1 to 5' });
+    }
+  }
+  const cleanComment = String(comment || '').trim();
+  if (category === 'quality' && numericScore === null) {
     return res.status(400).json({ error: 'score must be an integer from 1 to 5' });
   }
-
-  const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL;
-  if (!webhookUrl) {
-    console.error('GOOGLE_SHEET_WEBHOOK_URL is not set');
-    return res.status(500).json({ error: 'Feedback storage is not configured' });
+  if (category !== 'quality' && !cleanComment) {
+    return res.status(400).json({ error: 'Please describe the ' + (category === 'bug' ? 'problem' : 'idea') });
   }
 
-  // Trim/cap everything — this is field-test telemetry, not a place for
-  // arbitrarily large payloads to land in a spreadsheet cell.
-  // preplyModule/preplyTrialPerson are null for every non-Preply protocol
-  // (and for Preply modules other than Trial, in preplyTrialPerson's
-  // case) — sent through as empty strings rather than the literal text
-  // "null" landing in a spreadsheet cell.
-  const payload = {
-    timestamp: new Date().toISOString(),
-    teacherName: String(teacherName || 'Unknown').slice(0, 100),
-    protocol: String(protocol || '').slice(0, 20),
-    ratingTier: String(ratingTier || '').slice(0, 30),
-    preplyModule: String(preplyModule || '').slice(0, 30),
-    preplyTrialPerson: String(preplyTrialPerson || '').slice(0, 30),
-    score: numericScore,
-    comment: String(comment || '').slice(0, 1000)
-  };
-
+  let stored = null;
   try {
-    const sheetResponse = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+    stored = await recordFeedback({
+      licenseKey: providedKey, generationRef, category, score: numericScore, comment: cleanComment,
+      teacherName: teacherName || 'Unknown',
+      clientContext: { protocol, ratingTier, preplyModule, preplyTrialPerson }
     });
-    if (!sheetResponse.ok) {
-      return res.status(502).json({ error: 'Failed to record feedback' });
-    }
   } catch (err) {
-    return res.status(502).json({ error: 'Network error contacting feedback storage' });
+    console.error('feedback: store write failed:', err);
   }
 
-  return res.status(200).json({ status: 'ok' });
+  // Optional Sheet mirror. Trim/cap everything; Preply fields are empty
+  // strings (never the literal "null") for non-Preply protocols.
+  const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL;
+  let sheet = 'not_configured';
+  if (webhookUrl) {
+    const payload = {
+      timestamp: new Date().toISOString(),
+      teacherName: String(teacherName || 'Unknown').slice(0, 100),
+      protocol: String(protocol || '').slice(0, 20),
+      ratingTier: String(ratingTier || '').slice(0, 30),
+      preplyModule: String(preplyModule || '').slice(0, 30),
+      preplyTrialPerson: String(preplyTrialPerson || '').slice(0, 30),
+      score: numericScore ?? '',
+      comment: cleanComment.slice(0, 1000),
+      category
+    };
+    try {
+      const sheetResponse = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      sheet = sheetResponse.ok ? 'sent' : 'failed';
+    } catch (err) {
+      sheet = 'failed';
+    }
+  }
+
+  if (!stored && sheet !== 'sent') {
+    return res.status(502).json({ error: 'Failed to record feedback' });
+  }
+  return res.status(200).json({ status: 'ok', stored: !!stored, sheet });
 }
