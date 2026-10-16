@@ -17,7 +17,7 @@ function buildRequestBody({ model, systemPrompt, messages, profile }){
   const p = C.PROFILES[profile || 'production'];
   if(!p) throw new Error('Unknown request profile');
   if(!C.MODELS[model]) throw new Error('Model is not in the benchmark allow-list: ' + model);
-  return { model, max_tokens:p.maxTokens, ...p.extra, system:buildCacheableSystemBlocks(systemPrompt), messages };
+  return { model, max_tokens:(p.maxTokensByModel && p.maxTokensByModel[model]) || p.maxTokens, ...p.extra, system:buildCacheableSystemBlocks(systemPrompt), messages };
 }
 
 // ---------- cost ----------

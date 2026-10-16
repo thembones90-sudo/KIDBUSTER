@@ -23,7 +23,14 @@ const PRICING_SOURCE = 'Claude API skill model table, cached 2026-10-06 (first-p
 // cacheable system split; same single-repair rule and 55 s provider budget).
 const PROFILES = {
   production: { maxTokens:3000, extra:{}, generationBudgetMs:55000, minRepairWindowMs:12000,
-    description:'Exactly what production would send if only the model ID changed.' }
+    description:'Exactly what production would send if only the model ID changed.' },
+  // Initial run finding: Haiku 5.5 and Sonnet 5.5 think by default and the
+  // thinking counts toward max_tokens; at 3000 Haiku was cut off 3/7 times.
+  // This profile gives thinking models output headroom and nothing else
+  // (no effort/thinking change). Sonnet 4.6 stays byte-identical to production.
+  'thinking-headroom': { maxTokens:3000, maxTokensByModel:{ 'claude-haiku-5-5':8000, 'claude-sonnet-5-5':8000 }, extra:{},
+    generationBudgetMs:55000, minRepairWindowMs:12000,
+    description:'Production request, but max_tokens 8000 for models that think by default (Haiku 5.5, Sonnet 5.5); Sonnet 4.6 unchanged at 3000.' }
 };
 
 // Settings for private transcripts (names, ratings) live in a git-ignored
@@ -53,7 +60,9 @@ const PROTOCOLS = ['MA','MS','FAIRY','BLITZ','BEIDA','OF','PREPLY'];
 const BASELINE_OUTPUT_TOKENS = { MA:714, MS:764, FAIRY:1101, BLITZ:132, BEIDA:474, OF:398, PREPLY:241 };
 // Assumed extra (thinking) output tokens when a model thinks by default.
 // Unmeasured; deliberately generous so the estimate is an upper bound.
-const ASSUMED_THINKING_TOKENS = { 'claude-sonnet-4-6':0, 'claude-haiku-5-5':1200, 'claude-sonnet-5-5':2000 };
+// Initial run (2026-10-16) measured ~1800-2500 thinking+report overhead for
+// these models at max_tokens 3000; margins added for uncapped output.
+const ASSUMED_THINKING_TOKENS = { 'claude-sonnet-4-6':0, 'claude-haiku-5-5':3500, 'claude-sonnet-5-5':2500 };
 // Calibrated against the measured 2026-10-15 baseline: the timestamped real
 // transcript tokenizes at ~3.1 chars/token on Sonnet 4.6, so 3.0 is used.
 const CHARS_PER_TOKEN = 3.0;

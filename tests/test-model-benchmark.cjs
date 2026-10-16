@@ -35,6 +35,9 @@ module.exports=async function run(){
     check('production profile adds no thinking/effort/temperature parameters',!('thinking' in bench)&&!('output_config' in bench)&&!('temperature' in bench));
     for(const m of ['claude-haiku-5-5','claude-sonnet-5-5'])
       check(m+' differs from production only in model',JSON.stringify({...B.buildRequestBody({model:m,systemPrompt:built.systemPrompt,messages:[{role:'user',content:built.userMessage}]}),model:0})===JSON.stringify({...bench,model:0}));
+    const hb=m=>B.buildRequestBody({model:m,systemPrompt:built.systemPrompt,messages:[{role:'user',content:built.userMessage}],profile:'thinking-headroom'});
+    check('thinking-headroom keeps Sonnet 4.6 byte-identical to production',JSON.stringify(hb('claude-sonnet-4-6'))===JSON.stringify(bench));
+    check('thinking-headroom raises only max_tokens for thinking models',['claude-haiku-5-5','claude-sonnet-5-5'].every(m=>{const b=hb(m);return b.max_tokens===8000&&JSON.stringify({...b,model:0,max_tokens:0})===JSON.stringify({...bench,model:0,max_tokens:0});}));
     check('models outside the allow-list are refused',(()=>{try{B.buildRequestBody({model:'claude-opus-5-5',systemPrompt:'x',messages:[]});return false;}catch{return true;}})());
   }
 

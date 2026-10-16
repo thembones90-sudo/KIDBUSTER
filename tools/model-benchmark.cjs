@@ -63,7 +63,9 @@ async function makePlan(a){
   const phase = a.phase || 'initial';
   const profile = a.profile || 'production';
   if(!C.PROFILES[profile]) throw new Error('Unknown profile');
-  const plan = B.planJobs({ phase, buildServerGeneration, readPrivate, resetCore:__resetServerGenerationForTests });
+  const models = a.models ? String(a.models).split(',').map(x => x.trim()) : undefined;
+  if(models && models.some(m => !C.MODELS[m])) throw new Error('Unknown model in --models');
+  const plan = B.planJobs({ phase, buildServerGeneration, readPrivate, models, resetCore:__resetServerGenerationForTests });
   const est = B.estimate(plan);
   const info = commitInfo();
   return { plan, est, profile, info, code:B.approvalCode(plan, est, profile, info.commit) };
@@ -198,6 +200,6 @@ function cmdReport(a){
   const a = args(process.argv.slice(2));
   const cmd = a._[0];
   const map = { plan:cmdPlan, 'verify-models':cmdVerifyModels, run:cmdRun, blind:cmdBlind, report:cmdReport };
-  if(!map[cmd]){ console.log('Usage: node tools/model-benchmark.cjs <plan|verify-models|run|blind|report> [--phase initial|full] [--approve CODE --max-spend-usd N] [--run DIR] [--scores CSV] [--key-file .v2-local/FILE]'); process.exitCode = cmd ? 1 : 0; return; }
+  if(!map[cmd]){ console.log('Usage: node tools/model-benchmark.cjs <plan|verify-models|run|blind|report> [--phase initial|full] [--profile production|thinking-headroom] [--models id,id] [--approve CODE --max-spend-usd N] [--run DIR] [--scores CSV] [--key-file .v2-local/FILE]'); process.exitCode = cmd ? 1 : 0; return; }
   await map[cmd](a);
 })().catch(err => { console.error(String(err && err.message || err).replace(/sk-ant-[A-Za-z0-9_-]+/g, '<key>')); process.exitCode = 1; });
