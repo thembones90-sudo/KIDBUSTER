@@ -42,9 +42,10 @@ module.exports=async function(){
       await page.setViewport({width,height:1000});
       await page.evaluate(()=>document.getElementById('feedbackCard').scrollIntoView({block:'center'}));
       const bounds=await page.$eval('#feedbackCard',e=>{
-        const r=e.getBoundingClientRect();return {left:r.left,right:r.right,contentFits:e.scrollWidth<=e.clientWidth+1};
+        const r=e.getBoundingClientRect();return {left:r.left,right:r.right,height:r.height,contentFits:e.scrollWidth<=e.clientWidth+1};
       });
       assert.ok(bounds.left>=0&&bounds.right<=width&&bounds.contentFits,'feedback card fits '+width);
+      assert.ok(bounds.height<=(width===1440?250:360),'feedback stays compact at '+width);
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
       assert.equal(await page.$eval('#feedbackSubmitBtn',e=>e.getBoundingClientRect().height>=44),true);
       if(process.env.V2_FEEDBACK_SCREENSHOTS){
@@ -53,6 +54,8 @@ module.exports=async function(){
       }
     }
     assert.match(await page.$eval('#lintResults',e=>e.textContent),/2854 characters/,'warning remains fully visible and unchanged');
+    assert.equal(await page.$eval('#lintResults',e=>getComputedStyle(e).color),'rgb(197, 203, 208)','warning body uses neutral grey, not orange');
+    assert.equal(await page.$eval('#lintResults .lint-title',e=>getComputedStyle(e).color),'rgb(224, 228, 232)','warning heading uses neutral text');
     assert.ok(!(await page.$eval('.feedback-card-label',e=>getComputedStyle(e).fontFamily)).includes('mono'));
     assert.equal(await page.$eval('#feedbackStatus',e=>e.getAttribute('role')),'status');
     console.log('PASS polished feedback: keyboard stars, explicit submission, all categories, failure recovery, warning text and responsive layout');return 0;
