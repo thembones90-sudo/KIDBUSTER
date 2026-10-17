@@ -1918,6 +1918,13 @@ button.help-btn.onboarding-done{animation:none}
   display:flex;flex-direction:column;justify-content:center
 }
 /* OF's pronoun choice is a compact native radio group, not a reserved format slot. */
+.of-output-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.of-output-heading>.field-label{margin-bottom:0;min-width:0}
+.of-output-heading>button{min-height:44px;padding:7px 12px;font-size:12px;white-space:nowrap}
+.of-output-heading>button[hidden],#ofFollowupField[hidden],#copyBtn[hidden]{display:none!important}
+#ofFollowupField{margin-top:16px;padding-top:16px;border-top:1px solid rgba(var(--toxin-rgb),.18)}
+#ofFollowupBox{min-height:120px}
+@media(max-width:480px){#ofFollowupField .of-output-heading{align-items:flex-start;flex-direction:column}}
 #studentGenderField{min-height:0;justify-content:flex-start}
 #studentGenderSelect{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:4px;border:1px solid #ffffff12;border-radius:11px;background:#141819}
 #studentGenderSelect>label{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 16px;gap:2px 8px;min-height:48px;box-sizing:border-box;padding:7px 10px;border:1px solid rgba(var(--pronoun-rgb),.18);border-radius:7px;background:rgba(var(--pronoun-rgb),.08);transition:background .18s ease,border-color .18s ease}
@@ -2636,8 +2643,18 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
       </div>
 
       <div class="panel">
-        <label class="field-label" id="outputLabel">Output</label>
+        <div class="of-output-heading">
+          <label class="field-label" id="outputLabel">Output</label>
+          <button type="button" class="btn-secondary" id="copyOFStrengthsBtn" data-default-label="Copy Strengths" hidden disabled>Copy Strengths</button>
+        </div>
         <div class="output-box empty" id="outputBox" aria-live="polite">Your next report starts here</div>
+        <div id="ofFollowupField" hidden>
+          <div class="of-output-heading">
+            <label class="field-label" for="ofFollowupBox">Areas for Improvement &amp; Learning Suggestions</label>
+            <button type="button" class="btn-secondary" id="copyOFFollowupBtn" data-default-label="Copy this part" disabled>Copy this part</button>
+          </div>
+          <div class="output-box" id="ofFollowupBox" contenteditable="true" role="textbox" aria-label="Areas for Improvement and Learning Suggestions" aria-multiline="true"></div>
+        </div>
         <div id="beidaPerformanceField" style="display:none; margin-top:14px;">
           <label class="field-label">General and Detailed Performance</label>
           <div class="output-box empty" id="beidaPerformanceBox"></div>
@@ -5785,6 +5802,7 @@ function setCaption(value){
 }
 
 function buildRatingTrack(){
+  resetOFOutput(true);
   track.innerHTML = '';
   caption.textContent = '';
   state.rating = null;
@@ -6042,6 +6060,31 @@ function setCurrentReport(text, lintWarnings){
   updatePrevToggleUI();
 }
 
+// OF uses the platform's two paste fields without rewriting the report.
+// Match only standalone headings, never mentions inside a paragraph.
+function splitOFDisplayOutput(text){
+  const heading=name=>new RegExp('^[ \\t]*(?:\\*\\*|__)?'+name+'(?:\\*\\*|__)?[ \\t]*:?[ \\t]*\\r?$','gmi');
+  const strengths=[...text.matchAll(heading('Strengths'))];
+  const areas=[...text.matchAll(heading('Areas for Improvement'))];
+  const suggestions=[...text.matchAll(heading('Learning Suggestions'))];
+  if(strengths.length!==1||areas.length!==1||suggestions.length!==1||strengths[0].index>=areas[0].index||areas[0].index>=suggestions[0].index) return null;
+  const first=text.slice(0,areas[0].index).trim(),second=text.slice(areas[0].index).trim();
+  return first&&second?{strengths:first,followup:second}:null;
+}
+function resetOFOutput(preserveText=false){
+  const field=document.getElementById('ofFollowupField');
+  const main=document.getElementById('outputBox');
+  const followup=document.getElementById('ofFollowupBox');
+  if(preserveText&&!field.hidden) main.textContent=main.textContent+'\n\n'+followup.textContent;
+  field.hidden=true;
+  followup.textContent='';
+  document.getElementById('copyOFStrengthsBtn').hidden=true;
+  document.getElementById('copyOFStrengthsBtn').disabled=true;
+  document.getElementById('copyOFFollowupBtn').disabled=true;
+  document.getElementById('copyBtn').hidden=false;
+  if(document.getElementById('outputLabel').textContent==='Output — Strengths') document.getElementById('outputLabel').textContent='Output';
+}
+
 // Puts a report's text into the output area(s) — for every protocol
 // except Beida, that's just the single outputBox, same as always. Beida's
 // raw output is two fields glued together with internal header markers
@@ -6051,9 +6094,20 @@ function setCurrentReport(text, lintWarnings){
 // fresh generation and by the "View previous report" toggle, so both
 // paths render Beida identically.
 function renderReportToOutput(text){
+  resetOFOutput();
   outputBox.className = 'output-box';
   outputBox.contentEditable = 'true';
-  if(currentProtocolKey() === 'BEIDA'){
+  if(currentProtocolKey() === 'OF' && splitOFDisplayOutput(text)){
+    const sections=splitOFDisplayOutput(text);
+    outputBox.textContent=sections.strengths;
+    document.getElementById('outputLabel').textContent='Output — Strengths';
+    document.getElementById('ofFollowupBox').textContent=sections.followup;
+    document.getElementById('ofFollowupField').hidden=false;
+    document.getElementById('copyOFStrengthsBtn').hidden=false;
+    document.getElementById('copyOFStrengthsBtn').disabled=false;
+    document.getElementById('copyOFFollowupBtn').disabled=false;
+    copyBtn.hidden=true;
+  }else if(currentProtocolKey() === 'BEIDA'){
     const sections = KidbusterCore.splitBeidaOutput(text);
     const performanceBox = document.getElementById('beidaPerformanceBox');
     if(sections){
@@ -7511,6 +7565,7 @@ function shouldAutoCopyReport(lint){
 }
 
 async function generate(){
+  resetOFOutput();
   const form = readFormState();
   const protocol = KidbusterCore.PROTOCOLS[form.protocol];
 
@@ -7622,6 +7677,8 @@ async function generate(){
       // half of it did. The teacher copies each piece deliberately instead.
       copyBtn.textContent = 'Copy Learning Content';
       document.getElementById('copyBeidaPerformanceBtn').textContent = 'Copy Performance';
+    }else if(form.protocol === 'OF' && !document.getElementById('ofFollowupField').hidden){
+      // Each platform field is copied deliberately; never imply half is the full report.
     }else if(shouldAutoCopyReport(lint)){
       copyOutputToClipboard(outputBox, copyBtn); // only reports without CRITICAL lint are auto-copied
     }else{
@@ -7984,6 +8041,7 @@ handleCheckoutReturn();
 // is enabled: Clear is always available; New Student only enables once a
 // report exists.
 function resetWorkspace(){
+  resetOFOutput();
   generateClicksSinceReset = 0; // marks a new lesson boundary for regeneration tracking
   hideFeedbackCard();
   document.getElementById('studentName').value = '';
@@ -8136,6 +8194,7 @@ function setProtocolBadge(protocolKey){
 document.getElementById('protocolSelect').addEventListener('change', (e) => {
   setProtocolBadge(e.target.value);
   buildRatingTrack();
+  if(e.target.value==='OF'&&!copyBtn.disabled&&!outputBox.classList.contains('error')) renderReportToOutput(outputBox.textContent);
   checkAndShowTrialStatus(e.target.value);
 });
 
@@ -8215,6 +8274,8 @@ document.getElementById('preplyModuleSelect').addEventListener('change', () => {
 });
 
 copyBtn.addEventListener('click', () => copyOutputToClipboard(outputBox, copyBtn));
+document.getElementById('copyOFStrengthsBtn').addEventListener('click',()=>copyOutputToClipboard(outputBox,document.getElementById('copyOFStrengthsBtn')));
+document.getElementById('copyOFFollowupBtn').addEventListener('click',()=>copyOutputToClipboard(document.getElementById('ofFollowupBox'),document.getElementById('copyOFFollowupBtn')));
 document.getElementById('copyBeidaPerformanceBtn').addEventListener('click', () => copyOutputToClipboard(document.getElementById('beidaPerformanceBox'), document.getElementById('copyBeidaPerformanceBtn')));
 
 clearBtn.addEventListener('click', resetWorkspace);
