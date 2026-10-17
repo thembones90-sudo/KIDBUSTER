@@ -12,8 +12,19 @@ module.exports=async function(){
   sandbox.setLoading(true);assert.equal(period,3000);assert.equal(sandbox.generateBtn['aria-busy'],'true');
   for(let i=0;i<9;i++)callback();
   assert.equal(history.length,10);assert.equal(new Set(history).size,10);
-  assert.equal(history[0],'You taught the lesson. We’ll help with the words…');
-  assert.equal(history[9],'Feel free to stretch. We’ll keep working…');
+  assert.deepEqual(history,[
+    '👋 You taught the lesson. We’ll help with the words…',
+    '📝 Turning your notes into thoughtful feedback…',
+    '🧩 Bringing the lesson’s key moments together…',
+    '✨ Shaping your report in your chosen style…',
+    '💬 Helping you find the right words…',
+    '☕ A little less paperwork. A little more breathing room…',
+    '🌿 More time for teaching. Less time typing…',
+    '⏳ Taking a little longer, but we’re still here…',
+    '💛 Thanks for waiting. We appreciate your patience…',
+    '🙆 Feel free to stretch. We’ll keep working…'
+  ]);
+  assert.equal(vm.runInContext('GENERATION_COMPLETE_MESSAGE',sandbox),'✅ Your report is ready!');
   assert.equal(timers.size,0,'final line holds with no remaining timer');
   sandbox.setLoading(true);sandbox.setLoading(true);assert.equal(timers.size,1,'restarting never leaks a timer');
   sandbox.setLoading(false);assert.equal(timers.size,0);assert.equal(label.textContent,'Generate feedback');
