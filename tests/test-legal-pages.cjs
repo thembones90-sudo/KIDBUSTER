@@ -15,7 +15,7 @@ module.exports=function run(){
  check('legal pages include contact email and working internal links',
    bodies.every(s=>s.includes('mailto:thembones90@gmail.com')&&s.includes('href="/"')));
  check('terms give pricing, renewals and teacher review responsibility',
-   /US\$12 per month/.test(bodies[0])&&/renews automatically/.test(bodies[0])&&
+   /RSD 1,233 per month/.test(bodies[0])&&/renews automatically/.test(bodies[0])&&
    /five Classic report generations per month/.test(bodies[0])&&
    /must review, correct, and approve every draft/.test(bodies[0]));
  check('privacy discloses third-party AI, student data, retention gap, and privacy rights',
