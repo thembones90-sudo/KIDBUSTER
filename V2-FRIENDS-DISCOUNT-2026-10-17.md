@@ -49,3 +49,17 @@ Low-risk note: the webhook does not check which product or variant was bought. A
 2. Add a test-mode webhook pointing at `https://pathfinder-v2-staging-preview.vercel.app/api/payment-webhook` (not the Krisp ingress alias, which denies other paths) with a new signing secret. Subscribe it to the subscription_* and order_refunded events.
 3. Add the four `LEMONSQUEEZY_*` values to `pathfinder-v2-staging` (**Preview only**) and redeploy staging.
 4. Use a synthetic teacher account to check out with GREEDISGOOD and the test card. Expect a first invoice at 50%, Pro activated, then simulate a renewal from the dashboard and expect the discount kept.
+
+## STAGING TEST-MODE RESULTS (2026-10-17, Claude)
+- Lemon Squeezy TEST store 429633 "Pathfinder", **currency RSD**. Pathfinder Pro product 1214283, Default variant 1898588 at **RSD 1,233.00 / 1 month** (the single "Default" variant shows status `pending`, which is normal for a product without extra variants). Terms page still says US$12.
+- Test GREEDISGOOD (1186573): 50%, forever, 1 redemption, published.
+- Test webhook 143485 -> `https://pathfinder-v2-staging-preview.vercel.app/api/payment-webhook`, all subscription_* and order_refunded events, own secret (in `.v2-local`, gitignored).
+- The four LEMONSQUEEZY_* values were set on staging Preview (by Skynet). Staging was redeployed as `ofmo0aoe4`, with both aliases updated.
+- Synthetic end-to-end on staging (example.test account, no charge):
+  1. Owner-created test account: 200.
+  2. `create-checkout-session`: 200, real Lemon Squeezy test checkout URL (pathfinderapp.lemonsqueezy.com).
+  3. Signed `subscription_created`: 200, account `subscriptionStatus: active`, plan pro.
+  4. Forged signature: 400.
+  5. Second checkout for the same account: 409 "already has a subscription".
+- Gates after redeploy: site 200, X-Robots-Tag noindex, Krisp ingress `/` 403, checkout with fake key 401, webhook with bad signature 400.
+- **Still open:** pay the hosted test checkout with GREEDISGOOD and card 4242 4242 4242 4242 (browser step), then run `node .v2-local/ls-verify-hosted.mjs` to confirm the first invoice is 50% off and the real Lemon Squeezy webhook activated the account. Renewal retention relies on Lemon Squeezy's "forever" duration. Test mode cannot fast-forward a month, so confirm it on the first real renewal invoice.
