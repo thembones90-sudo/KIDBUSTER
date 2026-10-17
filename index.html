@@ -10064,5 +10064,34 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
   .fb-root .fb-item-head .fb-meta{margin-left:0;width:100%}
 }
 </style>
+<style>
+/* ===== Protocol + length pickers: graphite cards, check marks, no per-card tints ===== */
+#protocolSelect>label,#lengthFormatSelect>label{position:relative;background:#161617;border:1px solid #2B2C2F;border-radius:12px;box-shadow:none;color:#ECEDEF;transition:border-color .15s,background .15s}
+#protocolSelect>label:hover,#lengthFormatSelect>label:hover{background:#1b1c1e;border-color:#46484d}
+#protocolSelect>label:has(input:checked),#lengthFormatSelect>label:has(input:checked){background:#1f2022;border-color:rgba(236,237,239,.72);box-shadow:none}
+#protocolSelect>label:focus-within,#lengthFormatSelect>label:focus-within{outline:2px solid #ECEDEF;outline-offset:2px}
+#protocolSelect>label input,#lengthFormatSelect>label input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+#protocolSelect>label::before{content:"";position:absolute;top:8px;right:8px;width:16px;height:16px;border-radius:50%;border:1px solid #3A3C40;box-sizing:border-box;display:grid;place-items:center;font:700 10px/1 var(--font-body);color:#0f1012}
+#protocolSelect>label:has(input:checked)::before{content:"✓";background:#ECEDEF;border-color:#ECEDEF}
+#protocolSelect>label .info-icon{background:transparent;border:1px solid #3A3C40;color:#9A9CA1;box-shadow:none;animation:none;text-shadow:none;font:600 10px/1 var(--font-body);opacity:.85}
+#protocolSelect>label .info-icon:hover,#protocolSelect>label .info-icon:focus-visible{color:#ECEDEF;border-color:#7a7d83;opacity:1}
+#protocolSelect>label span[class^="protocol-"]:not(.info-icon){filter:none;text-shadow:none;box-shadow:none;animation:none}
+#protocolSelect>label::after{color:#9A9CA1;font-weight:400}
+#protocolSelect>label:has(input[value="MA"])::after{content:"Standard"}
+#protocolSelect>label:has(input[value="MS"])::after{content:"Gentle"}
+#protocolSelect>label:has(input[value="FAIRY"])::after{content:"Magical"}
+#protocolSelect>label:has(input[value="BLITZ"])::after{content:"Fast, concise"}
+#protocolSelect>label:has(input[value="BEIDA"])::after{content:"Platform form"}
+#protocolSelect>label:has(input[value="OF"])::after{content:"Trial lessons"}
+#protocolSelect>label:has(input[value="PREPLY"])::after{content:"Tutor messages"}
+/* info icon sits bottom-right, check top-right; keep title clear of the check */
+#protocolSelect>label:not(:has(input[value="PREPLY"])){padding-right:28px}
+/* length: name first, description second */
+#lengthFormatSelect>label{flex-direction:column;flex-wrap:nowrap;justify-content:center;align-items:center;gap:2px;font-family:var(--font-body);font-size:15px;font-weight:700;line-height:1.2;color:#ECEDEF}
+#lengthFormatSelect>label::after{flex-basis:auto;font-size:12px;font-weight:400;color:#9A9CA1}
+#lengthFormatSelect>label:has(input:checked){box-shadow:inset 0 0 0 1px rgba(236,237,239,.35)}
+.field-label{font-weight:600}
+@media(prefers-reduced-motion:reduce){#protocolSelect>label,#lengthFormatSelect>label{transition:none}}
+</style>
 </body>
 </html>
