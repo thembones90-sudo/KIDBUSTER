@@ -175,6 +175,8 @@ module.exports = async function run(){
     check('checkout uses the configured store and variant',checkoutBody.data.relationships.store.data.id==='11'&&checkoutBody.data.relationships.variant.data.id==='22');
     check('checkout binds verified email and account key as provider custom data',checkoutBody.data.attributes.checkout_data.email==='buyer@example.test'&&checkoutBody.data.attributes.checkout_data.custom.license_key==='kb_live_owner');
     check('checkout does not restrict payment methods, allowing Lemon Squeezy to offer PayPal when eligible',!('payment_methods' in checkoutBody.data.attributes)&&checkoutUrl.includes('lemonsqueezy.com'));
+    // Friends coupons (GREEDISGOOD) are typed into Lemon Squeezy's own discount field.
+    check('checkout keeps the discount-code field (no checkout_options.discount:false, no forced code)',checkoutBody.data.attributes.checkout_options?.discount!==false&&!('discount_code' in checkoutBody.data.attributes.checkout_data));
 
     const portalFetcher=async(url,options)=>({ok:true,json:async()=>({data:{type:'subscriptions',id:'123',attributes:{customer_id:456,urls:{customer_portal:'https://store.lemonsqueezy.com/billing?signature=synthetic'}}}})});
     const portal=await lemonsqueezy.createCustomerPortalUrl({subscriptionId:'123',customerId:'456',fetcher:portalFetcher});
