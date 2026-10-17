@@ -6876,6 +6876,14 @@ function promptForAccessKey(){
       resolve(null);
     }
     function accessOutside(event){if(event.target===overlay)cancelAccess();}
+    // The email link usually opens in a NEW tab. When that tab saves the key,
+    // close this window instead of leaving the teacher on a stale sign-up form.
+    function accessFromOtherTab(event){
+      if(event.key!==ACCESS_KEY_STORAGE||!event.newValue)return;
+      cancelAccess();
+      refreshAccountPanel();
+      try{ document.dispatchEvent(new CustomEvent('kidbuster:access-key-saved')); }catch(e){ /* non-critical */ }
+    }
     function accessKeyboard(event){
       if(getComputedStyle(overlay).display==='none') return;
       if(event.key==='Escape'){event.preventDefault();cancelAccess();return;}
@@ -6895,6 +6903,7 @@ function promptForAccessKey(){
       recoverBtn.removeEventListener('click',onRecoverClick);
       accessCloseBtn?.removeEventListener('click',cancelAccess);
       overlay.removeEventListener('pointerdown',accessOutside);
+      window.removeEventListener('storage',accessFromOtherTab);
       document.removeEventListener('keydown',accessKeyboard);
       emailInput.removeEventListener('keydown',freeEnter);
       proEmailInput.removeEventListener('keydown',proEnter);
@@ -6905,6 +6914,7 @@ function promptForAccessKey(){
     }
     accessCloseBtn?.addEventListener('click',cancelAccess);
     overlay.addEventListener('pointerdown',accessOutside);
+    window.addEventListener('storage',accessFromOtherTab);
     document.addEventListener('keydown',accessKeyboard);
     function finish(key){
       if(accessSettled)return;
@@ -7147,7 +7157,16 @@ async function callClaude(generation){
   let accessKey = getStoredAccessKey();
   if(!accessKey){
     accessKey = await promptForAccessKey();
-    if(!accessKey) throw new Error('An access code is required to generate reports.');
+    if(!accessKey){
+      if(getStoredAccessKey()){
+        // Signed in from the email link in another tab. Do not spend a report
+        // automatically; the teacher may already be generating over there.
+        const err = new Error('You are signed in now. Select Generate feedback when you are ready.');
+        err.signedInElsewhere = true;
+        throw err;
+      }
+      throw new Error('Sign in with your email to generate reports. Your lesson notes are still here.');
+    }
   }
 
   let response;
@@ -7626,6 +7645,9 @@ async function generate(){
         '<strong>Previous request completed</strong><br>' +
         '<span>' + escapeHtml(err.message) + '</span><br><br>' +
         '<button type="button" id="inlineRegenerateLostBtn" class="btn-secondary" style="width:auto; padding:8px 16px;">Generate again (uses another report)</button>';
+    }else if(err.signedInElsewhere){
+      outputBox.className = 'output-box';
+      outputBox.textContent = err.message;
     }else if(err.isEntitlementError){
       // Free-limit-reached or protocol-requires-Pro — give a real,
       // clickable path to upgrade right where the block happened,

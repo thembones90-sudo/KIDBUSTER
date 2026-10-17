@@ -7,6 +7,7 @@ import {
   saveLicense, saveEmailIndex, savePaymentCustomerIndex, normalizeEmail,
   clearManualClaim
 } from './licensing.js';
+import { notifyAccessEvent } from './access-notifications.js';
 
 function dateMs(value){
   if(typeof value !== 'string' || !value.trim()) return null;
@@ -195,6 +196,8 @@ export async function applySubscriptionEvent(event){
     type==='subscription_on_trial'?'on_trial':'active';
   const endsAt=state==='cancelled' || state==='expired'
     ? (isoDate(event.endsAt)||current.subscriptionEndsAt||eventAt) : null;
+  const previousStillBilling=type==='payment_succeeded' && !sameSubscription && !!oldSubscriptionId &&
+    ['active','on_trial','past_due','unpaid','paused'].includes(current.subscriptionStatus);
   // Lemon Squeezy explicitly retains access in every status except
   // expired, including paused and unpaid. Refunds require manual review.
   const pro=state!=='expired';
@@ -232,7 +235,14 @@ export async function applySubscriptionEvent(event){
     subscriptionBillingStatus:billingStatus,
     subscriptionBillingStatusAt:isStateEvent?eventAt:(current.subscriptionBillingStatusAt||null),
     subscriptionLastInvoiceId:sameSubscription?(current.subscriptionLastInvoiceId||null):null,
-    subscriptionRefundReview:sameSubscription?(current.subscriptionRefundReview||null):null
+    subscriptionRefundReview:sameSubscription?(current.subscriptionRefundReview||null):null,
+    // Two completed checkouts (two tabs, a retry) would leave the older
+    // subscription still billing while the account follows the newer one.
+    // Access is unchanged; the owner gets a review flag to refund/cancel.
+    duplicateSubscriptionReview:previousStillBilling
+      ? {previousSubscriptionId:oldSubscriptionId,previousStatus:current.subscriptionStatus,
+        newSubscriptionId,detectedAt:eventAt}
+      : (sameSubscription?(current.duplicateSubscriptionReview||null):null)
   };
 
   // To minimize missing downstream webhook lookups, write customer/email
@@ -242,5 +252,14 @@ export async function applySubscriptionEvent(event){
   if(normalizedEmail)await saveEmailIndex(normalizedEmail,resolvedKey);
   await saveLicense(resolvedKey,updated);
   await clearManualClaim(resolvedKey);
-  return {applied:true,reason:null,licenseKey:resolvedKey,state};
+  if(previousStillBilling){
+    console.warn('subscription-lifecycle: second active subscription on one account; previous may still bill');
+    await notifyAccessEvent({
+      type:'duplicate_subscription',
+      title:'Review: a second subscription started while an earlier one was still active. Refund or cancel the older one.',
+      email:updated.email,licenseKey:resolvedKey,
+      details:['Previous subscription: '+oldSubscriptionId+' ('+current.subscriptionStatus+')','New subscription: '+newSubscriptionId]
+    }).catch(()=>{});
+  }
+  return {applied:true,reason:previousStillBilling?'duplicate_subscription_review':null,licenseKey:resolvedKey,state};
 }

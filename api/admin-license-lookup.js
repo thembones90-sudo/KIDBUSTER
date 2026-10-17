@@ -32,6 +32,12 @@ function publicLicenseStatus(license){
       refundAmount: license.subscriptionRefundReview.refundAmount ?? null,
       total: license.subscriptionRefundReview.total ?? null,
       fullyRefunded: license.subscriptionRefundReview.fullyRefunded === true
+    } : null,
+    duplicateSubscriptionReview: license.duplicateSubscriptionReview ? {
+      previousSubscriptionId: license.duplicateSubscriptionReview.previousSubscriptionId || null,
+      previousStatus: license.duplicateSubscriptionReview.previousStatus || null,
+      newSubscriptionId: license.duplicateSubscriptionReview.newSubscriptionId || null,
+      detectedAt: license.duplicateSubscriptionReview.detectedAt || null
     } : null
   };
 }

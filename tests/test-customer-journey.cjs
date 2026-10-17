@@ -12,9 +12,10 @@ const puppeteer=require('puppeteer');
 
 const KEY='kb_live_journey_teacher_0001';
 const GOOD_TOKEN='journey-valid-token-0123456789abcdef';
+const TAB_TOKEN='journey-second-tab-token-0123456789ab';
 
 function makeBackend(){
- const st={tokens:new Set([GOOD_TOKEN]),used:0,trials:{MS:0,FAIRY:0,BLITZ:0,BEIDA:0,OF:0,PREPLY:0},
+ const st={tokens:new Set([GOOD_TOKEN,TAB_TOKEN]),used:0,trials:{MS:0,FAIRY:0,BLITZ:0,BEIDA:0,OF:0,PREPLY:0},
   generateCalls:[],forceNext:null};
  const status=()=>({status:'active',plan:'free',expired:false,email:'new.teacher@example.test',usagePeriod:'2026-10',
   usageCount:st.used,freeMonthlyLimit:5,remainingFreeReports:5-st.used,
@@ -177,6 +178,24 @@ module.exports=async function run(){
   const otherState=await other.evaluate(()=>({key:localStorage.getItem('kidbuster_access_key'),text:document.getElementById('outputBox').textContent}));
   check('an invalid link on a browser with no account grants nothing',otherState.key===null);
   check('it tells the teacher to request a new link',/Request a new one|request a new/i.test(otherState.text));
+  console.log('\n8) the email link opens in a new tab while the first tab waits');
+  {
+   const tabs=await browser.createBrowserContext();
+   const first=await tabs.newPage();first.on('pageerror',e=>pageErrors.push(e.message));
+   await first.goto(origin+'/',{waitUntil:'networkidle0'});
+   await first.evaluate(()=>{const set=(id,v)=>{const el=document.getElementById(id);el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));};set('teacherName','Ana');set('studentName','Mia');set('krispNotes','Teacher: We read the lost puppy story. Student: The puppy is sad. We practised river and forest.');document.querySelector('#ratingTrack button[data-lvl="4"]').click();document.getElementById('generateBtn').click();});
+   await sleep(500);
+   check('Generate without an account opens the sign-up window',await first.evaluate(()=>getComputedStyle(document.getElementById('licenseModalOverlay')).display!=='none'));
+   const callsBefore=be.st.generateCalls.length;
+   const second=await tabs.newPage();
+   await second.goto(origin+'/?access_token='+TAB_TOKEN,{waitUntil:'networkidle0'});await sleep(600);
+   await first.bringToFront();await sleep(600);
+   const firstState=await first.evaluate(()=>({open:getComputedStyle(document.getElementById('licenseModalOverlay')).display!=='none',text:document.getElementById('outputBox').textContent,cls:document.getElementById('outputBox').className}));
+   check('the waiting tab closes its sign-up window by itself',!firstState.open);
+   check('the waiting tab says the teacher is signed in (not an error)',/You are signed in now/.test(firstState.text)&&!/error/.test(firstState.cls));
+   check('no report is spent automatically in the waiting tab',be.st.generateCalls.length===callsBefore);
+   await tabs.close();
+  }
   check('no page errors during the journey',pageErrors.length===0);
   if(pageErrors.length)console.log('   page errors:',pageErrors.slice(0,3));
  }finally{
