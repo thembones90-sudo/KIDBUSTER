@@ -1921,14 +1921,16 @@ button.help-btn.onboarding-done{animation:none}
 #studentGenderField{min-height:0;justify-content:flex-start}
 #studentGenderSelect{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:4px;border:1px solid #ffffff12;border-radius:11px;background:#141819}
 #studentGenderSelect>label{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 16px;gap:2px 8px;min-height:48px;box-sizing:border-box;padding:7px 10px;border:1px solid transparent;border-radius:7px;background:transparent;transition:background .18s ease,border-color .18s ease}
-#studentGenderSelect>label>span{font-size:14px;line-height:17px;color:#dce3e6}
+#studentGenderSelect>label:has(input[value="boy"]){--pronoun-rgb:140,190,255}
+#studentGenderSelect>label:has(input[value="girl"]){--pronoun-rgb:244,164,200}
+#studentGenderSelect>label>span{font-size:14px;line-height:17px;color:rgb(var(--pronoun-rgb))}
 #studentGenderSelect>label>small{grid-column:1;font-size:12px;line-height:14px;font-weight:400;color:#98a7ad}
-#studentGenderSelect>label::after{content:'✓';grid-column:2;grid-row:1/3;align-self:center;font-size:14px;color:var(--toxin);opacity:0}
-#studentGenderSelect>label:hover{background:#ffffff06}
-#studentGenderSelect>label:has(input:checked){background:rgba(var(--toxin-rgb),.10);border-color:rgba(var(--toxin-rgb),.38);box-shadow:inset 0 1px 0 #ffffff06}
+#studentGenderSelect>label::after{content:'✓';grid-column:2;grid-row:1/3;align-self:center;font-size:14px;color:rgb(var(--pronoun-rgb));opacity:0}
+#studentGenderSelect>label:hover{background:rgba(var(--pronoun-rgb),.06)}
+#studentGenderSelect>label:has(input:checked){background:rgba(var(--pronoun-rgb),.12);border-color:rgba(var(--pronoun-rgb),.55);box-shadow:inset 0 1px 0 #ffffff06}
 #studentGenderSelect>label:has(input:checked)::after{opacity:1}
 #studentGenderSelect>label:has(input:checked)>small{color:#c2d3d9}
-#studentGenderSelect>label:focus-within{outline:2px solid var(--toxin);outline-offset:2px}
+#studentGenderSelect>label:focus-within{outline:2px solid rgb(var(--pronoun-rgb));outline-offset:2px}
 #studentGenderSelect input{position:absolute;width:1px;height:1px;margin:0;opacity:0}
 /* Existing inline display:none controls visibility; hidden options stay inert. */
 /* Classic is the workspace silhouette for every protocol. Keep the sidebar's

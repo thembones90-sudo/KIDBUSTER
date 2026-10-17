@@ -111,6 +111,20 @@ module.exports=async function run(){
    check('page loads and switches without JavaScript crashes',errors.length===0);
    if(errors.length)console.log(errors);
    await page.click('input[name="protocol"][value="OF"]');
+   for(const [value,rgb] of [['boy','140, 190, 255'],['girl','244, 164, 200']]){
+     await page.click('#studentGenderSelect label:has(input[value="'+value+'"])');
+     await page.waitForFunction((value,rgb)=>{
+       const style=getComputedStyle(document.querySelector('#studentGenderSelect label:has(input[value="'+value+'"])'));
+       return style.backgroundColor==='rgba('+rgb+', 0.12)'&&style.borderTopColor==='rgba('+rgb+', 0.55)';
+     },{},value,rgb);
+     const colors=await page.evaluate(value=>{
+       const label=document.querySelector('#studentGenderSelect label:has(input[value="'+value+'"])');
+       return {title:getComputedStyle(label.querySelector('span')).color,check:getComputedStyle(label,'::after').color,
+         background:getComputedStyle(label).backgroundColor,border:getComputedStyle(label).borderTopColor};
+     },value);
+     check(value+' uses its own blue/pink title, checkmark, selected fill and border',
+       colors.title==='rgb('+rgb+')'&&colors.check==='rgb('+rgb+')'&&colors.background==='rgba('+rgb+', 0.12)'&&colors.border==='rgba('+rgb+', 0.55)');
+   }
    await page.click('#studentGenderSelect label:has(input[value="boy"])');
    await page.focus('input[name="studentGender"][value="boy"]');
    await page.keyboard.press('ArrowRight');
