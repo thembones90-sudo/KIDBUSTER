@@ -63,3 +63,11 @@ Low-risk note: the webhook does not check which product or variant was bought. A
   5. Second checkout for the same account: 409 "already has a subscription".
 - Gates after redeploy: site 200, X-Robots-Tag noindex, Krisp ingress `/` 403, checkout with fake key 401, webhook with bad signature 400.
 - **Still open:** pay the hosted test checkout with GREEDISGOOD and card 4242 4242 4242 4242 (browser step), then run `node .v2-local/ls-verify-hosted.mjs` to confirm the first invoice is 50% off and the real Lemon Squeezy webhook activated the account. Renewal retention relies on Lemon Squeezy's "forever" duration. Test mode cannot fast-forward a month, so confirm it on the first real renewal invoice.
+
+## HOSTED TEST CHECKOUT VERIFIED (2026-10-17)
+Skynet paid the hosted test checkout with GREEDISGOOD and card 4242 (Test Mode shown on the page).
+- Order 9780881: paid. Subtotal RSD 1,233.27, discount RSD 616.63, **total RSD 616.64 (~US$5.90)**. Redemption recorded: GREEDISGOOD, 1 of 1 used.
+- Subscription 2614679: active, variant 1898588, test_mode true, renews 2026-11-17.
+- **The real Lemon Squeezy webhook activated the account on staging:** license-status shows plan pro, status active, subscriptionStatus active. No synthetic event was used for this account.
+- Discrepancy: the initial subscription-invoice record 8746814 shows discount_total 0 and total RSD 1,233.27 (US$11.80), while the order shows the discounted charge. The amount actually charged is the order's. Check the 2026-11-17 renewal invoice of this test subscription in the dashboard to confirm renewals bill RSD ~616.
+- Full price in USD is about **US$11.80**, not $12, because the store bills in RSD.
