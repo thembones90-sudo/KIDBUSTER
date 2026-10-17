@@ -113,9 +113,10 @@ module.exports=async function run(){
    await page.click('input[name="protocol"][value="OF"]');
    for(const [value,rgb] of [['boy','140, 190, 255'],['girl','244, 164, 200']]){
      await page.click('#studentGenderSelect label:has(input[value="'+value+'"])');
+     await page.mouse.move(0,0);
      await page.waitForFunction((value,rgb)=>{
        const style=getComputedStyle(document.querySelector('#studentGenderSelect label:has(input[value="'+value+'"])'));
-       return style.backgroundColor==='rgba('+rgb+', 0.12)'&&style.borderTopColor==='rgba('+rgb+', 0.55)';
+       return style.backgroundColor==='rgba('+rgb+', 0.16)'&&style.borderTopColor==='rgba('+rgb+', 0.55)';
      },{},value,rgb);
      const colors=await page.evaluate(value=>{
        const label=document.querySelector('#studentGenderSelect label:has(input[value="'+value+'"])');
@@ -123,9 +124,23 @@ module.exports=async function run(){
          background:getComputedStyle(label).backgroundColor,border:getComputedStyle(label).borderTopColor};
      },value);
      check(value+' uses its own blue/pink title, checkmark, selected fill and border',
-       colors.title==='rgb('+rgb+')'&&colors.check==='rgb('+rgb+')'&&colors.background==='rgba('+rgb+', 0.12)'&&colors.border==='rgba('+rgb+', 0.55)');
+       colors.title==='rgb('+rgb+')'&&colors.check==='rgb('+rgb+')'&&colors.background==='rgba('+rgb+', 0.16)'&&colors.border==='rgba('+rgb+', 0.55)');
    }
+   await page.waitForFunction(()=>getComputedStyle(document.querySelector('#studentGenderSelect label:has(input[value="boy"])')).backgroundColor==='rgba(140, 190, 255, 0.08)');
+   check('unselected Boy retains its whole-pill blue tint and subtle border',await page.evaluate(()=>{
+     const label=document.querySelector('#studentGenderSelect label:has(input[value="boy"])');
+     return getComputedStyle(label).borderTopColor==='rgba(140, 190, 255, 0.18)'&&getComputedStyle(label,'::after').opacity==='0';
+   }));
    await page.click('#studentGenderSelect label:has(input[value="boy"])');
+   await page.mouse.move(0,0);
+   await page.waitForFunction(()=>{
+     const style=getComputedStyle(document.querySelector('#studentGenderSelect label:has(input[value="girl"])'));
+     return style.backgroundColor==='rgba(244, 164, 200, 0.08)'&&style.borderTopColor==='rgba(244, 164, 200, 0.18)';
+   });
+   check('unselected Girl retains its whole-pill pink tint and subtle border',await page.evaluate(()=>{
+     const label=document.querySelector('#studentGenderSelect label:has(input[value="girl"])');
+     return getComputedStyle(label).borderTopColor==='rgba(244, 164, 200, 0.18)'&&getComputedStyle(label,'::after').opacity==='0';
+   }));
    await page.focus('input[name="studentGender"][value="boy"]');
    await page.keyboard.press('ArrowRight');
    check('compact OF radios retain native arrow-key selection and draft persistence',
