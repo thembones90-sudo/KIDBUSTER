@@ -7837,11 +7837,38 @@ async function completeEmailVerification(){
   const params = new URLSearchParams(window.location.search);
   const token = params.get('access_token');
   if(!token) return;
-  // Remove the bearer token from browser history immediately. A failed or
-  // expired token can be replaced by requesting another email link.
+  // One-time email links are consumed on first use. Returning to a saved link
+  // must not make a teacher with an independently ACTIVE account look locked out.
+  // The token still goes through the server; an invalid token never grants access.
+  const initialOutput = outputBox.textContent;
   params.delete('access_token');
   const cleanQuery = params.toString();
   window.history.replaceState({}, document.title, window.location.pathname + (cleanQuery ? '?' + cleanQuery : '') + window.location.hash);
+
+  async function showLinkError(message){
+    const savedKey = getStoredAccessKey();
+    if(savedKey){
+      try{
+        const statusResponse = await fetch('/api/license-status', {
+          headers: { 'x-app-key': savedKey, 'x-installation-id': getAccessInstallationId() }
+        });
+        const status = await statusResponse.json().catch(() => ({}));
+        if(statusResponse.ok && status.status === 'active' && status.expired !== true &&
+           savedKey === getStoredAccessKey()){
+          // Do not overwrite a report or a validation message created while
+          // the background email check was running.
+          if(outputBox.textContent !== initialOutput) return;
+          outputBox.className = 'output-box';
+          outputBox.textContent = 'Your Pathfinder account is already active. This email link has expired or was used before, but you can keep using your available reports. Add lesson notes, choose a performance rating, and select Generate feedback.';
+          return;
+        }
+      }catch(err){ /* Fall back to the actual verification error. */ }
+    }
+    if(outputBox.textContent !== initialOutput) return;
+    outputBox.className = 'output-box error';
+    outputBox.textContent = message;
+  }
+
   try{
     const res = await fetch('/api/license-verify', {
       method: 'POST',
@@ -7850,16 +7877,15 @@ async function completeEmailVerification(){
     });
     const data = await res.json().catch(() => ({}));
     if(!res.ok || !data.licenseKey){
-      outputBox.className = 'output-box error';
-      outputBox.textContent = data.error || 'This secure access link could not be verified. Request a new link from Access.';
+      await showLinkError(data.error || 'This secure access link could not be verified. Request a new link from Access.');
       return;
     }
     try{ localStorage.setItem(ACCESS_KEY_STORAGE, data.licenseKey); }catch(err){ /* storage unavailable */ }
+    if(outputBox.textContent !== initialOutput) return;
     outputBox.className = 'output-box';
     outputBox.textContent = 'Email verified. Your Pathfinder access is ready on this browser.';
   }catch(err){
-    outputBox.className = 'output-box error';
-    outputBox.textContent = 'Could not verify the secure access link. Check your connection and try again.';
+    await showLinkError('Could not verify the secure access link. Check your connection and try again.');
   }
 }
 
