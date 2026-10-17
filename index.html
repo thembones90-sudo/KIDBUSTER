@@ -10069,7 +10069,8 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 #protocolSelect>label,#lengthFormatSelect>label{position:relative;background:#161617;border:1px solid #2B2C2F;border-radius:12px;box-shadow:none;color:#ECEDEF;transition:border-color .15s,background .15s}
 #protocolSelect>label:hover,#lengthFormatSelect>label:hover{background:#1b1c1e;border-color:#46484d}
 #protocolSelect>label:has(input:checked),#lengthFormatSelect>label:has(input:checked){background:#1f2022;border-color:rgba(236,237,239,.72);box-shadow:none}
-#protocolSelect>label:focus-within,#lengthFormatSelect>label:focus-within{outline:2px solid #ECEDEF;outline-offset:2px}
+#protocolSelect>label:focus-within,#lengthFormatSelect>label:focus-within{outline:none}
+#protocolSelect>label:has(input:focus-visible),#lengthFormatSelect>label:has(input:focus-visible){outline:2px solid #ECEDEF;outline-offset:3px}
 #protocolSelect>label input,#lengthFormatSelect>label input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
 #protocolSelect>label::before{content:"";position:absolute;top:8px;right:8px;width:16px;height:16px;border-radius:50%;border:1px solid #3A3C40;box-sizing:border-box;display:grid;place-items:center;font:700 10px/1 var(--font-body);color:#0f1012}
 #protocolSelect>label:has(input:checked)::before{content:"✓";background:#ECEDEF;border-color:#ECEDEF}
@@ -10094,32 +10095,25 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 @media(prefers-reduced-motion:reduce){#protocolSelect>label,#lengthFormatSelect>label{transition:none}}
 </style>
 <style>
-/* ===== Protocol cards: one signature background each (selected = brighter + coloured edge) ===== */
-#protocolSelect>label{--c1:#1b1d1f;--c2:#141516;--glow:255,255,255;--edge:154,251,53;overflow:hidden;isolation:isolate;
-  background:var(--tex,none),radial-gradient(120% 140% at 0% 0%,rgba(var(--glow),.16),transparent 55%),linear-gradient(135deg,var(--c1),var(--c2));
-  border-color:rgba(var(--glow),.16)}
-#protocolSelect>label:hover{background:var(--tex,none),radial-gradient(120% 140% at 0% 0%,rgba(var(--glow),.26),transparent 58%),linear-gradient(135deg,var(--c1),var(--c2));border-color:rgba(var(--glow),.38)}
-#protocolSelect>label:has(input:checked){background:var(--tex,none),radial-gradient(120% 140% at 0% 0%,rgba(var(--glow),.34),transparent 60%),linear-gradient(135deg,var(--c1),var(--c2));
-  border-color:rgba(var(--edge),.85);box-shadow:0 0 0 1px rgba(var(--edge),.25),0 8px 22px -12px rgba(var(--edge),.55)}
-#protocolSelect>label:has(input[value="MA"]){--c1:#1f3a2c;--c2:#0f1c16;--glow:74,222,128;--edge:110,231,160;
-  --tex:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 7px),repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 7px)}
-#protocolSelect>label:has(input[value="MS"]){--c1:#4a2036;--c2:#1d0f19;--glow:255,128,206;--edge:255,150,215;
-  --tex:radial-gradient(circle,rgba(255,170,220,.16) 1.4px,transparent 1.8px) 0 0/12px 12px}
-#protocolSelect>label:has(input[value="FAIRY"]){--c1:#3a2a5e;--c2:#18122b;--glow:190,150,255;--edge:205,170,255;
-  --tex:radial-gradient(circle at 30% 40%,rgba(230,210,255,.30) 0 1px,transparent 1.5px) 0 0/22px 18px,radial-gradient(circle at 70% 75%,rgba(230,210,255,.18) 0 1px,transparent 1.5px) 0 0/17px 21px}
-#protocolSelect>label:has(input[value="BLITZ"]){--c1:#4a3a10;--c2:#1c1606;--glow:246,200,60;--edge:250,215,80;
-  --tex:repeating-linear-gradient(115deg,rgba(255,220,90,.07) 0 6px,transparent 6px 16px)}
-#protocolSelect>label:has(input[value="BEIDA"]){--c1:#4a2a16;--c2:#1c110a;--glow:255,150,80;--edge:255,170,105;
-  --tex:repeating-linear-gradient(45deg,rgba(255,180,120,.06) 0 2px,transparent 2px 9px)}
-#protocolSelect>label:has(input[value="OF"]){--c1:#123e4f;--c2:#09171d;--glow:70,200,255;--edge:100,215,255;
-  --tex:repeating-radial-gradient(circle at 100% 100%,rgba(120,210,255,.09) 0 1px,transparent 1px 11px)}
-#protocolSelect>label:has(input[value="PREPLY"]){--c1:#28296b;--c2:#101129;--glow:140,150,255;--edge:165,175,255;
-  --tex:radial-gradient(ellipse at 85% 120%,rgba(170,180,255,.22),transparent 55%)}
-#protocolSelect>label::after{color:rgba(236,237,239,.72)}
-#protocolSelect>label:has(input:checked)::after{color:rgba(255,255,255,.9)}
-#protocolSelect>label::before{border-color:rgba(255,255,255,.28);background:rgba(0,0,0,.18)}
-#protocolSelect>label:has(input:checked)::before{background:#fff;border-color:#fff}
-#protocolSelect>label .info-icon{background:rgba(0,0,0,.22);border-color:rgba(255,255,255,.22);color:rgba(255,255,255,.7)}
+/* ===== Protocol cards: tinted charcoal, each keeps its colour at low intensity ===== */
+#protocolSelect>label{--rgb:154,251,53;overflow:visible;isolation:auto;
+  background:linear-gradient(145deg,rgba(var(--rgb),.10),rgba(var(--rgb),.035)),#18191a;
+  border:1px solid rgba(var(--rgb),.26);box-shadow:none;color:#fff}
+#protocolSelect>label:hover{background:linear-gradient(145deg,rgba(var(--rgb),.14),rgba(var(--rgb),.06)),#1b1c1d;border-color:rgba(var(--rgb),.4);box-shadow:none}
+#protocolSelect>label:has(input:checked){background:linear-gradient(145deg,rgba(var(--rgb),.23),rgba(var(--rgb),.10)),#1a1b1c;border-color:rgb(var(--rgb));box-shadow:none}
+#protocolSelect>label:has(input[value="MA"]){--rgb:74,170,115}
+#protocolSelect>label:has(input[value="MS"]){--rgb:200,90,150}
+#protocolSelect>label:has(input[value="FAIRY"]){--rgb:150,115,225}
+#protocolSelect>label:has(input[value="BLITZ"]){--rgb:215,160,40}
+#protocolSelect>label:has(input[value="BEIDA"]){--rgb:200,120,65}
+#protocolSelect>label:has(input[value="OF"]){--rgb:60,150,185}
+#protocolSelect>label:has(input[value="PREPLY"]){--rgb:105,115,215}
+#protocolSelect>label::after,#protocolSelect>label:not(:has(input[value="PREPLY"]))::after{left:8px;color:#AFB2B9}
+#protocolSelect>label:has(input:checked)::after{color:#B4B6BB}
+#protocolSelect>label::before{display:none}
+#protocolSelect>label:has(input:checked)::before{display:grid;background:#fff;border-color:#fff}
+#protocolSelect>label .info-icon{background:transparent;border-color:rgba(255,255,255,.18);color:#9A9CA1}
+@media(max-width:380px){#protocolSelect>label,#protocolSelect>label:not(:has(input[value="PREPLY"])){font-size:12px;gap:3px;padding-right:26px}}
 </style>
 </body>
 </html>
