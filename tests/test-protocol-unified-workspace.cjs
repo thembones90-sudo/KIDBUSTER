@@ -80,8 +80,11 @@ module.exports=async function run(){
    }
    const classic=layouts[0];
    check('all seven sidebars keep Classic panel height',layouts.every(v=>Math.abs(v.height-classic.height)<=1));
-   check('teacher, emoji and student controls stay fixed across switching',
-     layouts.every(v=>Math.abs(v.teacher-classic.teacher)<=1&&Math.abs(v.signoff-classic.signoff)<=1&&Math.abs(v.student-classic.student)<=1));
+   check('teacher, emoji and student controls stay fixed except the intentionally compact OF selector',
+     layouts.filter(v=>v.protocol!=='OF').every(v=>Math.abs(v.teacher-classic.teacher)<=1&&Math.abs(v.signoff-classic.signoff)<=1&&Math.abs(v.student-classic.student)<=1));
+   const ofLayout=layouts.find(v=>v.protocol==='OF');
+   check('OF removes at least 40px of unused pronoun space above identity controls',
+     ['teacher','signoff','student'].every(key=>classic[key]-ofLayout[key]>=40));
    check('all seven retain visible teacher emoji selection',layouts.every(v=>v.visible&&v.emoji==='🦊'));
    check('Beida substitutes informative native fixed-format slot',layouts.find(x=>x.protocol==='BEIDA').fixedFormat);
    check('desktop right-side workspace preserves Classic height in all seven modes, including Beida',
@@ -107,6 +110,28 @@ module.exports=async function run(){
      trialLayout.visible&&trialLayout.height<=mobileHeights[0].height+1);
    check('page loads and switches without JavaScript crashes',errors.length===0);
    if(errors.length)console.log(errors);
+   await page.click('input[name="protocol"][value="OF"]');
+   await page.click('#studentGenderSelect label:has(input[value="boy"])');
+   await page.focus('input[name="studentGender"][value="boy"]');
+   await page.keyboard.press('ArrowRight');
+   check('compact OF radios retain native arrow-key selection and draft persistence',
+     await page.evaluate(()=>document.querySelector('input[name="studentGender"]:checked').value==='girl'&&readFormState().studentGender==='girl'&&JSON.parse(localStorage.getItem('kidbuster_draft_v1')).studentGender==='girl'));
+   for(const width of [1440,768,390,320]){
+     await page.setViewport({width,height:1000});
+     const compact=await page.evaluate(()=>{
+       const group=document.getElementById('studentGenderSelect'),field=document.getElementById('studentGenderField');
+       const r=group.getBoundingClientRect();
+       return {height:field.getBoundingClientRect().height,fit:r.left>=0&&r.right<=innerWidth&&group.scrollWidth<=group.clientWidth+1,
+         targets:[...group.querySelectorAll('label')].every(el=>el.getBoundingClientRect().height>=44),
+         named:group.getAttribute('aria-labelledby')==='studentPronounLabel',
+         selected:getComputedStyle(group.querySelector('label:has(input:checked)'),'::after').opacity==='1'};
+     });
+     check('OF selector is compact, accessible and fits '+width,compact.height<=100&&compact.fit&&compact.targets&&compact.named&&compact.selected);
+     if(process.env.V2_OF_SCREENSHOTS){
+       await page.evaluate(()=>document.getElementById('studentGenderField').scrollIntoView({block:'center'}));
+       await (await page.$('#studentGenderField')).screenshot({path:path.join(process.env.V2_OF_SCREENSHOTS,'of-pronoun-'+width+'.png')});
+     }
+   }
  }finally{await b.close();}
  return getFailures();
 };
