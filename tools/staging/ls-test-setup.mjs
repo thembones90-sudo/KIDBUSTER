@@ -41,8 +41,13 @@ if(!product) throw new Error('No "Pathfinder Pro" product in store ' + store.id)
 if(product.attributes.test_mode === false) throw new Error('Product reports test_mode=false: this is a LIVE key. Aborting.');
 console.log('Product ' + product.id + ' status=' + product.attributes.status + ' test_mode=' + product.attributes.test_mode);
 
-const variants = (await ls('GET', '/variants?filter[product_id]=' + product.id)).data
-  .filter(v => v.attributes.is_subscription && v.attributes.status !== 'pending');
+// A product without extra variants has one "Default" variant whose status is
+// "pending"; that default is what checkout sells, so only skip it when
+// published variants exist.
+const subVariants = (await ls('GET', '/variants?filter[product_id]=' + product.id)).data
+  .filter(v => v.attributes.is_subscription);
+const published = subVariants.filter(v => v.attributes.status === 'published');
+const variants = published.length ? published : subVariants;
 if(variants.length !== 1) console.log('Subscription variants: ' + variants.map(v => v.id + ' ' + v.attributes.name).join(', '));
 const variant = variants[0];
 if(!variant) throw new Error('No published subscription variant');
@@ -60,7 +65,7 @@ const hooks = (await ls('GET', '/webhooks?filter[store_id]=' + store.id)).data;
 let hook = hooks.find(h => h.attributes.url === WEBHOOK_URL);
 if(hook && !fs.existsSync(secretFile)) throw new Error('Webhook ' + hook.id + ' exists but its secret file is missing; delete it in the dashboard and rerun.');
 if(!hook){
-  const secret = crypto.randomBytes(32).toString('hex');
+  const secret = crypto.randomBytes(20).toString('hex'); // Lemon Squeezy caps secrets at 40 chars
   hook = (await ls('POST', '/webhooks', { data:{ type:'webhooks', attributes:{ url:WEBHOOK_URL, events:EVENTS, secret },
     relationships:{ store:{ data:{ type:'stores', id:String(store.id) } } } } })).data;
   if(hook.attributes.test_mode !== true){
