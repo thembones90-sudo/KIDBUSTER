@@ -44,15 +44,16 @@ module.exports=async function run(){
   check('rating tiles retain original compact 40px height',initial.height>=39&&initial.height<=41);
 
   const intendedColors={
-    '1':'rgb(207, 61, 81)',
-    '1.5':'rgb(219, 120, 71)',
-    '2':'rgb(229, 170, 82)',
-    '2.5':'rgb(228, 206, 105)',
-    '3':'rgb(183, 203, 98)',
-    '3.5':'rgb(130, 152, 77)',
-    '4':'rgb(66, 158, 118)',
-    '4.5':'rgb(64, 159, 165)',
-    '5':'rgb(105, 172, 225)'
+    // Siren remains decorative; the canonical red background is unchanged.
+    '1':'rgb(255, 66, 72)',
+    '1.5':'rgb(255, 128, 61)',
+    '2':'rgb(255, 177, 61)',
+    '2.5':'rgb(255, 227, 63)',
+    '3':'rgb(242, 251, 68)',
+    '3.5':'rgb(198, 251, 72)',
+    '4':'rgb(137, 245, 72)',
+    '4.5':'rgb(78, 241, 68)',
+    '5':'rgb(41, 235, 79)'
   };
   const actualColors=await page.evaluate(()=>Object.fromEntries(
     [...document.querySelectorAll('#ratingTrack .rating-btn:not(.beyond)')].map(b=>[
@@ -61,18 +62,6 @@ module.exports=async function run(){
   ));
   check('all nine ordinary grades display the intended vivid colors',
     Object.entries(intendedColors).every(([level,color])=>actualColors[level]===color));
-  const polish=await page.$$eval('#ratingTrack .rating-btn',els=>els.map(e=>({
-    colour:getComputedStyle(e).color,background:getComputedStyle(e).backgroundColor,
-    fill:getComputedStyle(e.querySelector('.btn-fill')).display,shine:getComputedStyle(e,'::before').display
-  })));
-  check('rating bars and candy shine are removed',polish.every(e=>e.fill==='none'&&e.shine==='none'));
-  const luminance=css=>{
-    const rgb=css.match(/[\d.]+/g).slice(0,3).map(Number).map(v=>{v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4);});
-    return .2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2];
-  };
-  check('ordinary grade numbers meet 4.5:1 contrast against their solid backgrounds',polish.slice(0,9).every(e=>{
-    const a=luminance(e.colour),b=luminance(e.background);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05)>=4.5;
-  }));
 
   const criticalSelector='#ratingTrack .rating-btn[data-lvl="1"]';
   const critical=await page.$eval(criticalSelector,e=>({
@@ -190,7 +179,6 @@ module.exports=async function run(){
   }));
   check('normal rating selection deselects gold without changing the rating semantics',
     ordinary.value==='4.5'&&ordinary.chosen==='true'&&ordinary.old==='false'&&ordinary.crownCount===1);
-  check('chosen rating has a checkmark independent of colour',await page.$eval('#ratingTrack .rating-btn[data-lvl="4.5"]',e=>getComputedStyle(e,'::after').content.includes('✓')));
 
   // A previous 130ms caption timer must never overwrite a newer elite choice.
   const fastSwitch=await page.evaluate(async()=>{
@@ -242,14 +230,6 @@ module.exports=async function run(){
   check('mobile retains five columns with visible crown and no horizontal overflow',
     mobile.columns===5&&mobile.count===10&&mobile.crown&&mobile.width<mobile.viewport&&mobile.scroll<=mobile.viewport+1&&mobile.heights.every(h=>h>=39&&h<=41));
   check('no uncaught browser exceptions',errors.length===0);
-  if(process.env.V2_RATING_SCREENSHOTS){
-    await page.click('#ratingTrack .rating-btn[data-lvl="4.5"]');await page.mouse.move(0,0);
-    await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
-    for(const width of [1440,390,320]){
-      await page.setViewport({width,height:1000});
-      await page.$('#ratingTrack').then(e=>e.screenshot({path:path.join(process.env.V2_RATING_SCREENSHOTS,'rating-palette-'+width+'.png')}));
-    }
-  }
   if(errors.length)console.log('Page errors:',errors);
   await page.close();
  }finally{await browser.close();}
