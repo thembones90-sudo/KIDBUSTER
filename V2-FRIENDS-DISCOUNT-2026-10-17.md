@@ -46,6 +46,6 @@ Low-risk note: the webhook does not check which product or variant was bought. A
 
 ### To finish verification (Test Mode only)
 1. In Lemon Squeezy **Test Mode**, create an API key, then copy the store ID and the Pathfinder Pro **test** variant ID.
-2. Add a test-mode webhook pointing at `https://pathfinder-v2-krisp-ingress.vercel.app/api/payment-webhook` (or the staging preview alias) with a new signing secret. Subscribe it to the subscription_* and order_refunded events.
+2. Add a test-mode webhook pointing at `https://pathfinder-v2-staging-preview.vercel.app/api/payment-webhook` (not the Krisp ingress alias, which denies other paths) with a new signing secret. Subscribe it to the subscription_* and order_refunded events.
 3. Add the four `LEMONSQUEEZY_*` values to `pathfinder-v2-staging` (**Preview only**) and redeploy staging.
 4. Use a synthetic teacher account to check out with GREEDISGOOD and the test card. Expect a first invoice at 50%, Pro activated, then simulate a renewal from the dashboard and expect the discount kept.
