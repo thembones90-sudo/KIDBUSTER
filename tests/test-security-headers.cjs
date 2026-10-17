@@ -112,6 +112,7 @@ module.exports=async function run(){
     });
     await page.evaluate(()=>{
       document.querySelector('#protocolSelect input[value="MA"]').click();
+      document.getElementById('teacherName').value='Test Teacher';
       document.getElementById('studentName').value='Test Student';
       document.getElementById('studentName').dispatchEvent(new Event('input',{bubbles:true}));
       const n=document.getElementById('krispNotes');n.value='Practised reading and answered questions about the story.';

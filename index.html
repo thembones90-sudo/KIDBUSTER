@@ -2537,7 +2537,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
         </div>
         <div class="field">
           <label class="field-label" for="teacherName">Teacher</label>
-          <input type="text" class="identity-pill" id="teacherName" placeholder="Layne" value="Layne">
+          <input type="text" class="identity-pill" id="teacherName" placeholder="Your name, as parents know you" value="" autocomplete="name">
         </div>
         <div class="field" id="signoffEmojiField">
           <label class="field-label" for="teacherSignoffEmoji">Sign-off emoji (optional)</label>
@@ -6084,7 +6084,7 @@ prevToggleBtn.addEventListener('click', () => {
 // ---------- gather form state into the shape KidbusterCore expects ----------
 function readFormState(){
   return {
-    teacherName: document.getElementById('teacherName').value.trim() || 'Layne',
+    teacherName: document.getElementById('teacherName').value.trim(),
     studentName: document.getElementById('studentName').value,
     notes: document.getElementById('krispNotes').value,
     remarks: document.getElementById('specialRemarks').value,
@@ -7202,7 +7202,8 @@ async function callClaude(generation){
       throw err;
     }
     if(response.status === 429){
-      throw new Error('Rate limited — too many requests too quickly. Wait a moment and try again.');
+      // The server's throttle text is already teacher-facing (rate or in-flight limit).
+      throw new Error(detail || 'Too many reports requested too quickly. Wait a minute and try again. Your lesson notes are safe.');
     }
     if(response.status === 409 && reason === 'duplicate_in_progress'){
       throw new Error('This report is already generating. Wait a moment before trying again. Your lesson notes are still here.');
@@ -7220,12 +7221,18 @@ async function callClaude(generation){
       throw new Error('Report generation took too long. Your lesson notes are still here—wait a moment, then try again.');
     }
     if(response.status === 529 || response.status === 503){
-      throw new Error('The API is temporarily overloaded. Wait a few seconds and try again.');
+      throw new Error('Pathfinder is busy right now. Wait a few seconds and try again. Your lesson notes are still here.');
     }
     if(response.status >= 500){
-      throw new Error('Server error (' + response.status + ').' + (detail ? ' ' + detail : ''));
+      throw new Error('Something went wrong on our side. Your lesson notes are still here. Please try again in a moment.');
     }
-    throw new Error('Request failed (' + response.status + ').' + (detail ? ' ' + detail : ''));
+    if(response.status === 400 && /notes is too long/.test(detail)){
+      throw new Error('These lesson notes are too long for one report. Remove older or repeated parts of the transcript and try again.');
+    }
+    if(response.status === 400 && /^Invalid generation request/.test(detail)){
+      throw new Error('Pathfinder could not read this report request. Check the form fields (student name, rating, protocol options) and try again.');
+    }
+    throw new Error(detail || 'The report request was not accepted. Please try again.');
   }
 
   const data = await response.json();
@@ -7492,7 +7499,20 @@ async function generate(){
   }
   if(!form.rating && form.protocol !== 'PREPLY'){
     flashGenerateBtnRejected(); outputBox.className = 'output-box error';
-    outputBox.textContent = 'Select a quality rating before generating.';
+    outputBox.textContent = 'Pick a performance rating before generating.';
+    return;
+  }
+  // New teachers must sign their own reports: never fall back to another teacher's name.
+  if(!String(form.teacherName || '').trim()){
+    flashGenerateBtnRejected(); outputBox.className = 'output-box error';
+    outputBox.textContent = 'Add your name in the Teacher field first. It appears in the report\'s sign-off.';
+    document.getElementById('teacherName').focus();
+    return;
+  }
+  if(!String(form.studentName || '').trim()){
+    flashGenerateBtnRejected(); outputBox.className = 'output-box error';
+    outputBox.textContent = 'Add the student\'s name before generating.';
+    document.getElementById('studentName').focus();
     return;
   }
   if(form.protocol === 'OF' && !form.studentGender){
@@ -7642,13 +7662,13 @@ function buildEntitlementNotice(err, protocolKey){
   if(err.reason === 'trial_exhausted'){
     return {
       title: protocolLabel + ' trial used up',
-      body: err.message || ('Your complimentary ' + protocolLabel + ' trial has ended. Upgrade to Pathfinder Pro to continue using this protocol.')
+      body: 'You have used your 5 free ' + protocolLabel + ' reports. Classic still works with your free monthly reports, and so do any other protocol trials you have left. Upgrade to Pro to keep using ' + protocolLabel + '.'
     };
   }
   if(err.reason === 'limit_reached'){
     return {
       title: 'Free monthly limit reached',
-      body: 'This access code has used all free Classic reports for this month. Upgrade to Pro for unlimited reports and every protocol.'
+      body: 'You have used your free Classic reports for this month. They come back on the 1st of next month. Any protocol trials you have left still work, or upgrade to Pro for unlimited reports in every protocol.'
     };
   }
   return {
@@ -8470,7 +8490,7 @@ function restoreDraft(){
   try{ draft = JSON.parse(localStorage.getItem(DRAFT_KEY)); }catch(e){ draft = null; }
   if(!draft) return;
 
-  document.getElementById('teacherName').value = draft.teacherName || 'Layne';
+  document.getElementById('teacherName').value = draft.teacherName || '';
   document.getElementById('studentName').value = draft.studentName || '';
   document.getElementById('krispNotes').value = draft.krispNotes || '';
   document.getElementById('specialRemarks').value = draft.specialRemarks || '';

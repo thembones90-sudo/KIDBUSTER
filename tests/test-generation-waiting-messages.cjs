@@ -36,6 +36,8 @@ module.exports=async function(){
     await page.evaluate(()=>{
       window.testLabels=[];const original=setStatusText;
       setStatusText=text=>{window.testLabels.push(text);original(text);};
+      document.getElementById('teacherName').value='Synthetic Teacher';
+      document.getElementById('studentName').value='Synthetic Student';
       document.getElementById('krispNotes').value='Synthetic lesson notes about clouds.';
       document.querySelector('#ratingTrack button[data-lvl="4"]').click();
       callClaude=async()=>{throw new Error('Synthetic provider failure');};

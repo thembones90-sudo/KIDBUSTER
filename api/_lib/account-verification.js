@@ -4,6 +4,9 @@ import { normalizeEmail } from './licensing.js';
 
 export const VERIFICATION_TTL_SECONDS = 15 * 60;
 export const VERIFICATION_REQUEST_LIMIT = 5;
+// Schools, agencies and mobile carriers put many teachers behind one public
+// IP, so the network limit is looser than the per-mailbox limit.
+export const VERIFICATION_IP_REQUEST_LIMIT = 30;
 
 const tokenKey = hash => 'emailVerification:' + hash;
 const rateKey = (scope, value) => 'emailVerificationRate:' + scope + ':' + sha256(value);
@@ -22,10 +25,13 @@ export function getRequestIp(req){
 }
 
 export async function enforceVerificationRateLimit({ email, ip }){
-  for(const [scope, value] of [['email', normalizeEmail(email)], ['ip', ip || 'unknown']]){
+  for(const [scope, value, limit] of [
+    ['email', normalizeEmail(email), VERIFICATION_REQUEST_LIMIT],
+    ['ip', ip || 'unknown', VERIFICATION_IP_REQUEST_LIMIT]
+  ]){
     const key = rateKey(scope, value);
     const count = await incrementWindowCounter(key, VERIFICATION_TTL_SECONDS);
-    if(count > VERIFICATION_REQUEST_LIMIT) return false;
+    if(count > limit) return false;
   }
   return true;
 }

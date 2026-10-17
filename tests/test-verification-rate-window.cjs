@@ -56,6 +56,17 @@ module.exports=async function run(){
     check('the first '+LIMIT+' requests are accepted',results.slice(0,LIMIT).every(r=>r.statusCode===202));
     check('requests over the limit are 429',results.slice(LIMIT).every(r=>r.statusCode===429));
     check('refused requests send no extra email',emailService.__getTestMessages().length===LIMIT);
+    const overLimitText=results[LIMIT].jsonBody.error;
+
+    console.log('\n3b) teachers sharing one network are not locked out by each other');
+    __resetForTests();emailService.__resetTestMessages();
+    const shared=[];
+    for(let i=0;i<12;i++)shared.push(await send('teacher'+i+'@school.example','198.51.100.7'));
+    check('12 different teachers on one IP can all request links',shared.every(r=>r.statusCode===202));
+    for(let i=12;i<verification.VERIFICATION_IP_REQUEST_LIMIT;i++)await send('teacher'+i+'@school.example','198.51.100.7');
+    check('the per-network ceiling still stops mass requests from one IP',(await send('flood@school.example','198.51.100.7')).statusCode===429);
+    check('the per-mailbox limit stays the strict one',LIMIT<=5&&verification.VERIFICATION_IP_REQUEST_LIMIT>LIMIT);
+    results[LIMIT].jsonBody.error=overLimitText;
     check('429 text says an earlier link is still valid for 15 minutes',
       /already asked/i.test(results[LIMIT].jsonBody.error)&&/15 minutes/.test(results[LIMIT].jsonBody.error));
     now+=(WINDOW+5)*1000;
