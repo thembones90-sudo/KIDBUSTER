@@ -1,33 +1,34 @@
 # Pathfinder V2 Production Launch Gate — 2026-10-17
+Status: Production billing configuration repaired; email sender setup and production release verification remain pending.
 
-## Read-only production audit result
-**Hold unrestricted paid-customer launch.** Do not deploy V2 over the existing `kidbuster` Production target until the two externally backed blockers below are resolved and a real end-to-end smoke test passes.
+## Verified achievements
+- All **76 test files pass** on V2.
+- Latest V2 code and RSD 1,233/month terms are committed to origin/pathfinder-v2.
+- Isolated test-mode GREEDISGOOD payment completed at 50% off and actual signed payment webhook unlocked Pro.
+- **Dedicated LIVE Lemon Squeezy API key** created on 2026-10-17 under `pathfinder-v2-live-20261017`, verified with a direct authenticated GET /v1/stores returning HTTP 200.
+- Live store ID `429633`, currency RSD; published Pathfinder Pro product `1446995`, monthly subscription variant `2258907`, RSD 1,233/month.
+- **LIVE signed webhook created:** ID `143499`, URL `https://kidbuster.vercel.app/api/payment-webhook`, 12 subscription/refund event types, test_mode=false, unique 40-character signing secret.
+- Local copies of the new live credentials are gitignored in `.v2-local/ls-live-api-key.txt` and `.v2-local/ls-live-webhook-secret.txt`; never print or commit.
+- The new API key and webhook signing secret were uploaded to `kidbuster` **Production** Vercel environment as Secret variables. Store and variant IDs were set correctly as Config. `PAYMENT_PROVIDER=lemonsqueezy`, `SITE_URL`, and `PATHFINDER_APP_URL` were set as Production Config variables.
+- Existing live deployment was **not changed**. No customer charged.
 
-### Confirmed progress
-- GREEDISGOOD first test-mode payment successfully charged half price, and its genuine signed provider webhook unlocked Pro in isolated staging. Test order 9780881; staging subscription 2614679 (per Claude's provider verification).
-- Test mode renewal pricing requires follow-up at the 2026-11-17 renewal. The first order was discounted but the subscription invoice shows the undiscounted gross total.
-- V2 local test suite: **ALL 76 TEST FILES PASSED** on 2026-10-17.
-- Terms of Use corrected to the RSD 1,233/month base price, consistent with the Lemon Squeezy store's RSD billing. The checkout determines actual payable totals and tax.
-- V2 branch and pricing change were pushed to `origin/pathfinder-v2` (commit `b235e35`).
-- The production site `kidbuster.vercel.app` remains available (HTTP 200); previous production deployment dated 2026-10-14 was not modified.
-- Store owner merchant onboarding was approved in earlier Lemon Squeezy dashboard check.
+## Important correction to previous audit
+Earlier report of HTTP 401 with the production-configured key was a **false diagnostic**, not evidence that the old key was invalid: `vercel env pull` supplies a fixed-length **redacted placeholder** for Secret variable values (even `PAYMENT_PROVIDER` and `SITE_URL` were placeholders), so an API call made using that placeholder returns 401 by design. Do not draw conclusions about Secret values from exported dotenv files. The new key was verified directly and independently returned 200. Metadata confirms Vercel Secret values updated, but their raw values cannot be independently recovered from the CLI. A production app deploy and signed webhook smoke test remain necessary.
 
-### Production launch blockers
-1. **Production Lemon Squeezy API authentication fails:** all four Lemon Squeezy variable names exist on `kidbuster` Production, but a read-only `GET /v1/stores` using the production-configured API key returned **401 Unauthorized**. This must be fixed with an authorized Live Mode API key, proper Live Mode Store/Variant IDs and a matching signed Live Mode webhook on the exact production endpoint. Merely seeing variable names is not proof of operation. The temporary local production environment audit file was securely excluded from Git and deleted after verification. No live payment attempted.
-2. **Verified email sender not configured:** `kidbuster` Production lacks `RESEND_API_KEY`, `PATHFINDER_EMAIL_FROM`, `EMAIL_PROVIDER`, and `PATHFINDER_APP_URL`. The V2 email service requires `EMAIL_PROVIDER=resend` with a usable API key and verified sender to email signup/recovery tokens. V2 staging Preview has `EMAIL_PROVIDER` and `PATHFINDER_APP_URL` but lacks `RESEND_API_KEY` and `PATHFINDER_EMAIL_FROM`, so live delivery was not tested there either.
-3. **Sender domain / provider access:** Vercel team reports **0 managed custom domains**; no verified Resend sender domain or Resend API credential was located or established. Operator must provide a verified, owned email domain/sender or access to a suitable transactional mail service. Vercel's `vercel.app` domain is not an owned DNS domain for third-party sender verification.
+## Actual remaining blocker
+**No usable verified transactional email sender/Resend account is connected.**
+- Production and staging are missing `RESEND_API_KEY` and `PATHFINDER_EMAIL_FROM`. Production has `PATHFINDER_APP_URL` now; `EMAIL_PROVIDER` remains unconfigured pending provider setup.
+- The app's `api/_lib/email-service.js` requires `EMAIL_PROVIDER=resend`, verified sender, and API key to deliver 15-minute signup and recovery links. Do not bypass verification or expose keys.
+- Vercel team has no owner-managed custom DNS domain; Gmail history confirms ownership of **asocengine.com** through Porkbun (registered until 2027-09-20), but this is an **ASOC Engine** brand/domain. Do not repurpose for Pathfinder without owner's choice. A mail-only subdomain is feasible once authorized, or the owner can provide a dedicated Pathfinder domain.
+- Resend requires a verified sender domain for real customer emails (test sender onboarding@resend.dev can send only to the account owner). Resend account signup/connection and DNS verification are required; not completed.
 
-### Follow-up runbook (with owner/provider access)
-1. Provision and verify a transactional sender domain and Resend account; establish private API key and sender.
-2. Add provider configuration to **staging Preview only**, then verify a genuine email verification signup + recovery link end to end with approved test inboxes.
-3. Create/obtain valid **LIVE** Lemon Squeezy API key, verify Live Mode store and Pro variant IDs, and register/verify production webhook with a distinct signing secret. Keep all secrets in provider settings, not the repository.
-4. Add the correct variables to `kidbuster` **Production** after independently confirming their sources. Test read-only provider authentication and checkout creation before taking a real payment.
-5. Deploy reviewed V2 Production intentionally (the Vercel `vercel.json` explicitly disables automatic `pathfinder-v2` Git deployments), validate all protocols, signup/recovery, hosted checkout, webhook ownership, Pro access, portal, cancellations and signature rejection. Owner must authorize an actual controlled live payment if required for final billing proof.
-6. Only then open external paid marketing and share the live GREEDISGOOD code. The live discount allows one redemption; test-mode discount has already used its one redemption.
+## Final steps after sender is chosen
+1. Set up a Resend account and verify a sender-only subdomain controlled in the user's DNS; create a sending-only API key.
+2. Configure staging Preview `RESEND_API_KEY`/`PATHFINDER_EMAIL_FROM` and verify email signup and recovery with approved real test inboxes.
+3. Configure production `RESEND_API_KEY`, `PATHFINDER_EMAIL_FROM`, and `EMAIL_PROVIDER=resend` and verify sender access privately.
+4. Deploy the reviewed V2 branch to `kidbuster` Production explicitly. Existing deployment must remain intact until these gates pass. Validate signup/recovery, one real verified purchase or owner-approved safe paid test, webhook signature enforcement, Pro/portal, and mobile seven-protocol operation.
+5. Check GREEDISGOOD test subscription renewal pricing on 2026-11-17: discounted initial order but non-discounted initial invoice record.
 
-### Safety and deployment scope
-- No new live payments, customer changes, or Lemon Squeezy live API keys were created by this audit.
-- No Vercel Production environment variables, webhook configurations, or deployments were changed.
-- This file and pricing copy are in the nonproduction V2 branch; `kidbuster` Production is unchanged.
-
-Record written by Skynet after direct CLI and provider API inspection on 2026-10-17.
+## Secrets, scope, and safety
+- Never print secrets in chat/logs, store them in Git, or copy live credentials into staging.
+- No production deployment, live charge or customer data mutation was performed during this session.
