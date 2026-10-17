@@ -66,6 +66,9 @@ module.exports=async function run(){
     for(let i=12;i<verification.VERIFICATION_IP_REQUEST_LIMIT;i++)await send('teacher'+i+'@school.example','198.51.100.7');
     check('the per-network ceiling still stops mass requests from one IP',(await send('flood@school.example','198.51.100.7')).statusCode===429);
     check('the per-mailbox limit stays the strict one',LIMIT<=5&&verification.VERIFICATION_IP_REQUEST_LIMIT>LIMIT);
+    for(let i=0;i<LIMIT+2;i++)await send('victim@school.example','198.51.100.7');
+    check('requests refused for their network do not use up another mailbox\'s allowance',
+      (await send('victim@school.example','203.0.113.9')).statusCode===202);
     results[LIMIT].jsonBody.error=overLimitText;
     check('429 text says an earlier link is still valid for 15 minutes',
       /already asked/i.test(results[LIMIT].jsonBody.error)&&/15 minutes/.test(results[LIMIT].jsonBody.error));

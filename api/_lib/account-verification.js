@@ -25,9 +25,11 @@ export function getRequestIp(req){
 }
 
 export async function enforceVerificationRateLimit({ email, ip }){
+  // Network first: a request already refused for its IP must not use up the
+  // target mailbox's own allowance.
   for(const [scope, value, limit] of [
-    ['email', normalizeEmail(email), VERIFICATION_REQUEST_LIMIT],
-    ['ip', ip || 'unknown', VERIFICATION_IP_REQUEST_LIMIT]
+    ['ip', ip || 'unknown', VERIFICATION_IP_REQUEST_LIMIT],
+    ['email', normalizeEmail(email), VERIFICATION_REQUEST_LIMIT]
   ]){
     const key = rateKey(scope, value);
     const count = await incrementWindowCounter(key, VERIFICATION_TTL_SECONDS);

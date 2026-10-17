@@ -196,6 +196,24 @@ module.exports=async function run(){
    check('no report is spent automatically in the waiting tab',be.st.generateCalls.length===callsBefore);
    await tabs.close();
   }
+  console.log('\n9) teachers who used the old pre-filled "Layne" default');
+  {
+   const legacy=await browser.createBrowserContext();
+   const lp=await legacy.newPage();lp.on('pageerror',e=>pageErrors.push(e.message));
+   await lp.evaluateOnNewDocument(()=>{
+    if(sessionStorage.getItem('seeded'))return;
+    sessionStorage.setItem('seeded','1');
+    localStorage.setItem('kidbuster_draft_v1',JSON.stringify({teacherName:'Layne',studentName:'Mia',krispNotes:'old notes'}));
+   });
+   await lp.goto(origin+'/',{waitUntil:'networkidle0'});
+   const after=await lp.evaluate(()=>({teacher:teacherName.value,student:studentName.value}));
+   check('a saved "Layne" from the old default is cleared once',after.teacher==='');
+   check('the rest of the saved draft is kept',after.student==='Mia');
+   await lp.evaluate(()=>{const el=teacherName;el.value='Layne';el.dispatchEvent(new Event('input',{bubbles:true}));});
+   await lp.reload({waitUntil:'networkidle0'});
+   check('a teacher really named Layne keeps the name after typing it once',await lp.evaluate(()=>teacherName.value)==='Layne');
+   await legacy.close();
+  }
   check('no page errors during the journey',pageErrors.length===0);
   if(pageErrors.length)console.log('   page errors:',pageErrors.slice(0,3));
  }finally{

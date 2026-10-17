@@ -8216,6 +8216,7 @@ clearBtn.addEventListener('click', resetWorkspace);
 
 // ---------- draft persistence (this browser only) ----------
 const DRAFT_KEY = 'kidbuster_draft_v1';
+const TEACHER_DEFAULT_MIGRATION_KEY = 'pathfinder_teacher_default_cleared_v1';
 
 // ---------- cumulative usage stats (this browser only) ----------
 // Exists specifically to answer a question no per-request cost log can
@@ -8510,9 +8511,20 @@ function saveDraft(){
 function restoreDraft(){
   let draft = null;
   try{ draft = JSON.parse(localStorage.getItem(DRAFT_KEY)); }catch(e){ draft = null; }
+  // Before 2026-10-17 the Teacher field defaulted to the owner's name, so
+  // drafts saved by other teachers carry "Layne" without anyone typing it.
+  // Clear that legacy value once per browser; anything typed later is kept.
+  let clearLegacyTeacher = false;
+  try{
+    if(!localStorage.getItem(TEACHER_DEFAULT_MIGRATION_KEY)){
+      localStorage.setItem(TEACHER_DEFAULT_MIGRATION_KEY, '1');
+      clearLegacyTeacher = true;
+    }
+  }catch(e){ /* storage unavailable: keep the saved value */ }
   if(!draft) return;
 
-  document.getElementById('teacherName').value = draft.teacherName || '';
+  const savedTeacher = draft.teacherName || '';
+  document.getElementById('teacherName').value = clearLegacyTeacher && savedTeacher === 'Layne' ? '' : savedTeacher;
   document.getElementById('studentName').value = draft.studentName || '';
   document.getElementById('krispNotes').value = draft.krispNotes || '';
   document.getElementById('specialRemarks').value = draft.specialRemarks || '';

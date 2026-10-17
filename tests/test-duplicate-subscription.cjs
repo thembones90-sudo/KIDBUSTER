@@ -42,6 +42,10 @@ module.exports=async function run(){
    l.duplicateSubscriptionReview?.previousSubscriptionId==='sub-one'&&l.duplicateSubscriptionReview?.newSubscriptionId==='sub-two');
   await send('subscription_payment_success',key,'sub-two',date(0));
   check('later events for the same subscription keep the flag',(await license.getLicense(key)).duplicateSubscriptionReview?.previousSubscriptionId==='sub-one');
+  await send('subscription_created',key,'sub-three',date(0.5));
+  l=await license.getLicense(key);
+  check('a third checkout adds a review without erasing the first one',
+   l.duplicateSubscriptionReview?.previousSubscriptionId==='sub-two'&&l.duplicateSubscriptionReview?.earlier?.previousSubscriptionId==='sub-one');
 
   console.log('\n2) re-subscribing after the old one ended is not a duplicate');
   __resetForTests();

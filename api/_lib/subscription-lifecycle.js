@@ -239,10 +239,11 @@ export async function applySubscriptionEvent(event){
     // Two completed checkouts (two tabs, a retry) would leave the older
     // subscription still billing while the account follows the newer one.
     // Access is unchanged; the owner gets a review flag to refund/cancel.
+    // An earlier unresolved review is kept (as `earlier`), never erased.
     duplicateSubscriptionReview:previousStillBilling
       ? {previousSubscriptionId:oldSubscriptionId,previousStatus:current.subscriptionStatus,
-        newSubscriptionId,detectedAt:eventAt}
-      : (sameSubscription?(current.duplicateSubscriptionReview||null):null)
+        newSubscriptionId,detectedAt:eventAt,earlier:current.duplicateSubscriptionReview||null}
+      : (current.duplicateSubscriptionReview||null)
   };
 
   // To minimize missing downstream webhook lookups, write customer/email
