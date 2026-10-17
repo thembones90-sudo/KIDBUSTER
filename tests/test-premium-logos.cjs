@@ -15,7 +15,7 @@ module.exports=async function(){
     assert.equal(png[25],6,'RGBA PNG required');
     assert.ok(png.readUInt32BE(16)>1000);
   }
-  assert.ok(html.includes('href="'+prefix+'compass-classic.png"'));
+  assert.ok(html.includes('href="assets/icons/pathfinder-compass-v2-32.png"'));
   const server=http.createServer((req,res)=>{
     const url=new URL(req.url,'http://localhost');
     const file=path.resolve(root,'.'+decodeURIComponent(url.pathname==='/'?'/index.html':url.pathname));
@@ -66,7 +66,7 @@ module.exports=async function(){
     const icon=await page.evaluate(async()=>{
       const img=new Image();img.src=document.querySelector('link[rel="icon"]').href;await img.decode();return [img.naturalWidth,img.naturalHeight];
     });
-    assert.deepEqual(icon,[1254,1254]);
+    assert.deepEqual(icon,[48,48]);
     assert.deepEqual(errors,[]);
     console.log('PASS compass favicon, transparent logos, responsive layout and unchanged-logo animation guard');
     return 0;
