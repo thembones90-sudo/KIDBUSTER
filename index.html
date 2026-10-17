@@ -2482,10 +2482,10 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
         </div>
         <div class="field" id="lengthFormatField">
           <label class="field-label">Report length</label>
-          <div class="protocol-select" id="lengthFormatSelect">
-            <label><input type="radio" name="lengthFormat" value="short"> Short</label>
-            <label><input type="radio" name="lengthFormat" value="medium"> Medium</label>
-            <label><input type="radio" name="lengthFormat" value="long" checked> Long</label>
+          <div class="protocol-select" id="lengthFormatSelect" role="radiogroup" aria-label="Report length">
+            <label><input type="radio" name="lengthFormat" value="short"><svg class="length-detail-icon" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 5h16M4 11h10"/></svg> Short</label>
+            <label><input type="radio" name="lengthFormat" value="medium"><svg class="length-detail-icon" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 3h16M4 8h16M4 13h10"/></svg> Medium</label>
+            <label><input type="radio" name="lengthFormat" value="long" checked><svg class="length-detail-icon" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 2h16M4 6h16M4 10h16M4 14h10"/></svg> Long</label>
           </div>
           <div class="length-summary">
             <span id="lengthFormatCaption"></span>
@@ -8080,7 +8080,7 @@ function updateLengthFormatCaption(){
   const key = (document.querySelector('input[name="lengthFormat"]:checked') || {}).value || 'long';
   const tier = KidbusterCore.LENGTH_TIERS[key] || KidbusterCore.LENGTH_TIERS.long;
   document.getElementById('lengthFormatCaption').textContent =
-    'Up to ' + tier.hardCeiling.toLocaleString('en-US') + ' characters';
+    key.charAt(0).toUpperCase() + key.slice(1) + ' · Up to ' + tier.hardCeiling.toLocaleString('en-US') + ' characters';
   document.getElementById('lengthFormatDetails').textContent =
     'Aim for about ' + tier.softTarget.toLocaleString('en-US') + ' characters. The full report, including its sign-off, must stay below ' + tier.hardCeiling.toLocaleString('en-US') + ' characters.';
   document.getElementById('lengthDetails').open = false;
@@ -10114,6 +10114,19 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 #protocolSelect>label:has(input:checked)::before{display:grid;background:#fff;border-color:#fff}
 #protocolSelect>label .info-icon{background:transparent;border-color:rgba(255,255,255,.18);color:#9A9CA1}
 @media(max-width:380px){#protocolSelect>label,#protocolSelect>label:not(:has(input[value="PREPLY"])){font-size:12px;gap:3px;padding-right:26px}}
+</style>
+<style>
+/* One setting, three quiet segments. Keep the native radios for keyboard access. */
+#lengthFormatSelect{gap:3px;padding:4px;border:1px solid #ffffff14;border-radius:12px;background:#141617;box-shadow:inset 0 1px 3px #0003}
+#lengthFormatSelect>label{min-height:54px;padding:3px;gap:2px;border:1px solid transparent;border-radius:8px;background:transparent;box-shadow:none;font-size:14px;font-weight:600;color:#d3d6da;transition:background .18s ease,border-color .18s ease;color-scheme:dark}
+#lengthFormatSelect>label:hover{background:#ffffff06;border-color:#ffffff12}
+#lengthFormatSelect>label:has(input:checked){background:linear-gradient(145deg,rgba(var(--toxin-rgb),.09),rgba(var(--toxin-rgb),.025)),#292c2e;border-color:rgba(var(--toxin-rgb),.42);color:#f1f2f3;box-shadow:inset 0 1px 0 #ffffff0a,0 2px 5px #0003}
+#lengthFormatSelect>label::after{font-size:11px;color:#a6abb2}
+#lengthFormatSelect .length-detail-icon{width:20px;height:13px;flex:none;color:#9098a0}
+#lengthFormatSelect>label:has(input:checked) .length-detail-icon{color:rgb(var(--toxin-rgb))}
+#lengthFormatSelect>label:has(input:focus-visible){outline:2px solid rgb(var(--toxin-rgb));outline-offset:1px}
+#lengthFormatField .length-summary{margin-top:9px;gap:8px;font-size:12px;color:#b4b8bf}
+@media(prefers-reduced-motion:reduce){#lengthFormatSelect>label{transition:none}}
 </style>
 </body>
 </html>
