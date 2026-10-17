@@ -5968,6 +5968,9 @@ checkAndShowTrialStatus(document.querySelector('input[name="protocol"]:checked')
 ['teacherName','studentName','krispNotes','specialRemarks','teacherSignoffEmoji'].forEach(id => {
   document.getElementById(id).addEventListener('input', saveDraft);
 });
+['teacherName','teacherSignoffEmoji'].forEach(id => {
+  document.getElementById(id).addEventListener('input', saveTeacherIdentity);
+});
 
 // ---------- live word/character counter for Krisp notes ----------
 const krispNotesEl = document.getElementById('krispNotes');
@@ -8216,7 +8219,20 @@ clearBtn.addEventListener('click', resetWorkspace);
 
 // ---------- draft persistence (this browser only) ----------
 const DRAFT_KEY = 'kidbuster_draft_v1';
-const TEACHER_DEFAULT_MIGRATION_KEY = 'pathfinder_teacher_default_cleared_v1';
+// The teacher's own identity outlives every lesson: resetting the workspace or
+// moving to the next student deletes the draft, never the teacher's name.
+const TEACHER_IDENTITY_KEY = 'pathfinder_teacher_identity_v1';
+function saveTeacherIdentity(){
+  try{
+    localStorage.setItem(TEACHER_IDENTITY_KEY, JSON.stringify({
+      teacherName: document.getElementById('teacherName').value,
+      signoffEmoji: document.getElementById('teacherSignoffEmoji').value
+    }));
+  }catch(e){ /* storage unavailable */ }
+}
+function readTeacherIdentity(){
+  try{ return JSON.parse(localStorage.getItem(TEACHER_IDENTITY_KEY)) || null; }catch(e){ return null; }
+}
 
 // ---------- cumulative usage stats (this browser only) ----------
 // Exists specifically to answer a question no per-request cost log can
@@ -8511,24 +8527,21 @@ function saveDraft(){
 function restoreDraft(){
   let draft = null;
   try{ draft = JSON.parse(localStorage.getItem(DRAFT_KEY)); }catch(e){ draft = null; }
-  // Before 2026-10-17 the Teacher field defaulted to the owner's name, so
-  // drafts saved by other teachers carry "Layne" without anyone typing it.
-  // Clear that legacy value once per browser; anything typed later is kept.
-  let clearLegacyTeacher = false;
-  try{
-    if(!localStorage.getItem(TEACHER_DEFAULT_MIGRATION_KEY)){
-      localStorage.setItem(TEACHER_DEFAULT_MIGRATION_KEY, '1');
-      clearLegacyTeacher = true;
-    }
-  }catch(e){ /* storage unavailable: keep the saved value */ }
+  // The teacher's name and sign-off persist until the teacher edits them.
+  // Older browsers only have them inside the draft: adopt those once.
+  const identity = readTeacherIdentity() ||
+    (draft && (draft.teacherName || draft.signoffEmoji)
+      ? { teacherName: draft.teacherName || '', signoffEmoji: draft.signoffEmoji || '' } : null);
+  if(identity){
+    document.getElementById('teacherName').value = identity.teacherName || '';
+    document.getElementById('teacherSignoffEmoji').value = identity.signoffEmoji || '';
+    saveTeacherIdentity();
+  }
   if(!draft) return;
 
-  const savedTeacher = draft.teacherName || '';
-  document.getElementById('teacherName').value = clearLegacyTeacher && savedTeacher === 'Layne' ? '' : savedTeacher;
   document.getElementById('studentName').value = draft.studentName || '';
   document.getElementById('krispNotes').value = draft.krispNotes || '';
   document.getElementById('specialRemarks').value = draft.specialRemarks || '';
-  document.getElementById('teacherSignoffEmoji').value = draft.signoffEmoji || '';
   document.getElementById('blitzVoiceSelect').value = draft.blitzVoice || 'warm';
   document.getElementById('preplyModuleSelect').value = draft.preplyModule || 'adult';
   updateKrispCounter();

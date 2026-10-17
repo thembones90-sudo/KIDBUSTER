@@ -21,6 +21,7 @@ All accounts were synthetic: mail.tm inboxes, `example.test` addresses, and the 
 
 | ID | Sev | Finding | Status |
 |---|---|---|---|
+| F1b | **P1** | Owner report (after F1): the teacher name vanished after a refresh following New student/Reset, because it lived only inside the lesson draft that those actions delete (the old "Layne" default had hidden this). | **Fixed:** name and sign-off are stored separately and persist until the teacher edits them; nothing removes them. The one-time "Layne" cleanup was removed at the owner's request. |
 | F1 | **P1** | Every new teacher's **Teacher field was pre-filled with "Layne"**, so reports went to parents signed "Teacher Layne". Production at `e9b16c2` still does this. | **Fixed on staging.** Not yet on production. |
 | F2 | P2 | A missing student name reached the server and showed "Could not generate feedback. Request failed (400). Invalid generation request: studentName is required". | Fixed |
 | F3 | P2 | Email-link limit was 5 per 15 min **per IP**, shared by everyone on the same school, agency or mobile-carrier network. The 6th teacher was refused. Reproduced live on staging. | Fixed (30 per IP, still 5 per mailbox) |
@@ -173,7 +174,7 @@ Recommended, not changed:
   - plain server errors
   - reused and invalid links
   - two-tab sign-in
-  - legacy "Layne" draft migration
+  - teacher name persists through refresh, reset and New student
 - Before the fixes it **fails 12 checks**.
 - `tests/test-duplicate-subscription.cjs` (new): fails before the fix.
 - `tests/test-verification-rate-window.cjs`: shared-network and limiter-order checks.

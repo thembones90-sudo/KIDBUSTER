@@ -196,23 +196,29 @@ module.exports=async function run(){
    check('no report is spent automatically in the waiting tab',be.st.generateCalls.length===callsBefore);
    await tabs.close();
   }
-  console.log('\n9) teachers who used the old pre-filled "Layne" default');
+  console.log('\n9) the teacher name persists until the teacher changes it');
   {
-   const legacy=await browser.createBrowserContext();
-   const lp=await legacy.newPage();lp.on('pageerror',e=>pageErrors.push(e.message));
-   await lp.evaluateOnNewDocument(()=>{
+   const ctx9=await browser.createBrowserContext();
+   const p9=await ctx9.newPage();p9.on('pageerror',e=>pageErrors.push(e.message));
+   await p9.evaluateOnNewDocument(()=>{
     if(sessionStorage.getItem('seeded'))return;
     sessionStorage.setItem('seeded','1');
-    localStorage.setItem('kidbuster_draft_v1',JSON.stringify({teacherName:'Layne',studentName:'Mia',krispNotes:'old notes'}));
+    localStorage.setItem('kidbuster_draft_v1',JSON.stringify({teacherName:'Layne',signoffEmoji:'🐺',studentName:'Mia',krispNotes:'old notes'}));
    });
-   await lp.goto(origin+'/',{waitUntil:'networkidle0'});
-   const after=await lp.evaluate(()=>({teacher:teacherName.value,student:studentName.value}));
-   check('a saved "Layne" from the old default is cleared once',after.teacher==='');
-   check('the rest of the saved draft is kept',after.student==='Mia');
-   await lp.evaluate(()=>{const el=teacherName;el.value='Layne';el.dispatchEvent(new Event('input',{bubbles:true}));});
-   await lp.reload({waitUntil:'networkidle0'});
-   check('a teacher really named Layne keeps the name after typing it once',await lp.evaluate(()=>teacherName.value)==='Layne');
-   await legacy.close();
+   await p9.goto(origin+'/',{waitUntil:'networkidle0'});
+   check('a name saved before this release is kept (never removed)',await p9.evaluate(()=>teacherName.value)==='Layne');
+   await p9.reload({waitUntil:'networkidle0'});
+   check('it survives a refresh',await p9.evaluate(()=>teacherName.value)==='Layne');
+   await p9.evaluate(()=>resetWorkspace());
+   await p9.reload({waitUntil:'networkidle0'});
+   const afterReset=await p9.evaluate(()=>({t:teacherName.value,e:teacherSignoffEmoji.value,s:studentName.value}));
+   check('it survives a workspace reset and refresh (draft deleted)',afterReset.t==='Layne'&&afterReset.e==='🐺');
+   check('the reset still clears the student',afterReset.s==='');
+   await p9.evaluate(()=>{const el=teacherName;el.value='Ana';el.dispatchEvent(new Event('input',{bubbles:true}));});
+   await p9.evaluate(()=>resetWorkspace());
+   await p9.reload({waitUntil:'networkidle0'});
+   check('a name the teacher changed is the one that persists',await p9.evaluate(()=>teacherName.value)==='Ana');
+   await ctx9.close();
   }
   check('no page errors during the journey',pageErrors.length===0);
   if(pageErrors.length)console.log('   page errors:',pageErrors.slice(0,3));
