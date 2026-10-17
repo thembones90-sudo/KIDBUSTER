@@ -6087,20 +6087,24 @@ function readFormState(){
 // Cosmetic status cycle shown on the button while a request is in flight.
 // Purely presentational — it does not gate, delay, or represent real
 // granular progress from the API (which returns as a single response).
-// It exists only so the wait feels like KIDBUSTER executing a protocol
-// rather than the UI silently freezing. No fake progress bar, no timers
-// tied to actual milestones — just a short, honest-feeling text cycle.
+// Friendly waiting copy, not backend milestones or an accuracy claim.
+// Messages advance once, then hold; they never delay the actual response.
 const GENERATION_STATUS_MESSAGES = [
-  '📡 Acquiring classroom intelligence...',
-  '🧪 Isolating key information...',
-  '🧠 Devising the optimal approach...',
-  '⚗ Refining the final report...',
-  '🛡 Eliminating inconsistencies...'
+  'You taught the lesson. We’ll help with the words…',
+  'Turning your notes into student feedback…',
+  'Bringing the lesson’s key moments together…',
+  'Shaping your report in your chosen style…',
+  'Helping you put the lesson into words…',
+  'A little less paperwork on your plate…',
+  'More time for teaching. Less time typing…',
+  'Your report is taking a little longer today…',
+  'Thanks for waiting—we’re still working…',
+  'Feel free to stretch. We’ll keep working…'
 ];
 // Shown once, only when generation actually succeeds — never part of the
 // cycling loop above, so it can't appear mid-request or loop back around
-// to "Acquiring..." on a slow response, which would be misleading.
-const GENERATION_COMPLETE_MESSAGE = '✔ Protocol complete.';
+// to the first message on a slow response, which would be misleading.
+const GENERATION_COMPLETE_MESSAGE = '✓ Your report is ready.';
 let statusCycleTimer = null;
 
 // Swaps the status label text with a brief fade/slide transition.
@@ -6113,15 +6117,20 @@ function setStatusText(text){
 }
 
 function setLoading(loading){
+  if(statusCycleTimer){ clearInterval(statusCycleTimer); statusCycleTimer = null; }
   generateBtn.disabled = loading;
   generateBtn.classList.toggle('loading', loading);
+  generateBtn.setAttribute('aria-busy', String(loading));
   if(loading){
     let i = 0;
     setStatusText(GENERATION_STATUS_MESSAGES[0]);
     statusCycleTimer = setInterval(() => {
-      i = (i + 1) % GENERATION_STATUS_MESSAGES.length;
+      i += 1;
       setStatusText(GENERATION_STATUS_MESSAGES[i]);
-    }, 900);
+      if(i === GENERATION_STATUS_MESSAGES.length - 1){
+        clearInterval(statusCycleTimer); statusCycleTimer = null;
+      }
+    }, 3000);
   }else{
     if(statusCycleTimer){ clearInterval(statusCycleTimer); statusCycleTimer = null; }
     setStatusText('Generate feedback');
@@ -10159,6 +10168,14 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 .krisp-guide-full{display:inline-flex;align-items:center;gap:6px;min-height:44px;color:#d2dfcb;text-decoration:underline;text-underline-offset:4px}
 .krisp-guide-picture:focus-visible,.krisp-guide-full:focus-visible{outline:2px solid var(--toxin);outline-offset:-3px;border-radius:4px}
 @media(max-width:420px){.krisp-guide-figure figcaption{padding:13px}.krisp-guide-settings{height:200px}.krisp-guide-settings img{height:200px;width:170px}}
+</style>
+<style>
+/* Calm waiting copy: reserve space for two lines, without shifting the form. */
+#generateBtn{min-height:58px;padding:10px 16px;box-sizing:border-box}
+#generateBtn .btn-label{display:block;white-space:normal;overflow-wrap:break-word;font-size:clamp(15px,1.4vw,20px);line-height:1.3}
+#generateBtn .btn-label.transitioning{animation:generationMessageFade .3s ease-out}
+@keyframes generationMessageFade{from{opacity:.25}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){#generateBtn .btn-label.transitioning{animation:none}}
 </style>
 </body>
 </html>
