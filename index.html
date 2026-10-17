@@ -2745,29 +2745,46 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
       <div class="help-step">
         <span class="help-step-number">1</span>
         <div>
-          <p class="help-step-title">Copy your webhook URL</p>
+          <p class="help-step-title">Copy your connection link</p>
           <p class="help-step-copy">Open Krisp integration at the top of Pathfinder. Under Connection setup, press Copy connection link.</p>
         </div>
       </div>
       <div class="help-step">
         <span class="help-step-number">2</span>
         <div>
-          <p class="help-step-title">Open Krisp's webhook settings</p>
-          <p class="help-step-copy">In Krisp, go to Settings, then Integrations, then Webhook.</p>
+          <p class="help-step-title">Open Settings in Krisp</p>
+          <figure class="krisp-guide-figure">
+            <a class="krisp-guide-picture krisp-guide-settings" href="assets/help/krisp/settings1.jpg" target="_blank" rel="noopener noreferrer" aria-label="Open the full picture showing Krisp's Settings gear">
+              <img src="assets/help/krisp/settings1.jpg" width="357" height="1579" loading="lazy" decoding="async" alt="A red arrow points to the Settings gear in the bottom-left corner of Krisp.">
+            </a>
+            <figcaption><strong>Click the small gear in the bottom-left corner.</strong><p class="help-step-copy">Open the Krisp app, then click the gear shown by the red arrow. This opens Settings.</p><a class="krisp-guide-full" href="assets/help/krisp/settings1.jpg" target="_blank" rel="noopener noreferrer">Open full picture <span aria-hidden="true">↗</span></a></figcaption>
+          </figure>
         </div>
       </div>
       <div class="help-step">
         <span class="help-step-number">3</span>
         <div>
-          <p class="help-step-title">Choose Transcript created and save</p>
-          <p class="help-step-copy">Name the webhook Pathfinder and paste the entire copied link into Webhook URL. Under Trigger Events, select Transcript created only, then save. Leave the other events unchecked. Keep the link private; no extra headers or secrets are needed.</p>
+          <p class="help-step-title">Find Integrations, then Webhook</p>
+          <figure class="krisp-guide-figure">
+            <a class="krisp-guide-picture" href="assets/help/krisp/settings2.jpg" target="_blank" rel="noopener noreferrer" aria-label="Open the full picture showing Integrations and Webhook in Krisp">
+              <img src="assets/help/krisp/settings2.jpg" width="2243" height="1664" loading="lazy" decoding="async" alt="Red arrows point to Integrations in Krisp's left menu and the Webhook option on the right.">
+            </a>
+            <figcaption><strong>Click Integrations on the left, then choose Webhook.</strong><p class="help-step-copy">Follow the two red arrows. If you already have a Webhook connection, click Manage beside it to change its settings.</p><a class="krisp-guide-full" href="assets/help/krisp/settings2.jpg" target="_blank" rel="noopener noreferrer">Open full picture <span aria-hidden="true">↗</span></a></figcaption>
+          </figure>
         </div>
       </div>
       <div class="help-step">
         <span class="help-step-number">4</span>
         <div>
+          <p class="help-step-title">Paste your link and choose what Krisp sends</p>
+          <p class="help-step-copy">Name the connection Pathfinder. Paste the whole link you copied into the Webhook URL box. Under Trigger Events, select Transcript created only, then save. Leave the other boxes unticked. Keep your connection link private, like a password.</p>
+        </div>
+      </div>
+      <div class="help-step">
+        <span class="help-step-number">5</span>
+        <div>
           <p class="help-step-title">Return to Pathfinder and press ARM KRISP</p>
-          <p class="help-step-copy">Send a test lesson from Krisp. The first received transcript confirms the connection. Krisp stays armed for later lessons until you press DISARM KRISP.</p>
+          <p class="help-step-copy">Finish a lesson in Krisp and wait for its transcript to be ready. The first received transcript confirms the connection. Krisp stays armed for later lessons until you press DISARM KRISP. Copying the link alone does not confirm the connection.</p>
         </div>
       </div>
     </div>
@@ -10127,6 +10144,21 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 #lengthFormatSelect>label:has(input:focus-visible){outline:2px solid rgb(var(--toxin-rgb));outline-offset:1px}
 #lengthFormatField .length-summary{margin-top:9px;gap:8px;font-size:12px;color:#b4b8bf}
 @media(prefers-reduced-motion:reduce){#lengthFormatSelect>label{transition:none}}
+</style>
+<style>
+/* Illustrated Krisp help: image first, short plain-English instructions below. */
+#helpModalOverlay .help-step>div{min-width:0}
+.krisp-guide-figure{margin:12px 0 4px;border:1px solid #ffffff16;border-radius:14px;background:#171c19;overflow:hidden;box-shadow:0 6px 18px #0002}
+.krisp-guide-picture{display:block;background:#232729;border-bottom:1px solid #ffffff12;cursor:zoom-in}
+.krisp-guide-picture img{display:block;width:100%;height:auto;max-width:100%}
+.krisp-guide-settings{height:230px;overflow:hidden}
+.krisp-guide-settings img{width:190px;height:230px;margin:auto;object-fit:cover;object-position:bottom}
+.krisp-guide-figure figcaption{padding:16px 18px;color:#dfe7e1;font:400 13px/1.6 var(--font-body)}
+.krisp-guide-figure figcaption strong{display:block;font-size:14px;font-weight:600;line-height:1.5}
+.krisp-guide-figure figcaption .help-step-copy{margin:6px 0 8px;color:#b8c4bc}
+.krisp-guide-full{display:inline-flex;align-items:center;gap:6px;min-height:44px;color:#d2dfcb;text-decoration:underline;text-underline-offset:4px}
+.krisp-guide-picture:focus-visible,.krisp-guide-full:focus-visible{outline:2px solid var(--toxin);outline-offset:-3px;border-radius:4px}
+@media(max-width:420px){.krisp-guide-figure figcaption{padding:13px}.krisp-guide-settings{height:200px}.krisp-guide-settings img{height:200px;width:170px}}
 </style>
 </body>
 </html>
