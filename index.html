@@ -5672,15 +5672,15 @@ Object.keys(kbLogo.dataset).filter(k => k.indexOf('logo') === 0).forEach(k => {
 // Vivid, UI-only numeric rating palette. Leave KidbusterCore.ratingColor,
 // OF's qualitative palette, and Beida's two-tier colors untouched.
 const NUMERIC_RATING_UI_COLORS = Object.freeze({
-  '1':   '#FF4248',
-  '1.5': '#FF803D',
-  '2':   '#FFB13D',
-  '2.5': '#FFE33F',
-  '3':   '#F2FB44',
-  '3.5': '#C6FB48',
-  '4':   '#89F548',
-  '4.5': '#4EF144',
-  '5':   '#29EB4F'
+  '1':   '#CF3D51',
+  '1.5': '#DB7847',
+  '2':   '#E5AA52',
+  '2.5': '#E4CE69',
+  '3':   '#B7CB62',
+  '3.5': '#82984D',
+  '4':   '#429E76',
+  '4.5': '#409FA5',
+  '5':   '#69ACE1'
 });
 
 // Short verdict word shown above the full tone description — cosmetic
@@ -10127,6 +10127,25 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 #lengthFormatSelect>label:has(input:focus-visible){outline:2px solid rgb(var(--toxin-rgb));outline-offset:1px}
 #lengthFormatField .length-summary{margin-top:9px;gap:8px;font-size:12px;color:#b4b8bf}
 @media(prefers-reduced-motion:reduce){#lengthFormatSelect>label{transition:none}}
+</style>
+<style>
+/* Broader grade spectrum, satin surfaces, and a non-colour selection cue. */
+#ratingTrack.rating-track-numeric .rating-btn{color:#15201c;border-color:#ffffff26;box-shadow:inset 0 1px 0 #ffffff12,0 2px 4px #0002}
+#ratingTrack.rating-track-numeric .rating-btn::before{display:none}
+#ratingTrack.rating-track-numeric .rating-btn .btn-fill{display:none}
+#ratingTrack.rating-track-numeric .rating-btn .btn-label{text-shadow:none}
+#ratingTrack.rating-track-numeric .rating-btn.critical{color:#fff}
+#ratingTrack.rating-track-numeric .critical .rating-siren{fill:#ffe5e8;stroke:#fff}
+#ratingTrack.rating-track-numeric .rating-btn.active{border-color:#fff;outline:2px solid #fff;outline-offset:1px;filter:none;box-shadow:0 3px 8px #0004}
+#ratingTrack.rating-track-numeric .rating-btn:not(.beyond)::after{content:none}
+#ratingTrack.rating-track-numeric .rating-btn.active::after{content:'✓';position:absolute;top:3px;right:3px;display:grid;place-items:center;width:12px;height:12px;border-radius:50%;background:#17201e;color:#fff;font:700 9px/1 var(--font-body);text-shadow:none;opacity:1;z-index:3;pointer-events:none}
+#ratingTrack.rating-track-numeric .rating-btn.beyond{background:linear-gradient(135deg,#eed08b,#d7aa48)!important;border:1px solid #edce87;box-shadow:inset 0 1px 0 #ffffff38,0 2px 7px #0003;color:#382000}
+#ratingTrack.rating-track-numeric .rating-btn.beyond .btn-label{text-shadow:none}
+#ratingTrack.rating-track-numeric .rating-btn.beyond.active{border-color:#fff2c9;outline:2px solid #fff2c9;filter:none;box-shadow:0 3px 8px #0004}
+@keyframes ratingHaloBreath{
+  0%,100%{box-shadow:inset 0 1px 0 #ffffff12,0 0 7px 1px color-mix(in srgb,var(--rating-halo) 28%,transparent),0 2px 4px #0002}
+  50%{box-shadow:inset 0 1px 0 #ffffff12,0 0 15px 3px color-mix(in srgb,var(--rating-halo) 45%,transparent),0 2px 4px #0002}
+}
 </style>
 </body>
 </html>
