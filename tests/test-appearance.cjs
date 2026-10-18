@@ -18,15 +18,32 @@ module.exports=async function(){
   await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:'light'}]);await page.setViewport({width:1440,height:1100});await page.goto(url);
   assert.equal(await page.$eval('html',e=>e.dataset.appearance),'light','new browser follows light system');
   assert.equal(await page.$eval('html',e=>e.style.colorScheme),'light');
+  await page.evaluate(()=>{
+   window.appearanceTransitionCount=0;const native=document.startViewTransition.bind(document);
+   document.startViewTransition=function(update){
+    window.appearanceTransitionCount++;const transition=native(update);
+    window.appearanceTransitionReady=transition.ready.then(()=>({
+     running:document.getAnimations().some(a=>a.animationName==='appearance-dissolve'),
+     duration:getComputedStyle(document.documentElement,'::view-transition-new(root)').animationDuration
+    }));window.appearanceTransitionDone=transition.finished;return transition;
+   };
+  });
   await page.click('#accountBtn');await page.click('#accountPanel [data-appearance-option="dark"]');
+  await page.waitForFunction(()=>document.documentElement.dataset.appearance==='dark');
+  const dissolve=await page.evaluate(()=>window.appearanceTransitionReady);
+  assert.ok(dissolve.running,'theme changes run a real dissolve animation');assert.equal(dissolve.duration,'0.42s');
+  await page.evaluate(()=>window.appearanceTransitionDone);
   assert.equal(await page.$eval('html',e=>e.dataset.appearance),'dark');
   await page.reload();assert.equal(await page.$eval('html',e=>e.dataset.appearance),'dark','manual choice survives reload');
   await page.click('#accountBtn');await page.click('#accountPanel [data-appearance-option="system"]');
   await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:'dark'}]);
   await page.waitForFunction(()=>document.documentElement.dataset.appearance==='dark');
+  await page.evaluate(()=>window.appearanceTransitionDone);
   await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:'light'}]);
   await page.waitForFunction(()=>document.documentElement.dataset.appearance==='light');
+  await page.evaluate(()=>window.appearanceTransitionDone);
   await page.click('#accountPanel [data-appearance-option="light"]');
+  await page.waitForFunction(()=>document.documentElement.dataset.appearanceChoice==='light');
   await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:'dark'}]);
   assert.equal(await page.$eval('html',e=>e.dataset.appearance),'light','manual light ignores OS changes');
   await page.click('#accountBtn');
@@ -58,14 +75,32 @@ module.exports=async function(){
   await page.click('#accountBtn');
   assert.ok(await page.$$eval('#accountPanel .appearance-options button',buttons=>buttons.every(b=>b.getBoundingClientRect().height>=44)));
   await page.focus('#accountPanel [data-appearance-option="dark"]');await page.keyboard.press('Enter');
+  await page.waitForFunction(()=>document.documentElement.dataset.appearance==='dark');
+  await page.evaluate(()=>window.appearanceTransitionDone);
   assert.equal(await page.$eval('html',e=>e.dataset.appearance),'dark');
   await page.evaluate(()=>localStorage.removeItem('kidbuster_access_key'));
+  await page.waitForFunction(()=>!document.getAnimations().some(a=>a.animationName==='appearance-dissolve'));
   await page.click('#accountBtn');
   await page.click('#licenseModalOverlay [data-appearance-option="light"]');
+  await page.waitForFunction(()=>document.documentElement.dataset.appearance==='light');
   assert.equal(await page.$eval('html',e=>e.dataset.appearance),'light','appearance available before sign-in');
   assert.equal(await page.$eval('#licenseModalOverlay .access-modal',e=>getComputedStyle(e).backgroundColor),'rgb(255, 255, 255)');
   if(process.env.V2_APPEARANCE_SCREENSHOTS)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-access-390.png')});
-  assert.deepEqual(errors,[]);console.log('PASS appearance: system changes, saved override, seven protocols, light surfaces, modals, mobile and keyboard');return 0;
+  await page.evaluate(()=>window.appearanceTransitionDone);
+  await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:'dark'},{name:'prefers-reduced-motion',value:'reduce'}]);
+  const reduced=await page.evaluate(()=>{
+   const before=window.appearanceTransitionCount;document.querySelector('#licenseModalOverlay [data-appearance-option="dark"]').click();
+   return {before,after:window.appearanceTransitionCount,theme:document.documentElement.dataset.appearance};
+  });
+  assert.equal(reduced.before,reduced.after,'reduced motion never starts a snapshot animation');assert.equal(reduced.theme,'dark');
+  await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:'dark'},{name:'prefers-reduced-motion',value:'no-preference'}]);
+  const fallback=await page.evaluate(()=>{
+   document.startViewTransition=undefined;document.querySelector('#licenseModalOverlay [data-appearance-option="light"]').click();
+   return {theme:document.documentElement.dataset.appearance,active:document.documentElement.classList.contains('appearance-dissolving')};
+  });
+  assert.equal(fallback.theme,'light');assert.ok(fallback.active,'older browsers get the colour-fade fallback');
+  await page.waitForFunction(()=>!document.documentElement.classList.contains('appearance-dissolving'));
+  assert.deepEqual(errors,[]);console.log('PASS appearance: real dissolve, reduced motion, fallback, system changes, saved override, seven protocols, modals, mobile and keyboard');return 0;
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
 };
 if(require.main===module)module.exports().then(n=>process.exit(n?1:0)).catch(e=>{console.error(e);process.exit(1);});

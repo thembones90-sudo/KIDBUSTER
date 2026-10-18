@@ -1,5 +1,14 @@
 /* Appearance is independent of protocol identity. Dark keeps its approved skin. */
 html{color-scheme:dark}
+/* Keep the old snapshot solid underneath: the new skin dissolves over it
+   without a white flash, a dark dip, movement or a temporary blank page. */
+::view-transition,::view-transition-group(root),::view-transition-image-pair(root),::view-transition-old(root),::view-transition-new(root){pointer-events:none}
+::view-transition-group(root){animation-duration:420ms;animation-timing-function:cubic-bezier(.22,.61,.36,1)}
+::view-transition-old(root){animation:none;mix-blend-mode:normal}
+::view-transition-new(root){animation:appearance-dissolve 420ms cubic-bezier(.22,.61,.36,1) both;mix-blend-mode:normal}
+@keyframes appearance-dissolve{from{opacity:0}to{opacity:1}}
+html.appearance-dissolving,html.appearance-dissolving :is(body,.panel,.output-box,input,textarea,select,button,label,.access-modal,.help-modal){transition:background-color 360ms ease,color 360ms ease,border-color 360ms ease,box-shadow 360ms ease!important}
+@media(prefers-reduced-motion:reduce){::view-transition-group(root),::view-transition-old(root),::view-transition-new(root){animation:none!important}html.appearance-dissolving,html.appearance-dissolving *{transition:none!important}}
 .appearance-settings{margin:18px 0;padding:16px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
 .appearance-settings h3{margin:0 0 10px;font:600 14px/1.4 var(--font-body);color:var(--text)}
 .appearance-options{display:flex;gap:6px;max-width:360px;padding:4px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
