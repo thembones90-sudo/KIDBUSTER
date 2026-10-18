@@ -18,6 +18,11 @@ const fs = require('fs');
 const path = require('path');
 
 process.env.KIDBUSTER_TEST_KV = '1';
+// Existing visual contracts cover the approved dark skin. New appearance tests
+// explicitly emulate both device themes and saved overrides independently.
+const puppeteer = require('puppeteer');
+const launchBrowser = puppeteer.launch.bind(puppeteer);
+puppeteer.launch = options => launchBrowser({...options,args:[...(options?.args||[]),'--force-dark-mode']});
 
 const TESTS_DIR = __dirname;
 
