@@ -34,6 +34,8 @@ module.exports=async function(){
   assert.ok(dissolve.running,'theme changes run a real dissolve animation');assert.equal(dissolve.duration,'0.42s');
   await page.evaluate(()=>window.appearanceTransitionDone);
   assert.equal(await page.$eval('html',e=>e.dataset.appearance),'dark');
+  assert.equal(await page.$eval('#kbLogo',e=>getComputedStyle(e).filter),'none','dark logo keeps its approved artwork');
+  assert.equal(await page.$eval('.mode-badge',e=>getComputedStyle(e).color),'rgb(135, 243, 22)','dark Classic badge retains its neon green');
   await page.reload();assert.equal(await page.$eval('html',e=>e.dataset.appearance),'dark','manual choice survives reload');
   await page.click('#accountBtn');await page.click('#accountPanel [data-appearance-option="system"]');
   await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:'dark'}]);
@@ -50,6 +52,7 @@ module.exports=async function(){
   for(const mode of ['MA','MS','FAIRY','BLITZ','BEIDA','OF','PREPLY']){
    await page.click('input[name="protocol"][value="'+mode+'"]');
    await page.waitForFunction(()=>['#krispNotes','#teacherName','#lengthFormatSelect>label:not(:has(input:checked))'].every(s=>getComputedStyle(document.querySelector(s)).borderTopColor==='rgb(135, 153, 140)'));
+   await page.waitForFunction(()=>!document.querySelector('.mode-badge').getAnimations().some(a=>a.playState==='running'));
    const colors=await page.evaluate(()=>{
     const c=s=>getComputedStyle(document.querySelector(s));return {panel:c('.grid .panel').backgroundColor,input:c('#krispNotes').backgroundColor,text:c('#krispNotes').color,
      fieldBorder:c('#krispNotes').borderTopColor,fieldWidth:c('#krispNotes').borderTopWidth,
@@ -59,6 +62,19 @@ module.exports=async function(){
    assert.equal(colors.panel,'rgb(255, 255, 255)',mode+' has white panels');assert.equal(colors.input,'rgb(246, 247, 244)');assert.equal(colors.text,'rgb(32, 42, 40)');
    assert.equal(colors.fieldBorder,'rgb(135, 153, 140)',mode+' fields have discernible outlines');assert.equal(colors.identityBorder,colors.fieldBorder);
    assert.equal(colors.idleLengthBorder,colors.fieldBorder);assert.equal(colors.fieldWidth,'1px');assert.equal(colors.pillWidth,'1px','outlines do not thicken or resize pills');
+   const brand=await page.evaluate(()=>{
+    const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');canvas.width=canvas.height=1;
+    function luminance(color){ctx.fillStyle=color;ctx.fillRect(0,0,1,1);const rgb=[...ctx.getImageData(0,0,1,1).data].slice(0,3).map(v=>{v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4);});return rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;}
+    function contrast(el){const s=getComputedStyle(el),a=luminance(s.color),b=luminance(s.backgroundColor);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);}
+    const badge=document.querySelector('.mode-badge');return {filter:getComputedStyle(document.getElementById('kbLogo')).filter,badgeContrast:contrast(badge),brand:getComputedStyle(document.body).getPropertyValue('--skin-brand').trim(),nameContrasts:[...document.querySelectorAll('#protocolSelect>label')].map(contrast)};
+   });
+   assert.ok(!brand.filter.includes('brightness(0.6)'),'logos retain their original vivid colours');
+   assert.equal(brand.brand,({MA:'#467500',MS:'#b31580',FAIRY:'#a33382',BLITZ:'#806400',BEIDA:'#a6500a',OF:'#06718f',PREPLY:'#7042b2'})[mode]);
+   assert.ok(brand.badgeContrast>=4.5,mode+' badge text has readable contrast');
+   assert.ok(brand.nameContrasts.every(c=>c>=4.5),mode+' all protocol names remain readable on their tinted pills');
+   await page.evaluate(()=>document.fonts.ready);
+   await page.waitForFunction(()=>document.getElementById('kbLogo').complete&&!document.getElementById('kbLogo').getAnimations().some(a=>a.playState==='running'));
+   if(process.env.V2_APPEARANCE_SCREENSHOTS)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-brand-'+mode+'.png'),clip:{x:0,y:0,width:1440,height:460}});
   }
   await page.click('input[name="protocol"][value="MA"]');
   await page.evaluate(()=>document.fonts.ready);

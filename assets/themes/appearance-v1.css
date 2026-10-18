@@ -32,7 +32,10 @@ html[data-appearance="light"] body.protocol-beida{--skin-accent:#885427}
 html[data-appearance="light"] body.protocol-of{--skin-accent:#086a88}
 html[data-appearance="light"] body.protocol-preply{--skin-accent:#50559b}
 html[data-appearance="light"] .header{border-color:var(--skin-border)}
-html[data-appearance="light"] #kbLogo{filter:brightness(.6) saturate(.94)!important}
+/* Keep the actual brand artwork vivid; a fine edge supplies contrast on white
+   instead of darkening every protocol into olive, plum or brown. */
+html[data-appearance="light"] #kbLogo{filter:saturate(1.12) drop-shadow(0 .5px .4px #20342580)!important}
+html[data-appearance="light"] body.protocol-fairy #kbLogo{filter:brightness(1.14) saturate(.82) drop-shadow(0 .5px .4px #66315080)!important}
 html[data-appearance="light"] :is(.panel,#accountPanel.account-panel,.access-modal,.help-modal,#krispIntegrationPanel[popover],#krispInboxPanel){background:var(--skin-panel)!important;border-color:var(--skin-border)!important;color:var(--skin-ink)!important;box-shadow:var(--skin-shadow)!important}
 html[data-appearance="light"] :is(.access-modal,.help-modal,#krispIntegrationPanel[popover],#krispInboxPanel){box-shadow:var(--skin-float-shadow)!important}
 html[data-appearance="light"] .help-modal-head{background:var(--skin-inset)!important;border-color:var(--skin-border)!important}
@@ -59,8 +62,24 @@ html[data-appearance="light"] #helpBtn::before{background:#eee2c8!important;colo
 html[data-appearance="light"] #krispIntegrationBtn{color:#386719!important}
 html[data-appearance="light"] #krispPendingBtn[data-has-pending="true"]{background:#fff8eb!important;border-color:#c4a56b!important;color:#70531d!important}
 html[data-appearance="light"] .krisp-inbox-badge{background:#e7ece6!important;color:#4d5c50!important}
-html[data-appearance="light"] .mode-badge{background:color-mix(in srgb,var(--skin-accent) 9%,white)!important;color:var(--skin-accent)!important;border-color:color-mix(in srgb,var(--skin-accent) 32%,white)!important;text-shadow:none}
-html[data-appearance="light"] #protocolSelect>label{background:color-mix(in srgb,var(--armory) 7%,white)!important;border-color:color-mix(in srgb,var(--armory) 28%,#6b7d70)!important;color:var(--skin-ink)!important;box-shadow:none!important}
+html[data-appearance="light"] .mode-badge{background:var(--skin-brand)!important;color:#fff!important;border-color:var(--skin-brand)!important;text-shadow:none}
+/* Readable, saturated companions to the original neon artwork. These are
+   brand-only tokens: field focus, report content and dark mode stay intact. */
+html[data-appearance="light"] body{--skin-brand:#467500}
+html[data-appearance="light"] body.protocol-ms{--skin-brand:#b31580}
+html[data-appearance="light"] body.protocol-fairy{--skin-brand:#a33382}
+html[data-appearance="light"] body.protocol-blitz{--skin-brand:#806400}
+html[data-appearance="light"] body.protocol-beida{--skin-brand:#a6500a}
+html[data-appearance="light"] body.protocol-of{--skin-brand:#06718f}
+html[data-appearance="light"] body.protocol-preply{--skin-brand:#7042b2}
+html[data-appearance="light"] #protocolSelect>label:has(input[value="MA"]){--skin-protocol-name:#467500}
+html[data-appearance="light"] #protocolSelect>label:has(input[value="MS"]){--skin-protocol-name:#b31580}
+html[data-appearance="light"] #protocolSelect>label:has(input[value="FAIRY"]){--skin-protocol-name:#7640ad}
+html[data-appearance="light"] #protocolSelect>label:has(input[value="BLITZ"]){--skin-protocol-name:#806400}
+html[data-appearance="light"] #protocolSelect>label:has(input[value="BEIDA"]){--skin-protocol-name:#a6500a}
+html[data-appearance="light"] #protocolSelect>label:has(input[value="OF"]){--skin-protocol-name:#06718f}
+html[data-appearance="light"] #protocolSelect>label:has(input[value="PREPLY"]){--skin-protocol-name:#7042b2}
+html[data-appearance="light"] #protocolSelect>label{background:color-mix(in srgb,var(--armory) 7%,white)!important;border-color:color-mix(in srgb,var(--armory) 28%,#6b7d70)!important;color:var(--skin-protocol-name)!important;box-shadow:none!important}
 html[data-appearance="light"] #protocolSelect>label:hover{background:color-mix(in srgb,var(--armory) 11%,white)!important}
 html[data-appearance="light"] #protocolSelect>label:has(input:checked){background:color-mix(in srgb,var(--armory) 14%,white)!important;border-color:var(--skin-accent)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--armory) 12%,transparent)!important}
 html[data-appearance="light"] #protocolSelect>label::after{color:var(--skin-muted)!important}
