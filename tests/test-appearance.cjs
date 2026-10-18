@@ -36,6 +36,11 @@ module.exports=async function(){
   assert.equal(await page.$eval('html',e=>e.dataset.appearance),'dark');
   assert.equal(await page.$eval('#kbLogo',e=>getComputedStyle(e).filter),'none','dark logo keeps its approved artwork');
   assert.equal(await page.$eval('.mode-badge',e=>getComputedStyle(e).color),'rgb(135, 243, 22)','dark Classic badge retains its neon green');
+  await page.waitForFunction(()=>!document.body.getAnimations().some(a=>a.transitionProperty==='--workspace-wash'));
+  const darkCanvas=await page.$eval('body',e=>{const s=getComputedStyle(e);return {base:s.backgroundColor,wash:s.getPropertyValue('--workspace-wash'),layers:(s.backgroundImage.match(/radial-gradient/g)||[]).length,animation:s.animationName};});
+  assert.equal(darkCanvas.base,'rgb(16, 17, 19)');assert.equal(darkCanvas.layers,2);assert.equal(darkCanvas.animation,'none','ambient canvas has no perpetual animation');
+  assert.match(darkCanvas.wash,/135, 243, 22/,'dark canvas follows Classic identity');
+  if(process.env.V2_APPEARANCE_SCREENSHOTS){await page.click('#accountBtn');await page.setViewport({width:2560,height:1440});await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'ambient-dark-wide.png')});await page.setViewport({width:1440,height:1100});}
   await page.reload();assert.equal(await page.$eval('html',e=>e.dataset.appearance),'dark','manual choice survives reload');
   await page.click('#accountBtn');await page.click('#accountPanel [data-appearance-option="system"]');
   await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:'dark'}]);
@@ -51,6 +56,23 @@ module.exports=async function(){
   await page.click('#accountBtn');
   for(const mode of ['MA','MS','FAIRY','BLITZ','BEIDA','OF','PREPLY']){
    await page.click('input[name="protocol"][value="'+mode+'"]');
+   if(mode==='MS'){
+    const washTransition=await page.$eval('body',e=>{
+     getComputedStyle(e).getPropertyValue('--workspace-wash');
+     const a=e.getAnimations().find(a=>a.transitionProperty==='--workspace-wash');if(!a)return null;
+     a.pause();a.currentTime=0;const start=getComputedStyle(e).getPropertyValue('--workspace-wash');
+     a.currentTime=325;const middle=getComputedStyle(e).getPropertyValue('--workspace-wash');
+     a.currentTime=650;const end=getComputedStyle(e).getPropertyValue('--workspace-wash');a.finish();
+     return {start,middle,end,duration:a.effect.getTiming().duration};
+    });
+    assert.ok(washTransition,'protocol changes crossfade the ambient colour');assert.equal(washTransition.duration,650);
+    assert.notEqual(washTransition.middle,washTransition.start);assert.notEqual(washTransition.middle,washTransition.end,'ambient colour interpolates instead of jumping');
+   }
+   await page.waitForFunction(()=>!document.body.getAnimations().some(a=>a.transitionProperty==='--workspace-wash'));
+   const ambient=await page.$eval('body',e=>{const s=getComputedStyle(e);return {rgb:s.getPropertyValue('--toxin-rgb').trim(),wash:s.getPropertyValue('--workspace-wash'),image:s.backgroundImage,base:s.backgroundColor,animation:s.animationName};});
+   assert.equal(ambient.base,'rgb(245, 245, 242)');assert.equal(ambient.animation,'none');
+   assert.ok(ambient.wash.replace(/\s/g,'').includes(ambient.rgb.replace(/\s/g,'')),mode+' ambient wash uses its own protocol colour');
+   assert.equal((ambient.image.match(/radial-gradient/g)||[]).length,2);
    await page.waitForFunction(()=>['#krispNotes','#teacherName','#lengthFormatSelect>label:not(:has(input:checked))'].every(s=>getComputedStyle(document.querySelector(s)).borderTopColor==='rgb(135, 153, 140)'));
    await page.waitForFunction(()=>!document.querySelector('.mode-badge').getAnimations().some(a=>a.playState==='running'));
    const colors=await page.evaluate(()=>{
@@ -75,6 +97,7 @@ module.exports=async function(){
    await page.evaluate(()=>document.fonts.ready);
    await page.waitForFunction(()=>document.getElementById('kbLogo').complete&&!document.getElementById('kbLogo').getAnimations().some(a=>a.playState==='running'));
    if(process.env.V2_APPEARANCE_SCREENSHOTS)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-brand-'+mode+'.png'),clip:{x:0,y:0,width:1440,height:460}});
+   if(process.env.V2_APPEARANCE_SCREENSHOTS&&['MA','MS'].includes(mode)){await page.setViewport({width:2560,height:1440});await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'ambient-light-'+mode+'-wide.png')});await page.setViewport({width:1440,height:1100});}
   }
   await page.click('input[name="protocol"][value="MA"]');
   await page.evaluate(()=>document.fonts.ready);

@@ -1,5 +1,18 @@
 /* Appearance is independent of protocol identity. Dark keeps its approved skin. */
 html{color-scheme:dark}
+/* A still, softly lit canvas. Only the colour changes with the protocol;
+   registered colour interpolation avoids snapping between gradient images. */
+@property --workspace-wash{syntax:"<color>";inherits:true;initial-value:transparent}
+html[data-appearance] body{
+ --workspace-wash:rgba(var(--toxin-rgb),.10);
+ background:
+  radial-gradient(ellipse clamp(420px,42vw,1100px) clamp(500px,75vh,1100px) at 0% 18%,var(--workspace-wash),transparent 78%),
+  radial-gradient(ellipse clamp(400px,38vw,1000px) clamp(500px,70vh,1000px) at 100% 88%,var(--workspace-wash),transparent 78%),
+  #101113;
+ background-attachment:fixed;
+ transition:--workspace-wash 650ms ease;
+}
+@media(prefers-reduced-motion:reduce){html[data-appearance] body{transition:none}}
 /* Keep the old snapshot solid underneath: the new skin dissolves over it
    without a white flash, a dark dip, movement or a temporary blank page. */
 ::view-transition,::view-transition-group(root),::view-transition-image-pair(root),::view-transition-old(root),::view-transition-new(root){pointer-events:none}
@@ -24,7 +37,7 @@ html[data-appearance="light"]{
  --skin-panel:#fff;--skin-inset:#f6f7f4;--skin-border:#d9ded9;--skin-control-border:#87998c;--skin-muted:#59665f;--skin-ink:#202a28;--skin-accent:#386719;
  --skin-shadow:0 8px 28px -18px #233a2826;--skin-float-shadow:0 20px 65px #213a2826;
 }
-html[data-appearance="light"] body{background:radial-gradient(ellipse 900px 500px at 50% 0%,rgba(var(--toxin-rgb),.025),transparent 70%),var(--bg);color:var(--text)}
+html[data-appearance="light"] body{--workspace-wash:rgba(var(--toxin-rgb),.065);background-color:var(--bg);color:var(--text)}
 html[data-appearance="light"] body.protocol-ms{--skin-accent:#98406e}
 html[data-appearance="light"] body.protocol-fairy{--skin-accent:#7248a3}
 html[data-appearance="light"] body.protocol-blitz{--skin-accent:#825813}
