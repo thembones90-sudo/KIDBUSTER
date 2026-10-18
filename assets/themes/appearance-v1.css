@@ -140,3 +140,24 @@ html[data-appearance="light"] .appearance-options{background:#edf0e9}
 html[data-appearance="light"] .appearance-options button{border-color:var(--skin-control-border)}
 html[data-appearance="light"] .appearance-options button[aria-pressed="true"]{background:#fff}
 @media(prefers-reduced-motion:reduce){.appearance-options button{transition:none}}
+/* Account is a compact settings panel, not a second workspace. Scope every
+   adjustment here so the report editor and sign-in dialog retain their scale. */
+html #accountPanel.account-panel{padding:20px}
+html #accountPanel .account-panel-head{margin-bottom:10px;gap:12px}
+html #accountPanel .account-title{font-size:20px;font-weight:600;line-height:1.3}
+html #accountPanel .account-summary{font-size:13px;line-height:1.45}
+html #accountPanel .account-grid{gap:8px;margin-bottom:10px}
+html #accountPanel .account-metric{padding:12px 14px}
+html #accountPanel .account-label{margin-bottom:4px}
+html #accountPanel .account-value{font-size:15px;font-weight:600;line-height:1.4}
+html #accountPanel .appearance-settings{margin:12px 0;padding:12px 0}
+html #accountPanel .appearance-settings h3{font-size:13px;margin-bottom:8px}
+html #accountPanel .appearance-hint{margin-top:7px}
+html #accountPanel .account-support{margin:10px 0}
+html #accountPanel .account-support>summary,html #accountPanel .owner-fold>summary{min-height:44px;padding:8px 0;box-sizing:border-box;font-size:13px}
+html #accountPanel .account-owner-tools{padding:0 14px;margin-bottom:10px}
+html #accountPanel .owner-fold[open]>summary{margin-bottom:12px}
+html #accountPanel .account-owner-tools .help-divider{margin:16px 0}
+html #accountPanel .account-actions{padding-top:12px;margin-top:14px;gap:8px}
+html #accountPanel .btn-secondary,html #accountPanel a.btn-secondary{min-height:44px}
+@media(max-width:560px){html #accountPanel.account-panel{padding:16px}}

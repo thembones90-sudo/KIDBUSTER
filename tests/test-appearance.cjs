@@ -49,6 +49,9 @@ module.exports=async function(){
   await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:'light'}]);
   await page.waitForFunction(()=>document.documentElement.dataset.appearance==='light');
   await page.evaluate(()=>window.appearanceTransitionDone);
+  // Reload above removes the test's transition promise wrapper. Wait for the
+  // real snapshot/colour transitions before clicking a moving account control.
+  await page.waitForFunction(()=>!document.getAnimations().some(a=>(a.animationName==='appearance-dissolve'||a.transitionProperty)&&a.playState==='running'));
   await page.click('#accountPanel [data-appearance-option="light"]');
   await page.waitForFunction(()=>document.documentElement.dataset.appearanceChoice==='light');
   await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:'dark'}]);
