@@ -49,10 +49,16 @@ module.exports=async function(){
   await page.click('#accountBtn');
   for(const mode of ['MA','MS','FAIRY','BLITZ','BEIDA','OF','PREPLY']){
    await page.click('input[name="protocol"][value="'+mode+'"]');
+   await page.waitForFunction(()=>['#krispNotes','#teacherName','#lengthFormatSelect>label:not(:has(input:checked))'].every(s=>getComputedStyle(document.querySelector(s)).borderTopColor==='rgb(135, 153, 140)'));
    const colors=await page.evaluate(()=>{
-    const c=s=>getComputedStyle(document.querySelector(s));return {panel:c('.grid .panel').backgroundColor,input:c('#krispNotes').backgroundColor,text:c('#krispNotes').color};
+    const c=s=>getComputedStyle(document.querySelector(s));return {panel:c('.grid .panel').backgroundColor,input:c('#krispNotes').backgroundColor,text:c('#krispNotes').color,
+     fieldBorder:c('#krispNotes').borderTopColor,fieldWidth:c('#krispNotes').borderTopWidth,
+     identityBorder:c('#teacherName').borderTopColor,pillWidth:c('#protocolSelect>label').borderTopWidth,
+     idleLengthBorder:c('#lengthFormatSelect>label:not(:has(input:checked))').borderTopColor};
    });
    assert.equal(colors.panel,'rgb(255, 255, 255)',mode+' has white panels');assert.equal(colors.input,'rgb(246, 247, 244)');assert.equal(colors.text,'rgb(32, 42, 40)');
+   assert.equal(colors.fieldBorder,'rgb(135, 153, 140)',mode+' fields have discernible outlines');assert.equal(colors.identityBorder,colors.fieldBorder);
+   assert.equal(colors.idleLengthBorder,colors.fieldBorder);assert.equal(colors.fieldWidth,'1px');assert.equal(colors.pillWidth,'1px','outlines do not thicken or resize pills');
   }
   await page.click('input[name="protocol"][value="MA"]');
   await page.evaluate(()=>document.fonts.ready);
