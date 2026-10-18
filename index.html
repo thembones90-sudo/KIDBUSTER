@@ -8201,6 +8201,8 @@ document.getElementById('protocolSelect').addEventListener('change', (e) => {
   buildRatingTrack();
   if(e.target.value==='OF'&&!copyBtn.disabled&&!outputBox.classList.contains('error')) renderReportToOutput(outputBox.textContent);
   checkAndShowTrialStatus(e.target.value);
+  saveWorkspacePreferences();
+  saveDraft();
 });
 
 // Shown when switching to a trial-based protocol (anything except
@@ -8266,6 +8268,7 @@ function updateLengthFormatCaption(){
 }
 document.getElementById('lengthFormatSelect').addEventListener('change', () => {
   updateLengthFormatCaption();
+  saveWorkspacePreferences();
   saveDraft();
 });
 updateLengthFormatCaption();
@@ -8287,6 +8290,31 @@ clearBtn.addEventListener('click', resetWorkspace);
 
 // ---------- draft persistence (this browser only) ----------
 const DRAFT_KEY = 'kidbuster_draft_v1';
+// Mode preferences belong to the browser, not to a disposable student draft.
+const WORKSPACE_PREFERENCES_KEY = 'pathfinder_workspace_preferences_v1';
+function saveWorkspacePreferences(){
+  const form = readFormState();
+  try{ localStorage.setItem(WORKSPACE_PREFERENCES_KEY, JSON.stringify({protocol:form.protocol,lengthFormat:form.lengthFormat})); }catch(e){ /* storage unavailable */ }
+}
+function restoreWorkspacePreferences(){
+  let preferences = null;
+  try{ preferences = JSON.parse(localStorage.getItem(WORKSPACE_PREFERENCES_KEY)); }catch(e){ /* invalid or unavailable storage */ }
+  const previousProtocol = readFormState().protocol;
+  if(preferences && typeof preferences === 'object'){
+    ['protocol','lengthFormat'].forEach(name => {
+      // Accept only a real radio value; stored data never becomes a selector.
+      const radio = Array.from(document.getElementsByName(name)).find(input => input.value === preferences[name]);
+      if(radio) radio.checked = true;
+    });
+  }
+  if(readFormState().protocol !== previousProtocol){
+    setProtocolBadge(readFormState().protocol);
+    buildRatingTrack();
+  }
+  updateLengthFormatCaption();
+  // Adopt an older draft's settings once, then keep preferences independent.
+  saveWorkspacePreferences();
+}
 // The teacher's own identity outlives every lesson: resetting the workspace or
 // moving to the next student deletes the draft, never the teacher's name.
 const TEACHER_IDENTITY_KEY = 'pathfinder_teacher_identity_v1';
@@ -8646,6 +8674,7 @@ function restoreDraft(){
 }
 
 restoreDraft();
+restoreWorkspacePreferences();
 </script>
 
 <script>
