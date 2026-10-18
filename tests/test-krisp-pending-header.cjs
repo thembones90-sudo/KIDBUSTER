@@ -81,6 +81,15 @@ module.exports=async function(){
     assert.equal(await page.$$eval('#krispInboxPanel .krisp-pending-card',els=>els.length),2);
     assert.equal(await page.$eval('#krispIntegrationPanel',e=>e.matches(':popover-open')),false);
     assert.deepEqual(state.actions,[],'opening inbox is read-only');
+    await page.click('#krispPendingBtn .krisp-envelope-icon');
+    assert.equal(await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')),false,'second click on the envelope closes the inbox');
+    await page.waitForFunction(()=>document.getElementById('krispPendingBtn').getAttribute('aria-expanded')==='false');
+    await page.click('#krispPendingBtn');
+    assert.equal(await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')),true,'third click reopens the inbox');
+    await page.focus('#krispPendingBtn');await page.keyboard.press('Enter');
+    assert.equal(await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')),false,'keyboard activation also toggles closed');
+    await page.keyboard.press('Space');
+    assert.equal(await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')),true,'Space reopens the inbox');
     state.pending[1]=item('arrival-open');await page.evaluate(()=>window.testKrispPoll());
     assert.equal(await page.$eval('#krispPendingBtn',e=>getComputedStyle(e).animationName),'krispInboxBreathing');
     await page.click('#krispInboxPanel .krisp-insert-btn');
@@ -111,6 +120,13 @@ module.exports=async function(){
     for(const width of [1440,1024,768,390,320]){
       await page.setViewport({width,height:1000});
       await page.evaluate(()=>window.dispatchEvent(new Event('resize')));
+      for(const skin of ['dark','light']){
+        await page.evaluate(skin=>document.documentElement.dataset.appearance=skin,skin);
+        await page.click('#krispPendingBtn');
+        assert.equal(await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')),false,skin+' empty inbox toggles closed at '+width);
+        await page.click('#krispPendingBtn');
+        assert.equal(await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')),true,skin+' empty inbox reopens at '+width);
+      }
       const heights=await page.$$eval('.header-actions>button.account-btn',els=>els.filter(e=>!e.hidden).map(e=>e.getBoundingClientRect().height));
       assert.ok(Math.max(...heights)-Math.min(...heights)<1,'all header pills share a height at '+width);
       const layout=await page.evaluate(()=>{const r=document.getElementById('krispInboxPanel').getBoundingClientRect();return {left:r.left,right:r.right,overflow:document.documentElement.scrollWidth-innerWidth};});

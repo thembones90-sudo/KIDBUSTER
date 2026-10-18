@@ -10010,18 +10010,18 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     if(pendingBtn && pendingBtn.dataset.wired !== 'true'){
       pendingBtn.dataset.wired = 'true';
       var inbox = document.getElementById('krispInboxPanel');
+      // A native invoker keeps light-dismiss from closing on pointerdown and
+      // our click reopening the same inbox. It also handles Enter and Space.
+      pendingBtn.setAttribute('popovertarget','krispInboxPanel');
+      pendingBtn.setAttribute('popovertargetaction','toggle');
       document.getElementById('krispInboxContent').appendChild(document.getElementById('krispPendingWrap'));
       inbox.addEventListener('toggle',function(){
         var open = inbox.matches(':popover-open');
         pendingBtn.setAttribute('aria-expanded',String(open));
+        if(open){positionKrispInbox();refreshKrispSession();}
       });
       document.getElementById('krispInboxClose').addEventListener('click',function(){inbox.hidePopover();pendingBtn.focus();});
       window.addEventListener('resize',positionKrispInbox);
-      pendingBtn.addEventListener('click',function(){
-        if(inbox.matches(':popover-open')){inbox.hidePopover();return;}
-        inbox.showPopover(); positionKrispInbox();
-        refreshKrispSession();
-      });
     }
     var integrationBtn = document.getElementById('krispIntegrationBtn');
     if(integrationBtn && integrationBtn.dataset.wired !== 'true'){
