@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pathfinder</title>
+<script>
+// The public V2 preview URL was shared with real customers before launch.
+// Move those visitors to the LIVE V2 origin before creating any account,
+// checkout or browser-local session. Do not forward old staging tokens.
+if (location.hostname === "pathfinder-v2-staging-preview.vercel.app") {
+  location.replace("https://kidbuster.vercel.app/");
+}
+</script>
 <script src="assets/themes/appearance-v1.js?v=school-watermarks2"></script>
 <link rel="stylesheet" href="assets/themes/appearance-v1.css?v=school-watermarks2">
 <link rel="stylesheet" href="assets/owner-usage-stats.css?v=1">

@@ -24,10 +24,15 @@ The public preview should never imply it accepts ordinary cards:
 - POST /api/create-checkout-session from anonymous noncustomer test request: HTTP 409 before reaching provider.
 - Real headless browser: warning visible; account Upgrade button navigates to `kidbuster.vercel.app`; zero staging checkout API requests.
 - Focused `test-staging-payment-safety.cjs`: six checks pass.
-- Complete isolated `npm test` run: **all 87 test files passed**.
+- First mitigation: 87/87 test files passed. Final V2 customer-link redirect: **all 88 test files passed** (npm test exit 0).
 
 ## Customer recovery
 Share ONLY `https://kidbuster.vercel.app/` as the selling site. Customer signs in/registers there, then clicks Pro upgrade. Discard the former test-checkout URL. If the customer reports the same error from that exact live site, obtain the **non-sensitive hostname/path** from their checkout address bar (not card details or session tokens) and escalate; production provider integration has not yet been confirmed by a real paid transaction.
 
 ## Limitations
 A mode mismatch on production is not proven impossible merely because IDs match. Verified live payment acceptance, final payment settlement, and subscription activation require a real approved purchase and webhook confirmation. The preview safety mitigation specifically addresses accidental test-mode checkouts, without asserting a real payment has succeeded.
+
+## Follow-up: make the shared customer V2 URL live (2026-10-19)
+The public alias `https://pathfinder-v2-staging-preview.vercel.app/` was still being shared with prospective customers, and the existing warning/upgrade-button guard did not avoid a user signing up on the test environment first. The customer-facing fix now runs at the very beginning of index.html: if and only if the hostname is this exact shared alias, navigate using `location.replace('https://kidbuster.vercel.app/')`, discarding old staging query parameters and tokens. All registration, saved keys, checkout, and post-payment activation then happen on one LIVE V2 origin with LIVE licensing/billing KV. Other immutable test-preview URLs continue in preview mode with hard server-side 409 blocking paid checkout.
+
+Verification: real Chrome visited the shared alias with a synthetic staging token parameter, navigated to live `kidbuster.vercel.app`, discarded the entire old query, showed the V2 Owner Tools/upgrade elements, and had no page JavaScript errors. A synthetic owner-controlled Free license on the live site successfully requested a hosted Lemon Squeezy checkout: provider checkout generation HTTP 200 and real Chrome hosted page title "Pathfinder Pro - Checkout" HTTP 200, without a visible test-mode warning. A bare automated HTTP fetch of the hosted checkout returned 404, so browser verification is authoritative for this JS-heavy checkout. **No real card was charged and no successful LIVE subscription webhook activation is claimed.** This redirects customers away from test mode; actual charge/Pro lifecycle certification still requires a permitted real payment.
