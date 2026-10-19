@@ -2954,8 +2954,11 @@ const KidbusterCore = (function(){
 • Teacher questions, suggestions and modeled sentences are not student accomplishments. Never credit the student with something only the teacher said.
 • Credit the student only with words the student said. If a word or sentence appears only in a Teacher line, the student practised it with support — never write that the student said, repeated, built or knew it.
 • Never describe facial expressions, smiles, laughter, tone of voice, gestures, body language or feelings. A transcript cannot show them.
-• Transcript lines are labelled Teacher: and Student: from automatic speaker detection. A line labelled Unclear: holds words that speech-to-text placed at a speaker change; either speaker may have said them. Never credit Unclear words to the student (do not quote the student's sentence as if it included them), and never use them as evidence that the student failed to finish.
+• Transcript lines are usually labelled Teacher: and Student: from automatic speaker detection, sometimes after the elapsed lesson time (for example "[12:34] Student:"). Time markers only show where in the lesson something was said; never quote them. A line labelled Unclear: holds words that speech-to-text placed at a speaker change; either speaker may have said them. Never credit Unclear words to the student (do not quote the student's sentence as if it included them), and never use them as evidence that the student failed to finish. When lines carry no speaker labels, credit words to the student only when the context makes it unmistakable.
+• Read the whole lesson before deciding what matters. The last topic, the longest topic or the most practical task is not automatically the most important; lessons often end with planning or practical next steps. Weigh everything discussed or practised across the lesson by its significance to the student and to their learning.
 • Homework, practice ideas and next steps are your recommendations. Never state they were assigned, agreed or completed unless the lesson evidence says so.
+• Requests and agreements keep exactly the scope the lesson gives them. Report what the teacher actually asked for and what the student actually agreed to; never make it more specific (a request to "send some ideas" is not a request to "send an outline") and never add a deadline, format or amount that was not stated.
+• Fragmented or garbled stretches of transcript are weak evidence. Rely on the clearer parts of the lesson and never build a central claim on a passage that can only be partly read.
 • Never promise or guarantee results ("will definitely", "will click into place", "will soon master"). Recommend instead ("more practice with X would help").
 • Model correct, standard English. If the teacher used nonstandard phrasing (for example "very good" used as an adverb), never reproduce it as a model sentence, vocabulary note or grammar example; use the correct form.
 • Never present a sentence with an error as an example or achievement, even when the student really said it. Give the corrected sentence instead and say it was practised (for example: practised "I can kick the ball very well").
@@ -3817,11 +3820,29 @@ Love, Teacher [Name]` + '\n\n─────────────────
     return result + '\n\nOPTIONAL TEACHER SIGNATURE OVERRIDE (explicit choice in the app; only for this report):\n' + instruction;
   }
 
+  // Role labels are evidence, not noise: without them the model cannot tell
+  // what the student said from what the teacher asked. A transcript whose
+  // lines are consistently labelled Teacher/Student keeps them, normalised to
+  // "Teacher:"/"Student:" with bounded consecutive turns merged. RADAR VAN
+  // lines ("[12:34] STUDENT: ...") keep elapsed times at segment starts.
+  // Unlabelled content within a labelled transcript becomes Unclear rather
+  // than silently inheriting a speaker; legacy unlabelled transcripts retain
+  // their original cleaning behaviour.
+  const RADAR_ROLE_LINE = /^\s*\[(\d{2,3}:[0-5]\d)\][ \t]+(TEACHER|STUDENT|UNCLEAR):[ \t]*/i;
+  const PLAIN_ROLE_LINE = /^\s*(teacher|tutor|student|unclear)\s*:[ \t]*(?=\S)/i;
+  function roleOf(label){ return /^student$/i.test(label) ? 'Student' : /^unclear$/i.test(label) ? 'Unclear' : 'Teacher'; }
+  function roleLabelledMode(lines){
+    if(lines.filter(l => RADAR_ROLE_LINE.test(l)).length >= 3) return 'radar';
+    const plain = lines.map(l => l.match(PLAIN_ROLE_LINE)).filter(Boolean).map(m => roleOf(m[1]));
+    return plain.length >= 3 && plain.includes('Teacher') && plain.includes('Student') ? 'plain' : null;
+  }
+
   function cleanTranscript(rawText){
     if(!rawText) return '';
 
     let text = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     let lines = text.split('\n');
+    const labelled = roleLabelledMode(lines);
 
     // Timestamps: only strip when they are clearly a transcript marker —
     // either the entire line is just a timestamp, or it's a bracketed/
@@ -3844,6 +3865,34 @@ Love, Teacher [Name]` + '\n\n─────────────────
     // Lines that are pure punctuation/symbol noise with no real content
     // (e.g. a stray "---", "...", "###" left over from export formatting).
     const symbolOnlyLinePattern = /^[\s\-_=~*#>.]{1,}$/;
+    const isNoise = l => !l || wholeLineTimestampPattern.test(l) || systemNoiseLineOnly.test(l) || symbolOnlyLinePattern.test(l);
+
+    if(labelled){
+      const turns = [];
+      for(const line of lines){
+        const radar = labelled === 'radar' ? line.match(RADAR_ROLE_LINE) : null;
+        const plain = radar ? null : line.match(PLAIN_ROLE_LINE);
+        let body = radar ? line.slice(radar[0].length) : plain ? line.slice(plain[0].length) : line;
+        if(!radar && !plain) body = body.replace(leadingBracketedTimestampPattern, '');
+        body = body.replace(systemNoiseInline, '').replace(/[ \t]{2,}/g, ' ').trim();
+        if(isNoise(body)) continue;
+        // An unlabelled line in an otherwise labelled transcript is NOT
+        // automatically the previous speaker. Preserve uncertainty instead
+        // of silently crediting their words to a student or teacher.
+        const role = radar ? roleOf(radar[2]) : plain ? roleOf(plain[1]) : 'Unclear';
+        const prev = turns[turns.length - 1];
+        if(prev && role === prev.role && prev.last.toLowerCase() === body.toLowerCase()) continue;
+        // Join short contiguous fragments for readability, but keep bounded
+        // segments and their starting timestamps for long lessons.
+        if(prev && role === prev.role && prev.body.length + body.length + 1 <= 550){
+          prev.body += ' ' + body;
+          prev.last = body;
+          continue;
+        }
+        turns.push({ role, time: radar ? radar[1] : '', body, last: body });
+      }
+      return turns.map(t => (t.role ? (t.time ? '[' + t.time + '] ' : '') + t.role + ': ' : '') + t.body).join('\n').trim();
+    }
 
     lines = lines.map(line => {
       let l = line;
@@ -5138,24 +5187,55 @@ conversation going even when you couldn't immediately find the
 vocabulary you wanted." If a sentence could be true of almost any
 student, it isn't specific enough yet.
 
+LESSON UNDERSTANDING
+Before writing, in your own reasoning and never in the message, read the
+entire lesson from start to finish and work out what happened in it:
+1. Map it: what was discussed or practised, roughly in order, and how much
+   of the lesson each part took. Position is not importance — lessons
+   often end with planning, homework or a practical task, and the final
+   topic is not automatically the main one.
+2. Connect it: do several parts share a genuine thread, such as the student
+   returning to the same value, worry or goal from different directions?
+   Count a thread only when the student's own words in more than one part
+   of the lesson support it. Many lessons have none — a grammar lesson is
+   a grammar lesson, and a conversation can simply cover unrelated
+   subjects. Never invent depth to sound insightful.
+3. Separate the evidence: what the student said (their views, experiences,
+   goals), what you asked or suggested, what can reasonably be inferred,
+   and what is unclear because the transcript is damaged.
+4. Language: how the student used English across the whole lesson — one
+   strength shown with evidence, and the development point that matters
+   most for what they are working towards.
+5. Next steps: what was explicitly asked or agreed, at exactly the scope
+   the lesson gave it; anything else is your own recommendation and is
+   worded as one.
+Then select. A short message cannot hold everything: choose what shows you
+understood this lesson and this student — what made it distinctive, what
+they communicated, how they used English, and what comes next. Insight
+beats coverage; a message that captures the heart of the lesson is better
+than a chronology of every topic.
+
 CENTRAL OBSERVATION RULE
 Every report is built around exactly ONE central observation about the
-student — not three, not five. Before writing, decide: what is today's
-single biggest takeaway about this student? (Examples: growing
-confidence, fluency under pressure, vocabulary retrieval, sentence
-organization, pronunciation.) Everything else in the report supports and
-illustrates that one observation; it doesn't compete with it by
-introducing unrelated ones. A report listing several disconnected
-observations reads like a checklist. A report built around one clear
-thread reads like a tutor who was genuinely paying attention.
+student — not three, not five — taken from the understanding step. In a
+conversation lesson it may be the genuine thread running through what the
+student talked about, tied to how they expressed it; in a skills lesson it
+is the main development (examples: growing confidence, fluency under
+pressure, vocabulary retrieval, sentence organization, pronunciation).
+Never let one segment of the lesson stand in for the whole lesson.
+Everything else in the report supports and illustrates that one
+observation; it doesn't compete with it by introducing unrelated ones. A
+report listing several disconnected observations reads like a checklist.
+A report built around one clear thread reads like a tutor who was
+genuinely paying attention.
 
 COACHING RULE
 Write like a tutor coaching a student's development, not an evaluator
 scoring a performance.
-- Prefer a connected narrative over a list. "Our conversation naturally
-  moved from X into Y before ending up discussing Z" reads like someone
-  remembering the lesson; "Today we discussed X, Y, and Z" reads like an
-  agenda.
+- Prefer a connected narrative over a list, connected by what the ideas
+  meant to the student rather than by the order they came up. "Today we
+  discussed X, Y, and Z" reads like an agenda; a walk through the lesson
+  minute by minute reads like a log.
 - Reframe corrections as a development path, not a verdict. Instead of
   "Your grammar tends to fragment," prefer "One pattern I noticed today
   is that when you're searching for vocabulary, your sentence structure
@@ -5204,9 +5284,11 @@ colleague's clear note than a warm personal letter.
 Length: 100-170 words.
 
 Write directly to the student, in second person ("you"). Reference what
-was practiced, one specific strength shown with evidence, and — only if
-the evidence supports it — one specific thing worth continuing to work
-on. Close with a brief, natural look ahead to the next lesson. No formal
+the lesson was really about — what you talked about or practised, and the
+thread connecting it when there genuinely is one — one specific strength
+shown with evidence, and — only if the evidence supports it — one specific
+thing worth continuing to work on. Close with a brief, natural look ahead
+to the next lesson. No formal
 sign-off or teacher name needed — this is a continuing conversation
 between two people who already know each other, not a signed report.`
     },

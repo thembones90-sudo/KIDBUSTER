@@ -60,7 +60,7 @@ module.exports = function run(){
     check('CENTRAL OBSERVATION RULE section exists', prompt.includes('CENTRAL OBSERVATION RULE'));
     check('explicitly says ONE observation, not several', /exactly ONE central observation/i.test(prompt));
     check('COACHING RULE section exists', prompt.includes('COACHING RULE'));
-    check('instructs connected narrative over a list ("naturally moved from")', /naturally\s+moved from/i.test(prompt));
+    check('instructs a meaning-connected narrative rather than chronological recap', /connected by what the ideas\s+meant to the student/i.test(prompt));
     check('instructs reframing corrections as a development path, not a verdict', /development path, not a verdict/i.test(prompt));
     check('instructs connecting strength to next step (not listing them separately)', prompt.includes('growing out of the strength'));
     check('instructs occasional reference to the shared teacher/student moment', /collaborative\s+interaction/i.test(prompt));
