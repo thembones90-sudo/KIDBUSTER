@@ -27,9 +27,22 @@ module.exports=async function(){
   assert.equal(await page.evaluate(()=>window.copiedParts.length),0,'split reports never auto-copy only one half');
   assert.equal(await page.$eval('#copyBtn',e=>e.hidden),true);
   await page.click('#copyOFStrengthsBtn');await page.click('#copyOFFollowupBtn');
-  assert.deepEqual(await page.evaluate(()=>window.copiedParts),[parsed.split.strengths,parsed.split.followup]);
+  assert.deepEqual(await page.evaluate(()=>window.copiedParts),['Sam practised fruit vocabulary. He answered with support.','He needs more sentence practice.\n\nPractise naming fruit.\n\nCheers,\nTeacher Nora']);
+  assert.ok(await page.$eval('#outputBox',e=>e.textContent.startsWith('Strengths')),'headings remain visible for navigation');
+  assert.match(await page.$eval('#protocolBadge',e=>e.textContent),/Lingo Ace/);
+  const cleaned=await page.evaluate(()=>({bold:cleanLingoAceCopy('**Strengths**:\r\n\r\nWe discussed Areas for Improvement in class.'),closing:cleanLingoAceCopy('Learning Suggestions\n\nPractise daily.\n\nCheers,\nTeacher Nora 🐺')}));
+  assert.equal(cleaned.bold,'We discussed Areas for Improvement in class.');
+  assert.equal(cleaned.closing,'Practise daily.\n\nCheers,\nTeacher Nora 🐺','closing and custom emoji are preserved verbatim');
   await page.$eval('#ofFollowupBox',e=>e.textContent+='\nEdited by teacher.');await page.click('#copyOFFollowupBtn');
   assert.ok((await page.evaluate(()=>window.copiedParts.at(-1))).endsWith('Edited by teacher.'),'copy uses editable current text');
+  const fallback=await page.evaluate(async()=>{
+   const original=navigator.clipboard.writeText,exec=document.execCommand;let copied='';
+   navigator.clipboard.writeText=async()=>{throw Error('Synthetic clipboard denial');};
+   document.execCommand=()=>{copied=document.activeElement.value;return true;};
+   const source=document.getElementById('ofFollowupBox');await copyOutputToClipboard(source,document.getElementById('copyOFFollowupBtn'),cleanLingoAceCopy(source.textContent));
+   navigator.clipboard.writeText=original;document.execCommand=exec;return copied;
+  });
+  assert.ok(!fallback.includes('Learning Suggestions'));assert.ok(fallback.includes('Cheers,\nTeacher Nora'),'legacy clipboard keeps the closing too');
   await page.click('input[name="protocol"][value="MA"]');
   assert.equal(await page.$eval('#ofFollowupField',e=>e.hidden),true);
   assert.ok((await page.$eval('#outputBox',e=>e.textContent)).endsWith('Edited by teacher.'),'switch preserves both halves and edits');

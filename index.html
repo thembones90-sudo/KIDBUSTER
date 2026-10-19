@@ -2503,7 +2503,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
             <label><input type="radio" name="protocol" value="FAIRY"> Fairy <span class="protocol-lollipop" aria-hidden="true">&#129498;</span><span class="info-icon" tabindex="0" data-tooltip="Sugarcoat-family subprotocol using the older Fairy command chain.">?</span></label>
             <label><input type="radio" name="protocol" value="BLITZ"> Blitz <span class="protocol-lightning" aria-hidden="true">&#9889;</span><span class="info-icon" tabindex="0" data-tooltip="Short, neutral comment for quick platform feedback. No rating-based tone shifts.">?</span></label>
             <label><input type="radio" name="protocol" value="BEIDA"> Beida <span class="protocol-lion" aria-hidden="true">&#129409;</span><span class="info-icon" tabindex="0" data-tooltip="Two-field comment matching the BetaKid platform's own form: Learning Content + General Performance.">?</span></label>
-            <label><input type="radio" name="protocol" value="OF"> OF Protocol<span class="info-icon" tabindex="0" data-tooltip="3-section narrative for trial-lesson evaluations — not a regular lesson report.">?</span></label>
+            <label><input type="radio" name="protocol" value="OF"> Lingo Ace<span class="info-icon" tabindex="0" data-tooltip="3-section narrative for Lingo Ace trial-lesson evaluations — not a regular lesson report.">?</span></label>
             <label><input type="radio" name="protocol" value="PREPLY"> Preply <span class="protocol-preply-icon" aria-hidden="true">&#128172;</span><span class="info-icon" tabindex="0" data-tooltip="Personal messages for private tutors — Adult, Parent, or Trial follow-up. Not a lesson report.">?</span></label>
           </div>
         </div>
@@ -5518,7 +5518,7 @@ because it's about a single lesson.`
     },
     OF: {
       key: 'OF',
-      label: 'OF Protocol (Trial Evaluation)',
+      label: 'Lingo Ace (Trial Evaluation)',
       buildSystemPrompt: buildOFSystemPrompt,
       // Wrapped (rather than referencing analyzeOFOutput directly) so the
       // 5th positional arg — studentGender, meaningful only to OF — maps
@@ -7507,10 +7507,16 @@ function selectOutputText(el){
   }catch(e){ /* selection not available, nothing more we can do */ }
 }
 
-async function copyOutputToClipboard(sourceEl, btnEl){
+function cleanLingoAceCopy(text){
+  // Headings remain visible in Pathfinder, but the school's form already
+  // supplies them. Remove only standalone headings, never narrative mentions.
+  return text.replace(/\r\n?/g,'\n').replace(/^[ \t]*(?:\*\*|__)?(?:Strengths|Areas for Improvement|Learning Suggestions)(?:\*\*|__)?[ \t]*:?[ \t]*$/gmi,'')
+    .replace(/\n[ \t]*\n(?:[ \t]*\n)+/g,'\n\n').trim();
+}
+async function copyOutputToClipboard(sourceEl, btnEl, textOverride){
   const source = sourceEl || outputBox;
   const btn = btnEl || copyBtn;
-  const text = source.textContent;
+  const text = typeof textOverride === 'string' ? textOverride : source.textContent;
 
   // 1) Modern Clipboard API — works in a normal browser tab, often blocked
   // inside sandboxed preview iframes without clipboard-write permission.
@@ -8282,8 +8288,8 @@ document.getElementById('preplyModuleSelect').addEventListener('change', () => {
 });
 
 copyBtn.addEventListener('click', () => copyOutputToClipboard(outputBox, copyBtn));
-document.getElementById('copyOFStrengthsBtn').addEventListener('click',()=>copyOutputToClipboard(outputBox,document.getElementById('copyOFStrengthsBtn')));
-document.getElementById('copyOFFollowupBtn').addEventListener('click',()=>copyOutputToClipboard(document.getElementById('ofFollowupBox'),document.getElementById('copyOFFollowupBtn')));
+document.getElementById('copyOFStrengthsBtn').addEventListener('click',()=>copyOutputToClipboard(outputBox,document.getElementById('copyOFStrengthsBtn'),cleanLingoAceCopy(outputBox.textContent)));
+document.getElementById('copyOFFollowupBtn').addEventListener('click',()=>{const source=document.getElementById('ofFollowupBox');copyOutputToClipboard(source,document.getElementById('copyOFFollowupBtn'),cleanLingoAceCopy(source.textContent));});
 document.getElementById('copyBeidaPerformanceBtn').addEventListener('click', () => copyOutputToClipboard(document.getElementById('beidaPerformanceBox'), document.getElementById('copyBeidaPerformanceBtn')));
 
 clearBtn.addEventListener('click', resetWorkspace);

@@ -161,7 +161,7 @@ module.exports = async function run(){
     check('protocol armory retains seven native radio cards',armory.protocolCards===7&&armory.nativeRadios===7&&armory.protocolDisplay==='grid');
     const balanced=await page.evaluate(()=>{const cards=[...document.querySelectorAll('#protocolSelect>label')];const preply=cards[6];const of=cards[5];const grid=getComputedStyle(document.getElementById('protocolSelect'));return {preplySpan:getComputedStyle(preply).gridColumnEnd,preplyWidth:Math.round(preply.getBoundingClientRect().width),gridWidth:Math.round(document.getElementById('protocolSelect').getBoundingClientRect().width),ofTitle:of.textContent.replace('?', '').trim(),columns:grid.gridTemplateColumns.split(' ').length}});
     check('seven protocols form a balanced 2-2-2-1 card layout',balanced.columns===2&&balanced.preplyWidth>=balanced.gridWidth-2);
-    check('OF Protocol has a compact visible title',balanced.ofTitle==='OF Protocol');
+    check('Lingo Ace has a compact visible title',balanced.ofTitle==='Lingo Ace');
     check('report-length armory retains three native radio tiles',armory.lengthTiles===3&&armory.lengthDisplay==='grid');
     check('amber onboarding entry is clearly labeled',armory.helpLabel==='New here? Start here');
     const onboarding=await page.evaluate(async()=>{
@@ -289,7 +289,7 @@ module.exports = async function run(){
     { value: 'FAIRY', bodyClass: 'protocol-fairy', label: 'Fairy' },
     { value: 'BLITZ', bodyClass: 'protocol-blitz', label: 'BLITZ', hasBolt: true },
     { value: 'BEIDA', bodyClass: 'protocol-beida', label: 'Beida 🦁' },
-    { value: 'OF',    bodyClass: 'protocol-of', label: 'OF Protocol (Trial Evaluation)' }
+    { value: 'OF',    bodyClass: 'protocol-of', label: 'Lingo Ace (Trial Evaluation)' }
   ];
 
   const seenBackgrounds = new Set();

@@ -97,7 +97,7 @@ module.exports = async function run(){
     { value: 'FAIRY', label: 'Fairy', bodyClass: 'protocol-fairy' },
     { value: 'BLITZ', label: 'BLITZ', bodyClass: 'protocol-blitz', selector: '#protocolBadge .blitz-bolt' },
     { value: 'BEIDA', label: 'Beida 🦁', bodyClass: 'protocol-beida' },
-    { value: 'OF', label: 'OF Protocol (Trial Evaluation)', bodyClass: 'protocol-of' },
+    { value: 'OF', label: 'Lingo Ace (Trial Evaluation)', bodyClass: 'protocol-of' },
     { value: 'PREPLY', label: 'Preply', bodyClass: 'protocol-preply' }
   ];
 

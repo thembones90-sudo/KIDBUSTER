@@ -66,7 +66,7 @@ const PROTOCOL_LABELS = {
   FAIRY: 'Fairy',
   BLITZ: 'Blitz',
   BEIDA: 'Beida',
-  OF: 'OF Protocol',
+  OF: 'Lingo Ace',
   PREPLY: 'Preply'
 };
 
