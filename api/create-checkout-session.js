@@ -20,6 +20,15 @@ export default async function handler(req, res){
   const action = req.body?.action === 'manage-billing' ? 'manage-billing' : 'checkout';
   const authKey = String(req.headers?.['x-app-key'] || '').trim();
 
+  // Public preview deployments use a test payment catalogue. Never offer a
+  // test-mode checkout as though it could accept a customer's real card.
+  if(action === 'checkout' && process.env.VERCEL_ENV === 'preview'){
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(409).json({
+      error: 'This is a test preview, not a live payment site. For a real subscription, open https://kidbuster.vercel.app and sign in there.'
+    });
+  }
+
   try{
     if(!authKey){
       if(providedLicenseKey){
