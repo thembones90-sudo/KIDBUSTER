@@ -67,16 +67,27 @@ function tokenMappingKey(token){
 // validated by the caller (checkEntitlement/isFounderLicenseKey) --
 // this function does no validation of its own, by design, so it can't
 // be called with an unvalidated identity from anywhere in this file.
-export async function getOrCreateKrispToken(licenseKey){
-  // Fast path: an existing token needs no lock.
+// Only the one-time connection check verifies both directions of the mapping.
+// Normal 5-second inbox polls keep the cheap fast path, avoiding a second KV
+// lookup per poll. A missing reverse mapping must never be silently presented
+// as a working webhook URL after a datastore migration or interrupted write.
+async function tokenResolvesToLicense(token, licenseKey){
+  if(!isWellFormedKrispToken(token)) return false;
+  const record = await kv.get(tokenMappingKey(token));
+  return !!record && record.userIdentity === licenseKey;
+}
+
+export async function getOrCreateKrispToken(licenseKey, {verifyReverse = false} = {}){
   const existing = await kv.get(userMappingKey(licenseKey));
-  if(existing && existing.token){
+  if(existing && existing.token && (!verifyReverse || await tokenResolvesToLicense(existing.token, licenseKey))){
     return existing.token;
   }
   return withTokenLock(licenseKey, async () => {
-    // Re-check under the lock: another request may have created it meanwhile.
+    // Re-check inside the lock to avoid racing a normal regenerate/disconnect.
     const again = await kv.get(userMappingKey(licenseKey));
-    if(again && again.token) return again.token;
+    if(again && again.token && (!verifyReverse || await tokenResolvesToLicense(again.token, licenseKey))) return again.token;
+    // Issue a fresh secret, never revive a revoked one or erase a token
+    // which unexpectedly belongs to another identity.
     const token = generateKrispToken();
     const createdAt = new Date().toISOString();
     await kv.set(tokenMappingKey(token), { userIdentity: licenseKey, createdAt });

@@ -124,9 +124,16 @@ export default async function handler(req, res){
     return res.status(200).json({ disconnected: true });
   }
 
+  // Only the initial connection-panel read validates both token mappings.
+  // A migration can leave a visible forward URL with no working reverse
+  // mapping, making Krisp receive 401 indefinitely despite a healthy server.
+  // Do not add this extra KV read to every 5-second inbox poll.
+  const verifyConnection = req.method === 'GET' && req.query?.verify === '1';
+  const previousMapping = verifyConnection ? await kv.get('krisp:user:' + licenseKey) : null;
   let token;
-  try{ token = await getOrCreateKrispToken(licenseKey); }
+  try{ token = await getOrCreateKrispToken(licenseKey, { verifyReverse: verifyConnection }); }
   catch(err){ if(err instanceof KrispTokenBusyError) return tokenBusy(); throw err; }
+  const webhookLinkRepaired = !!(verifyConnection && previousMapping?.token && previousMapping.token !== token);
   const prefix = dataKeyPrefix(licenseKey);
 
   const waitingKey = prefix + 'waitingSince';
@@ -175,6 +182,7 @@ export default async function handler(req, res){
       pendingCount: pending.length,
       retentionDays: krispRetentionDays(),
       lastReceivedAt,
+      webhookLinkRepaired,
       webhookUrl: krispWebhookUrl(req, token)
     });
   }

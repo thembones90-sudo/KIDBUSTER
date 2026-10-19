@@ -10123,7 +10123,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     }
     if(!key) return;
     try{
-      var res = await fetch('/api/krisp-session', { headers: { 'x-app-key': key } });
+      var res = await fetch('/api/krisp-session?verify=1', { headers: { 'x-app-key': key } });
       if(!res.ok){
         // Not entitled (or key rejected): keep/return to hidden, fail safe.
         var hiddenPanel = document.getElementById('krispIntegrationPanel');
@@ -10141,9 +10141,10 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
       setKrispHeaderButtonVisible(true);
       loadKrispLogo();
       setWebhookUrlField(json.webhookUrl);
-      // Open setup until Krisp has delivered at least once; afterwards the
-      // Krisp integration button keeps it one click away.
-      setKrispSetupExpanded(false);
+      // A broken/revoked reverse mapping can survive a partial datastore
+      // migration. The server repairs it with a NEW credential, and Krisp
+      // must then be updated explicitly because we cannot edit Krisp settings.
+      setKrispSetupExpanded(!!json.webhookLinkRepaired);
       updateLastReceived(json.lastReceivedAt);
       renderPending(json.pending);
       if(json.waiting){
@@ -10153,6 +10154,9 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
         if(wb){ setKrispBtnLabel(wb, 'DISARM KRISP'); wb.dataset.waiting = 'true'; wb.classList.add('krisp-wait-active'); wb.setAttribute('aria-pressed', 'true'); }
         if(wStatus){ wStatus.style.color = ''; wStatus.textContent = 'Waiting for Krisp transcript...'; }
         if(wDotWrap) wDotWrap.style.display = 'inline-flex';
+      }
+      if(json.webhookLinkRepaired){
+        showKrispError('Your Krisp connection link was repaired. Copy the new link into Krisp and select Transcript created.');
       }
       if(json.matched){
         if(json.matched.meetingId) announcedIds[json.matched.meetingId] = true;
