@@ -33,29 +33,7 @@ module.exports=async function(){
     for(const width of [1440,768,390,320])for(const skin of ['dark','light']){
       await page.setViewport({width,height:1000});
       await page.evaluate(skin=>document.documentElement.dataset.appearance=skin,skin);
-      await page.waitForFunction(()=>{const img=document.querySelector('.lingo-ace-watermark');return img.complete&&img.naturalWidth>0;});
-      const watermark=await page.$eval('.lingo-ace-watermark',e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect(),p=e.parentElement.getBoundingClientRect();return {width:e.naturalWidth,opacity:s.opacity,filter:s.filter,pointer:s.pointerEvents,z:s.zIndex,animation:s.animationName,hidden:e.getAttribute('aria-hidden'),alt:e.alt,contained:r.left>=p.left&&r.right<=p.right&&r.top>=p.top&&r.bottom<=p.bottom};});
-      assert.equal(watermark.width,119,'supplied logo loads unchanged');assert.equal(watermark.opacity,skin==='dark'?'0.07':'0.065');
-      assert.equal(watermark.filter,skin==='dark'?'none':'brightness(0)');assert.equal(watermark.pointer,'none');assert.equal(watermark.z,'-1');
-      assert.equal(watermark.animation,'none');assert.equal(watermark.hidden,'true');assert.equal(watermark.alt,'');assert.ok(watermark.contained,'watermark stays inside its own card');
-      assert.equal(await page.$$eval('#protocolSelect .lingo-ace-watermark',els=>els.length),1,'only Lingo Ace has the school watermark');
-      await page.waitForFunction(()=>{const img=document.querySelector('.beida-watermark');return img.complete&&img.naturalWidth>0;});
-      const beida=await page.$eval('.beida-watermark',e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect(),p=e.parentElement.getBoundingClientRect();return {width:e.naturalWidth,opacity:s.opacity,filter:s.filter,blend:s.mixBlendMode,pointer:s.pointerEvents,z:s.zIndex,animation:s.animationName,hidden:e.getAttribute('aria-hidden'),alt:e.alt,contained:r.left>=p.left&&r.right<=p.right&&r.top>=p.top&&r.bottom<=p.bottom};});
-      assert.equal(beida.width,243,'supplied BetaKid image loads unchanged');
-      assert.equal(beida.opacity,watermark.opacity,'both school marks have the same quiet intensity');
-      assert.equal(beida.filter,'grayscale(1) brightness(0.7) contrast(20)'+(skin==='light'?' invert(1)':''));
-      assert.equal(beida.blend,skin==='dark'?'screen':'multiply');
-      assert.equal(beida.pointer,'none');assert.equal(beida.z,'-1');assert.equal(beida.animation,'none');
-      assert.equal(beida.hidden,'true');assert.equal(beida.alt,'');assert.ok(beida.contained,'Beida mark stays inside its card at '+width+' '+skin);
-      assert.equal(await page.$$eval('#protocolSelect .beida-watermark',els=>els.length),1,'only Beida has the BetaKid mark');
-      const beidaCenter=await page.$eval('.beida-watermark',e=>{const r=e.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};});
-      await page.mouse.click(beidaCenter.x,beidaCenter.y);
-      assert.equal(await page.$eval('#protocolSelect input[value="BEIDA"]',e=>e.checked),true,'watermark does not block card selection');
-      assert.equal(await page.$eval('#protocolSelect>label:has(input[value="BEIDA"])',e=>getComputedStyle(e,'::before').display),'grid');
-      const markCenter=await page.$eval('.lingo-ace-watermark',e=>{const r=e.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};});
-      await page.mouse.click(markCenter.x,markCenter.y);
-      assert.equal(await page.$eval('#protocolSelect input[value="OF"]',e=>e.checked),true);
-      assert.equal(await page.$eval('#protocolSelect>label:has(input[value="OF"])',e=>getComputedStyle(e,'::before').display),'grid','selection tick remains visible');
+      assert.equal(await page.$$eval('#protocolSelect img',els=>els.length),0,'protocol pills stay free of logo overlays in both themes');
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no horizontal overflow at '+width);
       const titlesFit=await page.$$eval('#protocolSelect>label',els=>els.every(e=>{
         const text=[...e.childNodes].find(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim());
