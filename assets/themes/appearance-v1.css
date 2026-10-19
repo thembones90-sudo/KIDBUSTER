@@ -1,5 +1,6 @@
 /* Appearance is independent of protocol identity. Dark keeps its approved skin. */
 html{color-scheme:dark}
+html[data-appearance="light"] #protocolSelect .lingo-ace-watermark{filter:brightness(0);opacity:.065}
 /* A still, softly lit canvas. Only the colour changes with the protocol;
    registered colour interpolation avoids snapping between gradient images. */
 @property --workspace-wash{syntax:"<color>";inherits:true;initial-value:transparent}

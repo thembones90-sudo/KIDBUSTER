@@ -5,7 +5,7 @@ module.exports=async function(){
   try{
     const page=await browser.newPage();
     await page.setViewport({width:1440,height:1000});
-    await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
+    await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'},{name:'prefers-color-scheme',value:'dark'}]);
     await page.goto('file:///'+path.resolve(__dirname,'../index.html').replace(/\\/g,'/'));
     const palette=await page.$$eval('#protocolSelect>label',els=>els.map(e=>{
       const s=getComputedStyle(e);return {rgb:s.getPropertyValue('--rgb').trim(),background:s.backgroundImage,shadow:s.boxShadow,animation:s.animationName,left:getComputedStyle(e,'::after').left,check:getComputedStyle(e,'::before').display,selected:e.querySelector('input').checked};
@@ -30,8 +30,19 @@ module.exports=async function(){
     await page.keyboard.press('ArrowRight');
     assert.equal(await page.$eval('#protocolSelect input[value="MS"]',e=>e.checked),true,'native keyboard selection works');
     await page.click('#protocolSelect>label:has(input[value="MA"])');
-    for(const width of [1440,768,390,320]){
+    for(const width of [1440,768,390,320])for(const skin of ['dark','light']){
       await page.setViewport({width,height:1000});
+      await page.evaluate(skin=>document.documentElement.dataset.appearance=skin,skin);
+      await page.waitForFunction(()=>{const img=document.querySelector('.lingo-ace-watermark');return img.complete&&img.naturalWidth>0;});
+      const watermark=await page.$eval('.lingo-ace-watermark',e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect(),p=e.parentElement.getBoundingClientRect();return {width:e.naturalWidth,opacity:s.opacity,filter:s.filter,pointer:s.pointerEvents,z:s.zIndex,animation:s.animationName,hidden:e.getAttribute('aria-hidden'),alt:e.alt,contained:r.left>=p.left&&r.right<=p.right&&r.top>=p.top&&r.bottom<=p.bottom};});
+      assert.equal(watermark.width,119,'supplied logo loads unchanged');assert.equal(watermark.opacity,skin==='dark'?'0.07':'0.065');
+      assert.equal(watermark.filter,skin==='dark'?'none':'brightness(0)');assert.equal(watermark.pointer,'none');assert.equal(watermark.z,'-1');
+      assert.equal(watermark.animation,'none');assert.equal(watermark.hidden,'true');assert.equal(watermark.alt,'');assert.ok(watermark.contained,'watermark stays inside its own card');
+      assert.equal(await page.$$eval('#protocolSelect .lingo-ace-watermark',els=>els.length),1,'only Lingo Ace has the school watermark');
+      const markCenter=await page.$eval('.lingo-ace-watermark',e=>{const r=e.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};});
+      await page.mouse.click(markCenter.x,markCenter.y);
+      assert.equal(await page.$eval('#protocolSelect input[value="OF"]',e=>e.checked),true);
+      assert.equal(await page.$eval('#protocolSelect>label:has(input[value="OF"])',e=>getComputedStyle(e,'::before').display),'grid','selection tick remains visible');
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no horizontal overflow at '+width);
       const titlesFit=await page.$$eval('#protocolSelect>label',els=>els.every(e=>{
         const text=[...e.childNodes].find(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim());
@@ -40,7 +51,7 @@ module.exports=async function(){
         return rect.bottom-e.getBoundingClientRect().top<subtitle;
       }));
       assert.ok(titlesFit,'titles never collide with descriptions at '+width);
-      if(process.env.V2_PROTOCOL_SCREENSHOTS)await page.$('#protocolSelect').then(e=>e.screenshot({path:path.join(process.env.V2_PROTOCOL_SCREENSHOTS,'protocol-cards-'+width+'.png')}));
+      if(process.env.V2_PROTOCOL_SCREENSHOTS)await page.$('#protocolSelect').then(e=>e.screenshot({path:path.join(process.env.V2_PROTOCOL_SCREENSHOTS,'protocol-cards-'+skin+'-'+width+'.png')}));
     }
     console.log('PASS seven restrained protocol colours, pattern-free surfaces, selected checks, mouse/keyboard focus and responsive layout');
     return 0;

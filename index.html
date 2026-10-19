@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pathfinder</title>
-<script src="assets/themes/appearance-v1.js?v=account-compact1"></script>
-<link rel="stylesheet" href="assets/themes/appearance-v1.css?v=account-compact1">
+<script src="assets/themes/appearance-v1.js?v=lingo-watermark1"></script>
+<link rel="stylesheet" href="assets/themes/appearance-v1.css?v=lingo-watermark1">
 <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="assets/icons/pathfinder-compass-v2.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/pathfinder-compass-v2-16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/pathfinder-compass-v2-32.png">
@@ -2503,7 +2503,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
             <label><input type="radio" name="protocol" value="FAIRY"> Fairy <span class="protocol-lollipop" aria-hidden="true">&#129498;</span><span class="info-icon" tabindex="0" data-tooltip="Sugarcoat-family subprotocol using the older Fairy command chain.">?</span></label>
             <label><input type="radio" name="protocol" value="BLITZ"> Blitz <span class="protocol-lightning" aria-hidden="true">&#9889;</span><span class="info-icon" tabindex="0" data-tooltip="Short, neutral comment for quick platform feedback. No rating-based tone shifts.">?</span></label>
             <label><input type="radio" name="protocol" value="BEIDA"> Beida <span class="protocol-lion" aria-hidden="true">&#129409;</span><span class="info-icon" tabindex="0" data-tooltip="Two-field comment matching the BetaKid platform's own form: Learning Content + General Performance.">?</span></label>
-            <label><input type="radio" name="protocol" value="OF"> Lingo Ace<span class="info-icon" tabindex="0" data-tooltip="3-section narrative for Lingo Ace trial-lesson evaluations — not a regular lesson report.">?</span></label>
+            <label><input type="radio" name="protocol" value="OF"> Lingo Ace<img class="lingo-ace-watermark" src="assets/logos/lingo-ace-watermark.png" width="119" height="44" alt="" aria-hidden="true" draggable="false"><span class="info-icon" tabindex="0" data-tooltip="3-section narrative for Lingo Ace trial-lesson evaluations — not a regular lesson report.">?</span></label>
             <label><input type="radio" name="protocol" value="PREPLY"> Preply <span class="protocol-preply-icon" aria-hidden="true">&#128172;</span><span class="info-icon" tabindex="0" data-tooltip="Personal messages for private tutors — Adult, Parent, or Trial follow-up. Not a lesson report.">?</span></label>
           </div>
         </div>
@@ -10334,6 +10334,11 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 </style>
 <style>
 /* ===== Protocol cards: tinted charcoal, each keeps its colour at low intensity ===== */
+/* The school mark is decorative, behind the title, selection and help layers.
+   Position it in the base card CSS so it never becomes an inline layout item. */
+html #protocolSelect>label:has(input[value="OF"]){isolation:isolate}
+html #protocolSelect>label:has(input[value="OF"]):hover,html #protocolSelect>label:has(input[value="OF"]):focus-within{z-index:2}
+html #protocolSelect .lingo-ace-watermark{position:absolute;right:24px;bottom:13px;width:min(46%,112px);height:auto;display:block;opacity:.07;filter:none;pointer-events:none;user-select:none;z-index:-1}
 #protocolSelect>label{--rgb:154,251,53;overflow:visible;isolation:auto;
   background:linear-gradient(145deg,rgba(var(--rgb),.10),rgba(var(--rgb),.035)),#18191a;
   border:1px solid rgba(var(--rgb),.26);box-shadow:none;color:#fff}
