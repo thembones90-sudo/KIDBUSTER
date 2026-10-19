@@ -46,6 +46,7 @@ import { buildServerGeneration, evaluateGeneratedOutput, buildRepairMessage, Gen
 import {beginGenerationRequest,completeGenerationRequest,releaseGenerationRequest} from './_lib/kv-client.js';
 import {acquireGenerateThrottle} from './_lib/generate-throttle.js';
 import { recordGenerationTelemetry } from './_lib/feedback-store.js';
+import { recordUsageStats, attemptFromResponse } from './_lib/usage-stats.js';
 
 const PROVIDER_URL='https://api.anthropic.com/v1/messages';
 // Report model (owner decision 2026-10-16, after the three-model benchmark):
@@ -157,7 +158,23 @@ export default async function handler(req, res) {
   }
 }
 
+// Owner statistics bookkeeping for one run. Every provider call is logged in
+// run.attempts (nano-USD, or null when its cost is unknown). A delivered report
+// is recorded exactly once just before the 200; any other exit is recorded by
+// the finally block as undelivered spend. Telemetry never changes a response.
 async function runGeneration(req, res) {
+  const run = { attempts: [], recorded: false, protocol: '', licenseKey: '', generationId: '', token: crypto.randomBytes(16).toString('hex') };
+  try {
+    return await runGenerationInner(req, res, run);
+  } finally {
+    if (!run.recorded && run.attempts.length && run.licenseKey) {
+      run.recorded = true;
+      await recordUsageStats({ ...run, runToken: run.token, delivered: false });
+    }
+  }
+}
+
+async function runGenerationInner(req, res, run) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -193,6 +210,7 @@ async function runGeneration(req, res) {
   }
   const installationId = req.headers['x-installation-id'] || '';
   const requestId=String(req.headers['x-generation-id']||'').trim();
+  run.licenseKey=String(licenseKey);run.protocol=protocol;run.generationId=requestId;
   if(requestId&&!/^[A-Za-z0-9_-]{16,128}$/.test(requestId))return res.status(400).json({error:'Invalid generation request identifier.'});
   let requestKey=null,requestToken=null,requestHeld=false;
   if(requestId){
@@ -260,6 +278,7 @@ async function runGeneration(req, res) {
       })
     },Math.max(1,Math.min(providerTimeoutMs(),deadline-Date.now())));
   } catch (networkErr) {
+    run.attempts.push({kind:'generation',nano:null});
     await releaseGeneration(entitlement.reservation).catch(err=>console.error('generate.js: reservation release failed:',err));
     await releaseRequest();
     if(networkErr?.name==='ProviderTimeoutError'){
@@ -270,6 +289,7 @@ async function runGeneration(req, res) {
   }
 
   const {response:anthropicResponse,data,parseError}=providerResult;
+  run.attempts.push(anthropicResponse.ok&&!parseError?attemptFromResponse('generation',data,providerModel()):{kind:'generation',nano:null});
   if (!anthropicResponse.ok) {
     const detail = (data && data.error && data.error.message) || '';
     await releaseGeneration(entitlement.reservation).catch(err=>console.error('generate.js: reservation release failed:',err));
@@ -338,7 +358,7 @@ async function runGeneration(req, res) {
       repair.outcome='no_time';
     }else{
       repair.attempted=true;
-      let repaired=null;
+      let repaired=null,repairLogged=false;
       try{
         const result=await fetchProviderJsonWithTimeout(PROVIDER_URL,{
           method:'POST',
@@ -352,6 +372,8 @@ async function runGeneration(req, res) {
             messages:[{role:'user',content:buildRepairMessage(protocol,text,contract,form)}]
           })
         },remaining);
+        repairLogged=true;
+        run.attempts.push(result.response.ok&&!result.parseError?attemptFromResponse('repair',result.data,providerModel()):{kind:'repair',nano:null});
         if(!result.response.ok||result.parseError){
           repair.outcome='provider_error';
         }else if(result.data?.stop_reason==='refusal'){
@@ -366,6 +388,7 @@ async function runGeneration(req, res) {
           else repaired=candidate;
         }
       }catch(repairErr){
+        if(!repairLogged)run.attempts.push({kind:'repair',nano:null});
         repair.outcome=repairErr?.name==='ProviderTimeoutError'?'timeout':'provider_error';
       }
       if(repaired!==null){
@@ -409,6 +432,11 @@ async function runGeneration(req, res) {
       else console.error('generate.js: request marker ownership changed before completion');
     }catch(err){console.error('generate.js: request completion marker failed:',err);}
   }
+
+  // Owner statistics: exactly one counted report per finalized generation, for
+  // every plan (founder/Pro included). Bounded, idempotent and never throws.
+  run.recorded=true;
+  await recordUsageStats({...run,runToken:run.token,delivered:true});
 
   // Only count a generation against the license's monthly usage once
   // Anthropic has actually returned real content — a failed or empty

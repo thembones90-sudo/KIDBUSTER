@@ -1,0 +1,81 @@
+/* Owner-only statistics. Intentionally compact and independent of protocol themes. */
+#accountPanel .owner-usage {
+  margin: 0 0 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  overflow: hidden;
+}
+#accountPanel .owner-usage > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  cursor: pointer;
+  min-height: 48px;
+  padding: 11px 14px;
+  list-style: none;
+  font: 650 14px/1.35 var(--font-body);
+}
+#accountPanel .owner-usage > summary::-webkit-details-marker { display: none; }
+#accountPanel .owner-usage > summary::after {
+  content: ''; width: 7px; height: 7px; flex: none;
+  border-right: 1.5px solid var(--text-dim);
+  border-bottom: 1.5px solid var(--text-dim);
+  transform: rotate(45deg); transition: transform .15s ease;
+}
+#accountPanel .owner-usage[open] > summary::after { transform: rotate(225deg); }
+#accountPanel .owner-usage .owner-usage-title { flex: none; }
+#accountPanel .owner-usage .owner-usage-teaser {
+  color: var(--text-dim); font: 500 12px/1.4 var(--font-body);
+  margin-left: auto; text-align: right; min-width: 0;
+}
+#accountPanel .owner-usage-body { padding: 12px 14px 14px; border-top: 1px solid var(--border); }
+#accountPanel .owner-usage-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+#accountPanel .owner-usage-period {
+  display: inline-flex; gap: 3px; padding: 3px; border: 1px solid var(--border);
+  border-radius: 9px; background: var(--bg);
+}
+#accountPanel .owner-usage-controls button {
+  border-radius: 7px; min-height: 44px; padding: 8px 11px;
+  font: 600 12px/1.3 var(--font-body); cursor: pointer;
+  border: 1px solid transparent; color: var(--text-dim);
+  background: transparent;
+}
+#accountPanel .owner-usage-controls button[aria-pressed="true"] {
+  background: var(--surface-2); color: var(--text);
+  border-color: var(--border-strong);
+}
+#accountPanel .owner-usage-controls .owner-usage-refresh { margin-left: auto; border-color: var(--border-strong); color: var(--text); }
+#accountPanel .owner-usage-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; margin-bottom: 11px; }
+#accountPanel .owner-usage-metric {
+  min-width: 0; border: 1px solid var(--border); border-radius: 9px;
+  background: var(--bg); padding: 11px;
+}
+#accountPanel .owner-usage-label { display: block; font: 500 12px/1.4 var(--font-body); color: var(--text-dim); }
+#accountPanel .owner-usage-number {
+  display: block; margin-top: 5px; font: 700 clamp(17px,2.4vw,23px)/1.2 var(--font-display);
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere; color: var(--text);
+}
+#accountPanel .owner-usage-protocols { width: 100%; border-collapse: collapse; font: 500 12px/1.4 var(--font-body); }
+#accountPanel .owner-usage-protocols th { text-align: left; color: var(--text-dim); font-weight: 550; }
+#accountPanel .owner-usage-protocols th, #accountPanel .owner-usage-protocols td { padding: 7px 4px; border-bottom: 1px solid var(--border); }
+#accountPanel .owner-usage-protocols th:nth-child(n+2), #accountPanel .owner-usage-protocols td:nth-child(n+2) { text-align: right; font-variant-numeric: tabular-nums; }
+#accountPanel .owner-usage-protocols tr:last-child td { border-bottom: 0; }
+#accountPanel .owner-usage-footnote { margin: 10px 0 0; color: var(--text-dim); font: 400 11px/1.5 var(--font-body); }
+#accountPanel .owner-usage-error { color: var(--danger); }
+#accountPanel .owner-usage [hidden] { display: none !important; }
+#accountPanel .owner-usage :is(summary,button):focus-visible { outline: 2px solid var(--toxin); outline-offset: 2px; }
+@media (max-width: 620px) {
+  #accountPanel .owner-usage > summary { align-items: flex-start; flex-wrap: wrap; }
+  #accountPanel .owner-usage .owner-usage-teaser { order: 3; width: 100%; margin-left: 0; text-align: left; }
+  #accountPanel .owner-usage > summary::after { margin-left: auto; }
+  #accountPanel .owner-usage-metrics { gap: 5px; }
+  #accountPanel .owner-usage-metric { padding: 9px 7px; }
+  #accountPanel .owner-usage-label { font-size: 11px; }
+  #accountPanel .owner-usage-number { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #accountPanel .owner-usage > summary::after { transition: none; }
+}
