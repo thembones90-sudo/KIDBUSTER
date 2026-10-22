@@ -20,6 +20,7 @@ You are working on the **development clone**, not the official Pathfinder deploy
 - Krisp transcript and queue identity is the stable license identity, **not** the rotating webhook token.
 - Every feature change needs regression coverage. Prefer small commits and deterministic tests.
 - Security and reliability have priority over aesthetics and additional features.
+- **RADAR VAN OWNER-ONLY FREEZE (2026-10-19):** RADAR VAN is unfinished and MUST NOT be made available to Free or paying Pro customers, even on public previews. All RADAR VAN browser/session/ingest paths must authorize only server-verified master/Owner Pro keys, including optimized polling and device-token ingress. An enabled feature flag does not grant wider access. No public deployment, sales entitlement, feature rollout, or removal of this restriction without the product owner's separate explicit approval and completed acceptance/security/regression tests. See `V2-RADAR-VAN-OWNER-ONLY-FREEZE-20261019.md`. (RADAR VAN is now named Scout.)
 
 ## Baseline and release checks
 - Base revision: `441d0c1d63136eb83f4b6b73156fc32fd6f0b8d3`.
