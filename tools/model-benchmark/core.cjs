@@ -6,6 +6,7 @@ const path = require('node:path');
 const { extractBuildCacheableSystemBlocks } = require('../../tests/helpers/extract-generate-helpers.cjs');
 const C = require('./config.cjs');
 const { CASES } = require('../generation-quality-cases.cjs');
+const { CASES: COMPREHENSION_CASES } = require('../comprehension-cases.cjs');
 
 // The production function, loaded verbatim from api/generate.js.
 const { buildCacheableSystemBlocks } = extractBuildCacheableSystemBlocks();
@@ -46,8 +47,18 @@ function transcriptSpec(id, readPrivate){
     if(t.expectedSha256Prefix && prefix !== t.expectedSha256Prefix) throw new Error('Private transcript hash mismatch for ' + id + ' (got ' + prefix + ')');
     const side = JSON.parse(readPrivate(t.settingsPath));
     if(!side.settings || !side.ratings) throw new Error('Private settings file is incomplete for ' + id);
-    return { id, kind:'private', notes, sha256Prefix:prefix, settings:side.settings, rating:p => side.ratings[p] ?? '',
+    return { id, kind:'private', notes, sha256Prefix:prefix, settings:side.settings, rating:p => side.ratings[p] ?? '', groundTruth:side.groundTruth || null,
       names:[side.settings.studentName, side.settings.teacherName] };
+  }
+  if(t.kind === 'comprehension'){
+    const c = COMPREHENSION_CASES[t.caseId];
+    if(!c) throw new Error('Unknown comprehension case ' + t.caseId);
+    const r = c.ratings || {};
+    return { id, kind:'fictional', notes:c.transcript, sha256Prefix:sha(c.transcript).slice(0, 16), protocols:c.protocols, groundTruth:c,
+      settings:{ teacherName:c.teacher, studentName:c.student, remarks:'', lengthFormat:'medium', studentGender:c.gender || 'boy',
+        signoffEmoji:'', blitzVoice:'warm', preplyModule:c.preplyModule || 'adult', preplyTrialPerson:'adult' },
+      rating:p => p === 'PREPLY' ? '' : p === 'BEIDA' ? (r.BEIDA || 'excellent') : p === 'OF' ? (r.OF || 'Medium') : (r.numeric || '4'),
+      names:[c.student, c.teacher] };
   }
   const c = CASES[t.caseId];
   const ratingFor = p => p === 'PREPLY' ? '' : p === 'BEIDA' ? c.ratings.BEIDA : p === 'OF' ? c.ratings.OF : c.ratings.numeric;
@@ -82,13 +93,16 @@ function buildPlan({ phase, buildServerGeneration, readPrivate, models }){
   const prompts = [], jobs = [];
   for(const tid of ph.transcripts){
     const t = transcriptSpec(tid, readPrivate);
-    for(const protocol of C.PROTOCOLS){
+    // A phase or case may limit protocols (e.g. adult conversation -> Preply only).
+    const protocols = ph.protocols || t.protocols || C.PROTOCOLS;
+    for(const protocol of protocols){
       for(let rep = 1; rep <= ph.repetitions; rep++){
         const generation = { protocol, notes:t.notes, rating:t.rating(protocol), ...t.settings };
         const built = buildServerGeneration(generation);
         const promptId = tid + '__' + protocol + '__r' + rep;
         prompts.push({ promptId, transcript:tid, transcriptKind:t.kind, protocol, rep, form:built.form, systemPrompt:built.systemPrompt,
-          userMessage:built.userMessage, promptSha256:sha(built.systemPrompt + '\n' + built.userMessage), names:t.names });
+          userMessage:built.userMessage, promptSha256:sha(built.systemPrompt + '\n' + built.userMessage), names:t.names,
+          ...(t.kind === 'private' && t.groundTruth ? { groundTruth:t.groundTruth } : {}) });
         for(const model of modelIds) jobs.push({ jobId:promptId + '__' + model, promptId, model, protocol, transcript:tid, rep });
       }
     }
@@ -336,4 +350,4 @@ function compare({ records, key, scoresCsv }){
 }
 
 module.exports = { sha, buildRequestBody, costUsd, addUsage, transcriptSpec, planJobs, estimate, approvalCode, liveGate,
-  providerText, classify, runJob, heuristicFlags, seededShuffle, anonymize, buildBlindPacket, parseCsv, compare };
+  providerText, callProvider, classify, runJob, heuristicFlags, seededShuffle, anonymize, buildBlindPacket, parseCsv, compare };

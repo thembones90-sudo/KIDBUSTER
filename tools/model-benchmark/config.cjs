@@ -52,13 +52,31 @@ const TRANSCRIPTS = {
     expectedSha256Prefix:'4d546eb523933e37',
     note:'User-authorized real transcript from the 2026-10-15 audit (one whitespace byte differs from Codex\'s copy).' },
   'mixed-fictional': { kind:'fictional', caseId:'mixed_performance' },
-  'scaffolded-fictional': { kind:'fictional', caseId:'heavy_scaffolding' }
+  'scaffolded-fictional': { kind:'fictional', caseId:'heavy_scaffolding' },
+  // Lesson-comprehension cases (tools/comprehension-cases.cjs, fictional).
+  'cmp-philosophical': { kind:'comprehension', caseId:'cmp-philosophical' },
+  'cmp-grammar': { kind:'comprehension', caseId:'cmp-grammar' },
+  'cmp-short': { kind:'comprehension', caseId:'cmp-short' },
+  'cmp-unrelated': { kind:'comprehension', caseId:'cmp-unrelated' },
+  'cmp-fragmented': { kind:'comprehension', caseId:'cmp-fragmented' },
+  'cmp-child-vocab': { kind:'comprehension', caseId:'cmp-child-vocab' },
+  // The 56-minute RADAR VAN LITE Preply lesson that exposed the weakness. The
+  // owner places it in the git-ignored folder; the settings sidecar holds the
+  // names and the owner's account of the lesson (ground truth for review).
+  'luka-real': { kind:'private', path:'.v2-local/luka-preply-56min-private.txt', settingsPath:'.v2-local/luka-preply-56min.settings.json',
+    note:'Owner-authorized real RADAR VAN LITE transcript (2026-10-19 comprehension brief).' }
 };
 
 const PHASES = {
   initial: { transcripts:['real-1'], repetitions:1, description:'21 reports: 7 protocols x 3 models, real transcript, one sample each.' },
   full: { transcripts:['real-1','mixed-fictional','scaffolded-fictional'], repetitions:2,
-    description:'126 reports: 3 transcripts x 7 protocols x 3 models x 2 repetitions. The two fictional transcripts can be replaced by real anonymized transcripts before running.' }
+    description:'126 reports: 3 transcripts x 7 protocols x 3 models x 2 repetitions. The two fictional transcripts can be replaced by real anonymized transcripts before running.' },
+  // Lesson-comprehension before/after (run once per engine arm with --models
+  // claude-haiku-5-5 --profile haiku-high; see tools/comprehension-compare.cjs).
+  comprehension: { transcripts:['cmp-philosophical','cmp-grammar','cmp-short','cmp-unrelated','cmp-fragmented','cmp-child-vocab'], repetitions:3,
+    description:'Five contrasting adult Preply lessons x 3 repetitions, plus a child vocabulary lesson on MA/OF/FAIRY x 3 (regression).' },
+  'comprehension-real': { transcripts:['luka-real'], protocols:['PREPLY'], repetitions:3,
+    description:'The real 56-minute Luka Preply lesson x 3 repetitions.' }
 };
 
 const PROTOCOLS = ['MA','MS','FAIRY','BLITZ','BEIDA','OF','PREPLY'];

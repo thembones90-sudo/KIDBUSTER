@@ -3883,13 +3883,17 @@ Love, Teacher [Name]` + '\n\n─────────────────
         const prev = turns[turns.length - 1];
         if(prev && role === prev.role && prev.last.toLowerCase() === body.toLowerCase()) continue;
         // Join short contiguous fragments for readability, but keep bounded
-        // segments and their starting timestamps for long lessons.
-        if(prev && role === prev.role && prev.body.length + body.length + 1 <= 550){
+        // segments and their starting timestamps for long lessons. A gap of a
+        // minute or more starts a new turn so its time anchor is kept.
+        const seconds = radar ? radar[1].split(':').reduce((m, s) => m * 60 + Number(s), 0) : null;
+        const contiguous = !prev || seconds === null || prev.seconds === null || seconds - prev.lastSeconds < 60;
+        if(prev && role === prev.role && contiguous && prev.body.length + body.length + 1 <= 550){
+          if(seconds !== null) prev.lastSeconds = seconds;
           prev.body += ' ' + body;
           prev.last = body;
           continue;
         }
-        turns.push({ role, time: radar ? radar[1] : '', body, last: body });
+        turns.push({ role, time: radar ? radar[1] : '', seconds, lastSeconds: seconds, body, last: body });
       }
       return turns.map(t => (t.role ? (t.time ? '[' + t.time + '] ' : '') + t.role + ': ' : '') + t.body).join('\n').trim();
     }

@@ -55,6 +55,15 @@ module.exports = function run(){
   check('long RADAR VAN student turns retain later time anchors',
     longResult.split('\n').filter(x=>x.includes('Student:')).length > 2);
   check('large transcripts preserve ending', longResult.includes('Student: Thanks.'));
+  const gap = core.cleanTranscript([
+    '[00:20] TEACHER: Very professional.',
+    '[00:24] TEACHER: Shall we go on?',
+    '[09:30] TEACHER: What if your manager says there is no budget?',
+    '[09:34] STUDENT: Then I ask what I need to do.'
+  ].join('\n'));
+  check('same-speaker lines seconds apart still merge', gap.includes('[00:20] Teacher: Very professional. Shall we go on?'));
+  check('a same-speaker line minutes later keeps its own time anchor',
+    gap.includes('\n[09:30] Teacher: What if your manager says there is no budget?'));
   const prompt = core.buildPreplySystemPrompt({module:'adult'});
   check('Preply prompt prioritizes whole-lesson comprehension',
     prompt.includes('LESSON UNDERSTANDING') && prompt.includes('Position is not importance'));

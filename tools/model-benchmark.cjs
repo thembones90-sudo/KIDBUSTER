@@ -34,12 +34,26 @@ function args(argv){
   }
   return out;
 }
-function commitInfo(){
+function commitInfo(a = {}){
   try{
     const commit = cp.execSync('git rev-parse --short HEAD', { cwd:ROOT, encoding:'utf8' }).trim();
-    const dirty = cp.execSync('git status --porcelain -- index.html api tools/model-benchmark tools/model-benchmark.cjs', { cwd:ROOT, encoding:'utf8' }).trim();
-    return { commit, dirty:!!dirty };
+    const dirty = cp.execSync('git status --porcelain -- index.html api tools', { cwd:ROOT, encoding:'utf8' }).trim();
+    const info = { commit, dirty:!!dirty };
+    // --core-root: prompts come from another checkout's engine (the "before"
+    // arm of a prompt comparison). Its commit and cleanliness are recorded too.
+    const core = coreRoot(a);
+    if(core !== ROOT){
+      info.coreCommit = cp.execSync('git rev-parse --short HEAD', { cwd:core, encoding:'utf8' }).trim();
+      info.dirty = info.dirty || !!cp.execSync('git status --porcelain -- index.html api', { cwd:core, encoding:'utf8' }).trim();
+      info.commit += '+core:' + info.coreCommit;
+    }
+    return info;
   }catch{ return { commit:'unknown', dirty:true }; }
+}
+function coreRoot(a){ return a['core-root'] ? path.resolve(String(a['core-root'])) : ROOT; }
+async function serverGeneration(a){
+  const { pathToFileURL } = require('node:url');
+  return import(pathToFileURL(path.join(coreRoot(a), 'api', '_lib', 'server-generation.js')).href);
 }
 function readPrivate(rel){
   const abs = path.join(MAIN_ROOT, rel);
@@ -59,7 +73,7 @@ function evalKey(a){
 const usd = x => '$' + x.toFixed(x < 1 ? 3 : 2);
 
 async function makePlan(a){
-  const { buildServerGeneration, __resetServerGenerationForTests } = await import('../api/_lib/server-generation.js');
+  const { buildServerGeneration, __resetServerGenerationForTests } = await serverGeneration(a);
   const phase = a.phase || 'initial';
   const profile = a.profile || 'production';
   if(!C.PROFILES[profile]) throw new Error('Unknown profile');
@@ -67,7 +81,7 @@ async function makePlan(a){
   if(models && models.some(m => !C.MODELS[m])) throw new Error('Unknown model in --models');
   const plan = B.planJobs({ phase, buildServerGeneration, readPrivate, models, resetCore:__resetServerGenerationForTests });
   const est = B.estimate(plan);
-  const info = commitInfo();
+  const info = commitInfo(a);
   return { plan, est, profile, info, code:B.approvalCode(plan, est, profile, info.commit) };
 }
 
@@ -108,8 +122,9 @@ async function cmdRun(a){
   if(!fs.existsSync(verification) || JSON.parse(fs.readFileSync(verification, 'utf8')).results.some(r => r.status !== 200))
     throw new Error('LIVE_BLOCKED: run verify-models successfully first');
   const key = evalKey(a);
-  const sg = await import('../api/_lib/server-generation.js');
-  const runId = plan.phase + '-' + new Date().toISOString().replace(/[:.]/g, '-');
+  const sg = await serverGeneration(a);
+  const arm = a.arm ? String(a.arm).replace(/[^a-z0-9-]/gi, '') : '';
+  const runId = plan.phase + (arm ? '-' + arm : '') + '-' + new Date().toISOString().replace(/[:.]/g, '-');
   const dir = path.join(OUT_ROOT, runId);
   fs.mkdirSync(path.join(dir, 'jobs'), { recursive:true }); fs.mkdirSync(path.join(dir, 'final'), { recursive:true });
   const manifest = { runId, phase:plan.phase, profile, commit:info.commit, approvalCode:code, maxSpendUsd:Number(a['max-spend-usd']), estimate:est,
