@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pathfinder</title>
+<title>Classbuster</title>
 <script src="assets/themes/appearance-v1.js?v=account-compact1"></script>
 <link rel="stylesheet" href="assets/themes/appearance-v1.css?v=account-compact1">
-<link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="assets/icons/pathfinder-compass-v2.ico">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/pathfinder-compass-v2-16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/pathfinder-compass-v2-32.png">
-<link rel="icon" type="image/png" sizes="48x48" href="assets/icons/pathfinder-compass-v2-48.png">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/pathfinder-compass-v2-180.png">
+<link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="assets/brand/classbuster/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/brand/classbuster/classbuster-icon-dark-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/brand/classbuster/classbuster-icon-dark-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="assets/brand/classbuster/classbuster-icon-dark-48.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/brand/classbuster/apple-touch-icon.png">
 <style>
 @font-face{font-family:'Inter';font-style:normal;font-weight:400 700;font-display:swap;src:url('./assets/fonts/inter-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF}
 @font-face{font-family:'Inter';font-style:normal;font-weight:400 700;font-display:swap;src:url('./assets/fonts/inter-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
@@ -2380,7 +2380,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
 
   <div class="header">
     <div class="header-brand">
-      <img class="kb-logo" id="kbLogo" data-logo-preply="assets/logos/premium-v1/logo-preply.png" data-logo-beida="assets/logos/premium-v1/logo-beida.png" data-logo-blitz="assets/logos/premium-v1/logo-blitz.png" data-logo-of="assets/logos/premium-v1/logo-of.png" data-logo-ms="assets/logos/premium-v1/logo-sugarcoat-fairy.png" src="assets/logos/premium-v1/logo-classic.png" width="1987" height="791" decoding="async" alt="Pathfinder logo">
+      <img class="kb-logo" id="kbLogo" data-logo-preply="assets/brand/classbuster/classbuster-horizontal-transparent.png" data-logo-beida="assets/brand/classbuster/classbuster-horizontal-transparent.png" data-logo-blitz="assets/brand/classbuster/classbuster-horizontal-transparent.png" data-logo-of="assets/brand/classbuster/classbuster-horizontal-transparent.png" data-logo-ms="assets/brand/classbuster/classbuster-horizontal-transparent.png" src="assets/brand/classbuster/classbuster-horizontal-transparent.png" width="1600" height="400" decoding="async" alt="Classbuster logo">
       <div class="header-brand-copy">
         <h1 class="title"><span class="mode-badge" id="protocolBadge">Classic</span></h1>
         <p class="brand-promise"><span>Lesson notes.</span> <strong>Professional feedback.</strong></p>
@@ -2828,7 +2828,7 @@ textarea::placeholder,input::placeholder{color:#A5ABB5;opacity:1;}
       </div>
     </div>
 
-    <p class="help-note">Starting fresh? Use New Student or click the Pathfinder logo to reset the page. If something looks wrong, regenerate once or change protocol.</p>
+    <p class="help-note">Starting fresh? Use New Student or click the Classbuster logo to reset the page. If something looks wrong, regenerate once or change protocol.</p>
     </details>
   </div>
 </div>
@@ -5679,8 +5679,8 @@ const LOGO_DEFAULT_SRC = kbLogo.src; // the original green lockup, captured befo
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 kbLogo.setAttribute('role', 'button');
 kbLogo.setAttribute('tabindex', '0');
-kbLogo.setAttribute('title', 'Reload Pathfinder');
-kbLogo.setAttribute('aria-label', 'Reload Pathfinder');
+kbLogo.setAttribute('title', 'Reload Classbuster');
+kbLogo.setAttribute('aria-label', 'Reload Classbuster');
 function reloadPathfinder(){
   if(typeof window.__kidbusterReloadForTests === 'function'){
     window.__kidbusterReloadForTests();

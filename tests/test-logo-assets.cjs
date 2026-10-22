@@ -17,8 +17,8 @@ module.exports=async function run(){
   check('index.html is under 600 KB',Buffer.byteLength(html)<600*1024);
   check('no large base64 image remains inline',!/data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+\/=]{4000,}/.test(html));
   const tag=(html.match(/<img[^>]*id="kbLogo"[^>]*>/)||[''])[0];
-  const refs=[...tag.matchAll(/(?:src|data-logo-[a-z]+)="(assets\/logos\/[^"]+)"/g)].map(m=>m[1]);
-  check('the logo element references six asset files (default + five protocol variants)',new Set(refs).size===6);
+  const refs=[...tag.matchAll(/(?:src|data-logo-[a-z]+)="(assets\/brand\/classbuster\/[^"]+)"/g)].map(m=>m[1]);
+  check('all six logo slots use the approved Classbuster artwork',refs.length===6&&new Set(refs).size===1);
   let allPng=refs.length>0;
   for(const r of refs){
     const f=path.join(ROOT,r);
@@ -66,8 +66,8 @@ module.exports=async function run(){
     check('all seven protocols were exercised',protocols.length===7);
     check('every protocol logo has real pixels',protocols.every(p=>seen[p].w>0));
     check('no logo request failed or returned a non-200',failedImages.length===0);
-    check('MS and FAIRY share their logo; the other protocols each have a distinct one',
-      seen.MS.src===seen.FAIRY.src&&new Set(['MA','MS','OF','BLITZ','BEIDA','PREPLY'].map(p=>seen[p].src)).size>=5);
+    check('all seven protocols retain the Classbuster platform logo',
+      new Set(protocols.map(p=>seen[p].src)).size===1);
 
     console.log('\n3) no pointless flourish when the logo does not change');
     const flourishes=await page.evaluate(()=>{

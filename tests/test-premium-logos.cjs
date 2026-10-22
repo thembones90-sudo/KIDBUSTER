@@ -6,16 +6,16 @@ const http=require('node:http');
 module.exports=async function(){
   const root=path.resolve(__dirname,'..');
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  const mapping={MA:'logo-classic.png',MS:'logo-sugarcoat-fairy.png',FAIRY:'logo-sugarcoat-fairy.png',BLITZ:'logo-blitz.png',BEIDA:'logo-beida.png',OF:'logo-of.png',PREPLY:'logo-preply.png'};
-  const prefix='assets/logos/premium-v1/';
+  const mapping=Object.fromEntries(['MA','MS','FAIRY','BLITZ','BEIDA','OF','PREPLY'].map(key=>[key,'classbuster-horizontal-transparent.png']));
+  const prefix='assets/brand/classbuster/';
   assert.ok(Buffer.byteLength(html)<600*1024,'do not embed large raster logos in HTML');
-  for(const name of new Set([...Object.values(mapping),'compass-classic.png'])){
+  for(const name of new Set([...Object.values(mapping)])){
     const png=fs.readFileSync(path.join(root,prefix,name));
     assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
     assert.equal(png[25],6,'RGBA PNG required');
     assert.ok(png.readUInt32BE(16)>1000);
   }
-  assert.ok(html.includes('href="assets/icons/pathfinder-compass-v2-32.png"'));
+  assert.ok(html.includes('href="assets/brand/classbuster/classbuster-icon-dark-32.png"'));
   const server=http.createServer((req,res)=>{
     const url=new URL(req.url,'http://localhost');
     const file=path.resolve(root,'.'+decodeURIComponent(url.pathname==='/'?'/index.html':url.pathname));
@@ -64,7 +64,7 @@ module.exports=async function(){
       if(process.env.V2_LOGO_SCREENSHOTS&&[1440,390].includes(width))await page.screenshot({path:path.join(process.env.V2_LOGO_SCREENSHOTS,'premium-logo-'+width+'.png')});
     }
     const icon=await page.evaluate(async()=>{
-      const img=new Image();img.src=document.querySelector('link[rel="icon"]').href;await img.decode();return [img.naturalWidth,img.naturalHeight];
+      const img=new Image();img.src=document.querySelector('link[rel="icon"][sizes="48x48"]').href;await img.decode();return [img.naturalWidth,img.naturalHeight];
     });
     assert.deepEqual(icon,[48,48]);
     assert.deepEqual(errors,[]);
