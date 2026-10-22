@@ -65,3 +65,20 @@ html[data-appearance="light"] .cb-tour .cb-quiet{background:transparent;border-c
 @media(max-width:560px){.cb-tour-overlay{padding:12px}.cb-tour{padding:22px;max-height:calc(100dvh - 24px);border-radius:20px}.cb-tour .cb-brand{font-size:14px}.cb-tour .cb-actions{flex-direction:column;align-items:stretch;gap:8px;padding-top:18px}.cb-tour .cb-actions>*{width:100%}.cb-tour .cb-lead{font-size:16px}.cb-tour .cb-steps li{padding:13px}.scout-workspace-entry>span>span{display:none}.cb-tour .cb-hero{padding:16px}}
 @media(prefers-reduced-motion:reduce){.cb-tour{animation:none}.cb-tour *{transition:none!important;scroll-behavior:auto!important}}
 @media(max-width:560px){.cb-tour .cb-hero{margin:18px 0}.cb-tour .cb-release{padding:16px;margin:16px 0}.cb-tour .cb-actions{margin-top:20px}.cb-tour .cb-footnote{margin-top:14px}.cb-tour p{margin-bottom:14px}}
+/* Separate reading and navigation so long steps never hide the next action. */
+.cb-tour{display:flex;flex-direction:column;overflow:hidden}
+.cb-tour .cb-tour-top,.cb-tour .cb-progress,.cb-tour .cb-tour-footer{flex-shrink:0}
+.cb-tour-body{min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#58606b transparent;padding:0 4px 2px 0;scroll-padding:12px}
+.cb-tour-footer .cb-actions{margin-top:20px;padding-top:18px}
+.cb-tour-footer .cb-footnote{margin-top:12px}
+.cb-tour-footer .cb-save-status{margin-top:10px}
+.cb-tour .cb-hero{border:0;border-radius:0;background:transparent;box-shadow:none;padding:12px 0}
+.cb-tour .cb-steps{gap:0}
+.cb-tour .cb-steps li{border:0;border-radius:0;background:transparent;padding:14px 0}
+.cb-tour .cb-steps li+li{border-top:1px solid #ffffff0d}
+.cb-tour .cb-trial-note{border:0;border-left:2px solid #87f31680;border-radius:0;background:transparent;padding:2px 0 2px 14px}
+.cb-tour .cb-trial-note p{font-size:15px;margin:0;line-height:1.55}
+.cb-tour .cb-trial-note .cb-trial-detail{font-size:13px;margin-top:6px}
+.cb-tour .cb-ready-reminder{font-size:14px;margin-bottom:4px}
+html[data-appearance="light"] .cb-tour .cb-hero,html[data-appearance="light"] .cb-tour .cb-steps li{background:transparent;border-color:#1f293712}
+@media(max-width:560px){.cb-tour{padding:18px}.cb-tour .cb-tour-top{margin-bottom:16px}.cb-tour .cb-progress{margin-bottom:20px}.cb-tour-footer .cb-actions{display:grid;grid-template-columns:auto minmax(0,1fr);margin-top:14px;padding-top:14px;gap:10px}.cb-tour-footer .cb-actions:has([data-skip]){grid-template-columns:1fr}.cb-tour-footer .cb-actions:has(>button:only-child){grid-template-columns:1fr}.cb-tour-footer .cb-footnote{margin-top:10px;font-size:12px}.cb-tour-footer .cb-save-status{margin-top:8px;font-size:12px}.cb-tour .cb-hero{padding:8px 0}.cb-tour .cb-steps li{padding:13px 0}.cb-tour .cb-actions button{padding:10px 14px}}

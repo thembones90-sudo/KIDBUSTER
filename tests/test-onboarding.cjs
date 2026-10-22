@@ -85,7 +85,7 @@ module.exports=async function run(){
   await entryPage.click('#helpBtn');
   check('header opens four-stage onboarding directly, without another menu',await entryPage.$eval('#cbTourTitle',e=>e.textContent==='Welcome to Classbuster')&&await entryPage.$eval('#helpModalOverlay',e=>getComputedStyle(e).display==='none'));
   await entryPage.click('[data-next]');
-  check('report step explains separate five-report trials and monthly Classic allowance',await entryPage.$eval('.cb-trial-note',e=>e.textContent.includes('5 Classic reports each month')&&e.textContent.includes('5 one-time trial reports in each other report style')));
+  check('report step explains separate five-report trials and monthly Classic allowance',await entryPage.$eval('.cb-trial-note',e=>e.textContent.includes('5 Classic reports every month')&&e.textContent.includes('each other style with 5 free reports')&&e.querySelector('.cb-trial-detail').textContent.includes('one-time allowances, separate for each style')));
   await entryPage.keyboard.press('Escape');
   check('dismissed manual introduction becomes Help without an account write',writeCount===writesBeforeDiscovery&&await entryPage.$eval('#helpBtn',e=>e.textContent==='Help & guide'));
   await entryPage.mouse.move(0,0);
@@ -128,6 +128,29 @@ module.exports=async function run(){
    // Back to Welcome for the next viewport, without completing the guide.
    for(let i=0;i<3;i++)await page.click('[data-back]');
   }
+  for(const viewport of [{width:390,height:640},{width:320,height:568},{width:1280,height:720}]){
+   await page.setViewport(viewport);
+   for(let stage=0;stage<4;stage++){
+    if(stage===1)await page.click('#cbExampleBtn');
+    for(const bottom of [false,true]){
+     const pinned=await page.evaluate(bottom=>{
+      const body=document.querySelector('#cbTourBody');body.scrollTop=bottom?body.scrollHeight:0;
+      const panel=document.querySelector('.cb-tour').getBoundingClientRect();
+      return [...document.querySelectorAll('#cbTourFooter button')].every(button=>{const r=button.getBoundingClientRect();return r.top>=panel.top&&r.bottom<=panel.bottom&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth;});
+     },bottom);
+     check(viewport.width+'x'+viewport.height+' stage '+(stage+1)+' navigation stays visible '+(bottom?'after scroll':'before scroll'),pinned);
+    }
+    if(stage===3)check('ready screen has one clear message without a repeated hero card',await page.$eval('#cbTourContent',e=>!e.querySelector('.cb-hero')&&e.textContent.includes('create your first report')));
+    if(stage===2)await page.click('#cbSkipScout');else if(stage<3)await page.click('[data-next]');
+   }
+   await page.screenshot({path:path.join(shots,'compact-'+viewport.width+'x'+viewport.height+'.png')});
+   for(let i=0;i<3;i++)await page.click('[data-back]');
+  }
+  check('step changes use a subtle content fade',await page.evaluate(()=>{
+   document.querySelector('[data-next]').click();
+   return document.querySelector('#cbTourContent').getAnimations().some(a=>a.effect.getTiming().duration===160&&a.effect.getKeyframes().some(k=>k.opacity==='0'));
+  }));
+  await page.click('[data-back]');
   await page.keyboard.press('Tab');await page.keyboard.down('Shift');await page.keyboard.press('Tab');await page.keyboard.up('Shift');
   check('keyboard focus remains inside dialog',await page.evaluate(()=>!!document.activeElement.closest('.cb-tour')));
   await page.click('[data-skip]');await page.waitForFunction(()=>document.querySelector('#cbOnboardingOverlay').hidden);
@@ -181,6 +204,7 @@ module.exports=async function run(){
   await other.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
   await other.click('#scoutWorkspaceBtn');
   check('reduced motion suppresses entry animation',await other.$eval('.cb-tour',e=>getComputedStyle(e).animationName==='none'));
+  check('reduced motion also suppresses content fades',await other.$eval('#cbTourContent',e=>e.getAnimations().length===0));
   await other.evaluate(()=>document.documentElement.dataset.appearance='light');
   check('light appearance uses readable neutral granite text',await other.$eval('.cb-tour',e=>getComputedStyle(e).color==='rgb(37, 44, 53)'));
   await other.screenshot({path:path.join(shots,'scout-light.png')});

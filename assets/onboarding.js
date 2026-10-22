@@ -6,14 +6,19 @@
   overlay.innerHTML=`<section class="cb-tour" role="dialog" aria-modal="true" aria-labelledby="cbTourTitle" aria-describedby="cbTourDescription">
     <header class="cb-tour-top"><div class="cb-brand"><img src="/assets/brand/classbuster/classbuster-icon-dark-48.png" alt=""><span>Classbuster<small>A quick introduction</small></span></div><button class="cb-close" type="button" aria-label="Close introduction">×</button></header>
     <ol class="cb-progress" aria-label="Introduction progress"><li aria-label="1. Welcome"></li><li aria-label="2. Your first report"></li><li aria-label="3. Meet Scout"></li><li aria-label="4. You're ready"></li></ol>
-    <div id="cbTourContent"></div>
-    <p class="cb-save-status" id="cbTourSaveStatus" role="status"></p>
+    <div class="cb-tour-body" id="cbTourBody"><div id="cbTourContent"></div></div>
+    <footer class="cb-tour-footer" id="cbTourFooter"></footer>
   </section>`;
   document.body.append(overlay);
   const syncNotice=document.createElement('p');
   syncNotice.className='cb-onboarding-sync';syncNotice.setAttribute('role','status');syncNotice.hidden=true;
   document.querySelector('.scout-workspace-entry')?.after(syncNotice);
   const panel=overlay.querySelector('.cb-tour'),content=document.getElementById('cbTourContent');
+  const body=document.getElementById('cbTourBody'),footer=document.getElementById('cbTourFooter');
+  const saveStatus=document.createElement('p');saveStatus.id='cbTourSaveStatus';saveStatus.className='cb-save-status';saveStatus.setAttribute('role','status');
+  let stepAnimation=null;
+  const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
+  reducedMotion.addEventListener('change',event=>{if(event.matches)stepAnimation?.cancel();});
   const progress=overlay.querySelector('.cb-progress');
   let account=null,accountKey=null,step=0,mode='replay',choice='skipped',opener=null,overflow='';
   let inertNodes=[],saving=false,retryTimer=null;
@@ -73,6 +78,7 @@
     updateHeader();close();
   }
   function close(){
+    stepAnimation?.cancel();
     overlay.hidden=true;
     document.body.style.overflow=overflow;
     for(const [node,prior] of inertNodes) node.inert=prior;
@@ -117,8 +123,8 @@
     if(step===1)html=`<h2 id="cbTourTitle" tabindex="-1">Your first report</h2><p id="cbTourDescription">Three small steps. Your own teaching judgment, always.</p><ol class="cb-steps"><li><span class="cb-step-number" aria-hidden="true">1</span><div><h3>Choose a report style</h3><p>Classic is a good place to start. Explore the others later.</p></div></li><li><span class="cb-step-number" aria-hidden="true">2</span><div><h3>Add your lesson notes</h3><p>A short summary is enough. Add the student’s name and a performance rating.</p></div></li><li><span class="cb-step-number" aria-hidden="true">3</span><div><h3>Generate, then review</h3><p>Select Generate feedback. Read the report before sharing it.</p></div></li></ol><button class="cb-quiet" id="cbExampleBtn" aria-expanded="false" aria-controls="cbExampleNotes">Show example notes</button><p class="cb-example" id="cbExampleNotes" hidden>Alex practised describing animals. We covered feathers, fur, and claws. Alex answered confidently but needed help with past-tense verbs. Next time: practise three sentences about a favourite animal.</p><div class="cb-actions"><button data-back>Back</button><button class="cb-primary" data-next>Continue <span aria-hidden="true">→</span></button></div>`;
     if(step===2)html=`<h2 id="cbTourTitle" tabindex="-1">Meet Scout</h2><p id="cbTourDescription" class="cb-lead">Less note-taking. More time for teaching.</p><p>Scout is an optional Windows desktop companion that helps turn lesson audio into a transcript. It is designed to transcribe locally on your computer.</p><div class="cb-hero"><span aria-hidden="true">♪</span><div><h3>From your lesson to your next report</h3><p>Use Scout for a lesson, then bring the transcript into Classbuster as your notes.</p></div></div>${releaseBlock()}<p class="cb-footnote">Windows only. No Scout? Simply type or paste your own notes.</p><div class="cb-actions">${scoutOnly?'<button class="cb-primary" data-done>Back to Classbuster</button>':'<button data-back>Back</button><button class="cb-primary" id="cbSkipScout">Not now, continue without Scout</button>'}</div>`;
     if(step===3){
-      const reassurance=choice==='selected'?'Your download was requested. Finish installing Scout when you’re ready; Classbuster is ready to use now.':window.ClassbusterScoutRelease?'You can find Scout above your workspace whenever you want to try it.':'Scout is coming soon. Find its information above your workspace anytime. For now, your own notes are all you need.';
-      html=`<div class="cb-success" aria-hidden="true">✓</div><h2 id="cbTourTitle" tabindex="-1">You’re ready!</h2><p id="cbTourDescription" class="cb-lead">Your next report starts with your lesson notes.</p><p>${reassurance}</p><div class="cb-hero"><span aria-hidden="true">↗</span><div><h3>Make it yours, one report at a time</h3><p>Choose a style, add your notes, and review the feedback before you share.</p></div></div><div class="cb-actions"><button data-back>Back</button><button class="cb-primary" data-done>Enter Classbuster <span aria-hidden="true">→</span></button></div>`;
+      const reassurance=choice==='selected'?'Your download was requested. You can finish installing Scout later.':window.ClassbusterScoutRelease?'Scout is always available above your workspace.':'Scout is coming soon. For now, your own notes are all you need.';
+      html=`<div class="cb-success" aria-hidden="true">✓</div><h2 id="cbTourTitle" tabindex="-1">You’re ready!</h2><p id="cbTourDescription" class="cb-lead">Choose a style, add your notes, and create your first report.</p><p class="cb-ready-reminder">${reassurance}</p><div class="cb-actions"><button data-back>Back</button><button class="cb-primary" data-done>Enter Classbuster <span aria-hidden="true">→</span></button></div>`;
     }
     content.innerHTML=`<p class="cb-eyebrow">${eyebrow}</p>`+html;
     const iconPaths=step===2?'<path d="M4 14v-3a8 8 0 0 1 16 0v3M4 12H3v7h4v-7Zm16 0h1v7h-4v-7ZM9 11v4m3-6v8m3-6v4"/>':step===3?'<path d="M6 3h9l4 4v14H6Z M14 3v5h5M9 14l2 2 5-5"/>':'<path d="M12 6c-3-3-7-3-9-2v15c3-1 6-1 9 2 3-3 6-3 9-2V4c-2-1-6-1-9 2Zm0 0v15M6 8h3m-3 4h3m6-4h3m-3 4h3"/>';
@@ -127,22 +133,31 @@
     const success=content.querySelector('.cb-success');
     if(success)success.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>';
     if(step===1){
-      const trials=document.createElement('p');trials.className='cb-trial-note';
-      trials.textContent='Try the styles on Free: 5 Classic reports each month, plus 5 one-time trial reports in each other report style. Each style has its own trial allowance.';
+      const trials=document.createElement('div');trials.className='cb-trial-note';
+      trials.innerHTML='<p>5 Classic reports every month. Try each other style with 5 free reports.</p><p class="cb-trial-detail">Other-style trials are one-time allowances, separate for each style.</p>';
       content.querySelector('#cbTourDescription').after(trials);
     }
-    document.getElementById('cbTourSaveStatus').textContent=mode==='first'?'Your introduction is linked to your account.':'';
-    content.querySelector('[data-next]')?.addEventListener('click',()=>{step++;render();});
-    content.querySelector('[data-back]')?.addEventListener('click',()=>{step--;render();});
-    content.querySelector('[data-skip]')?.addEventListener('click',()=>finish('skipped'));
-    content.querySelector('[data-done]')?.addEventListener('click',()=>finish('completed'));
-    content.querySelector('#cbSkipScout')?.addEventListener('click',()=>{choice='skipped';step=3;render();});
+    footer.replaceChildren();
+    footer.append(content.querySelector('.cb-actions'));
+    const footnote=content.querySelector('.cb-footnote');
+    if(footnote)footer.append(footnote);
+    saveStatus.textContent=mode==='first'?'Your introduction is linked to your account.':'';
+    saveStatus.hidden=mode!=='first';footer.append(saveStatus);
+    footer.querySelector('[data-next]')?.addEventListener('click',()=>{step++;render();});
+    footer.querySelector('[data-back]')?.addEventListener('click',()=>{step--;render();});
+    footer.querySelector('[data-skip]')?.addEventListener('click',()=>finish('skipped'));
+    footer.querySelector('[data-done]')?.addEventListener('click',()=>finish('completed'));
+    footer.querySelector('#cbSkipScout')?.addEventListener('click',()=>{choice='skipped';step=3;render();});
     content.querySelector('#cbExampleBtn')?.addEventListener('click',event=>{
       const example=content.querySelector('#cbExampleNotes');example.hidden=!example.hidden;
       event.currentTarget.setAttribute('aria-expanded',String(!example.hidden));
       event.currentTarget.textContent=example.hidden?'Show example notes':'Hide example notes';
     });
-    updateRelease();panel.scrollTop=0;content.querySelector('h2').focus({preventScroll:true});
+    updateRelease();body.scrollTop=0;content.querySelector('h2').focus({preventScroll:true});
+    stepAnimation?.cancel();
+    if(!reducedMotion.matches&&typeof content.animate==='function'){
+      stepAnimation=content.animate([{opacity:0},{opacity:1}],{duration:160,easing:'ease-out'});
+    }
   }
   overlay.querySelector('.cb-close').addEventListener('click',()=>finish('skipped'));
   overlay.addEventListener('keydown',event=>{
