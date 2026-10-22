@@ -65,6 +65,7 @@ Changed files:
 - `tests/test-onboarding.cjs`: dedicated route + real browser regression coverage.
 - `tests/test-browser-smoke.cjs`: update the permanent Help-label contract.
 - `tests/test-hotfix-licensing.cjs`: supply the browser window in its isolated VM harness.
+- `tools/check-onboarding-preview.cjs`: read-only hosted guide acceptance and screenshots.
 - `vercel.json`: disable only this feature branch's automatic Git deployment.
 - `CLASSBUSTER-ONBOARDING-REVIEW.md`: this handoff.
 
@@ -91,6 +92,22 @@ data is used. Existing deployment protection stays unchanged.
 
 Review without registering: **Help & guide → Replay the introduction**.
 The permanent **Meet Scout** button is available without replay.
+
+Verified Preview:
+https://pathfinder-v2-staging-7hr6g0daa-thembones90-sudos-projects.vercel.app/
+
+Deployment `dpl_AEAit3DH1RH6Gqh9PmcQ1XpYgzoT`, target **Preview**, status **Ready**,
+application commit `d3639c51b787ca2dbf5e92728bbcfdd2266c99ce`.
+The existing hosted live smoke suite passed all checks (all seven protocols).
+The additional hosted onboarding check passed four-stage replay, permanent Scout,
+unavailable installer safety, no pre-registration launch, Escape and focus at
+1440px and 390px, with no JavaScript exceptions. API status without credentials
+returns 401 with `Cache-Control: no-store`; both new assets return 200.
+Hosted screenshots are `preview-1440-stage-1.png` through `preview-1440-stage-4.png`
+and the corresponding `preview-390-stage-*` files in the screenshot directory.
+
+Production remained on `dpl_Fx1zWZGpUPu3rySEEdLkZ87rCavQ`, independently rechecked
+after Preview deployment. No production promotion or customer account mutation occurred.
 
 Hosted real-email, provider checkout and independently durable external-KV tests
 are not proven by synthetic regression tests. They remain a separate integration
