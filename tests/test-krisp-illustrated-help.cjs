@@ -8,7 +8,7 @@ module.exports=async function(){
     const page=await browser.newPage();
     await page.setViewport({width:1440,height:1000});
     await page.goto(pathToFileURL(path.join(root,'index.html')).href);
-    await page.click('#helpBtn');await page.evaluate(()=>document.getElementById('firstGuideDetails').open=true);
+    await page.click('#helpBtn');await page.click('#cbOnboardingNext');await page.click('#cbFullHelpGuide');await page.evaluate(()=>document.getElementById('firstGuideDetails').open=true);
     const pictures=await page.$$eval('.krisp-guide-figure img',els=>els.map(e=>({src:e.getAttribute('src'),alt:e.alt})));
     assert.deepEqual(pictures.map(e=>path.basename(e.src)),['settings1.jpg','settings2.jpg'],'Settings picture comes before Integrations picture');
     assert.ok(pictures.every(e=>e.alt.length>30),'descriptive alternative text');

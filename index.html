@@ -2408,6 +2408,30 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
 #scoutReleaseChecksum{max-width:100%;overflow-wrap:anywhere;color:var(--text-dim);font:400 10px/1.5 var(--font-mono)}
 @media(max-width:560px){#scoutReleaseBanner{padding:15px;gap:12px}.scout-release-action{width:100%}#scoutReleaseLink{width:100%}#scoutReleaseBanner h2{font-size:19px}}
 </style>
+<style id="classbuster-onboarding-accessibility">
+body.cb-modal-open{overflow:hidden}
+#classbusterOnboardingOverlay .cb-onboarding-dialog{max-height:min(760px,calc(100dvh - 40px))}
+#cbOnboardingTitle:focus{outline:none}
+#cbExampleNotes[hidden],#cbOnboardingSkip[hidden],#cbOnboardingNext[hidden],#cbOnboardingBack[hidden]{display:none!important}
+.cb-scout-choice-actions{display:grid;gap:10px;margin-top:18px}
+.cb-scout-choice-actions button{min-height:44px}
+.cb-scout-choice-actions .generate-btn:disabled{opacity:.5;cursor:not-allowed}
+.cb-release-note{font-size:13px!important;margin-top:12px}
+#cbScoutDiscovery{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;padding:14px 18px;margin:0 0 14px;border:1px solid rgba(var(--toxin-rgb),.2);border-radius:12px;background:rgba(var(--toxin-rgb),.045)}
+#cbScoutDiscovery>div{min-width:0;flex:1 1 320px}
+.cb-scout-discovery-label{margin:0 0 4px;color:var(--toxin-label);letter-spacing:.12em;font:600 10px/1.4 var(--font-body)}
+#cbScoutDiscovery h2{margin:0 0 3px;color:var(--text);font:650 16px/1.4 var(--font-display)}
+#cbScoutDiscovery p:not(.cb-scout-discovery-label){margin:0;color:var(--text-dim);font:400 12px/1.5 var(--font-body)}
+#cbScoutOpenWorkspace{min-height:44px;white-space:nowrap}
+@media(max-width:560px){#cbScoutDiscovery{padding:13px}#cbScoutOpenWorkspace{width:100%}}
+html[data-appearance="light"] .cb-onboarding-dialog{background:#fff;color:#243024;border-color:#d8e4d1;box-shadow:0 20px 70px #0003}
+html[data-appearance="light"] .cb-onboarding-dialog h2{color:#263328}
+html[data-appearance="light"] .cb-onboarding-dialog p{color:#495a4d}
+html[data-appearance="light"] .cb-step-list li{background:#f6f9f4;border-color:#dae5d5;color:#405144}
+html[data-appearance="light"] .cb-step-list b{color:#233d2b}
+html[data-appearance="light"] .cb-example{background:#eef6eb;color:#25382b}
+html[data-appearance="light"] .cb-modal-close{color:#364a3e}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -2423,13 +2447,21 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
     <div class="header-actions">
       <button type="button" id="krispIntegrationBtn" class="btn-secondary account-btn krisp-integration-btn" aria-expanded="false" aria-controls="krispSetupSection" hidden><span class="krisp-logo-slot" aria-hidden="true"><img id="krispLogoImg" class="krisp-logo-img" alt="" width="22" height="22" hidden><svg id="krispLogoFallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></span><span class="krisp-integration-label">Krisp integration</span><span class="krisp-integration-caret" aria-hidden="true">&#9662;</span></button>
       <button type="button" id="krispPendingBtn" class="btn-secondary account-btn krisp-pending-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="krispInboxPanel" hidden><span class="pill-chip" aria-hidden="true"><svg class="krisp-envelope-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 6.8 5.1a2 2 0 0 0 2.4 0L20 7M4 17l4.5-4M20 17l-4.5-4"/></svg></span><span>Pending transcripts</span><span id="krispInboxBadge" class="krisp-inbox-badge" aria-hidden="true">…</span></button>
-      <button class="btn-secondary account-btn help-btn" id="helpBtn" type="button" aria-label="Start here: open Pathfinder help guide">START HERE · FIRST TIME?</button>
+      <button class="btn-secondary account-btn help-btn" id="helpBtn" type="button" aria-label="Open Classbuster help guide">HELP · START HERE</button>
       <button class="btn-secondary account-btn" id="accountBtn" type="button" aria-expanded="false" aria-controls="accountPanel"><span class="pill-chip" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg></span>Account</button>
     </div>
   </div>
 
 
 
+  <section id="cbScoutDiscovery" aria-labelledby="cbScoutDiscoveryTitle">
+  <div>
+    <p class="cb-scout-discovery-label">OPTIONAL WINDOWS COMPANION</p>
+    <h2 id="cbScoutDiscoveryTitle">Meet Scout</h2>
+    <p>Transcribe your lessons with Scout, or continue using Classbuster exactly as you do today.</p>
+  </div>
+  <button id="cbScoutOpenWorkspace" class="btn-secondary" type="button">Explore Scout</button>
+</section>
   <section id="scoutReleaseBanner" hidden aria-labelledby="scoutReleaseTitle">
     <div class="scout-release-copy">
       <p class="scout-release-eyebrow">CLASSBUSTER SCOUT · WINDOWS</p>
@@ -2657,7 +2689,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
             <li><strong>Copy your connection link</strong>
             <button type="button" id="krispCopyUrlBtn" class="btn-secondary krisp-premium-btn krisp-action-btn"><svg class="krisp-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><span class="krisp-btn-label">Copy</span></button>
             </li>
-            <li><strong>Set up the webhook in Krisp</strong><p>Open Krisp → Settings → Integrations → Webhook. Name it Pathfinder and paste the entire connection link.</p><p>Under <strong>Trigger Events</strong>, select <strong>Transcript created</strong> only, then save.</p></li>
+            <li><strong>Set up the webhook in Krisp</strong><p>Open Krisp → Settings → Integrations → Webhook. Name it Classbuster and paste the entire connection link.</p><p>Under <strong>Trigger Events</strong>, select <strong>Transcript created</strong> only, then save.</p></li>
             <li><strong id="krispSetupArmStep">Return here and press ARM KRISP</strong><p id="krispSetupArmHint">Your first lesson delivery will confirm the connection.</p></li>
             </ol>
             </details>
@@ -2751,11 +2783,52 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
   </div>
 </div>
 
+<style>
+.cb-onboarding-overlay{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:rgba(5,8,6,.82);backdrop-filter:blur(10px)}
+.cb-onboarding-overlay[hidden]{display:none}
+.cb-onboarding-dialog{position:relative;width:min(100%,620px);max-height:min(760px,calc(100vh - 40px));overflow:auto;padding:34px;border:1px solid rgba(var(--toxin-rgb),.42);border-radius:24px;background:radial-gradient(ellipse at 0 0,rgba(var(--toxin-rgb),.13),transparent 60%),#171c18;box-shadow:0 28px 100px rgba(0,0,0,.6);color:var(--text)}
+.cb-modal-close{position:absolute;right:18px;top:16px;width:40px;height:40px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--text-dim);font-size:26px;line-height:1;cursor:pointer}
+.cb-modal-close:focus-visible,.cb-onboarding-dialog button:focus-visible,.cb-onboarding-dialog a:focus-visible{outline:2px solid var(--toxin);outline-offset:3px}
+.cb-eyebrow{margin:0 0 10px;color:var(--toxin-bright);font:700 11px/1.3 var(--font-mono);letter-spacing:.14em}
+.cb-onboarding-dialog h2{margin:0 50px 14px;font:700 clamp(28px,5vw,42px)/1.08 var(--font-display);letter-spacing:-.04em}
+.cb-onboarding-dialog p{color:var(--text-dim);font-size:16px;line-height:1.6}
+.cb-onboarding-progress{display:flex;gap:7px;margin-bottom:28px}.cb-onboarding-progress i{width:34px;height:4px;border-radius:3px;background:var(--border)}.cb-onboarding-progress i.active{background:var(--toxin)}
+.cb-step-list{display:grid;gap:12px;margin:20px 0;padding:0;list-style:none}.cb-step-list li{padding:15px 16px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.025)}.cb-step-list b{display:block;color:var(--text);margin-bottom:3px}
+.cb-example{padding:14px 16px;border-left:3px solid var(--toxin);background:rgba(var(--toxin-rgb),.08);border-radius:0 10px 10px 0}.cb-onboarding-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:28px}.cb-onboarding-actions .btn-secondary{min-width:90px}.cb-scout-dialog{max-width:540px}.cb-scout-release-state{margin:18px 0;padding:14px;border:1px solid var(--border);border-radius:12px;color:var(--text-dim);line-height:1.5}.cb-scout-dialog button,.cb-scout-dialog a{margin-top:10px}.cb-scout-dialog .cb-scout-download{display:inline-flex;text-decoration:none;color:#101510;align-items:center;justify-content:center;padding:12px 18px;border-radius:10px}.cb-scout-dialog #cbScoutCloseAction{display:block}
+@media(max-width:560px){.cb-onboarding-overlay{padding:10px}.cb-onboarding-dialog{padding:25px 20px;border-radius:18px}.cb-onboarding-dialog h2{font-size:30px}.cb-onboarding-actions{flex-direction:column-reverse}.cb-onboarding-actions button{width:100%}}
+@media(prefers-reduced-motion:reduce){.cb-onboarding-overlay *{scroll-behavior:auto!important;transition:none!important}}
+</style>
+<div id="classbusterOnboardingOverlay" class="cb-onboarding-overlay" hidden>
+  <div class="cb-onboarding-dialog" role="dialog" aria-modal="true" aria-labelledby="cbOnboardingTitle" tabindex="-1">
+    <button class="cb-modal-close" id="cbOnboardingClose" type="button" aria-label="Close introduction">×</button>
+    <div class="cb-onboarding-progress" id="cbOnboardingProgress" aria-label="Introduction progress"></div>
+    <p class="cb-eyebrow">CLASSBUSTER</p>
+    <h2 id="cbOnboardingTitle"></h2>
+    <div id="cbOnboardingBody"></div>
+    <div class="cb-onboarding-actions">
+      <button class="btn-secondary" id="cbOnboardingSkip" type="button">Skip introduction</button>
+      <button class="btn-secondary" id="cbOnboardingBack" type="button">Back</button>
+      <button class="generate-btn" id="cbOnboardingNext" type="button"><span class="btn-label">Continue</span></button>
+    </div>
+  </div>
+</div>
+
+<div id="classbusterScoutOverlay" class="cb-onboarding-overlay" hidden>
+  <div class="cb-onboarding-dialog cb-scout-dialog" role="dialog" aria-modal="true" aria-labelledby="cbScoutTitle" tabindex="-1">
+    <button class="cb-modal-close" id="cbScoutClose" type="button" aria-label="Close Scout information">×</button>
+    <p class="cb-eyebrow">OPTIONAL COMPANION</p><h2 id="cbScoutTitle">Meet Scout</h2>
+    <p>Scout is a Windows companion that can bring lesson transcription into Classbuster. You can use every report feature without it.</p>
+    <div id="cbScoutReleaseState" class="cb-scout-release-state">Scout is not available for public download yet. We’ll let you know when a verified Windows version is ready.</div>
+    <a id="cbScoutDownload" class="generate-btn cb-scout-download" hidden target="_blank" rel="noopener noreferrer">Install Scout</a>
+    <button class="btn-secondary" id="cbScoutCloseAction" type="button">Not now, continue without Scout</button>
+  </div>
+</div>
+
 <div id="helpModalOverlay" class="license-modal-overlay" style="display:none;">
   <div class="license-modal help-modal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
     <div class="help-modal-head">
       <div>
-        <p class="license-modal-subtitle"><svg class="guide-brand-mark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 6.5-2 7-7 4 4-7Z"/><path d="M12 1v2M12 21v2M1 12h2M21 12h2"/></svg>Pathfinder · Quick start</p>
+        <p class="license-modal-subtitle"><svg class="guide-brand-mark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 6.5-2 7-7 4 4-7Z"/><path d="M12 1v2M12 21v2M1 12h2M21 12h2"/></svg>Classbuster · Quick start</p>
         <h2 class="license-modal-title" id="helpModalTitle" tabindex="-1">Your first report in three steps</h2>
       </div>
       <button class="btn-secondary help-modal-close" id="helpModalCloseBtn" type="button" aria-label="Close START HERE guide" title="Close guide"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
@@ -2832,7 +2905,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
         <span class="help-step-number">1</span>
         <div>
           <p class="help-step-title">Copy your connection link</p>
-          <p class="help-step-copy">Open Krisp integration at the top of Pathfinder. Under Connection setup, press Copy connection link.</p>
+          <p class="help-step-copy">Open Krisp integration at the top of Classbuster. Under Connection setup, press Copy connection link.</p>
         </div>
       </div>
       <div class="help-step">
@@ -2863,13 +2936,13 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
         <span class="help-step-number">4</span>
         <div>
           <p class="help-step-title">Paste your link and choose what Krisp sends</p>
-          <p class="help-step-copy">Name the connection Pathfinder. Paste the whole link you copied into the Webhook URL box. Under Trigger Events, select Transcript created only, then save. Leave the other boxes unticked. Keep your connection link private, like a password.</p>
+          <p class="help-step-copy">Name the connection Classbuster. Paste the whole link you copied into the Webhook URL box. Under Trigger Events, select Transcript created only, then save. Leave the other boxes unticked. Keep your connection link private, like a password.</p>
         </div>
       </div>
       <div class="help-step">
         <span class="help-step-number">5</span>
         <div>
-          <p class="help-step-title">Return to Pathfinder and press ARM KRISP</p>
+          <p class="help-step-title">Return to Classbuster and press ARM KRISP</p>
           <p class="help-step-copy">Finish a lesson in Krisp and wait for its transcript to be ready. The first received transcript confirms the connection. Krisp stays armed for later lessons until you press DISARM KRISP. Copying the link alone does not confirm the connection.</p>
         </div>
       </div>
@@ -2883,7 +2956,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
 <div id="licenseModalOverlay" class="license-modal-overlay" style="display:none;">
   <div class="license-modal access-modal" role="dialog" aria-modal="true" aria-labelledby="accessModalTitle" aria-describedby="accessModalDescription">
     <button id="licenseModalCloseBtn" class="access-modal-close" type="button" aria-label="Close access window" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-    <p class="access-eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="12" cy="12" r="9"/><path d="m15.5 6.5-2 7-7 4 4-7Z"/></svg>Pathfinder · Your workspace</p>
+    <p class="access-eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="12" cy="12" r="9"/><path d="m15.5 6.5-2 7-7 4 4-7Z"/></svg>Classbuster · Your workspace</p>
     <h2 class="license-modal-title" id="accessModalTitle">Choose how to continue</h2>
     <p class="license-modal-subtitle" id="accessModalDescription">Start free, upgrade to Pro, or securely restore your access.</p>
 
@@ -2908,7 +2981,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
       <details class="license-modal-section pro" name="access-path">
         <summary class="license-modal-choice">
           <span class="license-modal-choice-copy">
-            <span class="license-modal-choice-labels"><svg class="access-path-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 4 4 5-7 5 7 4-4-2 12H5ZM5 22h14"/></svg><span class="license-modal-plan-name">Pathfinder Pro</span><span class="license-modal-pill">pro</span></span>
+            <span class="license-modal-choice-labels"><svg class="access-path-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 4 4 5-7 5 7 4-4-2 12H5ZM5 22h14"/></svg><span class="license-modal-plan-name">Classbuster Pro</span><span class="license-modal-pill">pro</span></span>
             <span class="license-modal-plan-note">Unlimited reports and all seven teaching protocols.</span>
           </span>
         </summary>
@@ -2941,7 +3014,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
             <summary>Or sign in with an access key</summary>
             <label class="license-modal-field-label" for="licenseModalKeyInput">Existing access or owner key</label>
             <div class="license-modal-inline">
-              <input type="text" id="licenseModalKeyInput" placeholder="Enter your existing Pathfinder key" autocomplete="off">
+              <input type="text" id="licenseModalKeyInput" placeholder="Enter your existing Classbuster key" autocomplete="off">
               <button class="btn-secondary" id="licenseModalKeyBtn" type="button">Use key</button>
             </div>
           </details>
@@ -2951,7 +3024,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
     </div>
 
     <p class="license-modal-error" id="licenseModalError" role="status" aria-live="polite" style="display:none;"></p>
-    <p class="license-modal-trust"><strong>Your reports stay private.</strong> Pathfinder does not store generated reports. Access keys only control your plan.</p>
+    <p class="license-modal-trust"><strong>Your reports stay private.</strong> Classbuster does not store generated reports. Access keys only control your plan.</p>
   </div>
 </div>
 
@@ -6303,7 +6376,7 @@ function renderTrialStatus(trialStatus){
     box.textContent = label + ' Trial: ' + trialStatus.remaining + '/' + trialStatus.limit + ' remaining';
   }else{
     box.className = 'trial-status-box trial-status-exhausted';
-    box.textContent = 'Your complimentary ' + label + ' trial has ended. Upgrade to Pathfinder Pro to continue using this protocol.';
+    box.textContent = 'Your complimentary ' + label + ' trial has ended. Upgrade to Classbuster Pro to continue using this protocol.';
   }
 }
 
@@ -7116,7 +7189,7 @@ function promptForAccessKey(){
 
     async function onKeyClick(){
       const key = keyInput.value.trim();
-      if(!key){ showError('Please paste your Pathfinder key.'); return; }
+      if(!key){ showError('Please paste your Classbuster key.'); return; }
       errorEl.style.display = 'none';
       const oldButtonText = keyBtn.textContent;
       keyBtn.disabled = true;
@@ -7166,7 +7239,7 @@ function promptForAccessKey(){
           recoverBtnLabel.textContent = 'Email sign-in link';
           return;
         }
-        errorEl.textContent = data.message || 'If that email has Pathfinder access, a secure link is on its way.';
+        errorEl.textContent = data.message || 'If that email has Classbuster access, a secure link is on its way.';
         errorEl.style.display = 'block';
         recoverBtn.disabled = false;
         recoverBtnLabel.textContent = 'Send another link';
@@ -7345,13 +7418,13 @@ async function callClaude(generation){
       throw err;
     }
     if(response.status === 422 && reason === 'output_noncompliant'){
-      throw new Error(detail || 'This report did not pass Pathfinder\'s format checks. Nothing was charged and your lesson notes are safe — please generate again.');
+      throw new Error(detail || 'This report did not pass Classbuster\'s format checks. Nothing was charged and your lesson notes are safe — please generate again.');
     }
     if(response.status === 504 && reason === 'generation_timeout'){
       throw new Error('Report generation took too long. Your lesson notes are still here—wait a moment, then try again.');
     }
     if(response.status === 529 || response.status === 503){
-      throw new Error('Pathfinder is busy right now. Wait a few seconds and try again. Your lesson notes are still here.');
+      throw new Error('Classbuster is busy right now. Wait a few seconds and try again. Your lesson notes are still here.');
     }
     if(response.status >= 500){
       throw new Error('Something went wrong on our side. Your lesson notes are still here. Please try again in a moment.');
@@ -7360,7 +7433,7 @@ async function callClaude(generation){
       throw new Error('These lesson notes are too long for one report. Remove older or repeated parts of the transcript and try again.');
     }
     if(response.status === 400 && /^Invalid generation request/.test(detail)){
-      throw new Error('Pathfinder could not read this report request. Check the form fields (student name, rating, protocol options) and try again.');
+      throw new Error('Classbuster could not read this report request. Check the form fields (student name, rating, protocol options) and try again.');
     }
     throw new Error(detail || 'The report request was not accepted. Please try again.');
   }
@@ -7392,7 +7465,7 @@ const feedbackStarsRow = document.getElementById('feedbackStarsRow');
 const FEEDBACK_PLACEHOLDERS = {
   quality: 'Optional: what could be better?',
   bug: 'What went wrong? What did you expect instead?',
-  idea: 'What would make Pathfinder more useful for you?'
+  idea: 'What would make Classbuster more useful for you?'
 };
 
 function feedbackReady(){
@@ -7892,7 +7965,7 @@ function updateHelpButton(completed){
   if(!helpEls.btn)return;
   helpEls.btn.classList.toggle('onboarding-done',completed);
   helpEls.btn.textContent=completed?'Help & guide':'New here? Start here';
-  helpEls.btn.setAttribute('aria-label',completed?'Open Pathfinder help guide':'New here? Open the getting started guide');
+  helpEls.btn.setAttribute('aria-label',completed?'Open Classbuster introduction':'New here? Open the Classbuster introduction');
 }
 let helpCompleted=false;
 try{helpCompleted=localStorage.getItem(HELP_COMPLETED_KEY)==='1';}catch(e){}
@@ -7932,7 +8005,7 @@ document.getElementById('firstGuideStart')?.addEventListener('click',beginFirstR
 document.getElementById('firstGuideExample')?.addEventListener('click',loadFirstReportExample);
 
 if(helpEls.btn){
-  helpEls.btn.addEventListener('click', openHelpModal);
+  helpEls.btn.addEventListener('click', () => { if(typeof window.openClassbusterOnboarding==='function') window.openClassbusterOnboarding(); else openHelpModal(); });
 }
 if(helpEls.closeBtn){
   helpEls.closeBtn.addEventListener('click', closeHelpModal);
@@ -8021,7 +8094,7 @@ async function completeEmailVerification(){
           // the background email check was running.
           if(outputBox.textContent !== initialOutput) return;
           outputBox.className = 'output-box';
-          outputBox.textContent = 'Your Pathfinder account is already active. This email link has expired or was used before, but you can keep using your available reports. Add lesson notes, choose a performance rating, and select Generate feedback.';
+          outputBox.textContent = 'Your Classbuster account is already active. This email link has expired or was used before, but you can keep using your available reports. Add lesson notes, choose a performance rating, and select Generate feedback.';
           return;
         }
       }catch(err){ /* Fall back to the actual verification error. */ }
@@ -8043,9 +8116,10 @@ async function completeEmailVerification(){
       return;
     }
     try{ localStorage.setItem(ACCESS_KEY_STORAGE, data.licenseKey); }catch(err){ /* storage unavailable */ }
+    try{document.dispatchEvent(new CustomEvent('kidbuster:access-key-saved'));}catch(err){}
     if(outputBox.textContent !== initialOutput) return;
     outputBox.className = 'output-box';
-    outputBox.textContent = 'Email verified. Your Pathfinder access is ready on this browser.';
+    outputBox.textContent = 'Email verified. Your Classbuster access is ready on this browser.';
   }catch(err){
     await showLinkError('Could not verify the secure access link. Check your connection and try again.');
   }
@@ -8058,15 +8132,15 @@ function renderCheckoutSuccess(key){
   if(!key){
     outputBox.textContent =
       'Payment complete, but this browser does not have the Pro key saved.\n\n' +
-      'Open Access, choose Already paid?, and enter the checkout email. Pathfinder will find your Pro key.';
+      'Open Access, choose Already paid?, and enter the checkout email. Classbuster will find your Pro key.';
     return;
   }
 
   outputBox.innerHTML =
     '<div class="checkout-success-card">' +
       '<div class="checkout-success-title">Your Pro key is ready.</div>' +
-      '<div class="checkout-success-copy">Copy this key if you want to use Pathfinder on another device. It is already active in this browser.</div>' +
-      '<span class="checkout-success-label">Pathfinder Pro key</span>' +
+      '<div class="checkout-success-copy">Copy this key if you want to use Classbuster on another device. It is already active in this browser.</div>' +
+      '<span class="checkout-success-label">Classbuster Pro key</span>' +
       '<code class="checkout-key" id="checkoutSuccessKey">' + escapeHtml(key) + '</code>' +
     '</div>' +
     '<div class="checkout-actions">' +
@@ -8303,7 +8377,7 @@ async function checkAndShowTrialStatus(protocolKey){
     }else{
       box.style.display = 'block';
       box.className = 'trial-status-box trial-status-exhausted';
-      box.textContent = 'Your complimentary ' + label + ' trial has ended. Upgrade to Pathfinder Pro to continue using this protocol.';
+      box.textContent = 'Your complimentary ' + label + ' trial has ended. Upgrade to Classbuster Pro to continue using this protocol.';
     }
   }catch(e){
     renderTrialStatus(null);
@@ -8729,6 +8803,9 @@ function restoreDraft(){
 restoreDraft();
 restoreWorkspacePreferences();
 </script>
+
+<script src="assets/scout-release-validator.js"></script>
+<script src="assets/onboarding-flow.js"></script>
 
 <script>
 (function(){
@@ -9567,7 +9644,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     }
     krispVerifiedDelivery = !!verified;
     renderKrispHealth();
-    description.textContent = verified ? 'Krisp has successfully sent lesson notes to Pathfinder.' : field && field.value ? 'Follow the setup below. We will confirm when your first lesson arrives.' : 'Create a connection link under Advanced to begin.';
+    description.textContent = verified ? 'Krisp has successfully sent lesson notes to Classbuster.' : field && field.value ? 'Follow the setup below. We will confirm when your first lesson arrives.' : 'Create a connection link under Advanced to begin.';
   }
   function resetConnectionConfirmation(){
     krispVerificationAfter = Date.now();
@@ -9819,7 +9896,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     }catch(e){
       btnEl.disabled = false;
       btnEl.textContent = originalBtnText;
-      showKrispError('Could not reach Pathfinder to import that comment. Check your connection and try again.');
+      showKrispError('Could not reach Classbuster to import that comment. Check your connection and try again.');
     }
   }
 

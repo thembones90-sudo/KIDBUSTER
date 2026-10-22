@@ -249,40 +249,31 @@ module.exports = async function run(){
   }
 
   console.log('\n2) Every protocol correctly sets its own body class AND its own button gradient — not just its :has()-driven panel colors');
-  console.log('\n1c) Help modal explains the app and closes cleanly');
+  console.log('\n1c) Classbuster Help replays onboarding, with the detailed guide one click away');
   await page.click('#helpBtn');
-  await new Promise(r => setTimeout(r, 80));
-  const helpOpen = await page.evaluate(() => {
-    const overlay = document.getElementById('helpModalOverlay');
-    const text = overlay ? overlay.textContent : '';
-    return {
-      visible: overlay && getComputedStyle(overlay).display !== 'none',
-      hasTitle: text.includes('Your first report in three steps'),
-      hasSteps: text.includes('Choose your report style') && text.includes('Add your lesson notes') && text.includes('Create your report'),
-      hasAccess: text.includes('Free') && text.includes('Pro') && text.includes('Manage billing') && text.includes('PayPal')
-    };
-  });
-  check('Help button opens the onboarding guide', helpOpen.visible);
-  check('Help guide includes the basic workflow steps', helpOpen.hasTitle && helpOpen.hasSteps);
-  check('Help guide explains Free, Pro, provider-managed PayPal, and billing access', helpOpen.hasAccess);
-
+  await new Promise(r=>setTimeout(r,80));
+  const guideOpen=await page.evaluate(()=>({
+    tour: !document.getElementById('classbusterOnboardingOverlay').hidden,
+    heading: document.getElementById('cbOnboardingTitle').textContent,
+    oldClosed: getComputedStyle(document.getElementById('helpModalOverlay')).display==='none'
+  }));
+  check('Help button opens exactly the new onboarding guide', guideOpen.tour&&guideOpen.oldClosed&&guideOpen.heading==='Welcome to Classbuster');
+  await page.click('#cbOnboardingNext');
+  check('new guide explains the basic three-step workflow',await page.$eval('#cbOnboardingBody',el=>['Choose a style','Add lesson notes','Generate and review'].every(t=>el.textContent.includes(t))));
+  await page.click('#cbFullHelpGuide');
+  const detailed=await page.evaluate(()=>{const el=document.getElementById('helpModalOverlay');return getComputedStyle(el).display!=='none'&&el.textContent.includes('Manage billing')&&el.textContent.includes('PayPal')});
+  check('original full detailed guide stays accessible',detailed);
   await page.click('#helpModalCloseBtn');
-  await new Promise(r => setTimeout(r, 80));
-  const helpClosedByButton = await page.evaluate(() => getComputedStyle(document.getElementById('helpModalOverlay')).display === 'none');
-  check('Help modal closes from the Close button', helpClosedByButton);
-
+  check('detailed guide closes from its button',await page.$eval('#helpModalOverlay',el=>getComputedStyle(el).display==='none'));
   await page.click('#helpBtn');
   await page.keyboard.press('Escape');
-  await new Promise(r => setTimeout(r, 80));
-  const helpClosedByEscape = await page.evaluate(() => getComputedStyle(document.getElementById('helpModalOverlay')).display === 'none');
-  check('Help modal closes with Escape', helpClosedByEscape);
+  check('new Help tour closes with Escape',await page.$eval('#classbusterOnboardingOverlay',el=>el.hidden));
   await page.click('#helpBtn');
-  await page.click('#helpModalCloseBtn');
-  check('visible X closes START HERE',await page.evaluate(()=>getComputedStyle(document.getElementById('helpModalOverlay')).display==='none'));
+  await page.click('#cbOnboardingClose');
+  check('visible X closes onboarding',await page.$eval('#classbusterOnboardingOverlay',el=>el.hidden));
   await page.click('#helpBtn');
-  await page.evaluate(()=>document.getElementById('helpModalOverlay').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true})));
-  check('clicking outside START HERE closes it',await page.evaluate(()=>getComputedStyle(document.getElementById('helpModalOverlay')).display==='none'));
-
+  await page.$eval('#classbusterOnboardingOverlay',el=>el.click());
+  check('clicking tour backdrop closes onboarding',await page.$eval('#classbusterOnboardingOverlay',el=>el.hidden));
   const protocols = [
     { value: 'MA',    bodyClass: null, label: 'Classic' }, // MA is the default theme — no body class of its own
     { value: 'MS',    bodyClass: 'protocol-ms', label: 'Sugarcoat' },

@@ -63,6 +63,7 @@ export async function getOrCreateFreeLicense(email){
     status: 'active',
     paymentCustomerId: null,
     paymentSubscriptionId: null,
+    onboardingEligible: true,
     createdAt: new Date().toISOString()
   });
   await saveEmailIndex(normalized, licenseKey);
@@ -98,6 +99,8 @@ export async function activateOrRenewPro({ licenseKey, email, paymentCustomerId,
       status: 'active',
       paymentCustomerId: null,
       paymentSubscriptionId: null,
+      // First paid checkout without a pre-existing Free record is a genuinely new account.
+      onboardingEligible: true,
       createdAt: new Date().toISOString()
     };
   }
@@ -410,6 +413,7 @@ export async function claimManualLicenseForInstallation(licenseKey, license, ins
       activationPending: false,
       activatedAt: marker.activatedAt,
       expiresAt: marker.expiresAt
+      ,onboardingEligible: true
     } : {})
   };
   await saveLicense(licenseKey, updated);

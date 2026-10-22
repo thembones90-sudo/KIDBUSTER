@@ -11,16 +11,9 @@
       const response = await fetch('/assets/scout-release.json',{cache:'no-store',credentials:'omit'});
       if (!response.ok) return;
       const release = await response.json();
-      if (release.available !== true || release.platform !== 'Windows' ||
-          !/^\d+\.\d+(?:\.\d+){0,2}(?:-[A-Za-z0-9.-]+)?$/.test(release.version) ||
-          !/^[0-9a-fA-F]{64}$/.test(release.sha256)) return;
-      const url = new URL(release.downloadUrl);
-      const github = url.hostname === 'github.com' &&
-        /^\/thembones90-sudo\/[\w.-]+\/releases\/download\/[^/?#]+\/[^/?#]+\.(exe|msi|msix)$/i.test(url.pathname);
-      const owned = url.hostname === 'classbuster.com' &&
-        /^\/downloads\/[\w.-]+\.(exe|msi|msix)$/i.test(url.pathname);
-      if (url.protocol !== 'https:' || url.username || url.password ||
-          url.search || url.hash || url.port || !(github || owned)) return;
+      const checked = window.validateScoutRelease && window.validateScoutRelease(release);
+      if (!checked) return;
+      const url = checked.url;
       link.href = url.href;
       link.rel = 'noopener noreferrer';
       link.target = '_blank';

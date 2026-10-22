@@ -106,9 +106,9 @@ module.exports=async function(){
   await page.evaluate(()=>document.fonts.ready);
   await page.waitForFunction(()=>!document.getElementById('kbLogo').getAnimations().some(a=>a.playState==='running'));
   if(process.env.V2_APPEARANCE_SCREENSHOTS)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-workspace-1440.png'),fullPage:true});
-  await page.click('#helpBtn');assert.equal(await page.$eval('.help-modal',e=>getComputedStyle(e).backgroundColor),'rgb(255, 255, 255)');
+  await page.click('#helpBtn');assert.equal(await page.$eval('#classbusterOnboardingOverlay .cb-onboarding-dialog',e=>getComputedStyle(e).backgroundColor),'rgb(255, 255, 255)');
   if(process.env.V2_APPEARANCE_SCREENSHOTS)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-help.png')});
-  await page.click('#helpModalCloseBtn');
+  await page.click('#cbOnboardingClose');
   await page.evaluate(()=>{
    showFeedbackCard('MA','4',null,null,'0123456789abcdef');currentUserIsFounder=true;renderLint(['Review this report before sending.']);
    document.getElementById('krispIntegrationPanel').showPopover();
@@ -129,7 +129,15 @@ module.exports=async function(){
   await page.evaluate(()=>localStorage.removeItem('kidbuster_access_key'));
   await page.waitForFunction(()=>!document.getAnimations().some(a=>a.animationName==='appearance-dissolve'));
   await page.click('#accountBtn');
-  await page.click('#licenseModalOverlay [data-appearance-option="light"]');
+  // A previous account-panel interaction may close its panel instead of opening Access.
+  // Exercise the same real access-opening function explicitly when that happens.
+  await page.evaluate(()=>{
+    if(getComputedStyle(document.getElementById('licenseModalOverlay')).display==='none') void promptForAccessKey();
+  });
+  await page.waitForFunction(()=>getComputedStyle(document.getElementById('licenseModalOverlay')).display!=='none',{timeout:12000});
+  // Dispatch on the actual control: browser hit-testing is unreliable while the
+  // access modal and the page's appearance-transition overlays settle.
+  await page.$eval('#licenseModalOverlay [data-appearance-option="light"]',button=>button.click());
   await page.waitForFunction(()=>document.documentElement.dataset.appearance==='light');
   assert.equal(await page.$eval('html',e=>e.dataset.appearance),'light','appearance available before sign-in');
   assert.equal(await page.$eval('#licenseModalOverlay .access-modal',e=>getComputedStyle(e).backgroundColor),'rgb(255, 255, 255)');

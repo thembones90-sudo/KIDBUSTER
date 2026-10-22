@@ -23,6 +23,20 @@ import {
   isLicenseExpired, effectiveSubscriptionLicense
 } from './_lib/licensing.js';
 import { claimManualLicenseForInstallation } from './_lib/license-service.js';
+import { kv } from './_lib/kv-client.js';
+import crypto from 'node:crypto';
+
+const ONBOARDING_KEY_PREFIX = 'classbuster:onboarding:v1:';
+const ONBOARDING_STATES = new Set(['completed', 'skipped']);
+
+function onboardingKey(licenseKey){
+  return ONBOARDING_KEY_PREFIX + crypto.createHash('sha256').update(licenseKey).digest('hex');
+}
+
+async function readOnboardingState(licenseKey){
+  const value = await kv.get(onboardingKey(licenseKey));
+  return value && typeof value === 'object' ? value : null;
+}
 
 async function buildTrialsObject(licenseKey, isFree){
   const entries = await Promise.all(TRIAL_ELIGIBLE_PROTOCOLS.map(async (protocol) => {
@@ -40,6 +54,28 @@ async function buildTrialsObject(licenseKey, isFree){
 }
 
 export default async function handler(req, res){
+  if(req.method === 'POST'){
+    const licenseKey = req.headers['x-app-key'];
+    const installationId = req.headers['x-installation-id'] || '';
+    if(!licenseKey || !installationId) return res.status(401).json({ error: 'A validated account is required.' });
+    try{
+      if(isFounderLicenseKey(licenseKey)) return res.status(403).json({ error: 'Onboarding state is not available for owner access.' });
+      const license = await getLicense(licenseKey);
+      if(!license) return res.status(401).json({ error: 'Invalid license key.' });
+      const claim = await claimManualLicenseForInstallation(licenseKey, license, installationId);
+      if(!claim.allowed) return res.status(403).json({ error: claim.message, reason: claim.reason });
+      const body = req.body || {};
+      if(!ONBOARDING_STATES.has(body.state)) return res.status(400).json({ error: 'Invalid onboarding state.' });
+      const current = await readOnboardingState(licenseKey);
+      if(current?.state === 'completed') return res.status(200).json({ onboarding: current });
+      const record = { state: body.state, updatedAt: new Date().toISOString() };
+      await kv.set(onboardingKey(licenseKey), record);
+      return res.status(200).json({ onboarding: record });
+    }catch(err){
+      console.error('license-status onboarding error:', err);
+      return res.status(503).json({ error: 'Onboarding state is temporarily unavailable.' });
+    }
+  }
   if(req.method !== 'GET'){
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -87,6 +123,7 @@ export default async function handler(req, res){
       founder: false,
       manual: license.manual === true,
       activationPending: license.activationPending === true,
+      onboardingEligible: license.onboardingEligible === true,
       activatedAt: license.activatedAt || null,
       email: license.email || '',
       expiresAt: license.expiresAt || null,
@@ -102,6 +139,9 @@ export default async function handler(req, res){
       remainingFreeReports: isFree ? Math.max(0, FREE_MONTHLY_LIMIT - usageCount) : null,
       trials: await buildTrialsObject(licenseKey, isFree)
     };
+
+    try { response.onboarding = await readOnboardingState(licenseKey); response.onboardingState = response.onboarding ? 'known' : 'never'; }
+    catch { response.onboarding = null; response.onboardingState = 'unknown'; }
 
     return res.status(200).json(response);
   }catch(err){

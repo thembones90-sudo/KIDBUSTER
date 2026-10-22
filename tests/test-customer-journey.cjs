@@ -157,7 +157,7 @@ module.exports=async function run(){
   console.log('\n6) server problems read as plain language');
   for(const [code,body,expect,label] of [
    [429,{error:'Too many reports requested too quickly. Wait a minute and try again. Your lesson notes are safe.',reason:'rate_limited'},/Wait a minute/,'rate limit keeps the server\'s teacher-facing text'],
-   [503,{error:'x',reason:'busy'},/Pathfinder is busy right now/,'a busy service is not called "the API"'],
+   [503,{error:'x',reason:'busy'},/Classbuster is busy right now/,'a busy service is not called "the API"'],
    [500,{error:'Could not verify your license right now.'},/Something went wrong on our side/,'a server error has no status codes'],
    [400,{error:'Invalid generation request: notes is too long'},/lesson notes are too long/,'overlong notes get a specific instruction']
   ]){

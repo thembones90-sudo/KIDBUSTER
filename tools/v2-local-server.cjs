@@ -19,6 +19,7 @@ process.env.FREE_MONTHLY_LIMIT='5';
 const PORT=Number(process.env.V2_DEV_PORT||8765),HOST='127.0.0.1';
 const apiPaths={
  'GET /api/license-status':'license-status.js',
+ 'POST /api/license-status':'license-status.js',
  'POST /api/admin-create-license':'admin-create-license.js',
  'POST /api/admin-license-lookup':'admin-license-lookup.js'
 };
