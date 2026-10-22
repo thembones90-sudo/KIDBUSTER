@@ -53,3 +53,18 @@ Give the reviewer the run directory **without** sharing the KEY file until scori
 
 ## Extending to OpenAI models
 Add an adapter beside `callProvider` in `core.cjs` that maps the same system prompt (unsplit) and user message to the other provider and returns `{ok,status,data:{content:[{type:'text',text}],usage,stop_reason}}`, plus a price row in `config.cjs`. Validation, repair, blinding and reporting are provider-neutral. Note that production prompts were written and tuned for Claude.
+
+## Lesson-comprehension before/after (2026-10-19 brief)
+Compares the engine before (`3f4a669`, checked out at `.v2-local/wt-engine-before`) and after (this branch) on identical prompts-inputs, Haiku 5.5 at the production `haiku-high` profile. Cases: `tools/comprehension-cases.cjs` (fictional, with ground truth). The real Luka lesson runs as phase `comprehension-real` once the owner places `.v2-local/luka-preply-56min-private.txt` (its settings and ground truth are in `.v2-local/luka-preply-56min.settings.json`).
+```powershell
+$env:PATHFINDER_EVAL_ALLOW_LIVE = 'YES'
+node tools/model-benchmark.cjs verify-models --key-file .v2-local/eval-anthropic-key.txt
+node tools/model-benchmark.cjs plan --phase comprehension --profile haiku-high --models claude-haiku-5-5                                  # after arm: prints code
+node tools/model-benchmark.cjs plan --phase comprehension --profile haiku-high --models claude-haiku-5-5 --core-root ../wt-engine-before # before arm
+node tools/model-benchmark.cjs run  --phase comprehension --profile haiku-high --models claude-haiku-5-5 --arm after  --key-file .v2-local/eval-anthropic-key.txt --approve <after code>  --max-spend-usd 0.50
+node tools/model-benchmark.cjs run  --phase comprehension --profile haiku-high --models claude-haiku-5-5 --arm before --core-root ../wt-engine-before --key-file .v2-local/eval-anthropic-key.txt --approve <before code> --max-spend-usd 0.50
+node tools/comprehension-compare.cjs report --before <before runDir> --after <after runDir>          # free
+node tools/comprehension-compare.cjs judge  --before <before runDir> --after <after runDir> --plan   # prints judge code and estimate
+node tools/comprehension-compare.cjs judge  --before <before runDir> --after <after runDir> --approve <judge code> --max-spend-usd <cap>
+```
+Repeat with `--phase comprehension-real` for the Luka lesson. Outputs stay in the git-ignored `.v2-local/model-benchmark/`.
