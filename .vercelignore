@@ -6,3 +6,7 @@ tools/
 tests/
 .env*
 *.md
+
+/*.txt
+/artifacts/
+/.github/

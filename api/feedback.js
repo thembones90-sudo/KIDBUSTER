@@ -27,7 +27,37 @@ async function ownerFeedback(req, res){
   }
 }
 
+// RADAR VAN routes share this function so the deployment stays within its
+// serverless function budget. vercel.json rewrites /api/radar-van-ingest and
+// /api/radar-van-session to /api/feedback?radar=ingest|session. Requests
+// without that exact parameter take the unchanged feedback path below.
+function radarRouteOf(req) {
+  let value = req.query?.radar;
+  if (value === undefined && req.query === undefined) {
+    try { value = new URL(req.url || '/', 'http://x').searchParams.get('radar'); } catch (_err) { value = null; }
+  }
+  return value === 'ingest' || value === 'session' ? value : null;
+}
+
+async function radarDispatch(route, req, res) {
+  if (process.env.RADAR_VAN_ENABLED !== 'true') {
+    res.setHeader?.('Cache-Control', 'no-store');
+    return res.status(404).json({ error: 'RADAR VAN is disabled.' });
+  }
+  try {
+    const module = route === 'ingest'
+      ? await import('./_lib/radar-van-ingest-handler.js')
+      : await import('./_lib/radar-van-session-handler.js');
+    return await module.default(req, res);
+  } catch (err) {
+    console.error('radar-van dispatch failed:', (err && err.name) || 'error');
+    return res.status(503).json({ error: 'RADAR VAN temporarily unavailable.' });
+  }
+}
+
 export default async function handler(req, res) {
+  const radarRoute = radarRouteOf(req);
+  if (radarRoute) return radarDispatch(radarRoute, req, res);
   if (req.method === 'GET') return ownerFeedback(req, res);
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });

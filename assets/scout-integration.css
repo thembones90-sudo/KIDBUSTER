@@ -1,0 +1,37 @@
+/* RADAR VAN (account popover). Independent of the Krisp controls. */
+#radarVanSection[hidden],#radarVanTokenBox[hidden],#radarVanDisconnectBtn[hidden],#radarVanWaiting[hidden]{display:none!important}
+.radar-van{margin:18px 0 0;padding:16px 18px;background:#101214;border:1px solid rgba(255,255,255,.07);border-radius:12px;display:grid;gap:12px;min-width:0}
+.radar-van-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.radar-van-eyebrow{margin:0 0 2px;font-size:11px;font-weight:700;letter-spacing:.12em;color:#8a949b}
+.radar-van-title{margin:0;font:650 15px/1.35 var(--font-body);color:#eef1f3}
+.radar-van-state{font-size:12px;font-weight:650;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);color:#c9d0d5;white-space:nowrap}
+.radar-van-state[data-state="armed"]{border-color:rgba(var(--toxin-rgb),.6);color:rgb(var(--toxin-rgb))}
+.radar-van-state[data-state="connected"]{border-color:rgba(255,255,255,.3)}
+.radar-van-hint,.radar-van-status,.radar-van-warning{margin:0;font-size:12.5px;line-height:1.55;color:#9aa3a9;overflow-wrap:anywhere}
+.radar-van-status{color:#d4dbe0;min-height:0}
+.radar-van-status:empty{display:none}
+.radar-van-token{display:grid;gap:10px;padding:14px;border:1px solid rgba(224,190,126,.55);border-radius:11px;background:rgba(224,190,126,.06)}
+.radar-van-token-title{margin:0;font-weight:650;font-size:13.5px;color:#f0d7a4}
+.radar-van-warning{color:#e7d2a8}
+.radar-van-token-field{width:100%;box-sizing:border-box;min-height:40px;padding:0 12px;background:#0a0b0c;border:1px solid rgba(255,255,255,.14);border-radius:10px;color:#f2f4f5;font:500 12.5px/1.4 ui-monospace,Consolas,monospace}
+.radar-van-token-field:focus{outline:2px solid rgb(var(--toxin-rgb));outline-offset:1px}
+.radar-van-row{display:flex;flex-wrap:wrap;gap:10px}
+.radar-van-row .btn-secondary{flex:0 1 auto;min-width:0}
+#radarVanArmBtn[aria-pressed="true"]{border-color:rgba(var(--toxin-rgb),.7);color:rgb(var(--toxin-rgb))}
+.radar-van-inbox{display:grid;gap:8px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)}
+.radar-van-inbox-title{margin:0;font:650 13.5px/1.4 var(--font-body);color:#eef1f3}
+.radar-van-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.radar-van-list:empty{display:none}
+.radar-van-item{display:grid;gap:6px;padding:12px 14px;border:1px solid rgba(255,255,255,.09);border-radius:11px;background:#0a0b0c;min-width:0}
+.radar-van-item-title{font-weight:650;font-size:13.5px;color:#f2f4f5;overflow-wrap:anywhere}
+.radar-van-item-meta{font-size:12px;color:#8a949b}
+.radar-van-item-preview{font-size:12.5px;font-style:italic;color:#aab2b8;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.radar-van button:focus-visible{outline:2px solid rgb(var(--toxin-rgb));outline-offset:2px}
+#accountBtn[data-radar-pending]:not([data-radar-pending="0"]){position:relative}
+#accountBtn[data-radar-pending]:not([data-radar-pending="0"])::after{content:"";position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:#e0be7e;box-shadow:0 0 0 2px #14171a}
+@media(max-width:700px){.radar-van{padding:14px}.radar-van-row{flex-direction:column;align-items:stretch}.radar-van-row .btn-secondary{width:100%;min-height:44px}.radar-van-item .radar-van-row .btn-secondary{min-height:44px}}
+
+html[data-appearance="light"] .radar-van{background:var(--skin-inset);border-color:var(--skin-border);color:var(--skin-ink)}
+html[data-appearance="light"] :is(.radar-van-title,.radar-van-inbox-title,.radar-van-item-title,.radar-van-status){color:var(--skin-ink)}
+html[data-appearance="light"] :is(.radar-van-hint,.radar-van-item-meta,.radar-van-item-preview){color:var(--skin-muted)}
+html[data-appearance="light"] :is(.radar-van-item,.radar-van-token-field){background:var(--skin-inset);color:var(--skin-ink);border-color:var(--skin-border)}

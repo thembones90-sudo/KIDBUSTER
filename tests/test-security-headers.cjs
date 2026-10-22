@@ -47,7 +47,10 @@ module.exports=async function run(){
   check('CSP: plugins, base-uri, form targets and framing are locked down',
     /object-src 'none'/.test(csp)&&/base-uri 'self'/.test(csp)&&/form-action 'self'/.test(csp)&&/frame-ancestors 'none'/.test(csp));
   check('the existing function and rewrite settings were preserved',
-    config.functions['api/generate.js'].includeFiles==='index.html'&&config.rewrites[0].source==='/api/ping');
+    config.functions['api/generate.js'].includeFiles==='index.html'&&
+    config.rewrites.some(r=>r.source==='/api/ping'&&r.destination==='/ping.json')&&
+    config.rewrites.some(r=>r.source==='/api/radar-van-ingest'&&r.destination==='/api/feedback?radar=ingest')&&
+    config.rewrites.some(r=>r.source==='/api/radar-van-session'&&r.destination==='/api/feedback?radar=session'));
 
   let puppeteer,launchOptions;
   try{({puppeteer,launchOptions}=loadPuppeteer());}

@@ -13,6 +13,14 @@
   },
   "rewrites": [
     {
+      "source": "/api/radar-van-session",
+      "destination": "/api/feedback?radar=session"
+    },
+    {
+      "source": "/api/radar-van-ingest",
+      "destination": "/api/feedback?radar=ingest"
+    },
+    {
       "source": "/api/ping",
       "destination": "/ping.json"
     }

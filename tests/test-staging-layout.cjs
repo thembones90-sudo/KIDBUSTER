@@ -17,6 +17,13 @@ module.exports=async function run(){
  const gitIgnore=fs.readFileSync(path.join(root,'.gitignore'),'utf8');
  check('V2 deployment contains at most 12 included API functions',
    serverless.length<=12);
+ check('V2 deployment contains exactly the 12 existing API functions (RADAR VAN adds none)',
+   serverless.length===12&&!fs.readdirSync(api).some(n=>/radar/i.test(n)));
+ const rewriteIndex=source=>conf.rewrites?.findIndex(r=>r.source===source);
+ check('RADAR VAN routes are rewrites into the feedback function, placed before ping',
+   conf.rewrites?.[rewriteIndex('/api/radar-van-ingest')]?.destination==='/api/feedback?radar=ingest'&&
+   conf.rewrites?.[rewriteIndex('/api/radar-van-session')]?.destination==='/api/feedback?radar=session'&&
+   rewriteIndex('/api/radar-van-ingest')<rewriteIndex('/api/ping')&&rewriteIndex('/api/radar-van-session')<rewriteIndex('/api/ping'));
  check('only trivial ping is excluded, while billing/licensing endpoints remain',
    ignored.includes('api/ping.js')&&gitIgnore.includes('/api/ping.js')&&
    !serverless.includes('ping.js')&&

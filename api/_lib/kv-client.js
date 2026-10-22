@@ -345,11 +345,118 @@ export async function releaseCounterHold(key,token){
   return Number(await vercelKv.eval('if redis.call("HDEL",KEYS[2],ARGV[1])==0 then return tonumber(redis.call("GET",KEYS[1]) or "0") end; local n=tonumber(redis.call("GET",KEYS[1]) or "0"); if n<=1 then redis.call("DEL",KEYS[1]); return 0 end; return redis.call("DECR",KEYS[1])',[key,holdsKey],[token]));
 }
 
+// ---- Aggregate usage statistics (content-free, owner-only) ----
+// ONE atomic step applies a whole statistics update to the lifetime, monthly
+// and daily hashes. KEYS[1] is a per-run idempotency marker: a retried update
+// of the same run is a no-op (returns 0). When a report key is supplied it is
+// a second marker so one delivered report is counted once even if two runs
+// delivered it (returns 3 = run applied, report already counted). Hashes are
+// only ever HINCRBY'd, so concurrent workers cannot lose updates. The daily and
+// monthly hashes get a bounded expiry; the lifetime hash and the
+// firstRecordedAt baseline never expire.
+const STATS_LUA=[
+  'local function apply(f,d) for i=3,5 do redis.call("HINCRBY",KEYS[i],f,d) end end',
+  'if not redis.call("SET",KEYS[1],"1","NX","EX",ARGV[1]) then return 0 end',
+  'local n=tonumber(ARGV[6]); local idx=7',
+  'for i=1,n do apply(ARGV[idx],ARGV[idx+1]); idx=idx+2 end',
+  'local result=1',
+  'if ARGV[5]=="1" then',
+  ' if redis.call("SET",KEYS[2],"1","NX","EX",ARGV[1]) then',
+  '  while idx<=#ARGV do apply(ARGV[idx],ARGV[idx+1]); idx=idx+2 end',
+  '  result=2',
+  ' else apply("dup.deliveries","1"); result=3 end',
+  'end',
+  'redis.call("HSETNX",KEYS[3],"firstRecordedAt",ARGV[4])',
+  'if tonumber(ARGV[2])>0 then redis.call("EXPIRE",KEYS[5],ARGV[2]) end',
+  'if tonumber(ARGV[3])>0 then redis.call("EXPIRE",KEYS[4],ARGV[3]) end',
+  'return result'
+].join('\n');
+
+function statsPlanArgs(plan){
+  const always=plan.always||[],delivered=plan.delivered||[];
+  return [String(plan.seenTtl),String(plan.dayTtl),String(plan.monthTtl),String(plan.nowIso),
+    plan.reportKey?'1':'0',String(always.length),
+    ...always.flatMap(([f,d])=>[f,String(d)]),
+    ...delivered.flatMap(([f,d])=>[f,String(d)])];
+}
+let statsFault=null;
+// Shared by the in-memory and local-file stores (both are single-process and
+// synchronous inside this function, which is their equivalent of one Lua call).
+function applyStatsPlanLocally(plan,io){
+  const {total,month,day}=plan.keys;
+  if(!io.setNx(plan.runKey,plan.seenTtl))return 0;
+  const apply=(f,d)=>{for(const k of [total,month,day])io.incr(k,f,d);};
+  for(const [f,d] of plan.always||[])apply(f,d);
+  let result=1;
+  if(plan.reportKey){
+    if(io.setNx(plan.reportKey,plan.seenTtl)){
+      for(const [f,d] of plan.delivered||[])apply(f,d);
+      result=2;
+    }else{apply('dup.deliveries',1);result=3;}
+  }
+  io.setNxField(total,'firstRecordedAt',plan.nowIso);
+  if(plan.dayTtl>0)io.expire(day,plan.dayTtl);
+  if(plan.monthTtl>0)io.expire(month,plan.monthTtl);
+  return result;
+}
+export async function applyUsageStatsPlan(plan){
+  if(process.env.KIDBUSTER_TEST_KV==='1'&&statsFault){
+    if(statsFault==='hang')return await new Promise(()=>{});
+    throw new Error('Simulated usage-stats write failure');
+  }
+  if(process.env.KIDBUSTER_TEST_KV==='1'){
+    failIfOutage();
+    const live=key=>{const e=memoryExpiry.get(key);if(e&&e<=Date.now()){memoryExpiry.delete(key);memoryStore.delete(key);}};
+    return applyStatsPlanLocally(plan,{
+      setNx(key,ttl){live(key);if(memoryStore.has(key))return false;memoryStore.set(key,'1');memoryExpiry.set(key,Date.now()+ttl*1000);return true;},
+      incr(key,f,d){live(key);const h=memoryStore.get(key)||{};h[f]=(Number(h[f])||0)+Number(d);memoryStore.set(key,h);},
+      setNxField(key,f,v){live(key);const h=memoryStore.get(key)||{};if(!(f in h))h[f]=v;memoryStore.set(key,h);},
+      expire(key,ttl){if(memoryStore.has(key))memoryExpiry.set(key,Date.now()+ttl*1000);}
+    });
+  }
+  if(useLocal){
+    const live=key=>{if(localData[key]?.until&&localData[key].until<=Date.now())delete localData[key];};
+    const result=applyStatsPlanLocally(plan,{
+      setNx(key,ttl){live(key);if(localData[key])return false;localData[key]={value:'1',until:Date.now()+ttl*1000};return true;},
+      incr(key,f,d){live(key);const h=localData[key]?.value||{};h[f]=(Number(h[f])||0)+Number(d);localData[key]={value:h,until:localData[key]?.until??null};},
+      setNxField(key,f,v){live(key);const h=localData[key]?.value||{};if(!(f in h))h[f]=v;localData[key]={value:h,until:localData[key]?.until??null};},
+      expire(key,ttl){if(localData[key])localData[key].until=Date.now()+ttl*1000;}
+    });
+    persistLocal();return result;
+  }
+  const {total,month,day}=plan.keys;
+  return Number(await vercelKv.eval(STATS_LUA,[plan.runKey,plan.reportKey||plan.runKey+':none',total,month,day],statsPlanArgs(plan)));
+}
+// Reads whole statistics hashes (missing key -> {}). Values are coerced by the caller.
+export async function readUsageStatsHashes(keys){
+  if(process.env.KIDBUSTER_TEST_KV==='1'){
+    failIfOutage();
+    return keys.map(key=>({...(liveMemoryValue(key)||{})}));
+  }
+  if(useLocal)return keys.map(key=>{const item=localData[key];return item&&!(item.until&&item.until<=Date.now())?{...item.value}:{};});
+  return await Promise.all(keys.map(async key=>({...((await vercelKv.hgetall(key))||{})})));
+}
+function liveMemoryValue(key){
+  const e=memoryExpiry.get(key);
+  if(e&&e<=Date.now()){memoryExpiry.delete(key);memoryStore.delete(key);}
+  return memoryStore.get(key);
+}
+
 export function __resetForTests(){
   memoryStore = new Map();
   memoryExpiry.clear();
   outage = false;
+  statsFault = null;
 }
+
+// Test hooks (memory store only): inspect stored data, or make ONLY the
+// statistics write fail ('throw') or never finish ('hang').
+export function __dumpForTests(){
+  const out={};
+  for(const [key,value] of memoryStore)out[key]={value:JSON.parse(JSON.stringify(value)),expiresAt:memoryExpiry.get(key)??null};
+  return out;
+}
+export function __simulateUsageStatsFault(mode){statsFault=mode||null;}
 
 export function __simulateOutage(value){
   outage = !!value;

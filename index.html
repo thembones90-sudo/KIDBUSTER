@@ -6,6 +6,7 @@
 <title>Classbuster</title>
 <script src="assets/themes/appearance-v1.js?v=account-compact1"></script>
 <link rel="stylesheet" href="assets/themes/appearance-v1.css?v=account-compact1">
+<link rel="stylesheet" href="assets/owner-usage-stats.css?v=1">
 <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="assets/brand/classbuster/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/classbuster/classbuster-icon-dark-16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/classbuster/classbuster-icon-dark-32.png">
@@ -2408,6 +2409,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
 #scoutReleaseChecksum{max-width:100%;overflow-wrap:anywhere;color:var(--text-dim);font:400 10px/1.5 var(--font-mono)}
 @media(max-width:560px){#scoutReleaseBanner{padding:15px;gap:12px}.scout-release-action{width:100%}#scoutReleaseLink{width:100%}#scoutReleaseBanner h2{font-size:19px}}
 </style>
+<link rel="stylesheet" href="assets/scout-integration.css?v=20261020">
 </head>
 <body>
 <div class="wrap">
@@ -2483,6 +2485,32 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
       </div>
     </div></details>
     <div class="account-trials" id="accountTrials" style="display:none;"></div>
+    <section class="radar-van" id="radarVanSection" aria-labelledby="radarVanTitle" hidden>
+      <div class="radar-van-head">
+        <div><p class="radar-van-eyebrow">Scout</p><h3 class="radar-van-title" id="radarVanTitle">Lesson transcripts from Scout</h3></div>
+        <span class="radar-van-state" id="radarVanState" data-state="off">Not connected</span>
+      </div>
+      <p class="radar-van-hint">Separate from Krisp. Importing only fills your lesson notes: it never writes a report and never uses a generation.</p>
+      <p class="radar-van-status" id="radarVanStatus" role="status" aria-live="polite"></p>
+      <div class="radar-van-token" id="radarVanTokenBox" role="group" aria-labelledby="radarVanTokenTitle" hidden>
+        <p class="radar-van-token-title" id="radarVanTokenTitle">Your device token (shown only once)</p>
+        <p class="radar-van-warning" id="radarVanTokenWarning">Copy it now and paste it into Scout. It cannot be shown again, and anyone who has it can add lessons to your inbox. If you lose it, replace it with a new one.</p>
+        <input type="text" id="radarVanTokenField" class="radar-van-token-field" readonly spellcheck="false" autocomplete="off" aria-labelledby="radarVanTokenTitle" aria-describedby="radarVanTokenWarning">
+        <div class="radar-van-row"><button type="button" class="btn-secondary" id="radarVanCopyBtn">Copy token</button><button type="button" class="btn-secondary" id="radarVanTokenDoneBtn">I have saved it, hide token</button></div>
+      </div>
+      <div class="radar-van-row" role="group" aria-label="Scout connection controls">
+        <button type="button" class="btn-secondary" id="radarVanConnectBtn">Connect Scout</button>
+        <button type="button" class="btn-secondary" id="radarVanDisconnectBtn" aria-describedby="radarVanDisconnectHint" hidden>Disconnect Scout</button>
+      </div>
+      <p class="radar-van-hint">Connected Scout automatically adds finished transcripts to empty lesson notes. If you are working on another report, lessons wait safely and import one at a time. No report is generated automatically.</p>
+      <p class="radar-van-hint" id="radarVanDisconnectHint">Disconnect revokes the device token on our server. Clearing the token inside the Scout desktop app only forgets it on that computer and does not revoke it.</p>
+      <div class="radar-van-inbox" id="radarVanInboxWrap">
+        <h4 class="radar-van-inbox-title" id="radarVanInboxTitle">Pending Scout lessons (<span id="radarVanCount">0</span>)</h4>
+        <p class="radar-van-hint" id="radarVanWaiting" hidden></p>
+        <ul class="radar-van-list" id="radarVanList" aria-labelledby="radarVanInboxTitle"></ul>
+        <p class="radar-van-hint" id="radarVanEmpty">No pending lessons.</p>
+      </div>
+    </section>
     <div class="account-owner-tools" id="accountOwnerTools" style="display:none;">
       <details class="owner-fold"><summary>Owner tools</summary>
       <p class="account-trials-title">Teacher feedback</p>
@@ -2631,6 +2659,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
           <p class="generate-summary" id="generateSummary" aria-live="polite"></p>
           <p class="field-hint">Paste the lesson notes, choose a protocol, pick a rating, then generate.</p>
           <textarea id="krispNotes" rows="6" placeholder="Paste the raw lesson summary or transcript here..."></textarea>
+          <p id="scoutNotesStatus" class="radar-van-hint" role="status" aria-live="polite" hidden></p>
           <div class="field-counter" id="krispCounter">0 words · 0 characters</div>
         </div>
                             <div id="krispImportStatus" aria-live="polite" style="display:none;font-size:13px;margin-top:6px;color:rgb(var(--toxin-rgb));transition:opacity 0.4s ease;"></div>
@@ -10476,5 +10505,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 @media(prefers-reduced-motion:reduce){#feedbackCard button{transition:none!important}}
 </style>
 <script src="assets/scout-release.js" defer></script>
+<script defer src="assets/owner-usage-stats.js?v=1"></script>
+<script src="assets/radar-van-client.js?v=20261021-auto"></script>
 </body>
 </html>

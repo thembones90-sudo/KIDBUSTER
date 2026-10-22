@@ -3,6 +3,7 @@ import { resetManualLicenseClaim, renewManualProLicense } from './_lib/license-s
 import { applySubscriptionReconciliation } from './_lib/subscription-reconciliation.js';
 import { fetchSubscriptionSnapshot } from './_lib/providers/lemonsqueezy.js';
 
+import { getUsageStatsSnapshot } from './_lib/usage-stats.js';
 import adminManualBatchHandler from './_lib/admin-manual-batch.js';
 
 function publicLicenseStatus(license){
@@ -49,7 +50,7 @@ const RESET_FAILURE_MESSAGES = {
 };
 
 export default async function handler(req, res){
-  if(req.method !== 'POST'){
+  if(req.method !== 'POST' && req.method !== 'GET'){
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -58,7 +59,22 @@ export default async function handler(req, res){
     return res.status(403).json({ error: 'Owner access is required to inspect keys.' });
   }
 
-  const action = String(req.body?.action || 'lookup').trim();
+  // Aggregate usage statistics (owner-only, content-free). GET is read-only and
+  // accepts only this action; every other action stays POST.
+  const action = String((req.method === 'GET' ? req.query?.action : req.body?.action) || (req.method === 'GET' ? '' : 'lookup')).trim();
+  if(action === 'usage-stats'){
+    try{
+      const snapshot = await getUsageStatsSnapshot();
+      if(typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json(snapshot);
+    }catch(err){
+      console.error('admin-license-lookup usage-stats error:', err?.message || 'unknown error');
+      return res.status(503).json({ error: 'Usage statistics are temporarily unavailable.', reason: 'stats_unavailable' });
+    }
+  }
+  if(req.method === 'GET'){
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
   if(['create-batch','preview-retirement','retire-expired'].includes(action)){
     return adminManualBatchHandler(req,res);
   }
