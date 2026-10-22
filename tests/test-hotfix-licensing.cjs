@@ -111,6 +111,7 @@ module.exports = async function run(){
       let key='old-code';
       const snapshots=[], pending={};
       const context={
+        window:{},
         getStoredAccessKey:()=>key,
         getAccessInstallationId:()=> 'anon-test',
         fetch:(_url,options)=>new Promise(resolve=>{pending[options.headers['x-app-key']]=resolve;}),
