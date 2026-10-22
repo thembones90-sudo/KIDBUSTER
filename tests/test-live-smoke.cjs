@@ -46,13 +46,16 @@ module.exports = async function run(){
   const initial = await page.evaluate(() => ({
     title: document.title,
     hasLogo: Boolean(document.getElementById('kbLogo')),
+    logoSrc: document.getElementById('kbLogo')?.getAttribute('src'),
+    logoAlt: document.getElementById('kbLogo')?.alt,
+    logoWidth: document.getElementById('kbLogo')?.naturalWidth,
     hasHelpButton: Boolean(document.getElementById('helpBtn')),
     hasAccountButton: Boolean(document.getElementById('accountBtn')),
     buildText: document.getElementById('accountBuild')?.textContent || '',
     coreBuild: typeof KidbusterCore !== 'undefined' ? KidbusterCore.KIDBUSTER_BUILD_LABEL : ''
   }));
-  check('live page title contains Pathfinder', /Pathfinder/i.test(initial.title));
-  check('live page renders the Pathfinder logo', initial.hasLogo);
+  check('live page title contains Classbuster', /Classbuster/i.test(initial.title));
+  check('live page renders the approved Classbuster logo', initial.hasLogo && initial.logoSrc === 'assets/brand/classbuster/classbuster-horizontal-transparent.png' && initial.logoAlt === 'Classbuster' && initial.logoWidth === 1600);
   check('live page renders Help button', initial.hasHelpButton);
   check('live page renders Access button', initial.hasAccountButton);
   check('live build marker is present in the Access panel markup', initial.buildText === EXPECTED_BUILD);
@@ -87,8 +90,8 @@ module.exports = async function run(){
     'live logo is exposed as an accessible reload button',
     logoReload.role === 'button' &&
     logoReload.tabindex === '0' &&
-    logoReload.aria === 'Reload Pathfinder' &&
-    logoReload.title === 'Reload Pathfinder'
+    logoReload.aria === 'Reload Classbuster' &&
+    logoReload.title === 'Reload Classbuster'
   );
 
   const protocols = [
@@ -108,10 +111,12 @@ module.exports = async function run(){
       bodyClasses: Array.from(document.body.classList),
       badgeText: document.getElementById('protocolBadge').textContent,
       hasProtocolAsset: selector ? Boolean(document.querySelector(selector)) : true,
+      logoSrc: document.getElementById('kbLogo').getAttribute('src'),
       voiceDisplay: document.getElementById('blitzVoiceField').style.display,
       voiceOptions: Array.from(document.querySelectorAll('#blitzVoiceSelect option')).map(option => option.value)
     }), proto.selector || '');
 
+    check(proto.value + ': approved Classbuster logo is preserved', result.logoSrc === 'assets/brand/classbuster/classbuster-horizontal-transparent.png');
     check(proto.value + ': live badge text is correct', result.badgeText.includes(proto.label));
     if(proto.bodyClass){
       check(proto.value + ': live body class is set', result.bodyClasses.includes(proto.bodyClass));

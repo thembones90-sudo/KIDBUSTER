@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 400" role="img" aria-label="Classbuster open book and lightning icon">
+ <path fill="#EFF7EF" d="M36 84 Q100 60 147 87 Q205 117 249 206 L249 357 Q194 297 135 281 Q88 267 36 289 Z"/>
+ <path fill="#F7FBF7" d="M58 64 Q115 47 163 80 Q214 117 249 200 L249 345 Q188 271 129 255 Q94 246 58 255 Z"/>
+ <path fill="#081714" d="M77 152 Q145 142 219 203 L219 224 Q161 177 77 180 Z"/>
+ <path fill="#081714" d="M77 204 Q148 202 219 256 L219 275 Q151 235 77 231 Z"/>
+ <path fill="#14E745" d="M257 350 L305 255 L270 258 L371 49 L346 170 L438 133 L367 250 L404 245 L318 356 L348 270 Z"/>
+ <path fill="#8EFB86" d="M270 260 L375 51 L348 165 L435 135 L326 177 Z" opacity=".67"/>
+ <path fill="none" stroke="#15E449" stroke-width="9" stroke-linecap="round" d="M44 295 Q162 261 255 364 Q282 342 319 340"/>
+</svg>

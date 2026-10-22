@@ -87,7 +87,7 @@ module.exports = async function run(){
   check('no page errors on initial load', pageErrors.length === 0);
   if(pageErrors.length){ console.log('    errors seen:', pageErrors); }
 
-  console.log('\n1b) Pathfinder logo acts as a real reload/reset button');
+  console.log('\n1b) Classbuster logo acts as a real reload/reset button');
   {
     const clickResult = await page.evaluate(() => {
       window.__kidbusterReloadCalled = false;
@@ -107,8 +107,8 @@ module.exports = async function run(){
       'logo is exposed as an accessible reload button',
       clickResult.role === 'button' &&
       clickResult.tabindex === '0' &&
-      clickResult.aria === 'Reload Pathfinder' &&
-      clickResult.title === 'Reload Pathfinder'
+      clickResult.aria === 'Reload Classbuster' &&
+      clickResult.title === 'Reload Classbuster'
     );
 
     const keyResult = await page.evaluate(() => {
@@ -134,7 +134,7 @@ module.exports = async function run(){
     const text = overlay ? overlay.textContent : '';
     return {
       visible: overlay && getComputedStyle(overlay).display !== 'none',
-      hasTitle: text.includes('How to use Pathfinder'),
+      hasTitle: text.includes('How to use Classbuster'),
       hasSteps: text.includes('Pick a protocol') && text.includes('Paste your lesson notes') && text.includes('Generate, read, send'),
       hasAccess: text.includes('Free') && text.includes('Pro') && text.includes('Manual key')
     };

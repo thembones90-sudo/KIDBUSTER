@@ -114,7 +114,7 @@ export function evaluateEntitlement({ plan, status, protocol, monthlyUsageCount,
     return {
       allowed: false,
       reason: 'expired',
-      message: 'This 30-day Pro license has expired. Please renew to continue using Pathfinder Pro.'
+      message: 'This 30-day Pro license has expired. Please renew to continue using Classbuster Pro.'
     };
   }
 
@@ -160,7 +160,7 @@ export function evaluateEntitlement({ plan, status, protocol, monthlyUsageCount,
       return {
         allowed: false,
         reason: 'trial_exhausted',
-        message: 'Your complimentary ' + protocolLabel(protocol) + ' trial has ended. Upgrade to Pathfinder Pro to continue using this protocol.'
+        message: 'Your complimentary ' + protocolLabel(protocol) + ' trial has ended. Upgrade to Classbuster Pro to continue using this protocol.'
       };
     }
     return { allowed: true, reason: null, message: null };
@@ -176,7 +176,7 @@ export function evaluateEntitlement({ plan, status, protocol, monthlyUsageCount,
   return {
     allowed: false,
     reason: 'protocol_requires_pro',
-    message: 'The ' + protocolLabel(protocol) + ' protocol requires Pathfinder Pro.'
+    message: 'The ' + protocolLabel(protocol) + ' protocol requires Classbuster Pro.'
   };
 }
 

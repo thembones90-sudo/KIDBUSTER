@@ -12,10 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # Matches package.json's "engines": { "node": ">=18" } — tested on
-        # both the oldest supported version and current LTS, so a change
-        # that only works on one Node version doesn't slip through.
-        node-version: [18.x, 20.x]
+        # Match package.json and the existing production Vercel runtime.
+        node-version: [24.x]
     steps:
       - uses: actions/checkout@v4
 
@@ -24,7 +22,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run test suite
         run: npm test

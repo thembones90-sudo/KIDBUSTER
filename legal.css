@@ -13,3 +13,5 @@ footer{border-top:1px solid var(--line);background:#131a16}footer .inner{max-wid
 
 
 .skip-link{position:absolute;left:-9999px;top:8px;background:#151d17;color:#fff;padding:8px;z-index:10}.skip-link:focus{left:8px}
+
+.brand img{display:block;width:220px;max-width:100%;height:auto}
