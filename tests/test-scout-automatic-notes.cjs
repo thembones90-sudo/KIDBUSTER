@@ -18,7 +18,8 @@ module.exports = async function run(){
   const names = ['KIDBUSTER_TEST_KV','OWNER_LICENSE_KEYS','RADAR_VAN_ENABLED','RADAR_VAN_OWNER_SHA256'];
   const previous = Object.fromEntries(names.map(k=>[k,process.env[k]]));
   process.env.KIDBUSTER_TEST_KV='1'; process.env.OWNER_LICENSE_KEYS=OWNER;
-  process.env.RADAR_VAN_ENABLED='true'; delete process.env.RADAR_VAN_OWNER_SHA256;
+  process.env.RADAR_VAN_ENABLED='true';
+  process.env.RADAR_VAN_OWNER_SHA256=require('node:crypto').createHash('sha256').update(OWNER).digest('hex');
   let browser,server;
   try{
     const kvmod = await import('../api/_lib/kv-client.js'); kvmod.__resetForTests();

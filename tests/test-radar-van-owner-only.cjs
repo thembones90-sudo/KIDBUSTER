@@ -2,11 +2,13 @@
 const {createChecker}=require('./helpers/assert.cjs');
 module.exports=async function run(){
  const {check,getFailures}=createChecker();
- const before={owner:process.env.OWNER_LICENSE_KEYS,enabled:process.env.RADAR_VAN_ENABLED};
+ const before={owner:process.env.OWNER_LICENSE_KEYS,enabled:process.env.RADAR_VAN_ENABLED,hash:process.env.RADAR_VAN_OWNER_SHA256};
  console.log('\n=== test-radar-van-owner-only.cjs ===');
  process.env.KIDBUSTER_TEST_KV='1';
  process.env.OWNER_LICENSE_KEYS='radar-private-owner-test';
  process.env.RADAR_VAN_ENABLED='true';
+ // The owner fingerprint is mandatory (fail closed); configure it explicitly.
+ process.env.RADAR_VAN_OWNER_SHA256=require('node:crypto').createHash('sha256').update('radar-private-owner-test').digest('hex');
  try{
   const rv=await import('../api/_lib/radar-van.js');
   const {__resetForTests}=await import('../api/_lib/kv-client.js');
@@ -38,6 +40,7 @@ module.exports=async function run(){
  }finally{
   if(before.owner===undefined)delete process.env.OWNER_LICENSE_KEYS;else process.env.OWNER_LICENSE_KEYS=before.owner;
   if(before.enabled===undefined)delete process.env.RADAR_VAN_ENABLED;else process.env.RADAR_VAN_ENABLED=before.enabled;
+  if(before.hash===undefined)delete process.env.RADAR_VAN_OWNER_SHA256;else process.env.RADAR_VAN_OWNER_SHA256=before.hash;
  }
  return getFailures();
 };

@@ -189,16 +189,21 @@ export async function enableRadarAutomatic(identity){
 // connect, poll, create tokens or ingest lessons until the owner explicitly
 // approves a separate public release. Do not replace this with a license-plan
 // check or an environment toggle; the lock must fail closed by default.
+// Owner-only pilot, FAIL CLOSED. Scout is open only to a key that passes the
+// server-side founder/master check AND whose SHA-256 fingerprint is listed in
+// RADAR_VAN_OWNER_SHA256. A missing, empty or malformed fingerprint denies
+// everyone; a paid Pro plan or any other founder key never qualifies. Every
+// listed fingerprint is compared in constant time.
 function privateOwnerAllowed(identity){
   if(!validIdentity(identity) || !isFounderLicenseKey(identity)) return false;
-  // Optional narrowing for a single-owner pilot. This never grants owner
-  // privileges: the existing server-side master check must also pass.
-  const configured = process.env.RADAR_VAN_OWNER_SHA256;
-  if(configured === undefined) return true;
+  const configured = String(process.env.RADAR_VAN_OWNER_SHA256 || '').trim().toLowerCase();
+  if(!configured) return false;
   const hashes = configured.split(',').map(s => s.trim());
-  if(!hashes.length || hashes.some(s => !/^[a-f0-9]{64}$/.test(s))) return false;
-  const actual = sha256(identity);
-  return hashes.some(s => crypto.timingSafeEqual(Buffer.from(s, 'hex'), Buffer.from(actual, 'hex')));
+  if(hashes.some(s => !/^[a-f0-9]{64}$/.test(s))) return false;
+  const actual = Buffer.from(sha256(identity), 'hex');
+  let match = false;
+  for(const s of hashes) match = crypto.timingSafeEqual(Buffer.from(s, 'hex'), actual) || match;
+  return match;
 }
 export async function accountEntitlement(identity){
   if(!privateOwnerAllowed(identity)) return { allowed: false, plan: null };

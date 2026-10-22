@@ -20,8 +20,11 @@ module.exports=async()=>{
    assert.equal((await rv.accountEntitlement('scout-owner-a')).allowed,false,'malformed configuration fails closed');
   }
   delete process.env.RADAR_VAN_OWNER_SHA256;
-  assert.equal((await rv.accountEntitlement('scout-owner-b')).allowed,true,'existing owner-only development behavior retained');
-  console.log('PASS Scout single-master narrowing, other owners/customers denied, malformed configuration closed');
+  for(const identity of ['scout-owner-a','scout-owner-b']){
+   assert.equal((await rv.accountEntitlement(identity)).allowed,false,'a missing fingerprint denies every master key');
+   assert.equal((await rv.peekRadarVersion(identity)).allowed,false,'a missing fingerprint denies idle polling too');
+  }
+  console.log('PASS Scout single-master: fingerprint mandatory, other owners/customers denied, missing or malformed configuration closed');
   return 0;
  }finally{
   for(const [name,value] of [['OWNER_LICENSE_KEYS',saved.owner],['RADAR_VAN_OWNER_SHA256',saved.hash]]){

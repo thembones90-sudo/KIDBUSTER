@@ -37,8 +37,11 @@ module.exports = async function run(){
   try { ({ puppeteer, launchOptions } = loadPuppeteer()); }
   catch (e) { console.log('  SKIPPED - no puppeteer/Chrome here (' + e.message + ')'); return 0; }
 
-  const prior = { flag: process.env.RADAR_VAN_ENABLED, owner: process.env.OWNER_LICENSE_KEYS };
+  const prior = { flag: process.env.RADAR_VAN_ENABLED, owner: process.env.OWNER_LICENSE_KEYS, hash: process.env.RADAR_VAN_OWNER_SHA256 };
   process.env.RADAR_VAN_ENABLED = 'true';
+  // Fingerprints are mandatory: each synthetic owner used for isolation checks is authorized explicitly.
+  process.env.RADAR_VAN_OWNER_SHA256 = ['kb_free_browser', 'kb_free_ack_a', 'kb_free_ack_b']
+    .map(k => require('node:crypto').createHash('sha256').update(k).digest('hex')).join(',');
   // Synthetic owner identities only; ordinary Free/Pro access is tested as denied.
   process.env.OWNER_LICENSE_KEYS = 'kb_free_browser,kb_free_ack_a,kb_free_ack_b';
   const kvMod = await import('../api/_lib/kv-client.js');
@@ -388,6 +391,7 @@ module.exports = async function run(){
     await new Promise(r => server.close(r));
     if (prior.flag === undefined) delete process.env.RADAR_VAN_ENABLED; else process.env.RADAR_VAN_ENABLED = prior.flag;
     if (prior.owner !== undefined) process.env.OWNER_LICENSE_KEYS = prior.owner;
+    if (prior.hash === undefined) delete process.env.RADAR_VAN_OWNER_SHA256; else process.env.RADAR_VAN_OWNER_SHA256 = prior.hash;
   }
   return getFailures();
 };
