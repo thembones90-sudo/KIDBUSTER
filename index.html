@@ -1762,6 +1762,24 @@ body.protocol-preply .generate-btn.loading{
 <style>
   body { zoom: 1.15; }
 </style>
+<style>
+/* Classbuster header alignment and protocol-synced logo */
+@media(min-width:1100px){
+.header{flex-wrap:nowrap;align-items:center;gap:12px}
+.header-brand{flex:0 1 auto;min-width:0;gap:8px}
+.kb-logo{width:clamp(190px,21vw,290px);height:auto;max-width:100%}
+.header-actions{flex:1 0 auto;flex-wrap:nowrap;justify-content:flex-end;gap:8px;min-width:0}
+.header-actions>button{flex-shrink:0}
+}
+#kbLogo{transition:none}
+body.protocol-ms #kbLogo{filter:hue-rotate(112deg) saturate(1.2)}
+body.protocol-fairy #kbLogo{filter:hue-rotate(155deg) saturate(1.2)}
+body.protocol-blitz #kbLogo{filter:hue-rotate(-55deg) saturate(1.4)}
+body.protocol-beida #kbLogo{filter:hue-rotate(-85deg) saturate(1.25)}
+body.protocol-of #kbLogo{filter:hue-rotate(66deg) saturate(1.2)}
+body.protocol-preply #kbLogo{filter:hue-rotate(113deg) saturate(1.15)}
+@media(prefers-reduced-motion:reduce){#kbLogo{transition:none}}
+</style>
 </head>
 <body>
 <div class="wrap">

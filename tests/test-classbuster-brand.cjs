@@ -95,7 +95,7 @@ module.exports = async function run(){
           const logo=document.getElementById('kbLogo'), rect=logo.getBoundingClientRect();
           return {src:logo.getAttribute('src'),alt:logo.alt,loaded:logo.complete&&logo.naturalWidth===1600&&logo.naturalHeight===400,overflow:document.documentElement.scrollWidth>innerWidth,ratio:rect.width/rect.height,filter:getComputedStyle(logo).filter};
         });
-        check(width+' '+protocol+': official undistorted logo, no overflow',view.src===brand.slice(1)+'classbuster-horizontal-transparent.png'&&view.alt==='Classbuster'&&view.loaded&&!view.overflow&&Math.abs(view.ratio-4)<0.03&&view.filter==='none');
+        check(width+' '+protocol+': official undistorted logo, no overflow',view.src===brand.slice(1)+'classbuster-horizontal-transparent.png'&&view.alt==='Classbuster'&&view.loaded&&!view.overflow&&Math.abs(view.ratio-4)<0.03&&(protocol==='MA'?view.filter==='none':view.filter.includes('hue-rotate(')));
         if(screenshotDir && width!==320)await page.screenshot({path:path.join(screenshotDir,'after-'+width+'-'+protocol+'.png'),fullPage:true});
       }
     }
