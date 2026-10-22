@@ -42,7 +42,7 @@ module.exports=async function(){
   await page.evaluate(()=>localStorage.setItem('kidbuster_draft_v1',JSON.stringify({protocol:'MS',lengthFormat:'medium'})));
   await page.reload();assert.deepEqual(await selected(),{protocol:'MA',length:'short'},'stale draft cannot override the latest mode preferences');
   assert.match(await page.$eval('#protocolBadge',e=>e.textContent),/Classic/);
-  assert.ok(await page.$eval('#kbLogo',e=>e.src.includes('logo-classic.png')),'restored badge and logo match the selected protocol');
+  assert.ok(await page.$eval('#kbLogo',e=>e.src.includes('classbuster-horizontal-transparent.png')),'restored badge and logo match the selected protocol');
   assert.deepEqual(await page.evaluate(()=>Object.keys(JSON.parse(localStorage.getItem('pathfinder_workspace_preferences_v1'))).sort()),['lengthFormat','protocol'],'preferences store no student or lesson content');
   await browser.close();browser=await launch();page=await browser.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto(url);
   assert.deepEqual(await selected(),{protocol:'MA',length:'short'},'closing and reopening the browser preserves the mode');

@@ -153,7 +153,8 @@ module.exports=async function run(){
     !chosen.label.includes('Reserved for the very best kids'));
 
   await page.mouse.move(0,0);
-  const colorsAfterSelection=await page.evaluate(()=>Object.fromEntries(
+    await new Promise(resolve=>setTimeout(resolve,250)); // allow CSS hover transitions to settle
+    const colorsAfterSelection=await page.evaluate(()=>Object.fromEntries(
     [...document.querySelectorAll('#ratingTrack .rating-btn:not(.beyond)')].map(b=>[
       b.dataset.lvl,{
         color:getComputedStyle(b).backgroundColor,

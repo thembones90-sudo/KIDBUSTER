@@ -51,8 +51,8 @@ module.exports = async function run(){
     buildText: document.getElementById('accountBuild')?.textContent || '',
     coreBuild: typeof KidbusterCore !== 'undefined' ? KidbusterCore.KIDBUSTER_BUILD_LABEL : ''
   }));
-  check('live page title contains Pathfinder', /Pathfinder/i.test(initial.title));
-  check('live page renders the Pathfinder logo', initial.hasLogo);
+  check('live page title contains Classbuster', /Classbuster/i.test(initial.title));
+  check('live page renders the Classbuster logo', initial.hasLogo);
   check('live page renders Help button', initial.hasHelpButton);
   check('live page renders Access button', initial.hasAccountButton);
   check('live build marker is present in the Access panel markup', initial.buildText === EXPECTED_BUILD);
@@ -87,8 +87,8 @@ module.exports = async function run(){
     'live logo is exposed as an accessible reload button',
     logoReload.role === 'button' &&
     logoReload.tabindex === '0' &&
-    logoReload.aria === 'Reload Pathfinder' &&
-    logoReload.title === 'Reload Pathfinder'
+    logoReload.aria === 'Reload Classbuster' &&
+    logoReload.title === 'Reload Classbuster'
   );
 
   const protocols = [

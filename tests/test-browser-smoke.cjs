@@ -230,8 +230,8 @@ module.exports = async function run(){
       'logo is exposed as an accessible reload button',
       clickResult.role === 'button' &&
       clickResult.tabindex === '0' &&
-      clickResult.aria === 'Reload Pathfinder' &&
-      clickResult.title === 'Reload Pathfinder'
+      clickResult.aria === 'Reload Classbuster' &&
+      clickResult.title === 'Reload Classbuster'
     );
 
     const keyResult = await page.evaluate(() => {
