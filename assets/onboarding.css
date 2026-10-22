@@ -41,6 +41,7 @@
 .cb-tour .cb-checksum{overflow-wrap:anywhere;font:12px/1.5 monospace}
 .cb-tour .cb-success{display:grid;place-items:center;width:64px;height:64px;border-radius:20px;background:#afe97616;border:1px solid #afe97655;color:#c3ed9e;font-size:32px;margin:8px 0 24px}
 .cb-tour .cb-save-status{font-size:13px;color:var(--cb-muted);margin:14px 0 0}
+.cb-tour .cb-trial-note{padding:14px 16px;border:1px solid var(--cb-border);border-radius:12px;background:#b4e58a0a;font-size:15px}
 html[data-appearance="light"] .cb-tour{--cb-muted:#52634f;--cb-text:#1c2c1d;--cb-border:#c3d0bd;background:radial-gradient(ellipse at 0 0,#e1f4ce,transparent 70%),#fbfdf9;box-shadow:0 28px 100px #15230c44}
 html[data-appearance="light"] .cb-tour :is(.cb-brand,.cb-eyebrow,.cb-step-number){color:#456c23}
 html[data-appearance="light"] .cb-tour button,html[data-appearance="light"] .cb-tour a.cb-button{background:#eef3e9;color:#243421}

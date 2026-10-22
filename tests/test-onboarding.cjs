@@ -76,6 +76,20 @@ module.exports=async function run(){
  let browser;
  try{
   browser=await puppeteer.launch({headless:true});
+  const entryContext=await browser.createBrowserContext();const entryPage=await entryContext.newPage();
+  await entryPage.goto(base,{waitUntil:'networkidle0'});
+  check('new visitor sees Start here immediately',await entryPage.$eval('#helpBtn',e=>e.textContent==='New here? Start here'));
+  const writesBeforeDiscovery=writeCount;
+  await entryPage.click('#helpBtn');
+  check('header opens four-stage onboarding directly, without another menu',await entryPage.$eval('#cbTourTitle',e=>e.textContent==='Welcome to Classbuster')&&await entryPage.$eval('#helpModalOverlay',e=>getComputedStyle(e).display==='none'));
+  await entryPage.click('[data-next]');
+  check('report step explains separate five-report trials and monthly Classic allowance',await entryPage.$eval('.cb-trial-note',e=>e.textContent.includes('5 Classic reports each month')&&e.textContent.includes('5 one-time trial reports in each other report style')));
+  await entryPage.keyboard.press('Escape');
+  check('dismissed manual introduction becomes Help without an account write',writeCount===writesBeforeDiscovery&&await entryPage.$eval('#helpBtn',e=>e.textContent==='Help & guide'));
+  await entryPage.reload({waitUntil:'networkidle0'});
+  check('visitor Help label persists after reload',await entryPage.$eval('#helpBtn',e=>e.textContent==='Help & guide'));
+  await entryPage.evaluate(key=>{localStorage.setItem('kidbuster_access_key',key);return refreshAccountPanel();},legacy);
+  check('existing returning account retains Help without forced onboarding',await entryPage.$eval('#helpBtn',e=>e.textContent==='Help & guide')&&await entryPage.$eval('#cbOnboardingOverlay',e=>e.hidden));
   const context=await browser.createBrowserContext();const page=await context.newPage();const errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   const browserKey=await service.getOrCreateFreeLicense('browser-onboarding@example.test');

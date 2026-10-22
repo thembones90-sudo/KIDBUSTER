@@ -9,6 +9,15 @@ Production must NOT be promoted without the owner's review and approval.
 
 ## What is implemented
 
+Header-entry refinement: a fresh visitor's **New here? Start here** button opens
+the four-stage introduction directly, without an intermediate Help menu. After
+finishing or skipping it, the button becomes **Help & guide** and retains replay.
+Authenticated existing accounts retain normal Help access; only explicitly
+eligible new accounts are automatically introduced. Pre-registration manual
+discovery does not create or complete any server-side account obligation.
+The report step explains five monthly Classic reports plus five one-time trial
+reports per other report style; no quota or entitlement rule has been changed.
+
 - Four-stage introduction: Welcome → Your first report → Meet Scout → You're ready.
 - Example notes are revealed inside the introduction, never inserted over a teacher's work.
 - Automatic introduction only after an authenticated active account has an explicit new-account marker.

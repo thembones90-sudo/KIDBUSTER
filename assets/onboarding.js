@@ -19,6 +19,18 @@
   let inertNodes=[],saving=false,retryTimer=null;
   const seen=new Set(),receipts=new Map();
   const readKey=()=>getStoredAccessKey();
+  function updateHeader(){
+    let completed=false;
+    try{completed=localStorage.getItem(HELP_COMPLETED_KEY)==='1';}catch{}
+    if(account) completed=!account.eligible||['completed','skipped'].includes(account.state)||!!receipt(account.accountId);
+    updateHelpButton(completed);
+  }
+  function openFromHeader(){
+    if(document.getElementById('helpBtn')?.classList.contains('onboarding-done')) return false;
+    const pending=account?.eligible&&account.state==='pending'&&!receipt(account.accountId)&&accountKey===readKey();
+    open(pending?'first':'replay');
+    return true;
+  }
   function updateSyncNotice(){
     syncNotice.hidden=!account||!receipt(account.accountId)?.pending;
     syncNotice.textContent=syncNotice.hidden?'':'Your introduction choice is saved in this browser. We’ll sync it to your account when the connection is ready.';
@@ -46,16 +58,19 @@
         if(account?.accountId===id) account.state=data.onboarding.state;
       }
     }catch{/* Keep the account-scoped receipt and retry without blocking work. */}
-    finally{saving=false;updateSyncNotice();}
+    finally{saving=false;updateSyncNotice();updateHeader();}
     clearTimeout(retryTimer);
     if(account&&receipt(account.accountId)?.pending) retryTimer=setTimeout(sync,30000);
   }
   function finish(state){
+    if(mode!=='scout'){
+      try{localStorage.setItem(HELP_COMPLETED_KEY,'1');}catch{}
+    }
     if(mode==='first'&&account&&accountKey===readKey()){
       store(account.accountId,{state,pending:true}); seen.add(account.accountId); sync();
       updateSyncNotice();
     }
-    close();
+    updateHeader();close();
   }
   function close(){
     overlay.hidden=true;
@@ -106,6 +121,11 @@
       html=`<div class="cb-success" aria-hidden="true">✓</div><h2 id="cbTourTitle" tabindex="-1">You’re ready!</h2><p id="cbTourDescription" class="cb-lead">Your next report starts with your lesson notes.</p><p>${reassurance}</p><div class="cb-hero"><span aria-hidden="true">↗</span><div><h3>Make it yours, one report at a time</h3><p>Choose a style, add your notes, and review the feedback before you share.</p></div></div><div class="cb-actions"><button data-back>Back</button><button class="cb-primary" data-done>Enter Classbuster <span aria-hidden="true">→</span></button></div>`;
     }
     content.innerHTML=`<p class="cb-eyebrow">${eyebrow}</p>`+html;
+    if(step===1){
+      const trials=document.createElement('p');trials.className='cb-trial-note';
+      trials.textContent='Try the styles on Free: 5 Classic reports each month, plus 5 one-time trial reports in each other report style. Each style has its own trial allowance.';
+      content.querySelector('#cbTourDescription').after(trials);
+    }
     document.getElementById('cbTourSaveStatus').textContent=mode==='first'?'Your introduction is linked to your account.':'';
     content.querySelector('[data-next]')?.addEventListener('click',()=>{step++;render();});
     content.querySelector('[data-back]')?.addEventListener('click',()=>{step--;render();});
@@ -136,6 +156,7 @@
       clearTimeout(retryTimer);
     }
     account=next||null;accountKey=readKey();
+    updateHeader();
     updateSyncNotice();
     if(!account)return;
     if(['completed','skipped'].includes(account.state)){
@@ -151,7 +172,7 @@
       seen.add(account.accountId);open('first');
     }
   }
-  window.ClassbusterOnboarding={accountStatus};
+  window.ClassbusterOnboarding={accountStatus,openFromHeader};
   document.getElementById('replayOnboardingBtn')?.addEventListener('click',()=>open('replay'));
   document.getElementById('helpScoutBtn')?.addEventListener('click',()=>open('scout',2));
   document.getElementById('scoutWorkspaceBtn')?.addEventListener('click',()=>open('scout',2));
@@ -165,4 +186,5 @@
   // Consume an already-verified result if it beat this deferred module. Do not
   // issue a duplicate status/activation request while the original is in flight.
   if(onboardingStatusSnapshot&&!accountVerificationInProgress)accountStatus(onboardingStatusSnapshot);
+  else updateHeader();
 })();

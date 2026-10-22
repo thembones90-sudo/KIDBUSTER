@@ -163,12 +163,12 @@ module.exports = async function run(){
     check('seven protocols form a balanced 2-2-2-1 card layout',balanced.columns===2&&balanced.preplyWidth>=balanced.gridWidth-2);
     check('Lingo Ace has a compact visible title',balanced.ofTitle==='Lingo Ace');
     check('report-length armory retains three native radio tiles',armory.lengthTiles===3&&armory.lengthDisplay==='grid');
-    check('permanent Help entry is clearly labeled',armory.helpLabel==='Help & guide');
+    check('newcomer onboarding entry is clearly labeled',armory.helpLabel==='New here? Start here');
     const onboarding=await page.evaluate(async()=>{
       localStorage.removeItem(HELP_COMPLETED_KEY);
       updateHelpButton(false);
       openHelpModal();closeHelpModal();
-      const dismissed=localStorage.getItem(HELP_COMPLETED_KEY)===null&&helpEls.btn.textContent==='Help & guide';
+      const dismissed=localStorage.getItem(HELP_COMPLETED_KEY)===null&&helpEls.btn.textContent==='New here? Start here';
       openHelpModal();document.getElementById('firstGuideStart').click();
       const completed=localStorage.getItem(HELP_COMPLETED_KEY)==='1'&&helpEls.btn.textContent==='Help & guide';
       openHelpModal();
@@ -250,6 +250,7 @@ module.exports = async function run(){
 
   console.log('\n2) Every protocol correctly sets its own body class AND its own button gradient — not just its :has()-driven panel colors');
   console.log('\n1c) Help modal explains the app and closes cleanly');
+  await page.evaluate(()=>{localStorage.setItem(HELP_COMPLETED_KEY,'1');updateHelpButton(true);});
   await page.click('#helpBtn');
   await new Promise(r => setTimeout(r, 80));
   const helpOpen = await page.evaluate(() => {

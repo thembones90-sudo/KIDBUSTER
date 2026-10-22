@@ -16,10 +16,12 @@ const puppeteer=require('puppeteer');
   assert(await page.$eval('#cbOnboardingOverlay',e=>e.hidden),'No pre-registration onboarding');
   for(const width of [1440,390]){
    await page.setViewport({width,height:1000});
-   await page.click('#helpBtn');await page.click('#replayOnboardingBtn');
+   const newcomer=await page.$eval('#helpBtn',e=>!e.classList.contains('onboarding-done'));
+   await page.click('#helpBtn');if(!newcomer)await page.click('#replayOnboardingBtn');
    const titles=['Welcome to Classbuster','Your first report','Meet Scout','You’re ready!'];
    for(let i=0;i<4;i++){
     assert.equal(await page.$eval('#cbTourTitle',e=>e.textContent),titles[i]);
+    if(i===1)assert(await page.$eval('.cb-trial-note',e=>e.textContent.includes('5 Classic reports each month')&&e.textContent.includes('5 one-time trial reports in each other report style')));
     assert(await page.$eval('.cb-tour',e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&e.scrollWidth<=e.clientWidth;}));
     await page.screenshot({path:path.join(shots,'preview-'+width+'-stage-'+(i+1)+'.png')});
     if(i===2){assert(await page.$eval('[data-scout-download]',e=>e.hidden&&!e.hasAttribute('href')));await page.click('#cbSkipScout');}
@@ -27,6 +29,7 @@ const puppeteer=require('puppeteer');
    }
    await page.click('[data-done]');
    assert(await page.$eval('#cbOnboardingOverlay',e=>e.hidden));
+   assert.equal(await page.$eval('#helpBtn',e=>e.textContent),'Help & guide');
    await page.click('#scoutWorkspaceBtn');
    assert.equal(await page.$eval('#cbTourTitle',e=>e.textContent),'Meet Scout');
    await page.keyboard.press('Escape');
