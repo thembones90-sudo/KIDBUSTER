@@ -79,6 +79,8 @@ module.exports=async function run(){
   const entryContext=await browser.createBrowserContext();const entryPage=await entryContext.newPage();
   await entryPage.goto(base,{waitUntil:'networkidle0'});
   check('new visitor sees Start here immediately',await entryPage.$eval('#helpBtn',e=>e.textContent==='New here? Start here'));
+  async function hasGoldEntry(page){return page.$eval('#helpBtn',e=>{const button=getComputedStyle(e),icon=getComputedStyle(e,'::before');return button.backgroundImage.includes('rgb(218, 154, 57)')&&button.color==='rgb(40, 25, 4)'&&icon.content.includes('→')&&icon.backgroundColor==='rgb(84, 55, 18)';});}
+  check('first-time entry restores gold gradient, dark text and round arrow',await hasGoldEntry(entryPage));
   const writesBeforeDiscovery=writeCount;
   await entryPage.click('#helpBtn');
   check('header opens four-stage onboarding directly, without another menu',await entryPage.$eval('#cbTourTitle',e=>e.textContent==='Welcome to Classbuster')&&await entryPage.$eval('#helpModalOverlay',e=>getComputedStyle(e).display==='none'));
@@ -86,6 +88,10 @@ module.exports=async function run(){
   check('report step explains separate five-report trials and monthly Classic allowance',await entryPage.$eval('.cb-trial-note',e=>e.textContent.includes('5 Classic reports each month')&&e.textContent.includes('5 one-time trial reports in each other report style')));
   await entryPage.keyboard.press('Escape');
   check('dismissed manual introduction becomes Help without an account write',writeCount===writesBeforeDiscovery&&await entryPage.$eval('#helpBtn',e=>e.textContent==='Help & guide'));
+  await entryPage.mouse.move(0,0);
+  check('returning Help remains prominent gold instead of granite',await hasGoldEntry(entryPage));
+  await entryPage.evaluate(()=>document.documentElement.dataset.appearance='light');
+  check('light skin keeps the same gold discovery button',await hasGoldEntry(entryPage));
   await entryPage.reload({waitUntil:'networkidle0'});
   check('visitor Help label persists after reload',await entryPage.$eval('#helpBtn',e=>e.textContent==='Help & guide'));
   await entryPage.evaluate(key=>{localStorage.setItem('kidbuster_access_key',key);return refreshAccountPanel();},legacy);

@@ -1,5 +1,10 @@
 .scout-workspace-entry{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 4px 16px;color:var(--muted,#aab6ac);font:400 14px/1.5 var(--font-body)}
 .scout-workspace-entry strong{color:var(--text,#edf3eb);margin-right:10px}
+/* Keep the discovery/help entry prominent; only the tour surfaces are granite. */
+html[data-appearance] .header-actions>button#helpBtn{background:linear-gradient(135deg,#da9a39,#ffd58a)!important;border-color:#ffd58a!important;color:#281904!important;border-radius:999px;box-shadow:inset 0 1px 0 #ffffff30,0 0 22px -7px #ffb94f70;animation:none;font-weight:650;gap:10px}
+html[data-appearance] .header-actions>button#helpBtn::before{content:'→';display:grid;place-items:center;width:28px;height:28px;flex:0 0 28px;border:0;border-radius:50%;background:#543712!important;color:#ffe7b6!important;box-shadow:none;font-size:16px;font-weight:400}
+html[data-appearance] .header-actions>button#helpBtn:hover{background:linear-gradient(135deg,#ecaf51,#ffe4ae)!important;border-color:#ffe4ae!important;box-shadow:inset 0 1px 0 #ffffff40,0 0 25px -6px #ffb94f80}
+html[data-appearance] .header-actions>button#helpBtn:focus-visible{outline:2px solid #ffd58a;outline-offset:4px}
 .cb-onboarding-sync{font:400 13px/1.5 var(--font-body);color:var(--muted,#aab6ac);margin:0 4px 16px}
 .cb-onboarding-sync[hidden]{display:none}
 .scout-workspace-entry button{flex-shrink:0;border:1px solid #73866866;border-radius:99px;background:transparent;color:var(--text,#edf3eb);padding:9px 16px;min-height:44px;font:600 14px var(--font-body);cursor:pointer}
