@@ -4,7 +4,7 @@
   const overlay = document.createElement('div');
   overlay.className='cb-tour-overlay'; overlay.id='cbOnboardingOverlay'; overlay.hidden=true;
   overlay.innerHTML=`<section class="cb-tour" role="dialog" aria-modal="true" aria-labelledby="cbTourTitle" aria-describedby="cbTourDescription">
-    <header class="cb-tour-top"><div class="cb-brand"><img src="/assets/brand/classbuster/classbuster-icon-dark-48.png" alt="">Classbuster · A little introduction</div><button class="cb-close" type="button" aria-label="Close introduction">×</button></header>
+    <header class="cb-tour-top"><div class="cb-brand"><img src="/assets/brand/classbuster/classbuster-icon-dark-48.png" alt=""><span>Classbuster<small>A quick introduction</small></span></div><button class="cb-close" type="button" aria-label="Close introduction">×</button></header>
     <ol class="cb-progress" aria-label="Introduction progress"><li aria-label="1. Welcome"></li><li aria-label="2. Your first report"></li><li aria-label="3. Meet Scout"></li><li aria-label="4. You're ready"></li></ol>
     <div id="cbTourContent"></div>
     <p class="cb-save-status" id="cbTourSaveStatus" role="status"></p>
@@ -121,6 +121,11 @@
       html=`<div class="cb-success" aria-hidden="true">✓</div><h2 id="cbTourTitle" tabindex="-1">You’re ready!</h2><p id="cbTourDescription" class="cb-lead">Your next report starts with your lesson notes.</p><p>${reassurance}</p><div class="cb-hero"><span aria-hidden="true">↗</span><div><h3>Make it yours, one report at a time</h3><p>Choose a style, add your notes, and review the feedback before you share.</p></div></div><div class="cb-actions"><button data-back>Back</button><button class="cb-primary" data-done>Enter Classbuster <span aria-hidden="true">→</span></button></div>`;
     }
     content.innerHTML=`<p class="cb-eyebrow">${eyebrow}</p>`+html;
+    const iconPaths=step===2?'<path d="M4 14v-3a8 8 0 0 1 16 0v3M4 12H3v7h4v-7Zm16 0h1v7h-4v-7ZM9 11v4m3-6v8m3-6v4"/>':step===3?'<path d="M6 3h9l4 4v14H6Z M14 3v5h5M9 14l2 2 5-5"/>':'<path d="M12 6c-3-3-7-3-9-2v15c3-1 6-1 9 2 3-3 6-3 9-2V4c-2-1-6-1-9 2Zm0 0v15M6 8h3m-3 4h3m6-4h3m-3 4h3"/>';
+    const heroIcon=content.querySelector('.cb-hero>span');
+    if(heroIcon)heroIcon.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+iconPaths+'</svg>';
+    const success=content.querySelector('.cb-success');
+    if(success)success.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>';
     if(step===1){
       const trials=document.createElement('p');trials.className='cb-trial-note';
       trials.textContent='Try the styles on Free: 5 Classic reports each month, plus 5 one-time trial reports in each other report style. Each style has its own trial allowance.';

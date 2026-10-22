@@ -1,5 +1,18 @@
 # Classbuster first-time onboarding — review handoff
 
+## Live visual refinement — granite and green
+
+The owner approved and requested direct production publication on 22 October.
+The subsequent visual refinement uses neutral granite (`#32363d` → `#23262c`),
+the actual Classbuster green (`#87f316`), neutral gray borders and readable cool
+white text. It removes the earlier olive/sage cast, adds consistent SVG line
+icons, a compact brand header, restrained highlights, clearer footer separation,
+and polished button states. Light mode uses neutral silver rather than pale
+green. All changes are scoped to onboarding/Scout information presentation;
+account state, trials, protocols, generation and Scout release gates are unchanged.
+The preview-only instructions below describe the initial review phase, not the
+owner's later explicit production approval.
+
 ## Scope and source
 
 Based on verified production commit `dca050c904d93c43be6c40d856e63d5db3d0cbe7`

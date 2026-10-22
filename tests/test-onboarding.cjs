@@ -97,6 +97,17 @@ module.exports=async function run(){
   await page.goto(base,{waitUntil:'networkidle0'});
   await page.waitForSelector('#cbOnboardingOverlay:not([hidden])');
   check('first-time authenticated account automatically sees welcome',await page.$eval('#cbTourTitle',e=>e.textContent==='Welcome to Classbuster'));
+  const skin=await page.evaluate(()=>{
+   const panel=getComputedStyle(document.querySelector('.cb-tour'));
+   const button=getComputedStyle(document.querySelector('.cb-tour .cb-primary'));
+   return {surface:panel.backgroundImage,border:panel.borderTopColor,accent:panel.getPropertyValue('--cb-green').trim(),button:button.backgroundImage,text:button.color,icons:!!document.querySelector('.cb-hero>span>svg')};
+  });
+  check('premium onboarding uses neutral granite, not an olive-green surface',skin.surface.includes('rgb(50, 54, 61)')&&skin.surface.includes('rgb(35, 38, 44)')&&skin.border==='rgb(72, 78, 88)');
+  check('primary buttons use the actual Classbuster bright green with dark text',skin.accent==='#87f316'&&skin.button.includes('rgb(135, 243, 22)')&&skin.text==='rgb(20, 32, 8)');
+  check('welcome illustration uses a consistent code-native line icon',skin.icons);
+  await page.evaluate(()=>document.body.classList.add('protocol-ms'));
+  check('onboarding brand green does not turn pink with Sugarcoat',await page.$eval('.cb-tour',e=>getComputedStyle(e).getPropertyValue('--cb-green').trim()==='#87f316'));
+  await page.evaluate(()=>document.body.classList.remove('protocol-ms'));
   for(const width of [1150,1280,1440,390]){
    await page.setViewport({width,height:900});
    for(let stage=0;stage<4;stage++){
@@ -165,7 +176,7 @@ module.exports=async function run(){
   await other.click('#scoutWorkspaceBtn');
   check('reduced motion suppresses entry animation',await other.$eval('.cb-tour',e=>getComputedStyle(e).animationName==='none'));
   await other.evaluate(()=>document.documentElement.dataset.appearance='light');
-  check('light appearance has an opaque readable surface',await other.$eval('.cb-tour',e=>getComputedStyle(e).color==='rgb(28, 44, 29)'));
+  check('light appearance uses readable neutral granite text',await other.$eval('.cb-tour',e=>getComputedStyle(e).color==='rgb(37, 44, 53)'));
   await other.screenshot({path:path.join(shots,'scout-light.png')});
   check('browser flow has no JavaScript exceptions',errors.length===0);if(errors.length)console.log(errors);
   check('serverless count remains 12',fs.readdirSync(path.join(root,'api')).filter(f=>f.endsWith('.js')).length===12);
