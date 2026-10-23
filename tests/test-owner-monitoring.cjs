@@ -65,10 +65,11 @@ module.exports = async function run(){
     check('the daily task runs with the right secret', run1.code === 200 && run1.body.ok === true);
     check('it finds exactly the manual key expiring within 3 days and the one that just expired', run1.body.expiring === 1 && run1.body.expired === 1);
     const subjects = mail.__getTestMessages().map(m => m.subject).join(' | ');
+    check('the first daily run sends a one-time "monitoring is active" alert', /monitoring is active/.test(subjects));
     check('the owner is alerted about both, without a raw key or full email', /expires/.test(subjects) && /expired today/.test(subjects) &&
       !/kb_live_|soon@example|gone@example/.test(JSON.stringify(mail.__getTestMessages())));
     await call(feedback, { method: 'GET', query: { task: 'daily' }, headers: auth });
-    check('running again the same day does not repeat the reminders', mail.__getTestMessages().length === 2);
+    check('running again does not repeat the reminders or the activation alert', mail.__getTestMessages().length === 3);
     check('a daily summary is in the event log', (await log.readEvents({ type: 'daily' })).length >= 1);
 
     console.log('\n4) Payment and owner view');

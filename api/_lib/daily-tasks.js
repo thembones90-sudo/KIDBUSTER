@@ -12,6 +12,12 @@ const DAY = 86400000;
 const WARN_DAYS = 3;
 
 export async function runDailyTasks({ now = Date.now(), maxRecords = 20000 } = {}){
+  // Once per lifetime: proves the alert route (sheet + email) actually works.
+  if(await kv.set('alert:v1:monitoring-active', new Date(now).toISOString(), { nx: true }) !== null){
+    await alertOwner({ type: 'monitoring_active', title: 'Classbuster monitoring is active',
+      details: ['You will get an alert like this when a payment fails to process or a 30-day key is about to expire.',
+        'Recent activity: Account -> Owner tools -> Recent activity.'] });
+  }
   let cursor = '0', scanned = 0, expiring = 0, expired = 0;
   do{
     const [next, keys] = await kv.scan(cursor, { match: 'license:*', count: 500 });
