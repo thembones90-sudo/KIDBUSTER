@@ -75,7 +75,9 @@ module.exports=async function run(){
          teacher:top('teacherName'),student:top('studentName'),signoff:top('signoffEmojiField'),
          visible:getComputedStyle(field('signoffEmojiField')).display!=='none',
          emoji:field('teacherSignoffEmoji').value,
-         fixedFormat:getComputedStyle(field('protocolFormatField')).display!=='none'};
+         fixedFormat:getComputedStyle(field('protocolFormatField')).display!=='none',
+         heightFitted:document.body.classList.contains('workspace-height-fit'),
+         rightFits:document.querySelector('.grid>div:nth-child(2)').scrollWidth<=document.querySelector('.grid>div:nth-child(2)').clientWidth+1};
      }));
    }
    const classic=layouts[0];
@@ -87,8 +89,8 @@ module.exports=async function run(){
      ['teacher','signoff','student'].every(key=>classic[key]-ofLayout[key]>=40));
    check('all seven retain visible teacher emoji selection',layouts.every(v=>v.visible&&v.emoji==='🦊'));
    check('Beida substitutes informative native fixed-format slot',layouts.find(x=>x.protocol==='BEIDA').fixedFormat);
-   check('desktop right-side workspace preserves Classic height in all seven modes, including Beida',
-     layouts.every(v=>Math.abs(v.rightHeight-classic.rightHeight)<=1));
+   check('right-side workspace stays unclipped and keeps the Classic baseline outside height-fit mode',
+     layouts.every(v=>v.rightFits&&(v.heightFitted||Math.abs(v.rightHeight-classic.rightHeight)<=1)));
    await page.setViewport({width:390,height:844});
    const mobileHeights=[];
    for(const protocol of modes){

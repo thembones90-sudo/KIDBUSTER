@@ -2546,6 +2546,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
 
     <div>
       <div class="panel">
+        <div class="workspace-settings-scroll" id="workspaceSettingsScroll" role="region" aria-label="Report settings">
         <div class="field">
           <label class="field-label">Official Protocol</label>
           <div class="protocol-select" id="protocolSelect">
@@ -2620,6 +2621,8 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
             <label><input type="radio" name="preplyTrialPerson" value="child"> Child (write to their parent)</label>
           </div>
         </div>
+        </div>
+        <p id="workspaceSettingsHint" class="workspace-settings-hint" aria-hidden="true">Scroll for more settings <span>↕</span></p>
         <div class="field" id="ratingField" style="margin-bottom:0;">
           <label class="field-label">Performance rating</label>
           <div class="rating-track" id="ratingTrack"></div>
@@ -10494,6 +10497,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 <script src="assets/scout-release.js" defer></script>
 <link rel="stylesheet" href="assets/onboarding.css">
 <link rel="stylesheet" href="assets/workspace-responsive.css">
+<script src="assets/workspace-fit.js" defer></script>
 <script src="assets/onboarding.js" defer></script>
 </body>
 </html>

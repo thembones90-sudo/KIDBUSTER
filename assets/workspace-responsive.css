@@ -4,6 +4,9 @@
 .grid input,.grid textarea,.grid select{max-width:100%;min-width:0}
 .grid select{min-height:44px}
 .grid .output-box{overflow-wrap:anywhere}
+.workspace-settings-scroll{display:contents}
+.workspace-settings-hint{display:none}
+.workspace-settings-scroll>.field{padding-bottom:11px;border-bottom:1px solid rgba(185,205,165,.1)}
 
 /* Intermediate windows need a wrapping header before the mobile breakpoint. */
 @media(max-width:1240px){
@@ -26,6 +29,7 @@
   .grid .panel .field{margin-bottom:10px}
   .grid>div:first-child>.panel{min-height:0}
   .grid>div:first-child>.panel>.field:not(:last-child){padding-bottom:10px}
+  .workspace-settings-scroll>.field{padding-bottom:10px}
   #lengthFormatField,#blitzVoiceField,#preplyModuleField,#studentGenderField,#protocolFormatField{min-height:0;justify-content:flex-start}
   #protocolSelect{gap:6px}
   #protocolSelect>label,#protocolSelect>label:has(input[value="PREPLY"]),#protocolSelect>label:not(:has(input[value="PREPLY"])){height:58px;min-height:58px;max-height:none}
@@ -53,6 +57,8 @@
   .grid{grid-template-columns:minmax(0,1fr)}
   .grid>div:first-child>.panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
   .grid>div:first-child>.panel>.field{margin-bottom:0;min-width:0}
+  .grid>div:first-child>.panel .workspace-settings-scroll>.field{margin-bottom:0;min-width:0}
+  .workspace-settings-scroll>.field:first-child{grid-column:1/-1}
   .grid>div:first-child>.panel>.field:first-child,.grid #ratingField{grid-column:1/-1}
   #protocolSelect{grid-template-columns:repeat(3,minmax(0,1fr))}
   #protocolSelect>label:has(input[value="PREPLY"]){grid-column:1/-1}
@@ -73,10 +79,23 @@
   .grid .panel{padding:14px}
   .grid>div:first-child>.panel{display:block}
   .grid>div:first-child>.panel>.field{margin-bottom:12px}
+  .grid>div:first-child>.panel .workspace-settings-scroll>.field{margin-bottom:12px}
   .grid>div:first-child>.panel>.field:last-child{margin-bottom:0}
   #protocolSelect{grid-template-columns:repeat(2,minmax(0,1fr))}
   #krispNotes{height:160px;min-height:132px;font-size:16px}
   #specialRemarks{font-size:16px}
   .scout-workspace-entry{padding-left:0;padding-right:0}
   .grid .action-row>button{flex:1 1 90px;min-height:44px}
+}
+
+/* Short desktop windows: keep the real rating controls in view, not below
+   the page fold. Only the settings above them scroll; no duplicated inputs. */
+@media(min-width:861px){
+  body.workspace-height-fit .grid>div:first-child{align-self:start;position:sticky;top:12px}
+  body.workspace-height-fit .grid>div:first-child>.panel{display:flex;flex-direction:column;gap:12px;height:var(--workspace-fit-height);min-height:0;overflow:visible}
+  body.workspace-height-fit .workspace-settings-scroll{display:block;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--border) transparent;padding-right:7px;overscroll-behavior-y:contain;scroll-padding:8px}
+  body.workspace-height-fit #ratingField{flex:0 0 auto;min-height:0;padding-top:10px;border-top:1px solid var(--border)}
+  body.workspace-height-fit .workspace-settings-hint{display:flex;justify-content:center;align-items:center;gap:8px;flex:none;margin:0;font-size:12px;line-height:1.4;color:var(--text-dim)}
+  body.workspace-height-fit #ratingCaption{max-height:90px;overflow-y:auto;scrollbar-width:thin;overscroll-behavior:contain}
+  body.workspace-height-fit .workspace-settings-scroll .info-icon::after{position:fixed;left:auto;right:16px;bottom:16px;width:min(360px,calc(100vw - 32px));max-width:none}
 }
