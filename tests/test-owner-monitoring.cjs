@@ -70,6 +70,8 @@ module.exports = async function run(){
       !/kb_live_|soon@example|gone@example/.test(JSON.stringify(mail.__getTestMessages())));
     await call(feedback, { method: 'GET', query: { task: 'daily' }, headers: auth });
     check('running again does not repeat the reminders or the activation alert', mail.__getTestMessages().length === 3);
+    const relay = await import('../tools/mail-relay/server.mjs');
+    check('every real alert email passes the relay owner-alert rule', mail.__getTestMessages().every(m => relay.verifyOwnerAlert(m, 'owner@example.test')));
     check('a daily summary is in the event log', (await log.readEvents({ type: 'daily' })).length >= 1);
 
     console.log('\n4) Payment and owner view');

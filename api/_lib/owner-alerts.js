@@ -18,7 +18,9 @@ export async function alertOwner({ type, title, details = [], dedupeKey = null }
     const to = String(process.env.OWNER_ALERT_EMAIL || '').trim();
     if(to){
       try{
-        await sendPlainEmail({ to, subject: 'Classbuster: ' + title, text: [title, ...details].filter(Boolean).join('\n') });
+        // The mail relay forwards owner alerts only without links or markup.
+        const plain = value => String(value).replace(/https?:\/\/\S+/gi, '[link]').replace(/www\./gi, 'www ').replace(/[<>]/g, '');
+        await sendPlainEmail({ to, subject: 'Classbuster: ' + plain(title), text: [title, ...details].filter(Boolean).map(plain).join('\n') });
       }catch(err){
         console.error('owner alert email failed:', (err && err.message) || 'error');
       }

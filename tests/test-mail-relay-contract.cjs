@@ -45,6 +45,13 @@ module.exports = async function run(){
     check('short token rejected', !ok('Verify your Classbuster email', cb + 'https://classbuster.com/?access_token=abc'));
     check('bad recipient rejected', !relay.verify({ to: 'not-an-email', subject: 'Verify your Classbuster email', text: cb + link('https://classbuster.com') }));
     check('importing the relay does not start a server', typeof relay.verify === 'function');
+    const alert = (to, subject, text, owner = 'owner@example.com') => relay.verifyOwnerAlert({ to, subject, text }, owner);
+    check('owner alert to the configured owner is accepted', alert('Owner@Example.com', 'Classbuster: monitoring is active', 'Plain notice.\nSecond line.'));
+    check('owner alert to anyone else is rejected', !alert('teacher@example.com', 'Classbuster: x', 'Plain notice.'));
+    check('owner alerts are off when no owner address is configured', !alert('owner@example.com', 'Classbuster: x', 'Plain notice.', ''));
+    check('owner alert without the Classbuster prefix is rejected', !alert('owner@example.com', 'Your account', 'Plain notice.'));
+    check('owner alert containing a link is rejected', !alert('owner@example.com', 'Classbuster: x', 'Go to https://evil.example') && !alert('owner@example.com', 'Classbuster: x', 'see www.evil.example'));
+    check('owner alert containing markup is rejected', !alert('owner@example.com', 'Classbuster: x', '<a>click</a>'));
 
     // The build gate carries a mirror of the deployed relay's rules (the relay
     // source is not uploaded to Vercel). The mirror must equal the source.

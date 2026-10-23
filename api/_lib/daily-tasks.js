@@ -1,6 +1,6 @@
-// Once-a-day owner tasks (Vercel cron -> /api/feedback?task=daily). Read-only
+// Once-a-day owner tasks (Vercel cron → /api/feedback?task=daily). Read-only
 // on customer data: it only reads license records and raises owner alerts.
-// - manual 30-day Pro keys expiring within 3 days (or just expired) -> alert,
+// - manual 30-day Pro keys expiring within 3 days (or just expired) → alert,
 //   once per key and expiry date;
 // - a short health summary into the event log.
 import { kv } from './kv-client.js';
@@ -16,7 +16,7 @@ export async function runDailyTasks({ now = Date.now(), maxRecords = 20000 } = {
   if(await kv.set('alert:v1:monitoring-active', new Date(now).toISOString(), { nx: true }) !== null){
     await alertOwner({ type: 'monitoring_active', title: 'Classbuster monitoring is active',
       details: ['You will get an alert like this when a payment fails to process or a 30-day key is about to expire.',
-        'Recent activity: Account -> Owner tools -> Recent activity.'] });
+        'Recent activity: Account → Owner tools → Recent activity.'] });
   }
   let cursor = '0', scanned = 0, expiring = 0, expired = 0;
   do{
@@ -34,7 +34,7 @@ export async function runDailyTasks({ now = Date.now(), maxRecords = 20000 } = {
         expiring++;
         await alertOwner({
           type: 'manual_expiring', title: '30-day Pro key expires ' + new Date(at).toISOString().slice(0, 10),
-          details: ['Customer: ' + who, 'Key ref: ' + keyFingerprint(licenseKey), 'Renew it in Account -> owner tools if they should keep Pro.'],
+          details: ['Customer: ' + who, 'Key ref: ' + keyFingerprint(licenseKey), 'Renew it in Account → owner tools if they should keep Pro.'],
           dedupeKey: 'exp:' + keyFingerprint(licenseKey) + ':' + license.expiresAt
         });
       }else if(at <= now && now - at <= DAY){

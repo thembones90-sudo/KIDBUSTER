@@ -21,6 +21,16 @@ export function verify(p){
   let url;try{url=new URL(p.text.slice(prefix.length).trim())}catch{return false}
   return allowedOrigins.has(url.origin)&&url.pathname==='/'&&url.searchParams.size===1&&url.searchParams.has('access_token')&&/^[A-Za-z0-9_-]{20,500}$/.test(url.searchParams.get('access_token')||'');
 }
+// Owner alerts (2026-10-23): plain notices to ONE configured owner address
+// only (OWNER_ALERT_TO). Subject must start with "Classbuster: " and the text
+// may contain no links at all, so a leaked token cannot be used for phishing.
+export function verifyOwnerAlert(p,ownerTo=process.env.OWNER_ALERT_TO){
+  const owner=String(ownerTo||'').trim().toLowerCase();
+  if(!owner||!p||typeof p.to!=='string'||p.to.trim().toLowerCase()!==owner)return false;
+  if(typeof p.subject!=='string'||!p.subject.startsWith('Classbuster: ')||p.subject.length>150)return false;
+  if(typeof p.text!=='string'||p.text.length>3000||/https?:|www\.|<|>/i.test(p.subject+' '+p.text))return false;
+  return true;
+}
 // Tests import verify(); the server only starts when this file is run directly.
 const isMain=!!process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href;
 if(isMain)http.createServer(async(req,res)=>{
@@ -30,9 +40,10 @@ if(isMain)http.createServer(async(req,res)=>{
  if(!postmarkToken)return json(res,503,{error:'Email unavailable'});
  let raw='';try{for await(const chunk of req){raw+=chunk.toString('utf8');if(Buffer.byteLength(raw)>5000)return json(res,413,{error:'Too large'})}}catch{return json(res,400,{error:'Invalid request'})}
  let p;try{p=JSON.parse(raw)}catch{return json(res,400,{error:'Invalid JSON'})}
- if(!verify(p))return json(res,400,{error:'Invalid email request'});
+ const alert=!verify(p)&&verifyOwnerAlert(p);
+ if(!alert&&!verify(p))return json(res,400,{error:'Invalid email request'});
  try{
-  const r=await fetch('https://api.postmarkapp.com/email',{method:'POST',signal:AbortSignal.timeout(12000),headers:{'X-Postmark-Server-Token':postmarkToken,'Accept':'application/json','Content-Type':'application/json'},body:JSON.stringify({From:'Classbuster <pathfinder@asocengine.com>',To:p.to,Subject:p.subject,TextBody:p.text,MessageStream:'outbound',Tag:'pathfinder-access'})});
+  const r=await fetch('https://api.postmarkapp.com/email',{method:'POST',signal:AbortSignal.timeout(12000),headers:{'X-Postmark-Server-Token':postmarkToken,'Accept':'application/json','Content-Type':'application/json'},body:JSON.stringify({From:'Classbuster <pathfinder@asocengine.com>',To:p.to,Subject:p.subject,TextBody:p.text,MessageStream:'outbound',Tag:alert?'classbuster-owner-alert':'pathfinder-access'})});
   const result=await r.json().catch(()=>({}));
   return r.ok&&result.ErrorCode===0?json(res,202,{ok:true}):json(res,502,{error:'Provider rejected message'});
  }catch{return json(res,502,{error:'Email provider unavailable'})}
