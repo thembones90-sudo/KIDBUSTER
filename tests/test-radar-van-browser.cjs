@@ -149,7 +149,7 @@ module.exports = async function run(){
       const st = document.getElementById('radarVanStatus');
       return !!lab && st.getAttribute('role') === 'status' && st.getAttribute('aria-live') === 'polite' &&
         !document.getElementById('radarVanArmBtn') &&
-        !!document.getElementById(document.getElementById('radarVanList').getAttribute('aria-labelledby')) &&
+        !!document.getElementById('radarVanPendingPopoverList').getAttribute('aria-label') && !document.getElementById('radarVanList') && !!document.getElementById('radarVanOpenPending') &&
         document.getElementById('radarVanTokenBox').getAttribute('role') === 'group';
     }));
     check('Scout startup never changes Krisp ARM', hits.krispMutations === 0);
@@ -218,28 +218,31 @@ module.exports = async function run(){
     check('automatic ingest accepted', (await ingest(token, lesson(3, { title: evil }))).body.matched === true);
     await fallbackPending(3);
     await poke(page);
-    check('pending lesson appears with Claim and Dismiss', await wait(page, () => document.querySelectorAll('#radarVanList .radar-van-item').length === 1 && !!document.querySelector('.radar-van-claim') && !!document.querySelector('.radar-van-dismiss')));
-    check('titles render as text (no HTML injection) and source is labelled Scout', await page.evaluate(() => !window.__pwn && !document.querySelector('#radarVanList img') && document.querySelector('.radar-van-item-title').textContent.includes('<img') && /Scout|RADAR VAN/.test(document.querySelector('.radar-van-item-meta').textContent)));
+    check('pending lesson appears with Claim and Dismiss', await wait(page, () => document.querySelectorAll('#radarVanPendingPopoverList .radar-van-item').length === 1 && !!document.querySelector('.radar-van-claim') && !!document.querySelector('.radar-van-dismiss')));
+    check('titles render as text (no HTML injection) and source is labelled Scout', await page.evaluate(() => !window.__pwn && !document.querySelector('#radarVanPendingPopoverList img') && document.querySelector('.radar-van-item-title').textContent.includes('<img') && /Scout|RADAR VAN/.test(document.querySelector('.radar-van-item-meta').textContent)));
     check('pending count is shown and the account button is flagged', (await text(page, 'radarVanCount')) === '1' && (await page.evaluate(() => document.getElementById('accountBtn').getAttribute('data-radar-pending'))) === '1');
     await setNotes(page, 'my own draft');
-    await page.click('#radarVanList .radar-van-claim'); await sleep(500);
+    await page.evaluate(() => { const p = document.getElementById('krispInboxPanel'); if(!p.matches(':popover-open')) p.showPopover(); });
+    await page.click('#radarVanPendingPopoverList .radar-van-claim'); await sleep(500);
     check('claim with occupied notes does nothing destructive', (await notes(page)) === 'my own draft' && /nothing was imported or overwritten/i.test(await text(page, 'radarVanStatus')));
     check('...and the lesson is still pending on the server', (await status()).body.pendingCount === 1);
     await setNotes(page, '');
-    await page.click('#radarVanList .radar-van-claim');
+    await page.evaluate(() => { const p = document.getElementById('krispInboxPanel'); if(!p.matches(':popover-open')) p.showPopover(); });
+    await page.click('#radarVanPendingPopoverList .radar-van-claim');
     check('claim into empty notes imports the full transcript', await wait(page, () => document.getElementById('krispNotes').value.includes('Hello from lesson 3') && document.getElementById('krispNotes').value.includes('Hi there')));
     await sleep(500);
     const afterClaim = await status();
-    check('claimed + acknowledged: gone from pending and matched, list is empty', afterClaim.body.pendingCount === 0 && afterClaim.body.matchedCount === 0 && (await kvMod.kv.get(rv.radarKeys.pending(KEY))) === null && await page.evaluate(() => document.querySelectorAll('#radarVanList .radar-van-item').length === 0));
+    check('claimed + acknowledged: gone from pending and matched, list is empty', afterClaim.body.pendingCount === 0 && afterClaim.body.matchedCount === 0 && (await kvMod.kv.get(rv.radarKeys.pending(KEY))) === null && await page.evaluate(() => document.querySelectorAll('#radarVanPendingPopoverList .radar-van-item').length === 0));
     check('retry after claim+ACK is a duplicate (not recreated)', (await ingest(token, lesson(3))).body.duplicate === true && (await status()).body.pendingCount === 0);
     check('still no report generation', hits.generate === 0);
     await setNotes(page, 'my own draft');
     await ingest(token, lesson(4));
     await fallbackPending(4);
     await poke(page);
-    await wait(page, () => document.querySelectorAll('#radarVanList .radar-van-dismiss').length === 1);
-    await page.click('#radarVanList .radar-van-dismiss');
-    check('dismiss removes the lesson (after confirmation)', await wait(page, () => document.querySelectorAll('#radarVanList .radar-van-item').length === 0) && page.dialogs.some(d => /Dismiss/.test(d)) && (await status()).body.pendingCount === 0);
+    await wait(page, () => document.querySelectorAll('#radarVanPendingPopoverList .radar-van-dismiss').length === 1);
+    await page.evaluate(() => { const p = document.getElementById('krispInboxPanel'); if(!p.matches(':popover-open')) p.showPopover(); });
+    await page.click('#radarVanPendingPopoverList .radar-van-dismiss');
+    check('dismiss removes the lesson (after confirmation)', await wait(page, () => document.querySelectorAll('#radarVanPendingPopoverList .radar-van-item').length === 0) && page.dialogs.some(d => /Dismiss/.test(d)) && (await status()).body.pendingCount === 0);
     check('retry after dismiss is a duplicate', (await ingest(token, lesson(4))).body.duplicate === true && (await status()).body.pendingCount === 0);
 
     // ---- disconnect ----

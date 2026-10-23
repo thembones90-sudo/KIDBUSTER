@@ -131,7 +131,7 @@
   function hideAll(){
     section.hidden = true; hideToken(); say('');
     workspaceSay('');
-    $('List').replaceChildren(); $('Count').textContent = '0';
+    $('Count').textContent = '0';
     document.getElementById('accountBtn')?.removeAttribute('data-radar-pending');
     var group=document.getElementById('radarVanPendingGroup');
     if(group){group.hidden=true;document.getElementById('radarVanPendingPopoverList').replaceChildren();}
@@ -235,9 +235,9 @@
     var items = Array.isArray(data.inboxPending) ? data.inboxPending :
       (Array.isArray(data.pending) ? data.pending : []);
     showScoutPending(items);
-    $('List').replaceChildren.apply($('List'), items.map(itemNode));
+    // Transcripts live in ONE place: Pending transcripts (owner decision
+    // 2026-10-23). The account panel only shows the count and a shortcut.
     $('Count').textContent = String(items.length);
-    $('Empty').hidden = items.length > 0;
     var waiting = $('Waiting');
     waiting.hidden = !state.matchedCount;
     if(state.matchedCount){
@@ -453,6 +453,12 @@
     if(authorized) pairCard(hash);
     else pairCard(hash, 'Sign in with the Classbuster account that owns Scout, then click Connect in Scout again.');
   }
+
+  var openPending = document.getElementById('radarVanOpenPending');
+  if(openPending) openPending.addEventListener('click', function(){
+    var panel = document.getElementById('krispInboxPanel');
+    try{ if(panel && !panel.matches(':popover-open')) panel.showPopover(); }catch(e){}
+  });
 
   var pollSoonTimer = null;
   function pollSoon(){ clearTimeout(pollSoonTimer); pollSoonTimer = setTimeout(poll, 400); }
