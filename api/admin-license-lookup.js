@@ -5,6 +5,7 @@ import { fetchSubscriptionSnapshot } from './_lib/providers/lemonsqueezy.js';
 
 import { getUsageStatsSnapshot } from './_lib/usage-stats.js';
 import adminManualBatchHandler from './_lib/admin-manual-batch.js';
+import { auditIdentityPage, lookupEmails, repairEmailIndex } from './_lib/identity-continuity.js';
 
 function publicLicenseStatus(license){
   if(!license) return null;
@@ -47,7 +48,8 @@ const LINK_FAILURE_MESSAGES = {
   invalid_email: "Enter the customer's email address.",
   invalid_key: 'That license key was not found.',
   not_paid: 'Only a paid (Pro) license can be linked to a recovery email.',
-  email_owned_by_paid_account: 'That email already signs in to another paid account. Nothing was changed; review both keys first.'
+  email_owned_by_paid_account: 'That email already signs in to another paid account. Nothing was changed; review both keys first.',
+  index_changed_retry: 'That email changed while linking. Nothing was overwritten; look it up again and retry.'
 };
 
 const RESET_FAILURE_MESSAGES = {
@@ -84,6 +86,30 @@ export default async function handler(req, res){
   }
   if(['create-batch','preview-retirement','retire-expired'].includes(action)){
     return adminManualBatchHandler(req,res);
+  }
+
+  // Identity continuity (owner only). Audit and lookup are read-only and
+  // masked; repair is a dry run unless confirm:'REPAIR' is sent explicitly.
+  if(['identity-audit','identity-lookup-email','identity-repair'].includes(action)){
+    try{
+      if(typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store');
+      if(action === 'identity-audit'){
+        return res.status(200).json(await auditIdentityPage({ scope: req.body?.scope, cursor: req.body?.cursor, count: req.body?.count, withCandidates: req.body?.withCandidates === true }));
+      }
+      if(action === 'identity-lookup-email'){
+        return res.status(200).json({ results: await lookupEmails(req.body?.emails) });
+      }
+      const result = await repairEmailIndex({
+        email: req.body?.email, licenseKey: req.body?.licenseKey, candidateToken: req.body?.candidateToken,
+        dryRun: req.body?.dryRun !== false, confirm: req.body?.confirm,
+        allowEmailMismatch: req.body?.allowEmailMismatch === true, evidence: req.body?.evidence
+      });
+      const status = result.ok ? 200 : result.reason === 'email_owned_by_paid_account' || result.reason === 'busy' ? 409 : 400;
+      return res.status(status).json(result);
+    }catch(err){
+      console.error('admin identity error:', err?.message || 'unknown error');
+      return res.status(503).json({ error: 'Identity tools are temporarily unavailable.' });
+    }
   }
 
   const licenseKey = String(req.body?.licenseKey || '').trim();

@@ -4,9 +4,10 @@
 // Date ordering prevents delayed provider notifications from rewriting newer state.
 import {
   getLicense, getLicenseKeyByPaymentCustomerId, getLicenseKeyByEmail,
-  saveLicense, saveEmailIndex, savePaymentCustomerIndex, normalizeEmail,
+  saveLicense, savePaymentCustomerIndex, normalizeEmail,
   clearManualClaim
 } from './licensing.js';
+import { claimEmailIndexForPaidLicense } from './license-service.js';
 import { notifyAccessEvent } from './access-notifications.js';
 
 function dateMs(value){
@@ -246,13 +247,23 @@ export async function applySubscriptionEvent(event){
       : (current.duplicateSubscriptionReview||null)
   };
 
-  // To minimize missing downstream webhook lookups, write customer/email
-  // indexes before the authoritative license record. A retry can repair
+  // To minimize missing downstream webhook lookups, write the customer index
+  // before the authoritative license record (the email index follows it). A retry can repair
   // a partial write without changing subscription identity.
   if(paymentCustomerId)await savePaymentCustomerIndex(paymentCustomerId,resolvedKey);
-  if(normalizedEmail)await saveEmailIndex(normalizedEmail,resolvedKey);
   await saveLicense(resolvedKey,updated);
   await clearManualClaim(resolvedKey);
+  // The purchase email may differ from the sign-in email, or already sign in
+  // to ANOTHER paid account. It is claimed only AFTER this record is written
+  // (so a concurrent claim sees this account as paid), atomically, and never
+  // moved off another paid account: this record then keeps its previous email
+  // and gets a review flag the owner audit reports.
+  const emailClaim=normalizedEmail?await claimEmailIndexForPaidLicense(normalizedEmail,resolvedKey):null;
+  if(emailClaim&&!emailClaim.ok){
+    updated.email=current.email;
+    updated.emailIndexConflict={email:normalizedEmail,reason:emailClaim.reason,detectedAt:eventAt};
+    await saveLicense(resolvedKey,{...(await getLicense(resolvedKey)),email:updated.email,emailIndexConflict:updated.emailIndexConflict});
+  }
   if(previousStillBilling){
     console.warn('subscription-lifecycle: second active subscription on one account; previous may still bill');
     await notifyAccessEvent({

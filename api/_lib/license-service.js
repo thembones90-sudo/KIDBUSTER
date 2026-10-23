@@ -23,7 +23,7 @@
 import crypto from 'node:crypto';
 import {
   generateLicenseKey, currentUsagePeriod, evaluateEntitlement,
-  getLicense, saveLicense, getLicenseKeyByEmail, saveEmailIndex, saveEmailIndexIfAbsent,
+  getLicense, saveLicense, getLicenseKeyByEmail, saveEmailIndex, saveEmailIndexIfAbsent, swapEmailIndex,
   getLicenseKeyByPaymentCustomerId, savePaymentCustomerIndex,
   getUsageCount, incrementUsage, getTrialUsageCount, incrementTrialUsage,
   reserveMonthlyUsage, releaseMonthlyUsage, reserveTrialUsage, releaseTrialUsage,
@@ -46,7 +46,9 @@ import { notifyAccessEvent } from './access-notifications.js';
 export async function getOrCreateFreeLicense(email){
   const normalized = normalizeEmail(email);
   const existingKey = await getLicenseKeyByEmail(normalized);
-  if(existingKey) return existingKey;
+  // A stale index (pointing at a record that no longer exists) would hand the
+  // teacher a key with no account behind it; only then is it replaced below.
+  if(existingKey && await getLicense(existingKey)) return existingKey;
 
   // Write order here is deliberately the OPPOSITE of activateOrRenewPro's:
   // the license record is the new, authoritative thing being created, so
@@ -65,6 +67,15 @@ export async function getOrCreateFreeLicense(email){
     paymentSubscriptionId: null,
     createdAt: new Date().toISOString()
   });
+  if(existingKey){
+    // Replace the stale index ATOMICALLY and only while its record is still
+    // missing ('stale' mode). If a concurrent paid webhook or signup pointed
+    // the index at a real account in the meantime, the swap is refused and
+    // that account wins below.
+    const swap = await swapEmailIndex(normalized, existingKey, licenseKey, 'stale');
+    if(swap.swapped) return licenseKey;
+    if(swap.current && swap.current !== existingKey && await getLicense(swap.current)) return swap.current;
+  }
   if(await saveEmailIndexIfAbsent(normalized, licenseKey)) return licenseKey;
   // Another signup or a paid webhook won the index while this candidate was
   // being written. Return the winner; never downgrade or steal it.
@@ -119,10 +130,10 @@ export async function activateOrRenewPro({ licenseKey, email, paymentCustomerId,
   if(paymentCustomerId){
     await savePaymentCustomerIndex(paymentCustomerId, resolvedKey);
   }
-  if(normalizedEmail){
-    await saveEmailIndex(normalizedEmail, resolvedKey);
-  }
-
+  // The paid record is written FIRST and the email claimed AFTERWARDS: once
+  // this record says Pro, no concurrent claim can take its email (the atomic
+  // swap re-reads the holder), and if another paid account already holds the
+  // email, this record keeps its old email plus a conflict flag for review.
   await saveLicense(resolvedKey, {
     ...existing,
     email: normalizedEmail || existing.email,
@@ -141,6 +152,17 @@ export async function activateOrRenewPro({ licenseKey, email, paymentCustomerId,
   });
   // Subscription plans do not use manual single-browser claim markers.
   await clearManualClaim(resolvedKey);
+
+  // Never move an email that already signs in to a different paid account.
+  const emailClaim = normalizedEmail ? await claimEmailIndexForPaidLicense(normalizedEmail, resolvedKey) : null;
+  if(emailClaim && !emailClaim.ok){
+    const saved = await getLicense(resolvedKey);
+    await saveLicense(resolvedKey, {
+      ...saved,
+      email: existing.email || '',
+      emailIndexConflict: { email: normalizedEmail, reason: emailClaim.reason, detectedAt: new Date().toISOString() }
+    });
+  }
 
   await notifyAccessEvent({
     type: 'pro_activated',
@@ -192,14 +214,15 @@ export async function createManualProLicense({ email = '', days = 30, note = '' 
   // Never steal a paying subscriber's recovery email: if the email already
   // points to a live provider subscription, the manual key is created but the
   // email keeps signing into the subscription account.
+  // The decision is made atomically ('nosub' swap), so a subscription that
+  // binds this email concurrently can never be overwritten.
   let emailLinked = false;
   if(normalizedEmail){
-    const currentKey = await getLicenseKeyByEmail(normalizedEmail);
-    const current = currentKey && currentKey !== licenseKey ? effectiveSubscriptionLicense(await getLicense(currentKey)) : null;
-    const liveSubscription = !!current && current.plan === 'pro' && (!!current.paymentSubscriptionId || current.source === 'subscription');
-    if(!liveSubscription){
-      await saveEmailIndex(normalizedEmail, licenseKey);
-      emailLinked = true;
+    for(let attempt = 0; attempt < 3 && !emailLinked; attempt++){
+      const currentKey = await getLicenseKeyByEmail(normalizedEmail);
+      const swap = await swapEmailIndex(normalizedEmail, currentKey || null, licenseKey, 'nosub');
+      if(swap.swapped){ emailLinked = true; break; }
+      if(swap.current === currentKey) break; // holder is a live subscription: refused
     }
   }
 
@@ -292,8 +315,34 @@ async function notifyManualLicenseClaim({ licenseKey, license, installationId })
  */
 // A license counts as paid (or owner-issued) when it must never lose its email
 // link to another account: Pro, a provider subscription, or a manual key.
-function isPaidOrIssuedLicense(license){
+export function isPaidOrIssuedLicense(license){
   return !!license && (license.plan === 'pro' || !!license.paymentCustomerId || !!license.paymentSubscriptionId || license.manual === true);
+}
+
+/**
+ * Points an email's sign-in index at a paid license WITHOUT ever taking it
+ * from another paid or issued account. Free and stale (record-less) targets
+ * may be replaced; an absent index is created with NX so a racing signup or
+ * webhook cannot be overwritten. Never rewrites any license record.
+ * @returns {Promise<{ok:boolean, reason:string|null, previousKey:string|null, unchanged?:boolean}>}
+ */
+export async function claimEmailIndexForPaidLicense(email, licenseKey){
+  const normalized = normalizeEmail(email || '');
+  if(!normalized || !licenseKey) return { ok: false, reason: 'invalid', previousKey: null };
+  for(let attempt = 0; attempt < 3; attempt++){
+    const previousKey = await getLicenseKeyByEmail(normalized);
+    if(previousKey === licenseKey) return { ok: true, reason: null, previousKey, unchanged: true };
+    // Fast refusal when the holder is visibly paid; the atomic swap below
+    // re-checks the holder inside the same step, so a holder that becomes
+    // paid after this read is still never overwritten.
+    if(previousKey && isPaidOrIssuedLicense(await getLicense(previousKey))) return { ok: false, reason: 'email_owned_by_paid_account', previousKey };
+    const swap = await swapEmailIndex(normalized, previousKey || null, licenseKey, 'unpaid');
+    if(swap.swapped) return { ok: true, reason: null, previousKey: previousKey || null };
+    if(swap.current === licenseKey) return { ok: true, reason: null, previousKey: licenseKey, unchanged: true };
+    if(swap.current === previousKey) return { ok: false, reason: 'email_owned_by_paid_account', previousKey };
+    // The index changed between our read and the swap: judge the new holder.
+  }
+  return { ok: false, reason: 'index_conflict', previousKey: await getLicenseKeyByEmail(normalized) };
 }
 
 /**
@@ -318,7 +367,13 @@ export async function linkRecoveryEmailToLicense(licenseKey, email){
     const previous = await getLicense(previousKey);
     if(isPaidOrIssuedLicense(previous)) return { ok: false, reason: 'email_owned_by_paid_account', previousKey, license };
   }
-  await saveEmailIndex(normalized, licenseKey);
+  // Atomic: moves the index only if it still holds previousKey AND that
+  // holder is still unpaid at the moment of the write.
+  const swap = await swapEmailIndex(normalized, previousKey || null, licenseKey, 'unpaid');
+  if(!swap.swapped){
+    if(swap.current === licenseKey) return { ok: true, unchanged: true, previousKey: licenseKey, license };
+    return { ok: false, reason: swap.current === previousKey ? 'email_owned_by_paid_account' : 'index_changed_retry', previousKey: swap.current, license };
+  }
   await notifyAccessEvent({
     type: 'recovery_email_linked',
     title: 'Recovery email linked to an existing paid license.',

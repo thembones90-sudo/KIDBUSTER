@@ -23,7 +23,8 @@
 
 import crypto from 'crypto';
 import { kv, reserveBoundedCounter, releaseBoundedCounter,
-  reserveCounterHold,commitCounterHold,releaseCounterHold,reclaimExpiredCounterHolds } from './kv-client.js';
+  reserveCounterHold,commitCounterHold,releaseCounterHold,reclaimExpiredCounterHolds,
+  guardedEmailIndexSwap } from './kv-client.js';
 
 // ---------- configuration ----------
 
@@ -322,6 +323,17 @@ export async function saveEmailIndex(email, licenseKey){
 export async function saveEmailIndexIfAbsent(email, licenseKey){
   const result = await kv.set(emailIndexFor(email), licenseKey, { nx: true });
   return result === 'OK' || result === true;
+}
+
+/**
+ * Atomically moves an email's sign-in index from `expectedKey` (null = only if
+ * absent) to `licenseKey`. mode 'unpaid' refuses while the current holder is
+ * paid or issued; mode 'stale' replaces only a holder whose record is gone.
+ * The check and the write are one atomic step on Redis (see kv-client).
+ * @returns {Promise<{swapped:boolean, current:string|null}>}
+ */
+export async function swapEmailIndex(email, expectedKey, licenseKey, mode = 'unpaid'){
+  return guardedEmailIndexSwap(emailIndexFor(email), expectedKey ? licenseKeyFor(expectedKey) : null, expectedKey || null, licenseKey, mode);
 }
 
 /**

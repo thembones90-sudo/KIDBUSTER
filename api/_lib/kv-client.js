@@ -50,8 +50,19 @@ const localKv = {
   async expire(key,seconds){
     if(!localData[key])return 0;
     localData[key].until=Date.now()+seconds*1000;persistLocal();return 1;
-  }
+  },
+  async scan(cursor,options){return scanKeys(Object.keys(localData),cursor,options);}
 };
+
+// Bounded SCAN double for owner audits, shaped like Redis: [nextCursor, keys],
+// cursor '0' when finished. Only trailing-* prefix patterns are supported.
+function scanKeys(allKeys,cursor,{match='*',count=100}={}){
+  const prefix=String(match).replace(/\*$/,'');
+  const keys=allKeys.filter(key=>key.startsWith(prefix)).sort();
+  const start=Number(cursor)||0;
+  const next=start+count>=keys.length?'0':String(start+count);
+  return [next,keys.slice(start,start+count)];
+}
 
 function localCounterReservation(key,limit,ttlSeconds){
   const item=localData[key];
@@ -127,6 +138,10 @@ const memoryKv = {
     if(!memoryStore.has(key))return 0;
     memoryExpiry.set(key,Date.now()+seconds*1000);
     return 1;
+  },
+  async scan(cursor,options){
+    failIfOutage();
+    return scanKeys([...memoryStore.keys()],cursor,options);
   }
 };
 
@@ -139,6 +154,88 @@ export async function acquirePaymentLock(key, token, ttlSeconds = 60){
   const reply = await kv.set(key,token,{nx:true,ex:ttlSeconds});
   return reply === 'OK' || reply === true;
 }
+// ---- Atomic email-index ownership ----
+// Moves an email index from `expected` to `next` in ONE atomic step, so no
+// webhook, signup, recovery or owner repair running on another worker can
+// interleave between the check and the write. The current holder's license
+// record is read inside the same step:
+//   mode 'unpaid' - replace only if that record is not paid or issued
+//                   (Pro, a payment customer/subscription id, or manual);
+//   mode 'stale'  - replace only if that record no longer exists;
+//   mode 'nosub'  - replace unless that record is a Pro provider subscription
+//                   (manual key re-issue may move a Free or older manual link).
+// expected === null means "only if the index is absent" (mode ignored).
+// Returns { swapped, current } where current is the index value seen.
+// An unreadable holder record is treated as paid: refuse, never overwrite.
+export const GUARDED_INDEX_LUA=[
+  'local cur=redis.call("GET",KEYS[1])',
+  'if ARGV[1]=="" then',
+  ' if cur then return {0,cur} end',
+  'else',
+  ' if cur~=ARGV[1] then return {0,cur or ""} end',
+  ' local rec=redis.call("GET",KEYS[2])',
+  ' if ARGV[3]=="stale" then',
+  '  if rec then return {0,cur} end',
+  ' elseif rec then',
+  '  local ok,lic=pcall(cjson.decode,rec)',
+  '  if not ok or type(lic)~="table" then return {0,cur} end',
+  '  local function present(v) return v~=nil and v~=cjson.null and v~=false and v~="" end',
+  '  if ARGV[3]=="nosub" then',
+  '   if lic.plan=="pro" and (present(lic.paymentSubscriptionId) or lic.source=="subscription") then return {0,cur} end',
+  '  elseif lic.plan=="pro" or present(lic.paymentCustomerId) or present(lic.paymentSubscriptionId) or lic.manual==true then return {0,cur} end',
+  ' end',
+  'end',
+  'redis.call("SET",KEYS[1],ARGV[2])',
+  'return {1,cur or ""}'
+].join('\n');
+
+function guardedSwapLocally(read,write,indexKey,licenseKeyOfExpected,expected,next,mode){
+  // Single-process stores: no await between check and write = atomic.
+  const cur=read(indexKey);
+  if(expected===null){ if(cur!==null&&cur!==undefined)return {swapped:false,current:cur}; }
+  else{
+    if(cur!==expected)return {swapped:false,current:cur??null};
+    const rec=read(licenseKeyOfExpected);
+    if(mode==='stale'){ if(rec!==null&&rec!==undefined)return {swapped:false,current:cur}; }
+    else if(rec!==null&&rec!==undefined){
+      if(typeof rec!=='object')return {swapped:false,current:cur};
+      if(mode==='nosub'){ if(rec.plan==='pro'&&(rec.paymentSubscriptionId||rec.source==='subscription'))return {swapped:false,current:cur}; }
+      else if(rec.plan==='pro'||rec.paymentCustomerId||rec.paymentSubscriptionId||rec.manual===true)return {swapped:false,current:cur};
+    }
+  }
+  write(indexKey,next);
+  return {swapped:true,current:cur??null};
+}
+
+export async function guardedEmailIndexSwap(indexKey,licenseRecordKeyOfExpected,expected,next,mode='unpaid'){
+  if(!indexKey||!next||(expected!==null&&!licenseRecordKeyOfExpected))throw new Error('guardedEmailIndexSwap: invalid arguments');
+  if(process.env.KIDBUSTER_TEST_KV === '1'){
+    failIfOutage();
+    const read=k=>{const e=memoryExpiry.get(k);if(e&&e<=Date.now()){memoryExpiry.delete(k);memoryStore.delete(k);}return memoryStore.has(k)?memoryStore.get(k):null;};
+    return guardedSwapLocally(read,(k,v)=>{memoryStore.set(k,v);memoryExpiry.delete(k);},indexKey,licenseRecordKeyOfExpected,expected,next,mode);
+  }
+  if(useLocal){
+    const read=k=>{const i=localData[k];if(!i)return null;if(i.until&&i.until<=Date.now()){delete localData[k];return null;}return i.value;};
+    const result=guardedSwapLocally(read,(k,v)=>{localData[k]={value:v,until:null};},indexKey,licenseRecordKeyOfExpected,expected,next,mode);
+    if(result.swapped)persistLocal();
+    return result;
+  }
+  let reply;
+  try{
+    reply=await vercelKv.eval(GUARDED_INDEX_LUA,[indexKey,licenseRecordKeyOfExpected||indexKey],[expected??'',next,mode]);
+  }catch(err){
+    // Fail SAFE: never overwrite and never throw. A paid record is always
+    // written before its email is claimed, so a failed claim only leaves the
+    // email unlinked (reported by the owner audit) - a payment webhook still
+    // activates Pro instead of failing and being retried forever.
+    console.error('kv guarded email-index swap failed:', err?.message || 'unknown error');
+    return {swapped:false,current:null,error:true};
+  }
+  const swapped=Array.isArray(reply)&&Number(reply[0])===1;
+  const current=Array.isArray(reply)&&reply[1]!==''&&reply[1]!==null&&reply[1]!==undefined?String(reply[1]):null;
+  return {swapped,current};
+}
+
 export async function releasePaymentLock(key,token){
   if(process.env.KIDBUSTER_TEST_KV === '1'){
     failIfOutage();

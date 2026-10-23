@@ -1,4 +1,4 @@
-import { getLicenseKeyByEmail, normalizeEmail } from './licensing.js';
+import { getLicense, getLicenseKeyByEmail, normalizeEmail } from './licensing.js';
 import {
   createVerificationToken, enforceVerificationRateLimit, getRequestIp,
   isValidEmail, revokeVerificationToken
@@ -18,8 +18,11 @@ export async function requestVerifiedAccess(req, res, { intent }){
     return res.status(429).json({ error: 'Too many requests for this email address or network. If you already asked for a secure link, check your inbox and spam folder: it stays valid for 15 minutes. Otherwise please wait 15 minutes and try again.' });
   }
 
+  // Only a REAL existing account turns Start Free into recovery. An index left
+  // pointing at a missing record keeps the requested intent, so signup can
+  // still repair it instead of trapping the teacher in a failing recovery.
   const existingKey = await getLicenseKeyByEmail(email);
-  const effectiveIntent = existingKey ? 'recover' : intent;
+  const effectiveIntent = existingKey && await getLicense(existingKey) ? 'recover' : intent;
   const { token } = await createVerificationToken({ email, intent: effectiveIntent });
   try{
     await sendAccessVerificationEmail({ email, token, intent: effectiveIntent });
