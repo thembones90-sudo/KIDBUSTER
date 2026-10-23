@@ -2410,6 +2410,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
 @media(max-width:560px){#scoutReleaseBanner{padding:15px;gap:12px}.scout-release-action{width:100%}#scoutReleaseLink{width:100%}#scoutReleaseBanner h2{font-size:19px}}
 </style>
 <link rel="stylesheet" href="assets/scout-integration.css?v=20261020">
+<link rel="stylesheet" href="assets/pending-inbox-premium.css?v=20261023a">
 </head>
 <body>
 <div class="wrap">
@@ -2447,10 +2448,19 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
 
   <section id="krispInboxPanel" popover="auto" role="dialog" aria-labelledby="krispInboxTitle">
     <div class="krisp-inbox-heading"><div><p class="krisp-inbox-eyebrow">LESSON INBOX</p><h2 id="krispInboxTitle">Pending transcripts</h2></div><button type="button" id="krispInboxClose" aria-label="Close pending transcripts">×</button></div>
-    <p class="krisp-inbox-description">Lesson notes you haven’t imported yet. Choose a transcript when you’re ready.</p>
-    <p id="krispInboxStatus" role="status" aria-live="polite">Checking your inbox…</p>
-    <p id="krispInboxEmpty" hidden>You’re all caught up. New unused transcripts will appear here.</p>
-    <div id="krispInboxContent"></div>
+    <p class="krisp-inbox-description">Your captured lessons, beautifully organized. Choose a transcript when you're ready.</p>
+    <section class="source-pending-group" id="krispPendingGroup" aria-label="Krisp pending transcripts">
+      <h3 class="source-pending-title"><span class="source-pending-icon krisp-source-icon" aria-hidden="true">&#8801;</span>Krisp <span id="krispSourcePendingCount">0</span></h3>
+      <p id="krispInboxStatus" role="status" aria-live="polite"></p>
+      <p id="krispInboxEmpty" hidden>You're all caught up. New Krisp transcripts will appear here.</p>
+      <div id="krispInboxContent"></div>
+    </section>
+    <section class="source-pending-group" id="radarVanPendingGroup" aria-label="Scout pending transcripts" hidden>
+      <h3 class="source-pending-title"><span class="source-pending-icon scout-source-icon" aria-hidden="true">&#10022;</span>Classbuster Scout <span id="radarVanPendingPopoverCount">0</span></h3>
+      <p class="radar-van-hint">Private Scout recordings ready for review. Claim only the lesson you need.</p>
+      <p id="radarVanPendingPopoverStatus" class="radar-van-hint" role="status">No Scout transcripts pending.</p>
+      <ul id="radarVanPendingPopoverList" class="radar-van-list" aria-label="Pending Scout transcripts"></ul>
+    </section>
   </section>
   <div class="account-panel" id="accountPanel" style="display:none;">
     <div class="account-panel-head">
@@ -2491,7 +2501,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
         <span class="radar-van-state" id="radarVanState" data-state="off">Not connected</span>
       </div>
       <div class="radar-van-row" role="group" aria-label="Private Scout desktop download">
-        <button type="button" class="btn-secondary" id="radarVanDownloadBtn">Download Scout 10ZT · Windows ZIP</button>
+        <button type="button" class="btn-secondary" id="radarVanDownloadBtn">Download Scout 10ZU · Windows ZIP</button>
         <span class="radar-van-hint">110.8 MB · Owner-only release</span>
       </div>
       <p class="radar-van-status" id="radarVanDownloadStatus" role="status" aria-live="polite"></p>
@@ -2507,7 +2517,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
         <button type="button" class="btn-secondary" id="radarVanConnectBtn">Connect Scout</button>
         <button type="button" class="btn-secondary" id="radarVanDisconnectBtn" aria-describedby="radarVanDisconnectHint" hidden>Disconnect Scout</button>
       </div>
-      <p class="radar-van-hint">Connected Scout automatically adds finished transcripts to empty lesson notes. If you are working on another report, lessons wait safely and import one at a time. No report is generated automatically.</p>
+      <p class="radar-van-hint">Connected Scout sends finished transcripts to Pending transcripts, in a separate Scout section. Claim the lesson into notes when you are ready. No report is generated automatically.</p>
       <p class="radar-van-hint" id="radarVanDisconnectHint">Disconnect revokes the device token on our server. Clearing the token inside the Scout desktop app only forgets it on that computer and does not revoke it.</p>
       <div class="radar-van-inbox" id="radarVanInboxWrap">
         <h4 class="radar-van-inbox-title" id="radarVanInboxTitle">Pending Scout lessons (<span id="radarVanCount">0</span>)</h4>
@@ -2929,6 +2939,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
     <p class="access-eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="12" cy="12" r="9"/><path d="m15.5 6.5-2 7-7 4 4-7Z"/></svg>Pathfinder · Your workspace</p>
     <h2 class="license-modal-title" id="accessModalTitle">Choose how to continue</h2>
     <p class="license-modal-subtitle" id="accessModalDescription">Start free, upgrade to Pro, or securely restore your access.</p>
+    <p class="legacy-transfer-choice"><a href="https://kidbuster.vercel.app/#classbuster_transfer_start">Already used the old site? Transfer my account</a></p>
 
     <div class="license-modal-options">
       <details class="license-modal-section primary" name="access-path" open>
@@ -8131,6 +8142,81 @@ async function completeEmailVerification(){
   }
 }
 
+async function handleLegacyAccountTransfer(){
+  const hash = window.location.hash || '';
+  // A returning teacher opening the former site should carry their existing
+  // browser identity to Classbuster automatically, without re-registering.
+  if(window.location.origin === 'https://kidbuster.vercel.app' &&
+     hash !== '#classbuster_transfer_start' && getStoredAccessKey() &&
+     !new URLSearchParams(window.location.search).has('access_token')){
+    try{
+      window.history.replaceState({},document.title,window.location.pathname+window.location.search+'#classbuster_transfer_start');
+    }catch(_err){
+      outputBox.className='output-box error';
+      outputBox.textContent='Could not begin the transfer. Use the Transfer my account link in Access.';
+      return;
+    }
+    return handleLegacyAccountTransfer();
+  }
+  if(hash === '#classbuster_transfer_start'){
+    if(window.location.origin !== 'https://kidbuster.vercel.app') return;
+    const key = getStoredAccessKey();
+    if(!key){
+      try{ window.history.replaceState({}, document.title, window.location.pathname + window.location.search); }catch(_err){}
+      outputBox.className='output-box error';
+      outputBox.textContent='No old account is signed in on this browser. Sign in with your original access key on this old site, then select Transfer my account again.';
+      if(typeof promptForAccessKey === 'function') void promptForAccessKey();
+      return;
+    }
+    try{
+      const status = await fetch('/api/license-status', { headers:{'x-app-key':key,'x-installation-id':getAccessInstallationId()} });
+      const statusData = await status.json().catch(()=>({}));
+      if(!status.ok || statusData.status !== 'active' || statusData.expired === true){
+      outputBox.className='output-box error';
+      outputBox.textContent='Scout could not confirm your old account. Check the original access key or contact support; no account was changed.';
+      return;
+    }
+      const issued = await fetch('/api/license-verify', { method:'POST', headers:{'Content-Type':'application/json','x-app-key':key,'x-installation-id':getAccessInstallationId()}, body:JSON.stringify({action:'issue_legacy_transfer'}) });
+      const data = await issued.json().catch(()=>({}));
+      if(!issued.ok || !data.ticket){ window.location.hash = '#access'; return; }
+      window.location.href = 'https://classbuster.com/#classbuster_transfer=' + encodeURIComponent(data.ticket);
+    }catch(_err){ window.location.hash = '#access'; }
+    return;
+  }
+  const prefix = '#classbuster_transfer=';
+  if(!hash.startsWith(prefix) || window.location.origin !== 'https://classbuster.com') return;
+  const ticket = decodeURIComponent(hash.slice(prefix.length));
+  try{ window.history.replaceState({}, document.title, window.location.pathname + window.location.search); }catch(_err){}
+  const existingKey = getStoredAccessKey();
+  if(existingKey){
+    try{
+      const current = await fetch('/api/license-status',{headers:{'x-app-key':existingKey,'x-installation-id':getAccessInstallationId()}});
+      const currentData = await current.json().catch(()=>({}));
+      if(current.ok && currentData.status === 'active' && currentData.expired !== true && (currentData.plan === 'pro' || currentData.founder === true)){
+        outputBox.className='output-box error';
+        outputBox.textContent='This browser already has active access. We did not replace it. Open Access to use your existing key or transfer on a browser without another account signed in.';
+        return;
+      }
+    }catch(_err){}
+  }
+  try{
+    const res = await fetch('/api/license-verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'redeem_legacy_transfer',ticket})});
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok || !data.licenseKey) throw new Error(data.error || 'This transfer link is invalid, expired, or has already been used.');
+    // Preserve the original, already-claimed manual browser identity before the key.
+    localStorage.setItem('kidbuster_installation_id_v1',data.installationId);
+    localStorage.setItem(ACCESS_KEY_STORAGE,data.licenseKey);
+    outputBox.className='output-box';
+    outputBox.textContent='Your old Classbuster account is back on this browser. Your existing access and Krisp connection are unchanged.';
+    refreshAccountPanel();
+    document.dispatchEvent(new CustomEvent('kidbuster:access-key-saved'));
+  }catch(err){
+    outputBox.className='output-box error';
+    outputBox.textContent=err.message || 'We could not transfer the old account. Use your existing access key or request a verified sign-in link.';
+  }
+}
+
+handleLegacyAccountTransfer();
 completeEmailVerification().then(refreshAccountPanel);
 
 function renderCheckoutSuccess(key){
@@ -9274,6 +9360,17 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
 #krispPendingBtn:focus-visible{outline-color:rgb(var(--pending-gold-rgb));}
 #krispInboxPanel{position:fixed;inset:auto;margin:0;width:min(520px,calc(100vw - 32px));max-height:calc(100dvh - 32px);box-sizing:border-box;padding:26px;overflow:auto;overscroll-behavior:contain;border:1px solid #68786a60;border-radius:22px;background:linear-gradient(145deg,#222a24,#171d19 65%);color:#dce6de;box-shadow:0 24px 80px #0009;}
 #krispInboxPanel:not(:popover-open){display:none;}
+#krispInboxPanel .source-pending-group{padding:12px 0;margin:0;border-top:1px solid #ffffff22}
+#krispInboxPanel .source-pending-group[hidden]{display:none}
+#krispInboxPanel .source-pending-title{margin:0 0 12px;font-size:14px;color:#e0e9e2;font-weight:700}
+#krispInboxPanel .source-pending-title span{display:inline-flex;min-width:24px;padding:3px 7px;border-radius:12px;background:#25372d;color:#a3f1b8;font-size:12px}
+#krispInboxPanel .radar-van-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:12px}
+#krispInboxPanel .radar-van-item{padding:13px;border:1px solid #42604d;border-radius:12px;background:#142119;min-width:0}
+#krispInboxPanel .radar-van-item-title{font-weight:700}
+#krispInboxPanel .radar-van-item-preview{overflow-wrap:anywhere;white-space:pre-wrap;max-height:110px;overflow:hidden}
+#krispInboxPanel .radar-van-row{display:flex;gap:8px;flex-wrap:wrap}
+#krispInboxPanel .radar-van-row button{flex:1;min-width:125px}
+
 #krispInboxPanel::backdrop{background:transparent;}
 .krisp-inbox-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;}
 .krisp-inbox-eyebrow{margin:0 0 6px;font:600 10px/1.4 var(--font-body);letter-spacing:.13em;color:#a7b8aa;}
@@ -9783,12 +9880,16 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     count = Math.max(0, Math.floor(Number(count) || 0));
     var button = document.getElementById('krispPendingBtn');
     var badge = document.getElementById('krispInboxBadge');
-    if(badge) badge.textContent = String(count);
-    if(button){ button.dataset.hasPending = String(count > 0); button.setAttribute('aria-label','Pending transcripts — ' + count + ' unused'); button.removeAttribute('title'); }
+    if(button) button.dataset.krispPendingCount = String(count);
+    var total = count + (window.__classbusterScoutPendingCount || 0);
+    if(badge) badge.textContent = String(total);
+    var sourceCount = document.getElementById('krispSourcePendingCount');
+    if(sourceCount) sourceCount.textContent = String(count);
+    if(button){ button.dataset.hasPending = String(total > 0); button.setAttribute('aria-label','Pending transcripts — ' + total + ' unused'); button.removeAttribute('title'); }
     var empty = document.getElementById('krispInboxEmpty');
     if(empty) empty.hidden = count > 0;
     var status = document.getElementById('krispInboxStatus');
-    if(status) status.textContent = count ? count + (count === 1 ? ' transcript ready to import' : ' transcripts ready to import') : 'No pending transcripts';
+    if(status) status.textContent = count ? count + (count === 1 ? ' transcript ready to import' : ' transcripts ready to import') : '';
     if(!count){ var wrap = document.getElementById('krispPendingWrap'); if(wrap) wrap.style.display = 'none'; }
     var el = document.getElementById('krispPendingCount');
     if(!el) return;
@@ -10136,12 +10237,28 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     var integrationBtn = document.getElementById('krispIntegrationBtn');
     if(integrationBtn) integrationBtn.hidden = !visible;
     var pendingBtn = document.getElementById('krispPendingBtn');
-    if(pendingBtn) pendingBtn.hidden = !visible;
-    if(!visible){
+    window.__classbusterKrispEntitled = !!visible;
+    var scoutVisible = !!window.__classbusterScoutPendingAuthorized;
+    if(pendingBtn) pendingBtn.hidden = !(visible || scoutVisible);
+    var krispGroup = document.getElementById('krispPendingGroup');
+    if(krispGroup) krispGroup.hidden = !visible;
+    if(!visible && !scoutVisible){
       var inbox = document.getElementById('krispInboxPanel');
       if(inbox && inbox.matches(':popover-open')) inbox.hidePopover();
     }
   }
+
+  // Owner-only Scout inbox participates in the same header, but never shares
+  // transcript records with Krisp.
+  document.addEventListener('classbuster:scout-pending', function(event){
+    var info = event.detail || {}, authorized = info.authorized === true;
+    window.__classbusterScoutPendingAuthorized = authorized;
+    window.__classbusterScoutPendingCount = authorized ? Math.max(0,Number(info.count)||0) : 0;
+    if(authorized) wireButtons(); // Scout-only master account still needs a working inbox popover.
+    setKrispHeaderButtonVisible(!!window.__classbusterKrispEntitled);
+    var button = document.getElementById('krispPendingBtn');
+    updatePendingCount(Number(button && button.dataset.krispPendingCount) || 0);
+  });
 
   // Optional official Krisp mark: if a logo file is placed at one of these
   // paths it replaces the neutral fallback icon. Nothing is drawn here.

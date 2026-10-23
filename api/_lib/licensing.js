@@ -317,6 +317,13 @@ export async function saveEmailIndex(email, licenseKey){
   await kv.set(emailIndexFor(email), licenseKey);
 }
 
+// Signup may create a candidate record, but it must never replace an index
+// that another request (especially a paid webhook) already established.
+export async function saveEmailIndexIfAbsent(email, licenseKey){
+  const result = await kv.set(emailIndexFor(email), licenseKey, { nx: true });
+  return result === 'OK' || result === true;
+}
+
 /**
  * "Payment customer id" is deliberately provider-neutral — whichever
  * payment provider is active (Lemon Squeezy, Paddle, or anything else

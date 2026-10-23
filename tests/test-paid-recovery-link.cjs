@@ -48,10 +48,11 @@ module.exports = async function run(){
     const activated = await send(statusHandler, { method: 'GET', headers: { 'x-app-key': paidKey, 'x-installation-id': 'customer-device-1' } });
     check('the manual key activates as Pro on the customer device', activated.statusCode === 200 && activated.jsonBody.plan === 'pro');
     const first = await recoverViaEmail(EMAIL);
-    check('email recovery signs the paying customer into a separate FREE account (the bug)', first.statusCode === 200 && first.plan === 'free' && first.licenseKey !== paidKey);
+    check('unknown recovery no longer creates a phantom Free identity', first.statusCode === 409 && !first.licenseKey && await licensing.getLicenseKeyByEmail(EMAIL) === null);
     const again = await recoverViaEmail(EMAIL);
-    check('every further recovery link opens the same Free account', again.licenseKey === first.licenseKey && again.plan === 'free');
-    const freeKey = first.licenseKey;
+    check('repeated unknown recovery still refuses to invent a Free account', again.statusCode === 409 && !again.licenseKey);
+    // Simulate a Free identity created by the historical recovery bug.
+    const freeKey = await svc.getOrCreateFreeLicense(EMAIL);
 
     console.log('\n2) Owner repair: link the recovery email to the paid key');
     const before = JSON.stringify(await licensing.getLicense(paidKey));
