@@ -1,5 +1,5 @@
 'use strict';
-// Release integrity gate. Runs as the Vercel build command (vercel.json), so a
+// Release integrity gate. Runs in the Vercel install command (vercel.json), so a
 // deployment that would break protected customer functionality fails to BUILD
 // instead of going live. Protected: sign-in, recovery and registration;
 // authentication emails the deployed relay accepts; license recognition and
@@ -125,7 +125,10 @@ function checkRelease(root){
   const rewrites = Array.isArray(config.rewrites) ? config.rewrites : [];
   for(const [source, destination] of [['/api/radar-van-ingest', '/api/feedback?radar=ingest'], ['/api/radar-van-session', '/api/feedback?radar=session']])
     if(!rewrites.some(r => r.source === source && r.destination === destination)) problems.push('vercel.json is missing the rewrite ' + source);
-  if(config.buildCommand !== 'node scripts/verify-release-integrity.cjs') problems.push('vercel.json no longer runs this gate as the build command');
+  // The gate runs in the install step: a build command would make Vercel demand
+  // a 'public' output directory and stop serving the project root as before.
+  if(!/&&\s*node scripts\/verify-release-integrity\.cjs$/.test(String(config.installCommand || ''))) problems.push('vercel.json no longer runs this gate in its install command');
+  if(config.buildCommand) problems.push('vercel.json sets a build command (Vercel would then require a public/ output directory and fail)');
   // kidbuster.vercel.app must keep SERVING (not redirecting): the Lemon Squeezy
   // webhook, Krisp webhook links and installed Scout clients still post to it,
   // and webhook senders do not reliably follow redirects on POST.

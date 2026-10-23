@@ -20,7 +20,8 @@ module.exports = async function run(){
   console.log('\n=== test-release-integrity.cjs ===');
   const gate = require('../scripts/verify-release-integrity.cjs');
   const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
-  check('every Vercel deployment runs the integrity gate as its build', config.buildCommand === 'node scripts/verify-release-integrity.cjs');
+  check('every Vercel deployment runs the integrity gate in its install step', config.installCommand === 'npm install && node scripts/verify-release-integrity.cjs');
+  check('no build command is set (Vercel keeps serving the project root)', !('buildCommand' in config));
   const ignored = fs.readFileSync(path.join(ROOT, '.vercelignore'), 'utf8').split(/\r?\n/).map(s => s.trim());
   check('the gate script is uploaded with the deployment', !ignored.some(p => /^\/?scripts\/?$/.test(p)));
   const current = await gate.verifyRelease(ROOT, ['https://classbuster.com', 'https://kidbuster.vercel.app']);
@@ -91,7 +92,8 @@ module.exports = async function run(){
     await fails('the protocol engine is removed from the page', d => edit(d, 'index.html', s => s.replace('const KidbusterCore = (function(){', 'const Core = (function(){')), /protocol engine/);
     await fails('a protocol disappears from the page', d => edit(d, 'index.html', s => s.replace('name="protocol" value="BEIDA"', 'name="protocol" value="X"')), /protocol BEIDA/);
     await fails('a Scout rewrite is removed', d => edit(d, 'vercel.json', s => s.replace('"/api/radar-van-ingest"', '"/api/other"')), /rewrite \/api\/radar-van-ingest/);
-    await fails('the build command stops running the gate', d => edit(d, 'vercel.json', s => s.replace('"node scripts/verify-release-integrity.cjs"', '"echo skip"')), /build command/);
+    await fails('the install command stops running the gate', d => edit(d, 'vercel.json', s => s.replace('npm install && node scripts/verify-release-integrity.cjs', 'npm install')), /install command/);
+    await fails('a build command is reintroduced', d => edit(d, 'vercel.json', s => { const c = JSON.parse(s); c.buildCommand = 'node x.js'; return JSON.stringify(c, null, 2); }), /build command/);
     const addRedirect = rule => d => edit(d, 'vercel.json', s => { const c = JSON.parse(s); c.redirects = [rule]; return JSON.stringify(c, null, 2); });
     await fails('the legacy domain is redirected to classbuster.com',
       addRedirect({ source: '/:path*', has: [{ type: 'host', value: 'kidbuster.vercel.app' }], destination: 'https://classbuster.com/:path*', permanent: true }), /legacy domain/);

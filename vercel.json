@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "node scripts/verify-release-integrity.cjs",
+  "installCommand": "npm install && node scripts/verify-release-integrity.cjs",
   "git": {
     "deploymentEnabled": {
       "pathfinder-v2": false
