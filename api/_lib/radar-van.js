@@ -498,7 +498,8 @@ export async function readRadarSession(identity, { lease = false } = {}){
       .sort((a, b) => Date.parse(b.receivedAt) - Date.parse(a.receivedAt)).map(summary);
     // Owner-facing pending inbox presents Scout matched + pending records
     // together. Legacy auto-lease consumers retain the original fields.
-    const inboxPending = [...visible, ...matched.items.map(summary)]
+    // A record leased to a tab that is importing it right now is not shown.
+    const inboxPending = [...visible, ...matched.items.filter(x => !leased(x, nowMs)).map(summary)]
       .sort((a,b) => Date.parse(b.receivedAt) - Date.parse(a.receivedAt));
     const lastReceivedAt = await kv.get(K.last(identity)).catch(() => null);
     return {

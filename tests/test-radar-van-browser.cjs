@@ -222,11 +222,11 @@ module.exports = async function run(){
     check('titles render as text (no HTML injection) and source is labelled Scout', await page.evaluate(() => !window.__pwn && !document.querySelector('#radarVanList img') && document.querySelector('.radar-van-item-title').textContent.includes('<img') && /Scout|RADAR VAN/.test(document.querySelector('.radar-van-item-meta').textContent)));
     check('pending count is shown and the account button is flagged', (await text(page, 'radarVanCount')) === '1' && (await page.evaluate(() => document.getElementById('accountBtn').getAttribute('data-radar-pending'))) === '1');
     await setNotes(page, 'my own draft');
-    await page.click('.radar-van-claim'); await sleep(500);
+    await page.click('#radarVanList .radar-van-claim'); await sleep(500);
     check('claim with occupied notes does nothing destructive', (await notes(page)) === 'my own draft' && /nothing was imported or overwritten/i.test(await text(page, 'radarVanStatus')));
     check('...and the lesson is still pending on the server', (await status()).body.pendingCount === 1);
     await setNotes(page, '');
-    await page.click('.radar-van-claim');
+    await page.click('#radarVanList .radar-van-claim');
     check('claim into empty notes imports the full transcript', await wait(page, () => document.getElementById('krispNotes').value.includes('Hello from lesson 3') && document.getElementById('krispNotes').value.includes('Hi there')));
     await sleep(500);
     const afterClaim = await status();
@@ -237,8 +237,8 @@ module.exports = async function run(){
     await ingest(token, lesson(4));
     await fallbackPending(4);
     await poke(page);
-    await wait(page, () => document.querySelectorAll('.radar-van-dismiss').length === 1);
-    await page.click('.radar-van-dismiss');
+    await wait(page, () => document.querySelectorAll('#radarVanList .radar-van-dismiss').length === 1);
+    await page.click('#radarVanList .radar-van-dismiss');
     check('dismiss removes the lesson (after confirmation)', await wait(page, () => document.querySelectorAll('#radarVanList .radar-van-item').length === 0) && page.dialogs.some(d => /Dismiss/.test(d)) && (await status()).body.pendingCount === 0);
     check('retry after dismiss is a duplicate', (await ingest(token, lesson(4))).body.duplicate === true && (await status()).body.pendingCount === 0);
 

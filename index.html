@@ -2517,7 +2517,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
         <button type="button" class="btn-secondary" id="radarVanConnectBtn">Connect Scout</button>
         <button type="button" class="btn-secondary" id="radarVanDisconnectBtn" aria-describedby="radarVanDisconnectHint" hidden>Disconnect Scout</button>
       </div>
-      <p class="radar-van-hint">Connected Scout sends finished transcripts to Pending transcripts, in a separate Scout section. Claim the lesson into notes when you are ready. No report is generated automatically.</p>
+      <p class="radar-van-hint">Connected Scout automatically adds finished transcripts to empty lesson notes. If your notes or report already have content, nothing is overwritten: the lesson waits in Pending transcripts, in a separate Scout section, until you import it. No report is generated automatically.</p>
       <p class="radar-van-hint" id="radarVanDisconnectHint">Disconnect revokes the device token on our server. Clearing the token inside the Scout desktop app only forgets it on that computer and does not revoke it.</p>
       <div class="radar-van-inbox" id="radarVanInboxWrap">
         <h4 class="radar-van-inbox-title" id="radarVanInboxTitle">Pending Scout lessons (<span id="radarVanCount">0</span>)</h4>

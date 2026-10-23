@@ -1,6 +1,9 @@
 'use strict';
-// Contract: owner-only Scout transcripts remain separate from Krisp and do not
-// overwrite notes or consume reports until the teacher explicitly claims one.
+// Contract (owner decision 2026-10-23): a finished Scout lesson is imported
+// automatically into EMPTY notes and the teacher is notified. If the notes or
+// report already have content nothing is overwritten: the lesson waits in a
+// separate Scout section of Pending transcripts with a visible notice and is
+// imported manually. Krisp stays separate; no report is ever generated.
 const fs=require('node:fs'), path=require('node:path'), http=require('node:http');
 const {createChecker}=require('./helpers/assert.cjs');
 const crypto=require('node:crypto');
@@ -66,13 +69,27 @@ module.exports=async function run(){
     await page.evaluateOnNewDocument(key=>{localStorage.setItem('kidbuster_access_key',key);},OWNER);
     await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'load'});
     await page.waitForFunction(()=>!document.getElementById('radarVanSection').hidden,{timeout:12000});
+    // 1) Empty workspace: automatic import with a notification.
+    await page.waitForFunction(()=>document.getElementById('krispNotes').value.includes('Scout 1'),{timeout:12000});
+    check('empty notes: finished Scout lesson is imported automatically',await page.$eval('#krispNotes',e=>e.value.includes('[00:00] TEACHER: Scout 1')));
+    check('teacher is notified of the automatic import',await page.$eval('#scoutNotesStatus',e=>!e.hidden&&/added to your lesson notes/i.test(e.textContent)));
+    await page.waitForFunction(()=>document.getElementById('radarVanPendingPopoverCount').textContent==='0',{timeout:12000});
+    check('automatic import is acknowledged on the server',(await invoke('GET',null,keyHeaders)).body.waitingCount===0);
+    check('automatic import never generates a report',hits.generate===0);
+
+    // 2) Occupied workspace: Pending transcripts fallback, nothing overwritten.
+    const second=await ingest(2);
+    check('second lesson stored independently',second.matched===true);
+    await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
     await page.waitForFunction(()=>document.getElementById('radarVanPendingPopoverCount').textContent==='1',{timeout:12000});
+    check('occupied notes are not overwritten',await page.$eval('#krispNotes',e=>e.value.includes('Scout 1')&&!e.value.includes('Scout 2')));
+    check('visible notice says the lesson waits in Pending transcripts',await page.$eval('#scoutNotesStatus',e=>!e.hidden&&/Pending transcripts/.test(e.textContent)&&/not changed/.test(e.textContent)));
+    check('occupied workspace never leases the full transcript',(await invoke('GET',null,keyHeaders)).body.matched===null);
     check('Scout pending appears even when Krisp is not entitled',await page.$eval('#krispPendingBtn',e=>!e.hidden));
     check('Krisp group hidden for nonentitled owner',await page.$eval('#krispPendingGroup',e=>e.hidden));
     check('Scout group visible for the authorized owner',await page.$eval('#radarVanPendingGroup',e=>!e.hidden));
     check('Scout section has its own count',await page.$eval('#radarVanPendingPopoverCount',e=>e.textContent==='1'));
     check('combined pending button shows Scout count',await page.$eval('#krispInboxBadge',e=>e.textContent==='1'));
-    check('no notes overwritten automatically',await page.$eval('#krispNotes',e=>e.value===''));
     check('no report generated',hits.generate===0);
     await page.click('#krispPendingBtn');
     check('Scout cards are inside Pending transcripts',await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')&&e.querySelectorAll('#radarVanPendingPopoverList li').length===1));
@@ -87,9 +104,9 @@ module.exports=async function run(){
       look.radius>=20 && look.cardRadius>=15 && look.bg.includes('gradient') && look.claimBg.includes('gradient'));
     check('premium styling preserves independent Scout section',look.scoutVisible);
     await page.click('#radarVanPendingPopoverList .radar-van-more');
-    check('premium more-options menu opens',await page.$eval('.radar-van-item-menu',el=>!el.hidden));
+    check('premium more-options menu opens',await page.$eval('#radarVanPendingPopoverList .radar-van-item-menu',el=>!el.hidden));
     await page.click('#radarVanPendingPopoverList .radar-van-item-menu button:first-child');
-    check('preview excerpt expands without importing',await page.$eval('.radar-van-expanded-preview',el=>!el.hidden && el.textContent.includes('Scout 1')));
+    check('preview excerpt expands without importing',await page.$eval('#radarVanPendingPopoverList .radar-van-expanded-preview',el=>!el.hidden && el.textContent.includes('Scout 2')));
     check('preview does not claim the lesson',(await invoke('GET',null,keyHeaders)).body.inboxPending.length===1);
     await page.setViewport({width:375,height:780});
     await page.evaluate(()=>{document.getElementById('krispInboxPanel').scrollTop=0;});
@@ -101,19 +118,24 @@ module.exports=async function run(){
       bounds.left>=-1 && bounds.right<=bounds.width+1);
     await page.setViewport({width:1100,height:820});
     await page.click('#radarVanPendingPopoverList .radar-van-claim');
-    await page.waitForFunction(()=>document.getElementById('krispNotes').value.includes('Scout 1'),{timeout:12000});
-    check('Claim explicitly imported completed Scout lesson',await page.$eval('#krispNotes',e=>e.value.includes('[00:00] TEACHER: Scout 1')));
-    await page.waitForFunction(()=>document.getElementById('radarVanPendingPopoverCount').textContent==='0',{timeout:12000});
-    check('ACK happens only after a successful claim',(await invoke('GET',null,keyHeaders)).body.waitingCount===0);
-    check('Krisp remains separate and unchanged',hits.generate===0);
-    const second=await ingest(2);
-    check('second lesson stored independently',second.matched===true);
-    await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
-    await page.waitForFunction(()=>document.getElementById('radarVanPendingPopoverCount').textContent==='1',{timeout:12000});
-    check('occupied notes are not overwritten',await page.$eval('#krispNotes',e=>e.value.includes('Scout 1')&&!e.value.includes('Scout 2')));
-    await page.click('#radarVanPendingPopoverList .radar-van-claim');
-    check('Claim refuses overwrite of occupied notes',await page.$eval('#krispNotes',e=>!e.value.includes('Scout 2')));
+    check('Claim refuses overwrite of occupied notes',await page.$eval('#krispNotes',e=>e.value.includes('Scout 1')&&!e.value.includes('Scout 2')));
     check('failed Claim never ACKs second lesson',(await invoke('GET',null,keyHeaders)).body.waitingCount===1);
+
+    // 3) Manual review and import from Pending transcripts.
+    await page.evaluate(()=>{document.getElementById('krispNotes').value='';});
+    await page.click('#radarVanPendingPopoverList .radar-van-claim');
+    await page.waitForFunction(()=>document.getElementById('krispNotes').value.includes('Scout 2'),{timeout:12000});
+    check('Claim imports the pending lesson once notes are empty',await page.$eval('#krispNotes',e=>e.value.split('TEACHER: Scout 2').length===2&&!e.value.includes('Scout 1')));
+    await page.waitForFunction(()=>document.getElementById('radarVanPendingPopoverCount').textContent==='0',{timeout:12000});
+    check('ACK happens only after a successful import',(await invoke('GET',null,keyHeaders)).body.waitingCount===0);
+    check('a retried upload of the same lesson is deduplicated',(await ingest(2)).duplicate===true);
+    await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+    await new Promise(r=>setTimeout(r,1500));
+    check('deduplicated lesson is not inserted again',await page.$eval('#krispNotes',e=>e.value.split('TEACHER: Scout 2').length===2));
+    check('Krisp remains separate and unchanged',hits.generate===0);
+    check('third lesson stored',(await ingest(3)).matched===true);
+    const leasedRead=await invoke('GET',null,{...keyHeaders,'x-radar-lease':'1'});
+    check('a lesson leased to an importing tab is not also listed as pending',leasedRead.body.matched?.lessonId===id(3)&&leasedRead.body.inboxPending.length===0&&(await invoke('GET',null,keyHeaders)).body.inboxPending.length===0);
     await page.evaluate(()=>{localStorage.removeItem('kidbuster_access_key');document.dispatchEvent(new CustomEvent('kidbuster:access-key-saved'));});
     await page.waitForFunction(()=>document.getElementById('radarVanPendingGroup').hidden,{timeout:12000});
     check('sign-out conceals Scout pending',await page.$eval('#radarVanPendingGroup',e=>e.hidden));

@@ -241,7 +241,7 @@
     var waiting = $('Waiting');
     waiting.hidden = !state.matchedCount;
     if(state.matchedCount){
-      waiting.textContent = state.matchedCount + (state.matchedCount === 1 ? ' lesson is' : ' lessons are') + ' waiting. ' + (state.connected ? 'Open Pending transcripts to review Scout lessons.' : 'Reconnect Scout to import. Your queued lessons are kept.');
+      waiting.textContent = state.matchedCount + (state.matchedCount === 1 ? ' lesson is' : ' lessons are') + ' waiting in Pending transcripts. ' + (state.connected ? 'Your notes were not changed. Scout imports automatically once your notes and report are empty, or open Pending transcripts to import now.' : 'Reconnect Scout to import. Your queued lessons are kept.');
       workspaceSay(waiting.textContent);
     }
     var accountBtn = document.getElementById('accountBtn');
@@ -373,7 +373,7 @@
     try{
       await currentScope();
       if(key !== savedKey()) return;
-      var r = await api('GET', null, false, sinceVersion());
+      var r = await api('GET', null, workspaceIdle(), sinceVersion());
       if(r === null) return;
       if(r.status === 404 || r.status === 403 || r.status === 401){ hideAll(); stopPolling(); state.failures = 0; state.disabled = true; return; }
       if(!r.ok){ state.failures++; if(!section.hidden) say('Scout is temporarily unreachable. Retrying shortly.'); return; }
@@ -381,15 +381,17 @@
       if(r.data.unchanged){ await retryReceipts(); return; }
       // Migrate existing connected Scout accounts once; no token rotation,
       // no Krisp calls, and no extra ARM switch for the teacher.
-      if(false && r.data.connected && !r.data.automatic){
+      if(r.data.connected && !r.data.automatic){
         var automatic = await api('POST', { action: 'enable-automatic' });
         if(automatic === null) return;
         if(!automatic.ok){ state.failures++; workspaceSay('Scout automatic import could not be enabled. Retrying; your lessons are kept.'); return; }
         r = automatic;
       }
       render(r.data);
-      // Scout is a separate pending inbox, not a silent notes autofill.
-      // Claim into notes only when the owner explicitly requests it.
+      // Empty notes and report: the leased lesson is imported automatically.
+      // Occupied workspace: no lease is requested, nothing is overwritten and
+      // the lesson stays in Pending transcripts for manual import.
+      if(r.data.matched) await settleMatched(r.data.matched);
       await retryReceipts(); // after settleMatched: a leased, already-imported record must not be re-applied
     }catch(e){
       state.failures++;
