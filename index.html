@@ -8137,6 +8137,20 @@ async function completeEmailVerification(){
 
 async function handleLegacyAccountTransfer(){
   const hash = window.location.hash || '';
+  // A returning teacher opening the former site should carry their existing
+  // browser identity to Classbuster automatically, without re-registering.
+  if(window.location.origin === 'https://kidbuster.vercel.app' &&
+     hash !== '#classbuster_transfer_start' && getStoredAccessKey() &&
+     !new URLSearchParams(window.location.search).has('access_token')){
+    try{
+      window.history.replaceState({},document.title,window.location.pathname+window.location.search+'#classbuster_transfer_start');
+    }catch(_err){
+      outputBox.className='output-box error';
+      outputBox.textContent='Could not begin the transfer. Use the Transfer my account link in Access.';
+      return;
+    }
+    return handleLegacyAccountTransfer();
+  }
   if(hash === '#classbuster_transfer_start'){
     if(window.location.origin !== 'https://kidbuster.vercel.app') return;
     const key = getStoredAccessKey();

@@ -79,10 +79,10 @@ module.exports=async function run(){
       localStorage.setItem('kidbuster_access_key','kb_live_old_pro');
       localStorage.setItem('kidbuster_installation_id_v1','legacy-device');
     });
-    try{await page.goto('https://kidbuster.vercel.app/#classbuster_transfer_start',{waitUntil:'load'});}catch(err){}
-    if(new URL(page.url()).host!=='classbuster.com'){
-      await page.reload({waitUntil:'load'}).catch(()=>{});
-    }
+    try{await page.goto('https://kidbuster.vercel.app/?returning=1',{waitUntil:'load'});}catch(err){}
+    // The old host now performs automatic migration after initial render.
+    // Do not reload during the in-flight ticket request: that would issue twice.
+    await new Promise(resolve=>setTimeout(resolve,250));
     await page.waitForFunction(()=>location.hostname==='classbuster.com'&&
       localStorage.getItem('kidbuster_access_key')==='kb_live_old_pro',{timeout:7000});
     const migrated=await page.evaluate(()=>({
