@@ -23,8 +23,14 @@ if (-not (Test-Path -LiteralPath $Fingerprint)) { Fail "Fingerprint file not fou
 $fp = (Get-Content -LiteralPath $Fingerprint -Raw).Trim()
 if ($fp -notmatch '^[a-fA-F0-9]{64}$') { Fail 'Fingerprint file is malformed (expected 64 hex characters). Nothing was changed.' }
 Remove-Variable fp
-& git check-ignore -q -- $Fingerprint 2>$null
-if ($LASTEXITCODE -ne 0 -and $Fingerprint.StartsWith($repo)) { Fail 'Fingerprint file is inside the repository but not git-ignored.' }
+# Windows PowerShell 5.1 turns native stderr into a terminating error under
+# 'Stop'; native commands run under 'Continue' and are judged by exit code.
+$ErrorActionPreference = 'Continue'
+$full = [IO.Path]::GetFullPath($Fingerprint)
+if ($full.StartsWith([IO.Path]::GetFullPath($repo), [StringComparison]::OrdinalIgnoreCase)) {
+  & git check-ignore -q -- $full 2>$null
+  if ($LASTEXITCODE -ne 0) { Fail 'Fingerprint file is inside the repository but not git-ignored.' }
+}
 $dirty = & git status --porcelain -- index.html api assets scripts vercel.json .vercelignore
 if ($dirty) { Fail 'Deployable files have uncommitted changes; commit first so the release is reproducible.' }
 $branch = & git rev-parse --abbrev-ref HEAD; $commit = & git rev-parse --short HEAD
