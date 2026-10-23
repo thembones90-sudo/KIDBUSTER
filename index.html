@@ -7800,7 +7800,6 @@ async function generate(){
     document.getElementById('copyBeidaPerformanceBtn').disabled = !isBeidaOutput;
     newStudentBtn.disabled = false;
     showFeedbackCard(form.protocol, form.rating, form.protocol === 'PREPLY' ? form.preplyModule : null, (form.protocol === 'PREPLY' && form.preplyModule === 'trial') ? form.preplyTrialPerson : null, generationRef);
-    document.getElementById('actionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
     renderLint(lint);
     if(isBeidaOutput){
       // Two separate fields need two separate copies — auto-copying just
@@ -7811,7 +7810,7 @@ async function generate(){
     }else if(form.protocol === 'OF' && !document.getElementById('ofFollowupField').hidden){
       // Each platform field is copied deliberately; never imply half is the full report.
     }else if(shouldAutoCopyReport(lint)){
-      copyOutputToClipboard(outputBox, copyBtn); // only reports without CRITICAL lint are auto-copied
+      await copyOutputToClipboard(outputBox, copyBtn); // finish clipboard fallback before scrolling to Copy
     }else{
       copyBtn.textContent = 'Review warnings before copying';
     }
@@ -7823,6 +7822,14 @@ async function generate(){
     }
     updateKrispCounter();
     saveDraft();
+
+    // Scroll only after report fields, lint, clipboard feedback and layout
+    // changes have settled, so Copy remains visible at the report's end.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    document.getElementById('actionRow').scrollIntoView({
+      behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+      block: 'center'
+    });
 
     // Protocol genuinely finished — show the completion message once, then
     // hold it briefly so it's actually readable before the button resets.
