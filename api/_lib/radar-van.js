@@ -142,6 +142,30 @@ export async function issueRadarToken(identity, { automatic = false } = {}){
   });
 }
 
+// One-click pairing: the desktop app created its own token and sent only its
+// SHA-256 through the owner's signed-in browser. The raw token never reaches
+// the browser or this server. A hash already bound to any account is refused.
+export const RADAR_TOKEN_HASH = /^[0-9a-f]{64}$/;
+export async function bindRadarTokenHash(identity, hash){
+  if(!RADAR_TOKEN_HASH.test(String(hash || ''))) return { invalid: true };
+  return withLock(K.settingsLock(identity), async () => {
+    const settings = await readRadarSettings(identity);
+    if(settings.tokenHash === hash) return { unchanged: true };
+    if(await kv.get(K.token(hash))) return { taken: true };
+    const now = new Date().toISOString();
+    await kv.set(K.token(hash), { identity, createdAt: now, paired: true });
+    try{
+      await writeSettings(identity, { ...settings, automatic: true, tokenHash: hash, connectedAt: settings.tokenHash ? settings.connectedAt : now });
+    }catch(err){
+      await kv.del(K.token(hash)).catch(() => {});
+      throw err;
+    }
+    if(settings.tokenHash) await kv.del(K.token(settings.tokenHash)).catch(() => {});
+    await bumpVersion(identity);
+    return { bound: true };
+  });
+}
+
 // Revokes the credential and disarms. Queued transcripts are left alone.
 // Resolves only once the revoked state has been read back.
 export async function revokeRadarToken(identity){

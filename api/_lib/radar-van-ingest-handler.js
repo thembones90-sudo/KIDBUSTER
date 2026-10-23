@@ -51,6 +51,11 @@ export default async function handleRadarIngest(req, res){
     if(!(await accountEntitlement(identity)).allowed) return reply(res, 403, { error: 'RADAR VAN is not available for this account.' });
     if(await radarRateExceeded('ingest', identity, IDENTITY_RATE.limit, IDENTITY_RATE.windowSeconds)) return reply(res, 429, { error: 'Too many lessons. Retry shortly.' }, { 'Retry-After': '60' });
 
+    // Desktop pairing: "is my credential approved yet?" Answered only after
+    // the bearer check above, so it reveals nothing to an unpaired caller.
+    if(req.body && typeof req.body === 'object' && !Array.isArray(req.body) && req.body.action === 'credential-check'){
+      return reply(res, 200, { connected: true });
+    }
     // Measure what was actually received (serialized UTF-8), not what the
     // client claimed in Content-Length.
     if(serializedBodyBytes(req.body) > RADAR_VAN_MAX_BODY_BYTES) return reply(res, 413, { error: 'Payload too large.' });

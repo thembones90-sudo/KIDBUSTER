@@ -375,7 +375,7 @@
       if(key !== savedKey()) return;
       var r = await api('GET', null, workspaceIdle(), sinceVersion());
       if(r === null) return;
-      if(r.status === 404 || r.status === 403 || r.status === 401){ hideAll(); stopPolling(); state.failures = 0; state.disabled = true; return; }
+      if(r.status === 404 || r.status === 403 || r.status === 401){ hideAll(); stopPolling(); state.failures = 0; state.disabled = true; maybePair(false); return; }
       if(!r.ok){ state.failures++; if(!section.hidden) say('Scout is temporarily unreachable. Retrying shortly.'); return; }
       state.failures = 0;
       if(r.data.unchanged){ await retryReceipts(); return; }
@@ -388,6 +388,7 @@
         r = automatic;
       }
       render(r.data);
+      maybePair(true);
       // Empty notes and report: the leased lesson is imported automatically.
       // Occupied workspace: no lease is requested, nothing is overwritten and
       // the lesson stays in Pending transcripts for manual import.
@@ -399,6 +400,58 @@
       state.inflight = false;
       if(savedKey()) schedule();
     }
+  }
+
+  // ---- one-click desktop pairing (?scout-pair=<sha256 of Scout's own token>) ----
+  // Scout keeps its token; only the hash travels through this page. The owner
+  // compares the short code with the one Scout shows, then approves.
+  var PAIR_HASH = /^[0-9a-f]{64}$/;
+  function pairParam(){
+    try{ var v = new URLSearchParams(location.search).get('scout-pair'); return v && PAIR_HASH.test(v) ? v : null; }catch(e){ return null; }
+  }
+  function clearPairParam(){
+    try{ var u = new URL(location.href); u.searchParams.delete('scout-pair'); history.replaceState(null, '', u.pathname + u.search + u.hash); }catch(e){}
+  }
+  function pairCard(hash, blockedMessage){
+    var card = document.getElementById('scoutPairCard');
+    if(card) return card;
+    card = document.createElement('div'); card.id = 'scoutPairCard'; card.className = 'scout-pair-card';
+    card.setAttribute('role', 'dialog'); card.setAttribute('aria-labelledby', 'scoutPairTitle');
+    var title = document.createElement('h3'); title.id = 'scoutPairTitle'; title.textContent = 'Connect Classbuster Scout?';
+    var text = document.createElement('p');
+    var code = document.createElement('p'); code.className = 'scout-pair-code'; code.id = 'scoutPairCode';
+    var status = document.createElement('p'); status.id = 'scoutPairStatus'; status.setAttribute('role', 'status');
+    var row = document.createElement('div'); row.className = 'scout-pair-row';
+    var approve = document.createElement('button'); approve.type = 'button'; approve.id = 'scoutPairApprove'; approve.className = 'btn-secondary'; approve.textContent = 'Approve';
+    var cancel = document.createElement('button'); cancel.type = 'button'; cancel.id = 'scoutPairCancel'; cancel.className = 'btn-secondary'; cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', function(){ clearPairParam(); card.remove(); });
+    if(blockedMessage){
+      text.textContent = blockedMessage; approve.hidden = true; cancel.textContent = 'Close';
+    }else{
+      text.textContent = 'Only approve if you just clicked Connect in Scout on this computer. Scout shows the same code:';
+      code.textContent = (hash.slice(0, 4) + '-' + hash.slice(4, 8)).toUpperCase();
+      approve.addEventListener('click', async function(){
+        approve.disabled = true; status.textContent = 'Connecting…';
+        try{
+          var r = await api('POST', { action: 'pair-approve', tokenHash: hash });
+          if(r === null) return;
+          if(!r.ok){ status.textContent = (r.data && r.data.error) || 'Scout could not be connected. Nothing was changed.'; approve.disabled = false; return; }
+          clearPairParam(); render(r.data);
+          status.textContent = 'Scout is connected. It confirms within about 15 seconds.';
+          approve.hidden = true; cancel.textContent = 'Done';
+        }catch(e){ status.textContent = 'Scout could not be reached. Nothing was changed.'; approve.disabled = false; }
+      });
+    }
+    row.append(approve, cancel);
+    card.append(title, text, code, status, row);
+    document.body.appendChild(card);
+    return card;
+  }
+  function maybePair(authorized){
+    var hash = pairParam();
+    if(!hash) return;
+    if(authorized) pairCard(hash);
+    else pairCard(hash, 'Sign in with the Classbuster account that owns Scout, then click Connect in Scout again.');
   }
 
   var pollSoonTimer = null;

@@ -6,7 +6,8 @@
 // explicit 409 - a revoke or rotate is never reported as done unless it was.
 import {
   radarVanEnabled, accountEntitlement, issueRadarToken, revokeRadarToken, setRadarArmed,
-  readRadarSession, radarInboxAction, serializedBodyBytes, RadarBusyError, peekRadarVersion, enableRadarAutomatic
+  readRadarSession, radarInboxAction, serializedBodyBytes, RadarBusyError, peekRadarVersion, enableRadarAutomatic,
+  bindRadarTokenHash
 } from './radar-van.js';
 
 const MAX_BODY_BYTES = 4096;
@@ -50,6 +51,12 @@ export default async function handleRadarSession(req, res){
       // The token already exists; a failed status read must not lose it.
       const state = await readRadarSession(identity).catch(() => ({ enabled: true }));
       return reply(res, 200, { ...state, connected: true, token, tokenShownOnce: true });
+    }
+    if(action === 'pair-approve'){
+      const out = await bindRadarTokenHash(identity, body.tokenHash);
+      if(out.invalid) return reply(res, 400, { error: 'This Scout connection link is invalid. Click Connect in Scout again.' });
+      if(out.taken) return reply(res, 409, { error: 'This Scout connection link was already used. Click Connect in Scout again.', reason: 'taken' });
+      return reply(res, 200, { ...(await readRadarSession(identity)), paired: true, unchanged: !!out.unchanged });
     }
     if(action === 'disconnect'){
       await revokeRadarToken(identity);
