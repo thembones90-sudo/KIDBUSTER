@@ -3064,6 +3064,40 @@ const KidbusterCore = (function(){
 • The selected rating, module, length, pronoun and Special Remarks are authoritative settings. Follow them exactly, but never invent lesson events to justify them.
 • When evidence is thin, uncertain or contradictory, say less. Omission is always better than a confident claim the evidence does not support.`;
 
+  // Shared human voice (owner request 2026-10-24: "make it more human").
+  // Wording style only: every protocol keeps its own personality, emojis,
+  // sections, formatting and sign-off. Stock AI phrasing is also caught after
+  // generation (findStockPhrasing) and sent through the one repair.
+  const HUMAN_VOICE_RULES = `HUMAN VOICE RULES (ALL PROTOCOLS)
+• Write the way this teacher would write it by hand for this family: plain, specific and warm. It must read like a real person who just taught this lesson, not like a template.
+• Be concrete. Name the actual words, sentences, activities and moments from this lesson instead of general praise. One precise compliment is better than three adjectives.
+• Vary sentence length and openings. Do not start two sentences in a row the same way, and do not end every sentence or paragraph with an exclamation mark.
+• Use everyday words. Never use stock AI phrasing such as "delve", "tapestry", "testament to", "showcase/showcased", "it's worth noting", "in conclusion", "embark on", "furthermore", "moreover", "not only ... but also", "commendable", "exemplary", "pivotal", "invaluable", "unwavering", "meticulous", "palpable" or "learning journey".
+• Do not use em dashes (—). Use a comma, a full stop or brackets instead.
+• No filler: no sentences that only restate the previous one, no generic closing lines that could fit any student.
+• This changes wording only. Follow your protocol's structure, sections, tone, emojis, length limits and sign-off exactly.`;
+
+  // Distinctive AI-tell phrases. A word the lesson itself taught (present in
+  // the notes) is never flagged: words keep the meaning they have in the lesson.
+  const STOCK_PHRASES = [
+    ['delve', /\bdelv(e|es|ed|ing)\b/i], ['tapestry', /\btapestr(y|ies)\b/i], ['testament to', /\btestament to\b/i],
+    ['showcase', /\bshowcas(e|es|ed|ing)\b/i], ["it's worth noting", /\b(it'?s|it is) worth noting\b/i],
+    ['in conclusion', /\bin conclusion\b/i], ['embark', /\bembark(s|ed|ing)? on\b/i], ['furthermore', /\bfurthermore\b/i],
+    ['moreover', /\bmoreover\b/i], ['not only ... but also', /\bnot only\b[^.!?\n]{1,80}\bbut also\b/i],
+    ['commendable', /\bcommendabl(e|y)\b/i], ['exemplary', /\bexemplary\b/i], ['pivotal', /\bpivotal\b/i],
+    ['invaluable', /\binvaluable\b/i], ['unwavering', /\bunwavering\b/i], ['meticulous', /\bmeticulous(ly)?\b/i],
+    ['palpable', /\bpalpabl(e|y)\b/i], ['learning journey', /\b(learning|language|english) journey\b/i]
+  ];
+  function findStockPhrasing(body, notes){
+    const lesson = String(notes || '');
+    const hits = STOCK_PHRASES.filter(([, re]) => re.test(body) && !re.test(lesson)).map(([label]) => label);
+    const dashes = (body.match(/—/g) || []).length;
+    const problems = [];
+    if(hits.length) problems.push('Replace stock phrasing with plain, specific words a teacher would use: ' + hits.map(h => '"' + h + '"').join(', ') + '.');
+    if(dashes >= 3) problems.push('Remove the em dashes (' + dashes + '). Use commas, full stops or brackets instead.');
+    return problems;
+  }
+
   // OF no longer shares MA's numeric rating scale at all. It has its own
   // 5-tier qualitative scale, selected directly by the teacher — this is
   // OF's equivalent of MA's LEVELS array. (Earlier this was derived from
@@ -3125,6 +3159,8 @@ RATING EVIDENCE RULE (ALL RATINGS)
 ${RATING_EVIDENCE_GUARD}
 
 ${EVIDENCE_GROUNDING_RULES}
+
+${HUMAN_VOICE_RULES}
 
 ────────────────────────────────────────
 
@@ -3379,6 +3415,8 @@ Content
 
 ${EVIDENCE_GROUNDING_RULES}
 
+${HUMAN_VOICE_RULES}
+
 • Evaluate at the level the evidence shows. Prefer precise phrasing such as "with a model to follow", "after repeated prompting" or "by the end of the lesson, with support" over inflated judgments such as "a solid ability", "a good ear" or "growing independence" unless the transcript clearly shows it.
 
 • Always incorporate any additional Teacher Notes supplied by Layne — treat them as high-priority factual input, not optional color. Teacher Notes always override transcript interpretation when the two conflict. If Teacher Notes describe a behavioral concern or something notable that happened during the trial lesson (for example, the student misbehaving, refusing to participate, or acting out), this must be clearly and specifically reflected — most often within Areas for Improvement — never vaguely alluded to, softened into meaninglessness, or left out entirely.
@@ -3486,6 +3524,8 @@ ${LEVELS.map(score => '  • ' + score + '/5: ' + LEVEL_TONE_DESC[score]).join('
 * Stars follow the rating: ${MA_NO_STAR_LEVELS.includes(lvl) ? 'this report is rated ' + lvl + '/5 (below 3), so OMIT the entire "Total stars today" line — no stars anywhere in the report.' : 'this report is rated ' + lvl + '/5, so include "Total stars today:" with exactly 10 stars.'}
 
 ${EVIDENCE_GROUNDING_RULES}
+
+${HUMAN_VOICE_RULES}
 
 * If there is "Irrelevant" or "Speaker" name in the transcript, I will completely ignore those parts.
 * No weird glyphs, no decorative nonsense, no visual garbage
@@ -4789,6 +4829,8 @@ Apply this same distinction to whatever lesson evidence is actually supplied for
 
 ${EVIDENCE_GROUNDING_RULES}
 
+${HUMAN_VOICE_RULES}
+
 IMMUTABLE RULES
 
 • Use only information supported by the supplied lesson evidence. Lesson evidence may consist of a transcript, teacher notes, a short lesson summary, bullet points, or any combination of these. Never invent information beyond what the supplied evidence reasonably supports.
@@ -5028,6 +5070,8 @@ Distinguish clearly between safe and unsafe inference from the supplied lesson e
 
 ${EVIDENCE_GROUNDING_RULES}
 
+${HUMAN_VOICE_RULES}
+
 STUDENT PERFORMANCE RATING (IMMUTABLE)
 
 This platform uses a simple internal rating with two options: "Excellent" or "try harder please." It is never shown to the student — it only shapes tone and whether an area for improvement belongs in "General and Detailed Performance."
@@ -5212,6 +5256,8 @@ self-correction skills"); outright hallucination — an activity, a
 mistake, or a quote that never happened — is forbidden.
 
 ${EVIDENCE_GROUNDING_RULES}
+
+${HUMAN_VOICE_RULES}
 
 VOICE RULE
 You are the tutor who taught this lesson, writing in your own voice.
@@ -5526,6 +5572,7 @@ because it's about a single lesson.`
       if(rule) blocking.push({ code:rule.code, message, repairable:true });
       else advisory.push(message);
     }
+    for(const message of findStockPhrasing(body, ctx.notes)) blocking.push({ code:'stock_phrasing', message, repairable:true });
     const limits = contractLimits(protocol, ctx);
     let softRepair = false;
     if(limits.targetWords){
@@ -5745,6 +5792,8 @@ because it's about a single lesson.`
     EVIDENCE_GROUNDING_RULES,
     evaluateOutputContract,
     buildComplianceRepairPrompt,
+    findStockPhrasing,
+    HUMAN_VOICE_RULES,
     PREPLY_MODULES,
     PROTOCOLS
   };

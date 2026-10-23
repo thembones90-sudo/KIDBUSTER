@@ -96,7 +96,8 @@ export function evaluateGeneratedOutput(protocol,text,form){
   return core().evaluateOutputContract(protocol,text,{
     rating:form.rating,teacherName:form.teacherName,lengthFormat:form.lengthFormat,
     studentGender:(form.studentGender||'').toLowerCase(),signoffEmoji:form.signoffEmoji,
-    preplyModule:form.preplyModule,studentName:form.studentName,preplyTrialPerson:form.preplyTrialPerson
+    preplyModule:form.preplyModule,studentName:form.studentName,preplyTrialPerson:form.preplyTrialPerson,
+    notes:form.notes
   });
 }
 
