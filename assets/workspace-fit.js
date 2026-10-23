@@ -34,31 +34,30 @@
     return {viewport,mount,unmount};
   }
   const notes=scrollRegion(notesPanel,'workspaceNotesScroll','Lesson notes and special remarks',[],[document.getElementById('generateBtn'),document.getElementById('krispIntegrationPanel'),document.getElementById('mobileGenerateBar')]);
-  const output=scrollRegion(outputPanel,'workspaceOutputScroll','Report output and feedback',[outputPanel.querySelector('.of-output-heading')],[document.getElementById('actionRow')]);
   let frame=0;
   function fit(){
     frame=0;
     const scroll=settings.scrollTop;
-    const notesScroll=notes.viewport.scrollTop,outputScroll=output.viewport.scrollTop;
+    const notesScroll=notes.viewport.scrollTop;
     // Temporarily removing fit mode changes textarea heights too. Preserve
     // their own scroll offsets, not just those of the surrounding regions.
     const textScroll=[...right.querySelectorAll('textarea')].map(field=>[field,field.scrollTop,field.scrollLeft]);
     document.body.classList.remove('workspace-height-fit');
     // Measure the unrestricted panel before deciding whether it needs fitting.
-    const natural=Math.max(panel.getBoundingClientRect().height,right.getBoundingClientRect().height);
+    const natural=Math.max(panel.getBoundingClientRect().height,notesPanel.getBoundingClientRect().height);
     const top=grid.getBoundingClientRect().top+window.scrollY;
     const available=Math.floor(window.innerHeight-top-16);
     if(desktop.matches&&available>=280&&natural>available+1){
       document.documentElement.style.setProperty('--workspace-fit-height',available+'px');
       document.body.classList.add('workspace-height-fit');
-      notes.mount();output.mount();
+      notes.mount();
       settings.setAttribute('tabindex','0');
       settings.scrollTop=scroll;
-      notes.viewport.scrollTop=notesScroll;output.viewport.scrollTop=outputScroll;
+      notes.viewport.scrollTop=notesScroll;
     }else{
       document.documentElement.style.removeProperty('--workspace-fit-height');
       settings.removeAttribute('tabindex');
-      notes.unmount();output.unmount();
+      notes.unmount();
     }
     for(const [field,top,left] of textScroll){field.scrollTop=top;field.scrollLeft=left;}
   }
@@ -74,7 +73,7 @@
   // Still react to structural fields, report nodes and visibility changes.
   new MutationObserver(records=>{
     if(records.some(record=>{
-      if(['workspaceNotesScroll','workspaceOutputScroll','krispCounter'].includes(record.target.id)||record.target===notesPanel||record.target===outputPanel)return false;
+      if(['workspaceNotesScroll','krispCounter'].includes(record.target.id)||record.target===notesPanel||record.target===outputPanel)return false;
       if(record.type==='childList')return [...record.addedNodes,...record.removedNodes].some(node=>node.nodeType===Node.ELEMENT_NODE);
       return record.type==='attributes';
     }))schedule();

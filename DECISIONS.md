@@ -411,6 +411,11 @@ Also did a scoped rebranding pass, distinguishing living documentation from hist
 **Reason:** Owner decision after the three-model benchmark (126 reports plus Haiku tuning runs): Haiku 5.5 delivered 42/42 with every first draft structurally compliant at effort high, at about $0.002 per report versus $0.021 for Sonnet 4.6. Haiku's thinking counts toward max_tokens; at 3000 it was cut off 3 of 7 times. Educational accuracy still requires teacher review of the blinded packets before release; production (`kidbuster`) is unchanged.
 **Constitution article:** Article Zero (save teacher time); Trust is the Product.
 
+### 2026-10-23 — Restore full expanding report output
+**Decision:** Supersede the height-fitted output region: keep the complete report, split sections, feedback and actions in normal page flow. The Output panel grows with its content and uses page scrolling, not a nested constrained viewport. Retain responsive settings/ratings and the notes typing-position fix.
+**Reason:** The owner reported that generated reports were trapped in a small internal window and could initially show only the conclusion. Regression coverage now requires unrestricted output on every tested screen size, full long-report expansion and page-scroll access to actions below it.
+**Constitution article:** Article Zero; Trust Is the Product.
+
 ### 2026-10-23 — Preserve comment editing while height fitting
 **Decision:** Ignore routine text/counter mutations in the desktop fitting observer. Preserve each textarea's own horizontal and vertical scroll position whenever a genuine layout change requires remeasurement. Native caret-following remains responsible for scrolling during typing; never force comments to the beginning or end.
 **Reason:** Keyboard reproduction confirmed that word-counter updates repeatedly removed/reapplied fitted heights, jumping long notes back to the beginning. Browser regressions now type at the end and in the middle of long notes and remarks, check that typing does not refit the workspace, and verify editing position survives resizing. No generation, delivery, account or data-retention behavior changes.

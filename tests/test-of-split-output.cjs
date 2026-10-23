@@ -20,10 +20,15 @@ module.exports=async function(){
   assert.equal(parsed.split.followup,'Areas for Improvement'+sample.split('\n\nAreas for Improvement')[1]);
   assert.ok(parsed.crlf&&parsed.bold);assert.equal(parsed.missing,null);assert.equal(parsed.inline,null);assert.equal(parsed.duplicate,null);
   await page.evaluate(async sample=>{
+   window.reportScrollCalls=[];
+   const scroll=Element.prototype.scrollIntoView;
+   Element.prototype.scrollIntoView=function(options){window.reportScrollCalls.push({id:this.id,block:options?.block});return scroll.call(this,options);};
    document.getElementById('teacherName').value='Nora';document.getElementById('studentName').value='Sam';document.getElementById('krispNotes').value='Synthetic fruit lesson notes.';
    document.querySelector('input[name="studentGender"][value="boy"]').checked=true;
    state.rating='Medium';callClaude=async()=>({text:sample,usage:null,trialStatus:null});await generate();
   },sample);
+  assert.ok(await page.evaluate(()=>window.reportScrollCalls.some(call=>call.id==='outputBox'&&call.block==='start')),'generation reveals the beginning of the report');
+  assert.ok(await page.evaluate(()=>!window.reportScrollCalls.some(call=>call.id==='actionRow')),'generation does not jump past the report to its actions');
   assert.equal(await page.evaluate(()=>window.copiedParts.length),0,'split reports never auto-copy only one half');
   assert.equal(await page.$eval('#copyBtn',e=>e.hidden),true);
   await page.click('#copyOFStrengthsBtn');await page.click('#copyOFFollowupBtn');

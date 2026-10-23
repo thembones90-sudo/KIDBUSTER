@@ -7742,7 +7742,7 @@ async function generate(){
     document.getElementById('copyBeidaPerformanceBtn').disabled = !isBeidaOutput;
     newStudentBtn.disabled = false;
     showFeedbackCard(form.protocol, form.rating, form.protocol === 'PREPLY' ? form.preplyModule : null, (form.protocol === 'PREPLY' && form.preplyModule === 'trial') ? form.preplyTrialPerson : null, generationRef);
-    document.getElementById('actionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    outputBox.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
     renderLint(lint);
     if(isBeidaOutput){
       // Two separate fields need two separate copies — auto-copying just
@@ -10310,7 +10310,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     main.click();
     // Progress, validation errors and the report all appear in Output.
     const out=document.getElementById('outputBox');
-    if(out)setTimeout(()=>out.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'}),30);
+    if(out)setTimeout(()=>out.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}),30);
   });
   document.addEventListener('change',refresh,true);
   document.addEventListener('click',()=>setTimeout(refresh,0),true);
