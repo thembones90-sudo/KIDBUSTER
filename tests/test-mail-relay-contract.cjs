@@ -45,6 +45,14 @@ module.exports = async function run(){
     check('short token rejected', !ok('Verify your Classbuster email', cb + 'https://classbuster.com/?access_token=abc'));
     check('bad recipient rejected', !relay.verify({ to: 'not-an-email', subject: 'Verify your Classbuster email', text: cb + link('https://classbuster.com') }));
     check('importing the relay does not start a server', typeof relay.verify === 'function');
+
+    // The build gate carries a mirror of the deployed relay's rules (the relay
+    // source is not uploaded to Vercel). The mirror must equal the source.
+    const { RELAY } = require('../scripts/verify-release-integrity.cjs');
+    const same = (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
+    check('gate mirror: allowed link origins equal the relay', same(RELAY.origins, relay.allowedOrigins));
+    check('gate mirror: accepted wording equals the relay', same(RELAY.prefixes, relay.prefixes));
+    check('gate mirror: accepted subjects equal the relay', same(RELAY.subjects, relay.subjects));
   }finally{
     if(saved.mode === undefined) delete process.env.KIDBUSTER_TEST_EMAIL; else process.env.KIDBUSTER_TEST_EMAIL = saved.mode;
     if(saved.url === undefined) delete process.env.PATHFINDER_APP_URL; else process.env.PATHFINDER_APP_URL = saved.url;
