@@ -126,6 +126,13 @@ function checkRelease(root){
   for(const [source, destination] of [['/api/radar-van-ingest', '/api/feedback?radar=ingest'], ['/api/radar-van-session', '/api/feedback?radar=session']])
     if(!rewrites.some(r => r.source === source && r.destination === destination)) problems.push('vercel.json is missing the rewrite ' + source);
   if(config.buildCommand !== 'node scripts/verify-release-integrity.cjs') problems.push('vercel.json no longer runs this gate as the build command');
+  // kidbuster.vercel.app must keep SERVING (not redirecting): the Lemon Squeezy
+  // webhook, Krisp webhook links and installed Scout clients still post to it,
+  // and webhook senders do not reliably follow redirects on POST.
+  const redirects = Array.isArray(config.redirects) ? config.redirects : [];
+  const hostRule = r => JSON.stringify(r.has || []).toLowerCase();
+  if(redirects.some(r => /kidbuster\.vercel\.app/.test(hostRule(r)) || /^\/(api(\/|$)|:path\*|\(\.\*\))/.test(String(r.source || ''))))
+    problems.push('vercel.json redirects the legacy domain or API routes (payment, Krisp and Scout webhooks would break)');
   const ignored = (read('.vercelignore') || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
   let functions = 0;
   try{ for(const name of fs.readdirSync(path.join(root, 'api'))) if(name.endsWith('.js') && !ignored.includes('api/' + name)) functions++; }
