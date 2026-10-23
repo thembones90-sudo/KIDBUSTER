@@ -76,6 +76,30 @@ module.exports=async function run(){
     check('no report generated',hits.generate===0);
     await page.click('#krispPendingBtn');
     check('Scout cards are inside Pending transcripts',await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')&&e.querySelectorAll('#radarVanPendingPopoverList li').length===1));
+    const look=await page.$eval('#krispInboxPanel',el=>{
+      const st=getComputedStyle(el),card=el.querySelector('.radar-van-item');
+      const cs=getComputedStyle(card),claim=getComputedStyle(card.querySelector('.radar-van-claim'));
+      return {radius:parseInt(st.borderTopLeftRadius,10),
+        bg:st.backgroundImage,cardRadius:parseInt(cs.borderTopLeftRadius,10),
+        claimBg:claim.backgroundImage, scoutVisible:!el.querySelector('#radarVanPendingGroup').hidden};
+    });
+    check('premium inbox uses rich dark gradient and rounded surfaces',
+      look.radius>=20 && look.cardRadius>=15 && look.bg.includes('gradient') && look.claimBg.includes('gradient'));
+    check('premium styling preserves independent Scout section',look.scoutVisible);
+    await page.click('#radarVanPendingPopoverList .radar-van-more');
+    check('premium more-options menu opens',await page.$eval('.radar-van-item-menu',el=>!el.hidden));
+    await page.click('#radarVanPendingPopoverList .radar-van-item-menu button:first-child');
+    check('preview excerpt expands without importing',await page.$eval('.radar-van-expanded-preview',el=>!el.hidden && el.textContent.includes('Scout 1')));
+    check('preview does not claim the lesson',(await invoke('GET',null,keyHeaders)).body.inboxPending.length===1);
+    await page.setViewport({width:375,height:780});
+    await page.evaluate(()=>{document.getElementById('krispInboxPanel').scrollTop=0;});
+    const bounds=await page.$eval('#krispInboxPanel',el=>{
+      const b=el.getBoundingClientRect();
+      return {left:b.left,right:b.right,width:innerWidth};
+    });
+    check('premium inbox stays within narrow mobile viewport',
+      bounds.left>=-1 && bounds.right<=bounds.width+1);
+    await page.setViewport({width:1100,height:820});
     await page.click('#radarVanPendingPopoverList .radar-van-claim');
     await page.waitForFunction(()=>document.getElementById('krispNotes').value.includes('Scout 1'),{timeout:12000});
     check('Claim explicitly imported completed Scout lesson',await page.$eval('#krispNotes',e=>e.value.includes('[00:00] TEACHER: Scout 1')));

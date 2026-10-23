@@ -170,6 +170,44 @@
     var extraTitle = item.studentLabel && item.title && item.title !== item.studentLabel && item.title !== 'Scout lesson' ? item.title : '';
     meta.textContent = [extraTitle, lessonWhen(item), mins, lessonParts(item), 'Scout'].filter(Boolean).join(' · ');
     var preview = document.createElement('div'); preview.className = 'radar-van-item-preview'; preview.textContent = item.contentPreview || '';
+    // Review without claiming: expand the server-provided EXCERPT only.
+    // The full transcript is retrieved through the existing protected Claim
+    // action so we do not expose text or change any server-side lease here.
+    var menuButton = document.createElement('button');
+    menuButton.type = 'button'; menuButton.className = 'radar-van-more';
+    menuButton.textContent = '\u22ee'; menuButton.title = 'More transcript options';
+    menuButton.setAttribute('aria-label','More options for ' + heading);
+    menuButton.setAttribute('aria-expanded','false');
+    var menu = document.createElement('div'); menu.className = 'radar-van-item-menu'; menu.hidden = true;
+    var previewToggle = document.createElement('button'); previewToggle.type = 'button';
+    previewToggle.textContent = 'Preview excerpt';
+    var expandedPreview = document.createElement('div');
+    expandedPreview.className = 'radar-van-expanded-preview'; expandedPreview.hidden = true;
+    expandedPreview.textContent = item.contentPreview || 'No transcript excerpt available.';
+    previewToggle.addEventListener('click', function(){
+      expandedPreview.hidden = !expandedPreview.hidden;
+      previewToggle.textContent = expandedPreview.hidden ? 'Preview excerpt' : 'Hide excerpt';
+      menu.hidden = true; menuButton.setAttribute('aria-expanded','false');
+    });
+    var dismissMenu = document.createElement('button'); dismissMenu.type = 'button';
+    dismissMenu.textContent = 'Dismiss lesson';
+    menuButton.addEventListener('click', function(event){
+      event.stopPropagation();
+      menu.hidden = !menu.hidden;
+      menuButton.setAttribute('aria-expanded', String(!menu.hidden));
+    });
+    dismissMenu.addEventListener('click', function(){ menu.hidden = true; dismissItem(item,dismissMenu); });
+    menu.append(previewToggle,dismissMenu);
+    var closeMenu = function(event){
+      if(!menu.hidden && !li.contains(event.target)){
+        menu.hidden = true; menuButton.setAttribute('aria-expanded','false');
+        document.removeEventListener('click',closeMenu);
+      }
+    };
+    menuButton.addEventListener('click', function(){
+      if(!menu.hidden) document.addEventListener('click',closeMenu);
+      else document.removeEventListener('click',closeMenu);
+    });
     var row = document.createElement('div'); row.className = 'radar-van-row';
     var claim = document.createElement('button'); claim.type = 'button'; claim.className = 'btn-secondary radar-van-claim';
     claim.textContent = 'Claim into notes'; claim.setAttribute('aria-label', 'Claim ' + heading + (lessonWhen(item) ? ' from ' + lessonWhen(item) : '') + ' into your notes');
@@ -178,9 +216,9 @@
     dismiss.textContent = 'Dismiss'; dismiss.setAttribute('aria-label', 'Dismiss ' + heading + (lessonWhen(item) ? ' from ' + lessonWhen(item) : '') + ' from your inbox');
     dismiss.addEventListener('click', function(){ dismissItem(item, dismiss); });
     row.append(claim, dismiss);
-    li.append(title, meta);
+    li.append(title, meta, menuButton, menu);
     if(item.contentPreview) li.append(preview);
-    li.append(row);
+    li.append(expandedPreview, row);
     return li;
   }
 

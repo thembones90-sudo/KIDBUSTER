@@ -2410,6 +2410,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
 @media(max-width:560px){#scoutReleaseBanner{padding:15px;gap:12px}.scout-release-action{width:100%}#scoutReleaseLink{width:100%}#scoutReleaseBanner h2{font-size:19px}}
 </style>
 <link rel="stylesheet" href="assets/scout-integration.css?v=20261020">
+<link rel="stylesheet" href="assets/pending-inbox-premium.css?v=20261023a">
 </head>
 <body>
 <div class="wrap">
@@ -2447,16 +2448,16 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
 
   <section id="krispInboxPanel" popover="auto" role="dialog" aria-labelledby="krispInboxTitle">
     <div class="krisp-inbox-heading"><div><p class="krisp-inbox-eyebrow">LESSON INBOX</p><h2 id="krispInboxTitle">Pending transcripts</h2></div><button type="button" id="krispInboxClose" aria-label="Close pending transcripts">×</button></div>
-    <p class="krisp-inbox-description">Lesson notes you haven’t imported yet. Choose a transcript when you’re ready.</p>
-    <p id="krispInboxStatus" role="status" aria-live="polite">Checking your inbox…</p>
-    <p id="krispInboxEmpty" hidden>You’re all caught up. New unused transcripts will appear here.</p>
-    <section class="source-pending-group" id="krispPendingGroup">
-      <h3 class="source-pending-title">Krisp <span id="krispSourcePendingCount">0</span></h3>
+    <p class="krisp-inbox-description">Your captured lessons, beautifully organized. Choose a transcript when you're ready.</p>
+    <section class="source-pending-group" id="krispPendingGroup" aria-label="Krisp pending transcripts">
+      <h3 class="source-pending-title"><span class="source-pending-icon krisp-source-icon" aria-hidden="true">&#8801;</span>Krisp <span id="krispSourcePendingCount">0</span></h3>
+      <p id="krispInboxStatus" role="status" aria-live="polite"></p>
+      <p id="krispInboxEmpty" hidden>You're all caught up. New Krisp transcripts will appear here.</p>
       <div id="krispInboxContent"></div>
     </section>
     <section class="source-pending-group" id="radarVanPendingGroup" aria-label="Scout pending transcripts" hidden>
-      <h3 class="source-pending-title">Classbuster Scout <span id="radarVanPendingPopoverCount">0</span></h3>
-      <p class="radar-van-hint">Scout transcripts waiting for review. Krisp transcripts stay separate.</p>
+      <h3 class="source-pending-title"><span class="source-pending-icon scout-source-icon" aria-hidden="true">&#10022;</span>Classbuster Scout <span id="radarVanPendingPopoverCount">0</span></h3>
+      <p class="radar-van-hint">Private Scout recordings ready for review. Claim only the lesson you need.</p>
       <p id="radarVanPendingPopoverStatus" class="radar-van-hint" role="status">No Scout transcripts pending.</p>
       <ul id="radarVanPendingPopoverList" class="radar-van-list" aria-label="Pending Scout transcripts"></ul>
     </section>
@@ -9805,7 +9806,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     var empty = document.getElementById('krispInboxEmpty');
     if(empty) empty.hidden = count > 0;
     var status = document.getElementById('krispInboxStatus');
-    if(status) status.textContent = count ? count + (count === 1 ? ' transcript ready to import' : ' transcripts ready to import') : 'No pending transcripts';
+    if(status) status.textContent = count ? count + (count === 1 ? ' transcript ready to import' : ' transcripts ready to import') : '';
     if(!count){ var wrap = document.getElementById('krispPendingWrap'); if(wrap) wrap.style.display = 'none'; }
     var el = document.getElementById('krispPendingCount');
     if(!el) return;
