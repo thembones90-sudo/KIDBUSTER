@@ -44,6 +44,12 @@ module.exports=async function run(){
     check('browser sends access key via header not query',ui.includes("fetch('/api/radar-van-download'") && ui.includes("'x-app-key': key"));
     check('download is rewritten to existing feedback function',vercel.rewrites.some(x=>x.source==='/api/radar-van-download' && x.destination==='/api/feedback?radar=download'));
     check('public download continues to be unpublished',manifest.available===false && !('downloadUrl' in manifest));
+    const downloadHandler=fs.readFileSync(path.join(root,'api/_lib/radar-van-download-handler.js'),'utf8');
+    check('private Scout release points to centered 10ZU ZIP',html.includes('Download Scout 10ZU') &&
+      ui.includes('/releases/Classbuster-Scout-10ZU-Windows.zip') &&
+      downloadHandler.includes("releases/Classbuster-Scout-10ZU-Windows.zip"));
+    check('private Scout ZIP checksum pinned to verified 10ZU package',
+      downloadHandler.includes('ebce02307209eebe2750b714f20000f35d719295067d942da25d04f5d546fdc6'));
   }catch(e){console.error('owner Scout download regression:',e.message);check('test handler completed',false);}
   finally{for(const k of keys){if(previous[k]===undefined)delete process.env[k];else process.env[k]=previous[k];}}
   return getFailures();
