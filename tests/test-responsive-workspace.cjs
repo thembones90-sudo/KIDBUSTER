@@ -104,6 +104,41 @@ module.exports=async function(){
   assert(resizeHeights[3]<resizeHeights[2],'settings panel really resizes when the bottom edge is dragged upward');
   assert(await page.evaluate(()=>document.getElementById('teacherName').value==='Synthetic Teacher'&&document.getElementById('studentName').value==='Synthetic Student'&&document.getElementById('krispNotes').value==='Synthetic lesson notes retained during resizing.'),'window resizing preserves entered lesson data');
   await page.setViewport({width:1024,height:768});
+  // Real keyboard input must keep the caret visible, including editing in the
+  // middle of a long comment. Counter updates must not refit the whole page.
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  for(const id of ['krispNotes','specialRemarks']){
+   await page.evaluate(id=>{
+    const field=document.getElementById(id);
+    field.value=Array.from({length:30},(_,i)=>'Synthetic comment line '+i).join('\n');
+    field.focus();field.setSelectionRange(field.value.length,field.value.length);
+    field.scrollTop=field.scrollHeight;
+   },id);
+   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))));
+   await new Promise(resolve=>setTimeout(resolve,150));
+   await page.evaluate(()=>{
+    window.typingRefits=0;
+    window.typingObserver=new MutationObserver(records=>{window.typingRefits+=records.length;});
+    window.typingObserver.observe(document.body,{attributes:true,attributeFilter:['class']});
+   });
+   await page.keyboard.type(' additional words',{delay:30});
+   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+   assert(await page.$eval('#'+id,e=>e.scrollTop>0&&e.scrollHeight-e.clientHeight-e.scrollTop<6),id+' follows the caret while typing at the end');
+   assert.equal(await page.evaluate(()=>window.typingRefits),0,id+' counter updates do not refit the layout');
+   await page.evaluate(id=>{
+    window.typingObserver.disconnect();
+    const field=document.getElementById(id),position=field.value.indexOf('line 15')+7;
+    field.setSelectionRange(position,position);
+   },id);
+   await page.keyboard.type(' middle edit',{delay:30});
+   assert(await page.$eval('#'+id,e=>e.selectionStart<e.value.length-100&&e.scrollTop>0&&e.scrollTop<e.scrollHeight-e.clientHeight-10),id+' editing the middle does not force the beginning or end');
+   const cursor=await page.$eval('#'+id,e=>e.selectionStart);
+   await page.setViewport({width:1024,height:720});
+   await new Promise(resolve=>setTimeout(resolve,150));
+   assert(await page.$eval('#'+id,(e,cursor)=>e.selectionStart===cursor&&e.scrollTop>0,cursor),id+' layout resizing preserves the editing position');
+   await page.setViewport({width:1024,height:768});
+  }
+  console.log('PASS keyboard editing: notes and remarks retain caret visibility without layout refits');
   const grows=await page.evaluate(()=>{const box=document.getElementById('outputBox');box.className='output-box';box.textContent=('Synthetic report text for responsive testing.\n').repeat(100);return box.getBoundingClientRect().height>1000&&box.scrollHeight<=box.clientHeight+2;});
   assert(grows,'generated reports grow naturally instead of clipping into a fixed-height box');
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));

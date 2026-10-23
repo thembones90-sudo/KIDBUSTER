@@ -40,6 +40,9 @@
     frame=0;
     const scroll=settings.scrollTop;
     const notesScroll=notes.viewport.scrollTop,outputScroll=output.viewport.scrollTop;
+    // Temporarily removing fit mode changes textarea heights too. Preserve
+    // their own scroll offsets, not just those of the surrounding regions.
+    const textScroll=[...right.querySelectorAll('textarea')].map(field=>[field,field.scrollTop,field.scrollLeft]);
     document.body.classList.remove('workspace-height-fit');
     // Measure the unrestricted panel before deciding whether it needs fitting.
     const natural=Math.max(panel.getBoundingClientRect().height,right.getBoundingClientRect().height);
@@ -57,6 +60,7 @@
       settings.removeAttribute('tabindex');
       notes.unmount();output.unmount();
     }
+    for(const [field,top,left] of textScroll){field.scrollTop=top;field.scrollLeft=left;}
   }
   function schedule(){if(!frame)frame=requestAnimationFrame(fit);}
   window.addEventListener('resize',schedule);
@@ -65,11 +69,16 @@
   const observer=new ResizeObserver(schedule);
   for(const node of document.querySelectorAll('.header,.scout-workspace-entry,#accountPanel,#scoutReleaseBanner'))observer.observe(node);
   new MutationObserver(schedule).observe(panel,{subtree:true,childList:true,attributes:true,attributeFilter:['style','hidden']});
-  // Ignore our own region moves, but react to delivered reports, split fields
-  // and feedback visibility changes after the regular UI handlers finish.
+  // Text edits and live counters do not change the panel's layout contract.
+  // Refitting on every keystroke fights the browser's native caret scrolling.
+  // Still react to structural fields, report nodes and visibility changes.
   new MutationObserver(records=>{
-    if(records.some(record=>!['workspaceNotesScroll','workspaceOutputScroll'].includes(record.target.id)&&record.target!==notesPanel&&record.target!==outputPanel))schedule();
-  }).observe(right,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['style','hidden','class']});
+    if(records.some(record=>{
+      if(['workspaceNotesScroll','workspaceOutputScroll','krispCounter'].includes(record.target.id)||record.target===notesPanel||record.target===outputPanel)return false;
+      if(record.type==='childList')return [...record.addedNodes,...record.removedNodes].some(node=>node.nodeType===Node.ELEMENT_NODE);
+      return record.type==='attributes';
+    }))schedule();
+  }).observe(right,{subtree:true,childList:true,attributes:true,attributeFilter:['style','hidden','class']});
   document.fonts.ready.then(schedule);
   schedule();
 })();
