@@ -2938,6 +2938,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
     <p class="access-eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="12" cy="12" r="9"/><path d="m15.5 6.5-2 7-7 4 4-7Z"/></svg>Pathfinder · Your workspace</p>
     <h2 class="license-modal-title" id="accessModalTitle">Choose how to continue</h2>
     <p class="license-modal-subtitle" id="accessModalDescription">Start free, upgrade to Pro, or securely restore your access.</p>
+    <p class="legacy-transfer-choice"><a href="https://kidbuster.vercel.app/#classbuster_transfer_start">Already used the old site? Transfer my account</a></p>
 
     <div class="license-modal-options">
       <details class="license-modal-section primary" name="access-path" open>
@@ -8133,6 +8134,67 @@ async function completeEmailVerification(){
   }
 }
 
+async function handleLegacyAccountTransfer(){
+  const hash = window.location.hash || '';
+  if(hash === '#classbuster_transfer_start'){
+    if(window.location.origin !== 'https://kidbuster.vercel.app') return;
+    const key = getStoredAccessKey();
+    if(!key){
+      try{ window.history.replaceState({}, document.title, window.location.pathname + window.location.search); }catch(_err){}
+      outputBox.className='output-box error';
+      outputBox.textContent='No old account is signed in on this browser. Sign in with your original access key on this old site, then select Transfer my account again.';
+      if(typeof promptForAccessKey === 'function') void promptForAccessKey();
+      return;
+    }
+    try{
+      const status = await fetch('/api/license-status', { headers:{'x-app-key':key,'x-installation-id':getAccessInstallationId()} });
+      const statusData = await status.json().catch(()=>({}));
+      if(!status.ok || statusData.status !== 'active' || statusData.expired === true){
+      outputBox.className='output-box error';
+      outputBox.textContent='Scout could not confirm your old account. Check the original access key or contact support; no account was changed.';
+      return;
+    }
+      const issued = await fetch('/api/license-verify', { method:'POST', headers:{'Content-Type':'application/json','x-app-key':key,'x-installation-id':getAccessInstallationId()}, body:JSON.stringify({action:'issue_legacy_transfer'}) });
+      const data = await issued.json().catch(()=>({}));
+      if(!issued.ok || !data.ticket){ window.location.hash = '#access'; return; }
+      window.location.href = 'https://classbuster.com/#classbuster_transfer=' + encodeURIComponent(data.ticket);
+    }catch(_err){ window.location.hash = '#access'; }
+    return;
+  }
+  const prefix = '#classbuster_transfer=';
+  if(!hash.startsWith(prefix) || window.location.origin !== 'https://classbuster.com') return;
+  const ticket = decodeURIComponent(hash.slice(prefix.length));
+  try{ window.history.replaceState({}, document.title, window.location.pathname + window.location.search); }catch(_err){}
+  const existingKey = getStoredAccessKey();
+  if(existingKey){
+    try{
+      const current = await fetch('/api/license-status',{headers:{'x-app-key':existingKey,'x-installation-id':getAccessInstallationId()}});
+      const currentData = await current.json().catch(()=>({}));
+      if(current.ok && currentData.status === 'active' && currentData.expired !== true && (currentData.plan === 'pro' || currentData.founder === true)){
+        outputBox.className='output-box error';
+        outputBox.textContent='This browser already has active access. We did not replace it. Open Access to use your existing key or transfer on a browser without another account signed in.';
+        return;
+      }
+    }catch(_err){}
+  }
+  try{
+    const res = await fetch('/api/license-verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'redeem_legacy_transfer',ticket})});
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok || !data.licenseKey) throw new Error(data.error || 'This transfer link is invalid, expired, or has already been used.');
+    // Preserve the original, already-claimed manual browser identity before the key.
+    localStorage.setItem('kidbuster_installation_id_v1',data.installationId);
+    localStorage.setItem(ACCESS_KEY_STORAGE,data.licenseKey);
+    outputBox.className='output-box';
+    outputBox.textContent='Your old Classbuster account is back on this browser. Your existing access and Krisp connection are unchanged.';
+    refreshAccountPanel();
+    document.dispatchEvent(new CustomEvent('kidbuster:access-key-saved'));
+  }catch(err){
+    outputBox.className='output-box error';
+    outputBox.textContent=err.message || 'We could not transfer the old account. Use your existing access key or request a verified sign-in link.';
+  }
+}
+
+handleLegacyAccountTransfer();
 completeEmailVerification().then(refreshAccountPanel);
 
 function renderCheckoutSuccess(key){

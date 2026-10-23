@@ -23,7 +23,7 @@
 import crypto from 'node:crypto';
 import {
   generateLicenseKey, currentUsagePeriod, evaluateEntitlement,
-  getLicense, saveLicense, getLicenseKeyByEmail, saveEmailIndex,
+  getLicense, saveLicense, getLicenseKeyByEmail, saveEmailIndex, saveEmailIndexIfAbsent,
   getLicenseKeyByPaymentCustomerId, savePaymentCustomerIndex,
   getUsageCount, incrementUsage, getTrialUsageCount, incrementTrialUsage,
   reserveMonthlyUsage, releaseMonthlyUsage, reserveTrialUsage, releaseTrialUsage,
@@ -65,8 +65,10 @@ export async function getOrCreateFreeLicense(email){
     paymentSubscriptionId: null,
     createdAt: new Date().toISOString()
   });
-  await saveEmailIndex(normalized, licenseKey);
-  return licenseKey;
+  if(await saveEmailIndexIfAbsent(normalized, licenseKey)) return licenseKey;
+  // Another signup or a paid webhook won the index while this candidate was
+  // being written. Return the winner; never downgrade or steal it.
+  return (await getLicenseKeyByEmail(normalized)) || licenseKey;
 }
 
 /**
