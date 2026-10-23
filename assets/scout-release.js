@@ -27,6 +27,8 @@
       version.textContent = 'Windows · Version ' + release.version;
       checksum.textContent = 'SHA-256: ' + release.sha256.toLowerCase();
       banner.hidden = false;
+      window.ClassbusterScoutRelease = {downloadUrl:url.href,version:release.version,sha256:release.sha256.toLowerCase()};
+      document.dispatchEvent(new CustomEvent('classbuster:scout-release'));
     } catch {
       // A missing/unavailable release must not interrupt report generation.
     }

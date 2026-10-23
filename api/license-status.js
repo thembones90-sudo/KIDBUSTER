@@ -23,6 +23,7 @@ import {
   isLicenseExpired, effectiveSubscriptionLicense
 } from './_lib/licensing.js';
 import { claimManualLicenseForInstallation } from './_lib/license-service.js';
+import { readOnboarding, finishOnboarding } from './_lib/onboarding.js';
 
 async function buildTrialsObject(licenseKey, isFree){
   const entries = await Promise.all(TRIAL_ELIGIBLE_PROTOCOLS.map(async (protocol) => {
@@ -40,7 +41,8 @@ async function buildTrialsObject(licenseKey, isFree){
 }
 
 export default async function handler(req, res){
-  if(req.method !== 'GET'){
+  res.setHeader?.('Cache-Control', 'no-store');
+  if(req.method !== 'GET' && req.method !== 'POST'){
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -54,7 +56,9 @@ export default async function handler(req, res){
     const period = currentUsagePeriod();
 
     if(isFounderLicenseKey(licenseKey)){
+      if(req.method === 'POST') return res.status(403).json({error:'No introduction is pending for this account.'});
       return res.status(200).json({
+        onboarding: await readOnboarding(licenseKey, null),
         plan: 'pro',
         status: 'active',
         founder: true,
@@ -78,10 +82,18 @@ export default async function handler(req, res){
     }
     license = effectiveSubscriptionLicense(claim.license);
 
+    if(req.method === 'POST'){
+      if(req.body?.action !== 'onboarding') return res.status(400).json({error:'Invalid account action.'});
+      if(isLicenseExpired(license)) return res.status(403).json({error:'Active access is required.'});
+      const result = await finishOnboarding(licenseKey, license, req.body?.state);
+      return res.status(result.status).json(result.error ? {error:result.error} : {onboarding:result.onboarding});
+    }
+
     const usageCount = await getUsageCount(licenseKey, period);
     const expired = isLicenseExpired(license);
     const isFree = license.plan !== 'pro';
     const response = {
+      onboarding: await readOnboarding(licenseKey, license),
       plan: license.plan || 'free',
       status: expired ? 'expired' : (license.status || 'inactive'),
       founder: false,

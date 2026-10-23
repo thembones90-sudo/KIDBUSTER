@@ -2425,7 +2425,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
     <div class="header-actions">
       <button type="button" id="krispIntegrationBtn" class="btn-secondary account-btn krisp-integration-btn" aria-expanded="false" aria-controls="krispSetupSection" hidden><span class="krisp-logo-slot" aria-hidden="true"><img id="krispLogoImg" class="krisp-logo-img" alt="" width="22" height="22" hidden><svg id="krispLogoFallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></span><span class="krisp-integration-label">Krisp integration</span><span class="krisp-integration-caret" aria-hidden="true">&#9662;</span></button>
       <button type="button" id="krispPendingBtn" class="btn-secondary account-btn krisp-pending-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="krispInboxPanel" hidden><span class="pill-chip" aria-hidden="true"><svg class="krisp-envelope-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 6.8 5.1a2 2 0 0 0 2.4 0L20 7M4 17l4.5-4M20 17l-4.5-4"/></svg></span><span>Pending transcripts</span><span id="krispInboxBadge" class="krisp-inbox-badge" aria-hidden="true">…</span></button>
-      <button class="btn-secondary account-btn help-btn" id="helpBtn" type="button" aria-label="Start here: open Pathfinder help guide">START HERE · FIRST TIME?</button>
+      <button class="btn-secondary account-btn help-btn" id="helpBtn" type="button" aria-label="New here? Open the Classbuster introduction">New here? Start here</button>
       <button class="btn-secondary account-btn" id="accountBtn" type="button" aria-expanded="false" aria-controls="accountPanel"><span class="pill-chip" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg></span>Account</button>
     </div>
   </div>
@@ -2566,10 +2566,15 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
     </div>
   </div>
 
+  <div class="scout-workspace-entry">
+    <span><strong>Scout</strong> <span>Optional lesson transcription for Windows</span></span>
+    <button type="button" id="scoutWorkspaceBtn" aria-haspopup="dialog"><img class="scout-entry-emblem" src="/assets/icons/scout-compass-48.png" width="26" height="26" alt=""><span>Meet Scout</span><svg class="scout-entry-chevron" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m6 4 4 4-4 4"/></svg></button>
+  </div>
   <div class="grid">
 
     <div>
       <div class="panel">
+        <div class="workspace-settings-scroll" id="workspaceSettingsScroll" role="region" aria-label="Report settings">
         <div class="field">
           <label class="field-label">Official Protocol</label>
           <div class="protocol-select" id="protocolSelect">
@@ -2644,6 +2649,8 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
             <label><input type="radio" name="preplyTrialPerson" value="child"> Child (write to their parent)</label>
           </div>
         </div>
+        </div>
+        <p id="workspaceSettingsHint" class="workspace-settings-hint" aria-hidden="true">Scroll for more settings <span>↕</span></p>
         <div class="field" id="ratingField" style="margin-bottom:0;">
           <label class="field-label">Performance rating</label>
           <div class="rating-track" id="ratingTrack"></div>
@@ -2784,7 +2791,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
   <div class="license-modal help-modal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
     <div class="help-modal-head">
       <div>
-        <p class="license-modal-subtitle"><svg class="guide-brand-mark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 6.5-2 7-7 4 4-7Z"/><path d="M12 1v2M12 21v2M1 12h2M21 12h2"/></svg>Pathfinder · Quick start</p>
+        <p class="license-modal-subtitle">Classbuster · Quick start</p>
         <h2 class="license-modal-title" id="helpModalTitle" tabindex="-1">Your first report in three steps</h2>
       </div>
       <button class="btn-secondary help-modal-close" id="helpModalCloseBtn" type="button" aria-label="Close START HERE guide" title="Close guide"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
@@ -2797,6 +2804,8 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
       <div class="first-guide-step"><span class="first-guide-icon" aria-hidden="true">3</span><div><strong>Create your report</strong><p>Add the student’s name and rating, then generate. Review before sharing.</p></div></div>
     </div>
     <div class="first-guide-actions">
+      <button class="btn-secondary" id="replayOnboardingBtn" type="button">Replay the introduction</button>
+      <button class="btn-secondary" id="helpScoutBtn" type="button">Learn about Scout</button>
       <button class="btn-secondary first-guide-primary" id="firstGuideStart" type="button">Start my first report →</button>
       <button class="btn-secondary first-guide-secondary" id="firstGuideExample" type="button">Try with example notes</button>
     </div>
@@ -2826,7 +2835,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
         <p class="help-mini-copy">Learning-content style output for platform-ready summaries.</p>
       </div>
       <div class="help-mini-card">
-        <p class="help-mini-title">OF / Preply</p>
+        <p class="help-mini-title">Lingo Ace / Preply</p>
         <p class="help-mini-copy">Trial lesson or private-tutor follow-up formats.</p>
       </div>
     </div>
@@ -2861,7 +2870,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
         <span class="help-step-number">1</span>
         <div>
           <p class="help-step-title">Copy your connection link</p>
-          <p class="help-step-copy">Open Krisp integration at the top of Pathfinder. Under Connection setup, press Copy connection link.</p>
+          <p class="help-step-copy">Open Krisp integration at the top of Classbuster. Under Connection setup, press Copy connection link.</p>
         </div>
       </div>
       <div class="help-step">
@@ -2892,13 +2901,13 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
         <span class="help-step-number">4</span>
         <div>
           <p class="help-step-title">Paste your link and choose what Krisp sends</p>
-          <p class="help-step-copy">Name the connection Pathfinder. Paste the whole link you copied into the Webhook URL box. Under Trigger Events, select Transcript created only, then save. Leave the other boxes unticked. Keep your connection link private, like a password.</p>
+          <p class="help-step-copy">Name the connection Classbuster. Paste the whole link you copied into the Webhook URL box. Under Trigger Events, select Transcript created only, then save. Leave the other boxes unticked. Keep your connection link private, like a password.</p>
         </div>
       </div>
       <div class="help-step">
         <span class="help-step-number">5</span>
         <div>
-          <p class="help-step-title">Return to Pathfinder and press ARM KRISP</p>
+          <p class="help-step-title">Return to Classbuster and press ARM KRISP</p>
           <p class="help-step-copy">Finish a lesson in Krisp and wait for its transcript to be ready. The first received transcript confirms the connection. Krisp stays armed for later lessons until you press DISARM KRISP. Copying the link alone does not confirm the connection.</p>
         </div>
       </div>
@@ -6457,10 +6466,13 @@ function renderAccountTrials(trials){
 }
 
 let accountStatusRequestId = 0;
+let onboardingStatusSnapshot = null;
 async function refreshAccountPanel(){
   const requestId = ++accountStatusRequestId;
+  onboardingStatusSnapshot = null;
   const key = getStoredAccessKey();
   if(!key){
+    window.ClassbusterOnboarding?.accountStatus(null);
     updateAccountSnapshot('No access code is saved in this browser yet.', 'Not signed in', 'No code', '-', 'None', false, false);
     renderAccountTrials(null);
     return;
@@ -6477,11 +6489,14 @@ async function refreshAccountPanel(){
     // Never let an older response overwrite the current code's status.
     if(requestId !== accountStatusRequestId || getStoredAccessKey() !== key) return;
     if(!res.ok){
+      window.ClassbusterOnboarding?.accountStatus(null);
       updateAccountSnapshot(data.error || 'This saved access code was not accepted.', 'Needs attention', 'Invalid', '-', maskAccessKey(key), false, false);
       renderAccountTrials(null);
       return;
     }
 
+    onboardingStatusSnapshot = data;
+    window.ClassbusterOnboarding?.accountStatus(data);
     const isPro = data.plan === 'pro' && data.expired !== true;
     currentUserIsFounder = !!data.founder;
   const planLabel = data.founder ? 'Owner Pro' : (data.expired ? 'Expired' : (isPro ? 'Pro' : 'Free'));
@@ -7921,7 +7936,7 @@ function updateHelpButton(completed){
   if(!helpEls.btn)return;
   helpEls.btn.classList.toggle('onboarding-done',completed);
   helpEls.btn.textContent=completed?'Help & guide':'New here? Start here';
-  helpEls.btn.setAttribute('aria-label',completed?'Open Pathfinder help guide':'New here? Open the getting started guide');
+  helpEls.btn.setAttribute('aria-label',completed?'Open Classbuster help guide':'New here? Open the Classbuster introduction');
 }
 let helpCompleted=false;
 try{helpCompleted=localStorage.getItem(HELP_COMPLETED_KEY)==='1';}catch(e){}
@@ -7961,7 +7976,10 @@ document.getElementById('firstGuideStart')?.addEventListener('click',beginFirstR
 document.getElementById('firstGuideExample')?.addEventListener('click',loadFirstReportExample);
 
 if(helpEls.btn){
-  helpEls.btn.addEventListener('click', openHelpModal);
+  helpEls.btn.addEventListener('click', () => {
+    if(window.ClassbusterOnboarding?.openFromHeader()) return;
+    openHelpModal();
+  });
 }
 if(helpEls.closeBtn){
   helpEls.closeBtn.addEventListener('click', closeHelpModal);
@@ -8024,6 +8042,7 @@ if(accountEls.manualCopyBtn){
   });
 }
 
+let accountVerificationInProgress = new URLSearchParams(window.location.search).has('access_token');
 async function completeEmailVerification(){
   const params = new URLSearchParams(window.location.search);
   const token = params.get('access_token');
@@ -8080,7 +8099,7 @@ async function completeEmailVerification(){
   }
 }
 
-completeEmailVerification().then(refreshAccountPanel);
+completeEmailVerification().then(()=>{accountVerificationInProgress=false;refreshAccountPanel();});
 
 function renderCheckoutSuccess(key){
   outputBox.className = key ? 'output-box' : 'output-box error';
@@ -10511,5 +10530,9 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 <script src="assets/scout-release.js" defer></script>
 <script defer src="assets/owner-usage-stats.js?v=1"></script>
 <script src="assets/radar-van-client.js?v=20261021-auto"></script>
+<link rel="stylesheet" href="assets/onboarding.css">
+<link rel="stylesheet" href="assets/workspace-responsive.css">
+<script src="assets/workspace-fit.js" defer></script>
+<script src="assets/onboarding.js" defer></script>
 </body>
 </html>

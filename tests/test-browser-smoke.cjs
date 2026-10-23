@@ -163,7 +163,7 @@ module.exports = async function run(){
     check('seven protocols form a balanced 2-2-2-1 card layout',balanced.columns===2&&balanced.preplyWidth>=balanced.gridWidth-2);
     check('Lingo Ace has a compact visible title',balanced.ofTitle==='Lingo Ace');
     check('report-length armory retains three native radio tiles',armory.lengthTiles===3&&armory.lengthDisplay==='grid');
-    check('amber onboarding entry is clearly labeled',armory.helpLabel==='New here? Start here');
+    check('newcomer onboarding entry is clearly labeled',armory.helpLabel==='New here? Start here');
     const onboarding=await page.evaluate(async()=>{
       localStorage.removeItem(HELP_COMPLETED_KEY);
       updateHelpButton(false);
@@ -177,7 +177,7 @@ module.exports = async function run(){
       localStorage.removeItem(HELP_COMPLETED_KEY);updateHelpButton(false);
       return {dismissed,completed,accessible};
     });
-    check('guide dismissal preserves newcomer mode; explicit completion saves it and keeps Help available',onboarding.dismissed&&onboarding.completed&&onboarding.accessible);
+    check('legacy guide dismissal and completion keep Help available without account enrollment',onboarding.dismissed&&onboarding.completed&&onboarding.accessible);
     for(const [fitWidth,fitHeight] of [[1400,900],[1280,800],[1280,720],[900,800],[390,844]]){
       await page.setViewport({width:fitWidth,height:fitHeight,deviceScaleFactor:1});
       await page.reload({waitUntil:'domcontentloaded'});
@@ -250,6 +250,7 @@ module.exports = async function run(){
 
   console.log('\n2) Every protocol correctly sets its own body class AND its own button gradient — not just its :has()-driven panel colors');
   console.log('\n1c) Help modal explains the app and closes cleanly');
+  await page.evaluate(()=>{localStorage.setItem(HELP_COMPLETED_KEY,'1');updateHelpButton(true);});
   await page.click('#helpBtn');
   await new Promise(r => setTimeout(r, 80));
   const helpOpen = await page.evaluate(() => {

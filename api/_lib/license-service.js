@@ -21,6 +21,7 @@
 // or in api/generate.js needs to change.
 
 import crypto from 'node:crypto';
+import { ONBOARDING_VERSION } from './onboarding.js';
 import {
   generateLicenseKey, currentUsagePeriod, evaluateEntitlement,
   getLicense, saveLicense, getLicenseKeyByEmail, saveEmailIndex,
@@ -63,6 +64,7 @@ export async function getOrCreateFreeLicense(email){
     status: 'active',
     paymentCustomerId: null,
     paymentSubscriptionId: null,
+    onboardingVersion: ONBOARDING_VERSION,
     createdAt: new Date().toISOString()
   });
   await saveEmailIndex(normalized, licenseKey);
@@ -98,6 +100,7 @@ export async function activateOrRenewPro({ licenseKey, email, paymentCustomerId,
       status: 'active',
       paymentCustomerId: null,
       paymentSubscriptionId: null,
+      onboardingVersion: ONBOARDING_VERSION,
       createdAt: new Date().toISOString()
     };
   }
@@ -178,6 +181,7 @@ export async function createManualProLicense({ email = '', days = 30, note = '' 
     paymentCustomerId: null,
     paymentSubscriptionId: null,
     source: 'manual',
+    onboardingVersion: ONBOARDING_VERSION,
     manual: true,
     note: String(note || '').slice(0, 200),
     durationDays,

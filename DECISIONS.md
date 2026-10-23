@@ -410,3 +410,23 @@ Also did a scoped rebranding pass, distinguishing living documentation from hist
 **Decision:** `api/generate.js` sends `claude-haiku-5-5` with `output_config.effort = "high"` and `max_tokens = 8000`. `ANTHROPIC_MODEL=claude-sonnet-4-6` restores the previous request exactly (3000 tokens, no output_config); any other value falls back to Haiku.
 **Reason:** Owner decision after the three-model benchmark (126 reports plus Haiku tuning runs): Haiku 5.5 delivered 42/42 with every first draft structurally compliant at effort high, at about $0.002 per report versus $0.021 for Sonnet 4.6. Haiku's thinking counts toward max_tokens; at 3000 it was cut off 3 of 7 times. Educational accuracy still requires teacher review of the blinded packets before release; production (`kidbuster`) is unchanged.
 **Constitution article:** Article Zero (save teacher time); Trust is the Product.
+
+### 2026-10-23 — Preserve comment editing while height fitting
+**Decision:** Ignore routine text/counter mutations in the desktop fitting observer. Preserve each textarea's own horizontal and vertical scroll position whenever a genuine layout change requires remeasurement. Native caret-following remains responsible for scrolling during typing; never force comments to the beginning or end.
+**Reason:** Keyboard reproduction confirmed that word-counter updates repeatedly removed/reapplied fitted heights, jumping long notes back to the beginning. Browser regressions now type at the end and in the middle of long notes and remarks, check that typing does not refit the workspace, and verify editing position survives resizing. No generation, delivery, account or data-retention behavior changes.
+**Constitution article:** Article Zero; Trust Is the Product.
+
+### 2026-10-23 — Adaptive Classbuster workspace density
+**Decision:** Retain the spacious large-screen workspace, but remove reserved sidebar/format-slot heights on narrow or short viewports. Compact laptop spacing and note placeholders, reflow tablet settings into two columns, and keep a single readable phone flow. Protocol controls, text size, manual textarea resizing, page scrolling and naturally expanding generated reports remain available. The earlier fixed Classic-sized mobile footprint is superseded only at compact breakpoints; large desktops keep their stable baseline.
+**Reason:** The owner reported oversized desktop spacing pushing essential controls below smaller screens. Native responsive layout must accommodate browser viewport, display scaling and zoom without shrinking the entire app or clipping report content. No protocol, account, payment, or transcript-delivery logic changes.
+**Constitution article:** Article Zero; Trust Is the Product.
+
+### 2026-10-23 — Fit both sides of the desktop workspace
+**Decision:** Extend short-window fitting to the notes/output column. Allocate the available height between the two panels, keep Generate and the main output actions outside their scroll regions, and scroll report fields, split-output sections and feedback within the output region. Reuse the original DOM nodes and listeners; restore their exact original order when height fitting is no longer needed. Phones retain normal document flow.
+**Reason:** Anchoring ratings alone still left Output below the browser's bottom edge. Resize regressions now require the output viewport and main Copy/Clear/New Student controls to stay visible too, including with a long report. This changes presentation only, not report generation, delivery, content or retention.
+**Constitution article:** Article Zero; Trust Is the Product.
+
+### 2026-10-23 — Keep desktop ratings inside the visible window
+**Decision:** When the desktop settings exceed the space below the header, fit that panel to the measured available height and keep its original rating controls outside a keyboard-accessible inner settings scroller. Restore unrestricted layout in tall windows and the existing stacked layout on phones/tablets. Recompute after resizing, header/account changes and protocol changes; retain entered values and settings scroll position. Generated reports still expand normally.
+**Reason:** Width-only reflow and reduced spacing did not prevent ratings from falling below the viewport when the browser's bottom edge was dragged upward. Regression checks now assert rating-button vertical visibility during an actual normal-to-narrow-to-short resize sequence, including selected captions and the expanded header controls.
+**Constitution article:** Article Zero; Trust Is the Product.

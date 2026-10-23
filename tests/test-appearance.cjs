@@ -106,6 +106,7 @@ module.exports=async function(){
   await page.evaluate(()=>document.fonts.ready);
   await page.waitForFunction(()=>!document.getElementById('kbLogo').getAnimations().some(a=>a.playState==='running'));
   if(process.env.V2_APPEARANCE_SCREENSHOTS)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-workspace-1440.png'),fullPage:true});
+  await page.evaluate(()=>{localStorage.setItem(HELP_COMPLETED_KEY,'1');updateHelpButton(true);});
   await page.click('#helpBtn');assert.equal(await page.$eval('.help-modal',e=>getComputedStyle(e).backgroundColor),'rgb(255, 255, 255)');
   if(process.env.V2_APPEARANCE_SCREENSHOTS)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-help.png')});
   await page.click('#helpModalCloseBtn');

@@ -75,7 +75,9 @@ module.exports=async function run(){
          teacher:top('teacherName'),student:top('studentName'),signoff:top('signoffEmojiField'),
          visible:getComputedStyle(field('signoffEmojiField')).display!=='none',
          emoji:field('teacherSignoffEmoji').value,
-         fixedFormat:getComputedStyle(field('protocolFormatField')).display!=='none'};
+         fixedFormat:getComputedStyle(field('protocolFormatField')).display!=='none',
+         heightFitted:document.body.classList.contains('workspace-height-fit'),
+         rightFits:document.querySelector('.grid>div:nth-child(2)').scrollWidth<=document.querySelector('.grid>div:nth-child(2)').clientWidth+1};
      }));
    }
    const classic=layouts[0];
@@ -87,8 +89,8 @@ module.exports=async function run(){
      ['teacher','signoff','student'].every(key=>classic[key]-ofLayout[key]>=40));
    check('all seven retain visible teacher emoji selection',layouts.every(v=>v.visible&&v.emoji==='🦊'));
    check('Beida substitutes informative native fixed-format slot',layouts.find(x=>x.protocol==='BEIDA').fixedFormat);
-   check('desktop right-side workspace preserves Classic height in all seven modes, including Beida',
-     layouts.every(v=>Math.abs(v.rightHeight-classic.rightHeight)<=1));
+   check('right-side workspace stays unclipped and keeps the Classic baseline outside height-fit mode',
+     layouts.every(v=>v.rightFits&&(v.heightFitted||Math.abs(v.rightHeight-classic.rightHeight)<=1)));
    await page.setViewport({width:390,height:844});
    const mobileHeights=[];
    for(const protocol of modes){
@@ -99,15 +101,15 @@ module.exports=async function run(){
        hasOverflow:document.documentElement.scrollWidth>innerWidth+1
      })));
    }
-   check('all seven retain a stable mobile sidebar and visible emoji control without horizontal overflow',
-     mobileHeights.every(v=>Math.abs(v.height-mobileHeights[0].height)<=1&&v.visible&&!v.hasOverflow));
+   check('all seven use natural compact mobile height with visible emoji control and no horizontal overflow',
+     mobileHeights.every(v=>v.height<931&&v.visible&&!v.hasOverflow));
    await page.select('#preplyModuleSelect','trial');
    const trialLayout=await page.evaluate(()=>({
      visible:document.getElementById('preplyTrialPersonField').style.display!=='none',
      height:document.querySelector('.grid>div:first-child>.panel').getBoundingClientRect().height
    }));
-   check('Preply trial-specific audience choice stays available without stretching Classic mobile footprint',
-     trialLayout.visible&&trialLayout.height<=mobileHeights[0].height+1);
+   check('Preply trial audience stays available and can expand the natural compact layout',
+     trialLayout.visible&&trialLayout.height<931);
    check('page loads and switches without JavaScript crashes',errors.length===0);
    if(errors.length)console.log(errors);
    await page.click('input[name="protocol"][value="OF"]');
