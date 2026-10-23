@@ -98,4 +98,19 @@
   body.workspace-height-fit .workspace-settings-hint{display:flex;justify-content:center;align-items:center;gap:8px;flex:none;margin:0;font-size:12px;line-height:1.4;color:var(--text-dim)}
   body.workspace-height-fit #ratingCaption{max-height:90px;overflow-y:auto;scrollbar-width:thin;overscroll-behavior:contain}
   body.workspace-height-fit .workspace-settings-scroll .info-icon::after{position:fixed;left:auto;right:16px;bottom:16px;width:min(360px,calc(100vw - 32px));max-width:none}
+  body.workspace-height-fit .grid>div:nth-child(2){display:grid;height:var(--workspace-fit-height);min-height:0;grid-template-rows:minmax(0,1.1fr) minmax(0,1fr);gap:14px}
+  body.workspace-height-fit .grid>div:nth-child(2)>.panel{display:flex;flex-direction:column;min-height:0;margin:0;overflow:visible}
+  body.workspace-height-fit .workspace-content-scroll{flex:1 1 0;min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;scroll-padding:8px;overscroll-behavior:contain;padding-right:5px}
+  body.workspace-height-fit #generateBtn{flex:none;min-height:44px;margin-top:10px}
+  body.workspace-height-fit #krispNotes{height:clamp(60px,11dvh,100px);min-height:60px}
+  body.workspace-height-fit .generate-summary{position:absolute;top:0;right:0;max-width:70%;margin:0;text-align:right}
+  body.workspace-height-fit #actionRow{flex:none;margin-top:10px;gap:8px}
+  body.workspace-height-fit #actionRow>button{min-height:44px}
+  body.workspace-height-fit #workspaceOutputScroll .output-box{min-height:100px}
+  body.workspace-height-fit #workspaceOutputScroll .output-box.empty{min-height:90px}
+  body.workspace-height-fit #workspaceOutputScroll .small-note{margin-bottom:0}
+  body.workspace-height-fit .grid>div:nth-child(2)>.panel>.of-output-heading{flex:none;margin-bottom:8px}
+}
+@media(min-width:861px) and (max-height:700px){
+  body.workspace-height-fit #workspaceNotesScroll .field-hint{display:none}
 }

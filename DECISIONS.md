@@ -416,6 +416,11 @@ Also did a scoped rebranding pass, distinguishing living documentation from hist
 **Reason:** The owner reported oversized desktop spacing pushing essential controls below smaller screens. Native responsive layout must accommodate browser viewport, display scaling and zoom without shrinking the entire app or clipping report content. No protocol, account, payment, or transcript-delivery logic changes.
 **Constitution article:** Article Zero; Trust Is the Product.
 
+### 2026-10-23 — Fit both sides of the desktop workspace
+**Decision:** Extend short-window fitting to the notes/output column. Allocate the available height between the two panels, keep Generate and the main output actions outside their scroll regions, and scroll report fields, split-output sections and feedback within the output region. Reuse the original DOM nodes and listeners; restore their exact original order when height fitting is no longer needed. Phones retain normal document flow.
+**Reason:** Anchoring ratings alone still left Output below the browser's bottom edge. Resize regressions now require the output viewport and main Copy/Clear/New Student controls to stay visible too, including with a long report. This changes presentation only, not report generation, delivery, content or retention.
+**Constitution article:** Article Zero; Trust Is the Product.
+
 ### 2026-10-23 — Keep desktop ratings inside the visible window
 **Decision:** When the desktop settings exceed the space below the header, fit that panel to the measured available height and keep its original rating controls outside a keyboard-accessible inner settings scroller. Restore unrestricted layout in tall windows and the existing stacked layout on phones/tablets. Recompute after resizing, header/account changes and protocol changes; retain entered values and settings scroll position. Generated reports still expand normally.
 **Reason:** Width-only reflow and reduced spacing did not prevent ratings from falling below the viewport when the browser's bottom edge was dragged upward. Regression checks now assert rating-button vertical visibility during an actual normal-to-narrow-to-short resize sequence, including selected captions and the expanded header controls.

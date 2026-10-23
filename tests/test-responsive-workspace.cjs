@@ -38,6 +38,8 @@ module.exports=async function(){
       sidebarMin:getComputedStyle(document.querySelector('.grid>div:first-child>.panel')).minHeight,
       columns:getComputedStyle(document.querySelector('.grid')).gridTemplateColumns.split(' ').length,
       ratingFits:[...document.querySelectorAll('#ratingTrack button')].filter(visible).every(e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight-8;}),
+      fitted:document.body.classList.contains('workspace-height-fit'),
+      outputFits:['outputLabel','actionRow','copyBtn','clearBtn','newStudentBtn','workspaceOutputScroll'].every(id=>{const e=document.getElementById(id);if(!e)return false;const r=e.getBoundingClientRect();return r.height>0&&r.top>=0&&r.bottom<=innerHeight-8;}),
       notes:rect('krispNotes').height,generate:rect('generateBtn').bottom,
       scale:getComputedStyle(document.body).zoom,transform:getComputedStyle(document.querySelector('.wrap')).transform,
       summary:document.getElementById('generateSummary').scrollWidth<=document.getElementById('generateSummary').clientWidth+1};
@@ -51,6 +53,7 @@ module.exports=async function(){
     if(viewport.width<=1100||viewport.height<=820){assert.equal(layout.sidebarMin,'0px',label+' has no fixed-height sidebar');assert(layout.summary,label+' summary wraps without clipping');}
     if(viewport.width>860&&viewport.height<=820){assert(layout.notes<=187,label+' note area responds to short height');assert(layout.generate<viewport.height,label+' Generate remains above the fold');}
     if(viewport.width>860)assert(layout.ratingFits,label+' every rating button is inside the visible browser height');
+    if(layout.fitted)assert(layout.outputFits,label+' output viewport and its actions are fully inside the visible browser height');
    }
    await page.evaluate(()=>document.querySelector('input[name="protocol"][value="MA"]').click());
    // Include both integration controls without accessing any real account.
@@ -82,13 +85,14 @@ module.exports=async function(){
    const state=await page.evaluate(()=>{
     const ratings=[...document.querySelectorAll('#ratingTrack button')];
     const panel=document.querySelector('.grid>div:first-child>.panel');
-    return {height:panel.getBoundingClientRect().height,fit:ratings.every(e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight-8;}),mode:document.body.classList.contains('workspace-height-fit')};
+    return {height:panel.getBoundingClientRect().height,fit:ratings.every(e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight-8;}),mode:document.body.classList.contains('workspace-height-fit'),outputFits:['outputLabel','actionRow','copyBtn','workspaceOutputScroll'].every(id=>{const e=document.getElementById(id);if(!e)return false;const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight-8;})};
    });
    assert(state.fit,'all ratings remain visible after live resize to '+viewport.width+'x'+viewport.height);
    resizeHeights.push(state.height);
    if(viewport.height===1300)assert(!state.mode,'tall windows retain the unrestricted original layout');
    if(viewport.height===560){
     assert(state.mode,'short windows activate actual height fitting');
+    assert(state.outputFits,'short windows keep Output and Copy inside the viewport as well as ratings');
     await page.evaluate(()=>document.getElementById('teacherName').focus());
     assert(await page.evaluate(()=>{const input=document.getElementById('teacherName').getBoundingClientRect(),settings=document.getElementById('workspaceSettingsScroll').getBoundingClientRect();return input.top>=settings.top&&input.bottom<=settings.bottom;}),'keyboard focus reveals identity controls inside the settings scroller');
     await page.evaluate(()=>document.querySelector('#ratingTrack button:last-child').click());
@@ -102,6 +106,10 @@ module.exports=async function(){
   await page.setViewport({width:1024,height:768});
   const grows=await page.evaluate(()=>{const box=document.getElementById('outputBox');box.className='output-box';box.textContent=('Synthetic report text for responsive testing.\n').repeat(100);return box.getBoundingClientRect().height>1000&&box.scrollHeight<=box.clientHeight+2;});
   assert(grows,'generated reports grow naturally instead of clipping into a fixed-height box');
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  const reportScroll=await page.$eval('#workspaceOutputScroll',e=>{e.scrollTop=e.scrollHeight;return e.scrollHeight>e.clientHeight&&e.scrollTop>0&&e.getBoundingClientRect().bottom<=innerHeight;});
+  assert(reportScroll,'long reports scroll within the visible output viewport');
+  assert(await page.$eval('#copyBtn',e=>e.getBoundingClientRect().bottom<=innerHeight-8),'Copy remains visible while a long report scrolls');
   await page.evaluate(()=>document.getElementById('krispNotes').style.height='360px');
   assert(await page.$eval('#krispNotes',e=>e.getBoundingClientRect().height>=360),'manual note resize remains available');
   assert.deepEqual(errors,[]);assert.deepEqual(writes,[],'layout verification never submits account or generation requests');return 0;
