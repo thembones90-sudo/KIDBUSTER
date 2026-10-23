@@ -81,6 +81,14 @@ module.exports=async function run(){
   check('new visitor sees Start here immediately',await entryPage.$eval('#helpBtn',e=>e.textContent==='New here? Start here'));
   async function hasGoldEntry(page){return page.$eval('#helpBtn',e=>{const button=getComputedStyle(e),icon=getComputedStyle(e,'::before');return button.backgroundImage.includes('rgb(218, 154, 57)')&&button.color==='rgb(40, 25, 4)'&&icon.content.includes('→')&&icon.backgroundColor==='rgb(84, 55, 18)';});}
   check('first-time entry restores gold gradient, dark text and round arrow',await hasGoldEntry(entryPage));
+  check('Scout entry uses its existing compass emblem and internal-navigation chevron',await entryPage.$eval('#scoutWorkspaceBtn',e=>{const img=e.querySelector('img');return img?.complete&&img.naturalWidth>0&&img.getAttribute('alt')===''&&img.src.endsWith('/assets/icons/scout-compass-48.png')&&!!e.querySelector('svg.scout-entry-chevron[aria-hidden="true"]')&&e.textContent==='Meet Scout'&&e.getAttribute('aria-haspopup')==='dialog';}));
+  await entryPage.evaluate(()=>document.documentElement.dataset.appearance='dark');
+  await entryPage.waitForFunction(()=>getComputedStyle(document.querySelector('#scoutWorkspaceBtn')).color==='rgb(237, 241, 245)');
+  check('Scout entry has an independent granite surface and readable light label',await entryPage.$eval('#scoutWorkspaceBtn',e=>{const s=getComputedStyle(e);return s.backgroundImage.includes('rgb(48, 53, 59)')&&s.color==='rgb(237, 241, 245)'&&['flex','inline-flex'].includes(s.display);}));
+  await entryPage.hover('#scoutWorkspaceBtn');
+  await entryPage.waitForFunction(()=>getComputedStyle(document.querySelector('#scoutWorkspaceBtn')).borderTopColor==='rgba(135, 243, 22, 0.44)');
+  check('Scout hover has a restrained green glow',await entryPage.$eval('#scoutWorkspaceBtn',e=>getComputedStyle(e).boxShadow.includes('135, 243, 22')));
+  await entryPage.mouse.move(0,0);
   const writesBeforeDiscovery=writeCount;
   await entryPage.click('#helpBtn');
   check('header opens four-stage onboarding directly, without another menu',await entryPage.$eval('#cbTourTitle',e=>e.textContent==='Welcome to Classbuster')&&await entryPage.$eval('#helpModalOverlay',e=>getComputedStyle(e).display==='none'));
@@ -92,6 +100,7 @@ module.exports=async function run(){
   check('returning Help remains prominent gold instead of granite',await hasGoldEntry(entryPage));
   await entryPage.evaluate(()=>document.documentElement.dataset.appearance='light');
   check('light skin keeps the same gold discovery button',await hasGoldEntry(entryPage));
+  check('light skin gives Scout a defined silver surface and dark label',await entryPage.$eval('#scoutWorkspaceBtn',e=>{const s=getComputedStyle(e);return s.backgroundImage.includes('rgb(237, 240, 243)')&&s.color==='rgb(41, 50, 58)';}));
   await entryPage.reload({waitUntil:'networkidle0'});
   check('visitor Help label persists after reload',await entryPage.$eval('#helpBtn',e=>e.textContent==='Help & guide'));
   await entryPage.evaluate(key=>{localStorage.setItem('kidbuster_access_key',key);return refreshAccountPanel();},legacy);

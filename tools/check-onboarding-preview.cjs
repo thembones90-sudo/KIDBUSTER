@@ -14,6 +14,14 @@ const puppeteer=require('puppeteer');
   await page.setViewport({width:1440,height:1000});
   await page.evaluateOnNewDocument(()=>localStorage.setItem('pathfinder_appearance_v1','dark'));
   await page.goto(url.href,{waitUntil:'networkidle0'});
+  for(const appearance of ['dark','light']){
+   await page.evaluate(value=>document.documentElement.dataset.appearance=value,appearance);
+   await page.waitForFunction(value=>getComputedStyle(document.querySelector('#scoutWorkspaceBtn')).color===(value==='dark'?'rgb(237, 241, 245)':'rgb(41, 50, 58)'),{},appearance);
+   assert(await page.$eval('#scoutWorkspaceBtn',e=>e.querySelector('img')?.naturalWidth>0&&!!e.querySelector('.scout-entry-chevron')&&e.textContent==='Meet Scout'));
+   await page.$eval('#scoutWorkspaceBtn',e=>e.scrollIntoView({block:'center'}));
+   await page.screenshot({path:path.join(shots,'scout-entry-'+appearance+'.png')});
+  }
+  await page.evaluate(()=>document.documentElement.dataset.appearance='dark');
   assert(await page.$eval('#cbOnboardingOverlay',e=>e.hidden),'No pre-registration onboarding');
   for(const {width,height} of [{width:1440,height:900},{width:390,height:640},{width:320,height:568}]){
    await page.setViewport({width,height});

@@ -7,7 +7,14 @@ html[data-appearance] .header-actions>button#helpBtn:hover{background:linear-gra
 html[data-appearance] .header-actions>button#helpBtn:focus-visible{outline:2px solid #ffd58a;outline-offset:4px}
 .cb-onboarding-sync{font:400 13px/1.5 var(--font-body);color:var(--muted,#aab6ac);margin:0 4px 16px}
 .cb-onboarding-sync[hidden]{display:none}
-.scout-workspace-entry button{flex-shrink:0;border:1px solid #73866866;border-radius:99px;background:transparent;color:var(--text,#edf3eb);padding:9px 16px;min-height:44px;font:600 14px var(--font-body);cursor:pointer}
+.scout-workspace-entry #scoutWorkspaceBtn{display:inline-flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0;border:1px solid #4b535b;border-radius:99px;background:linear-gradient(145deg,#30353b,#24282e);color:#edf1f5;padding:9px 16px 9px 12px;min-height:46px;font:600 14px var(--font-body);cursor:pointer;box-shadow:inset 0 1px #ffffff0c,0 3px 10px #0002;transition:background .18s,border-color .18s,box-shadow .18s}
+.scout-workspace-entry #scoutWorkspaceBtn:hover{background:linear-gradient(145deg,#383f43,#2a3033);border-color:#87f31670;box-shadow:inset 0 1px #ffffff10,0 0 15px -5px #87f31640}
+.scout-entry-emblem{display:block;width:26px;height:26px;object-fit:contain;flex-shrink:0}
+.scout-entry-chevron{display:block;width:16px;height:16px;margin-left:2px;fill:none;stroke:#aeb8b0;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+html[data-appearance="light"] .scout-workspace-entry #scoutWorkspaceBtn{background:linear-gradient(145deg,#fff,#edf0f3);border-color:#b9c2c9;color:#29323a;box-shadow:inset 0 1px #fff,0 3px 10px #17212b0a}
+html[data-appearance="light"] .scout-workspace-entry #scoutWorkspaceBtn:hover{background:linear-gradient(145deg,#fff,#eef4e9);border-color:#65953d;box-shadow:inset 0 1px #fff,0 0 14px -5px #65a32d30}
+html[data-appearance="light"] .scout-entry-chevron{stroke:#59685b}
+@media(prefers-reduced-motion:reduce){.scout-workspace-entry #scoutWorkspaceBtn{transition:none}}
 .cb-tour-overlay[hidden]{display:none!important}
 .cb-tour-overlay{position:fixed;inset:0;z-index:12000;background:#0c0e12ba;backdrop-filter:blur(12px) saturate(.65);display:flex;align-items:center;justify-content:center;padding:24px;overflow:auto;box-sizing:border-box}
 .cb-tour{--cb-muted:#bcc1c9;--cb-text:#f2f4f7;--cb-border:#484e58;--cb-green:#87f316;--cb-green-label:#adf564;box-sizing:border-box;position:relative;width:min(100%,704px);max-height:calc(100dvh - 48px);overflow:auto;scrollbar-width:thin;scrollbar-color:#58606b transparent;padding:30px 36px 28px;border:1px solid var(--cb-border);border-radius:24px;background:linear-gradient(145deg,#32363d 0%,#292d33 45%,#23262c 100%);color:var(--cb-text);box-shadow:0 32px 100px #0008,0 8px 28px #0005,inset 0 1px #ffffff12;font:400 16px/1.6 var(--font-body,system-ui);animation:cb-tour-in .22s ease-out}
