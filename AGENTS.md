@@ -1,38 +1,55 @@
-# Pathfinder V2 — Instructions for Coding Agents
+# Classbuster — Instructions for Coding Agents
 
-You are working on the **development clone**, not the official Pathfinder deployment.
+Updated 2026-10-24. Read this first. Several agents (Claude, Codex, others) work on these
+projects at the same time: before changing anything, check `git status`, `git log` and the
+newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
-## Release line (2026-10-23) — read first
-The product is **Classbuster** (`https://classbuster.com`, Vercel project `kidbuster`). Production serves paying customers.
-- **All work branches from the protected line** `feature/classbuster-scout-owner-restore-20261022` (or a verified descendant). Onboarding work continues on `integration/classbuster-onboarding-protected-20261023`, not on the older `codex/classbuster-first-time-onboarding`.
-- **Never deploy `main`, `pathfinder-v2` before fast-forwarding, release snapshot folders, or any branch that is not a descendant of the protected line.** Older branches lack Scout, owner statistics, the Krisp self-heal and the authentication protections, and would silently remove them from production.
-- `scripts/verify-release-integrity.cjs` is the build command. Never bypass, weaken or edit it to make a release pass; fix the release instead.
-- Follow `RELEASE-CHECKLIST.md`. Promotion to production needs the owner's explicit authorization.
-- **Keep `kidbuster.vercel.app` serving without a redirect.** Lemon Squeezy webhooks, Krisp webhook links and installed Scout clients still use it.
-- Customer-record key prefixes (`license:`, `email:`, `paymentCustomer:`, `usage:`, `krisp:…`, `stats:v1:` and others in the gate) must never be renamed.
+## What is live
+- **Classbuster web app**: https://classbuster.com (Vercel project `kidbuster`,
+  `prj_HmRSSnwgkegIGaDnoX0txcKGVwai`). Live code: `A:\CLASSBUSTER-LEGACY-LIVE-RELEASE-20261023`,
+  branch `release/classbuster-legacy-safe-20261023` (GitHub `thembones90-sudo/KIDBUSTER`).
+  `A:\PATHFINDER V2` is an older, dirty working copy: do not deploy from it.
+- **Old address** https://kidbuster.vercel.app is a forwarding door to classbuster.com
+  (`assets/legacy-forward.js`). Its `/api/*` routes MUST keep answering: older Krisp webhook
+  links and older Scout installs still post there. Never add a server redirect for it or `/api`.
+- **Lemon Squeezy** webhook: `https://classbuster.com/api/payment-webhook` (store 429633).
+- **Classbuster Scout** (desktop, owner-only pilot): source `A:\RADAR VAN`, private GitHub
+  `thembones90-sudo/classbuster-scout`. Installed in `A:\RADAR VAN\Classbuster Scout\`:
+  `profile\` (permanent: lessons, settings, connection), `versions\<build>\`, `current.txt`.
 
-## Non-negotiable boundaries
-- Work exclusively in `A:\PATHFINDER V2` and its subdirectories. Never write project artifacts to C:.
-- Current Git branch: `pathfinder-v2`. The production branch `main` and the public site `https://kidbuster.vercel.app/` must remain unchanged.
-- **Do not push** the V2 branch until staging is verified isolated. Do not merge, cherry-pick, or deploy to official production without explicit owner approval.
-- Do not read, copy, or reuse production secrets or customer data from any other local project, Vercel environment, or connected service.
-- No live payment actions, Krisp deliveries, emails to real customers, or production datastore modifications.
-- Do not copy `.env.local` from `A:\PATHFINDER OFFLINE` or any other existing project. V2 currently has no environment credentials on purpose.
-- **Public staging (2026-10-16):** project SSO on `pathfinder-v2-staging` is deliberately **disabled** by owner decision so external testers can open the app. Do not re-enable it without a new owner decision; application gates (license, quota, throttle, owner-only admin) are the protection. See `V2-PUBLIC-ACCESS-AND-APP-SECURITY.md`.
-- V2 has an isolated (originally SSO-protected) Vercel project `pathfinder-v2-staging` (created 2026-10-12). Persistent staging Redis, Lemon Squeezy test-mode credentials, and approved nonproduction deployment are still missing. An isolated *temporary* Upstash guest DB was used solely for real Redis concurrency checks and expires 2026-10-15 unless claimed. Never connect production credentials.
+## Release process (web)
+1. Change + regression test; `npm test` must pass (all files). Never weaken a test to pass.
+2. Commit, then export the commit with `git archive` into `.v2-tmp\deploy-<sha>` (never deploy a
+   working folder) and add `.vercel\project.json`.
+3. `vercel deploy --prod --skip-domain` (staged candidate; production stays live).
+4. `tools/release/candidate-smoke.mjs <candidate>` plus migration/pairing/monitoring probes.
+5. Promote only with the owner's approval; verify classbuster.com AND kidbuster.vercel.app;
+   record the previous deployment as rollback. Pushing to `main` does not deploy (disabled).
 
-## Architecture/product rules
-- Read **`CODEX-V2-CONTINUATION-2026-10-12.md` first**, then `PATHFINDER-constitution.md`, `V2-DEVELOPMENT.md`, `V2-MASTER-PLAN.md` and `DECISIONS.md` before structural changes. The older `CODEX-V2-HANDOFF-2026-10-12.md` is historical and describes already-fixed bugs.
-- The V2 workstreams include security/reliability, visual design and onboarding, fully automated subscriptions, and consent-based customer acquisition. Preserve a clean distinction between customer marketing pages and the operational report-writing workspace.
-- Preserve all seven protocols, teacher names and sign-offs, official formatting, the nested Generate button `.btn-label`, and protocol color theming via `var(--toxin-rgb)`.
-- Krisp ARM is persistent until explicit DISARM. Never clear the armed state automatically on transcript arrival, workspace reset, or token rotation.
-- Krisp transcript and queue identity is the stable license identity, **not** the rotating webhook token.
-- Every feature change needs regression coverage. Prefer small commits and deterministic tests.
-- Security and reliability have priority over aesthetics and additional features.
-- **RADAR VAN OWNER-ONLY FREEZE (2026-10-19):** RADAR VAN is unfinished and MUST NOT be made available to Free or paying Pro customers, even on public previews. All RADAR VAN browser/session/ingest paths must authorize only server-verified master/Owner Pro keys, including optimized polling and device-token ingress. An enabled feature flag does not grant wider access. No public deployment, sales entitlement, feature rollout, or removal of this restriction without the product owner's separate explicit approval and completed acceptance/security/regression tests. See `V2-RADAR-VAN-OWNER-ONLY-FREEZE-20261019.md`. (RADAR VAN is now named Scout.)
+## Release process (Scout)
+Build + `verify_package.py --cpu` + `tools/phase10f/check_live_controls_frozen.py`, then
+`python -B tools/publish_scout.py --dist <dist> --apply`. The running Scout switches itself when
+idle; rollback: `publish_scout.py --rollback --apply`. Never edit launchers, never copy profiles
+by hand, never start a second Scout while one runs.
 
-## Baseline and release checks
-- Base revision: `441d0c1d63136eb83f4b6b73156fc32fd6f0b8d3`.
-- On 2026-10-12 the new clone passed all 19 test files, including browser smoke, with Node 24.
-- Use local `npm test` for each change. Never count `test-live-smoke.cjs` as a real production smoke result when it reports SKIP.
-- No production release without separate review of security, payment state, Krisp concurrency, privacy, performance, and rollback.
+## Hard rules
+- **Scout is owner-only.** Every Scout browser/session/ingest/download path authorizes only the
+  server-verified master/owner key; an enabled feature flag never grants wider access. No public
+  download, sales entitlement or customer rollout without the owner's separate explicit approval.
+- No production datastore writes except through owner tools; no reading/decrypting production
+  secrets; no emails to real customers; no payments/refunds; no Krisp deliveries in tests.
+- Never delete lesson audio or transcripts; old Scout profiles go to `PRESERVED LESSON DATA`.
+- Grant Pro only on verified identity (manual 30-day keys always carry the customer's email).
+- Preserve all seven protocols, teacher names and sign-offs, official formatting, the nested
+  Generate button `.btn-label`, and protocol color theming via `var(--toxin-rgb)`.
+- Krisp ARM persists until explicit DISARM; Krisp identity is the stable license identity,
+  not the rotating webhook token.
+- Security and reliability before aesthetics; every change needs regression coverage.
+
+## Operations
+- Owner panel → Owner tools → **Recent activity**: 30-day event log (sign-ins, payments, Scout
+  deliveries, failures, alerts). Vercel request logs only keep 1 hour.
+- Daily cron 06:00 UTC (`/api/feedback?task=daily`, `CRON_SECRET`): manual-key expiry alerts.
+- Alerts go to the owner sheet and `OWNER_ALERT_EMAIL` (email needs the mail relay's owner-alert
+  rule, `tools/mail-relay`, deployed in the ASOC Engine Railway project — owner approval needed).
+- Customer continuity report: `CLASSBUSTER-CUSTOMER-CONTINUITY-FINAL.md`.
