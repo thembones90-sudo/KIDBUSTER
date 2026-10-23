@@ -92,6 +92,10 @@ module.exports = async function run(){
     await fails('a protocol disappears from the page', d => edit(d, 'index.html', s => s.replace('name="protocol" value="BEIDA"', 'name="protocol" value="X"')), /protocol BEIDA/);
     await fails('a Scout rewrite is removed', d => edit(d, 'vercel.json', s => s.replace('"/api/radar-van-ingest"', '"/api/other"')), /rewrite \/api\/radar-van-ingest/);
     await fails('the build command stops running the gate', d => edit(d, 'vercel.json', s => s.replace('"node scripts/verify-release-integrity.cjs"', '"echo skip"')), /build command/);
+    const addRedirect = rule => d => edit(d, 'vercel.json', s => { const c = JSON.parse(s); c.redirects = [rule]; return JSON.stringify(c, null, 2); });
+    await fails('the legacy domain is redirected to classbuster.com',
+      addRedirect({ source: '/:path*', has: [{ type: 'host', value: 'kidbuster.vercel.app' }], destination: 'https://classbuster.com/:path*', permanent: true }), /legacy domain/);
+    await fails('API routes are redirected', addRedirect({ source: '/api/:path*', destination: 'https://classbuster.com/api/:path*', permanent: false }), /legacy domain or API/);
     await fails('the function budget is exceeded', d => fs.writeFileSync(path.join(d, 'api/extra-function.js'), 'export default ()=>{}'), /serverless functions/);
     await fails('the Scout download manifest is broken', d => fs.writeFileSync(path.join(d, 'assets/scout-release.json'), '{nope'), /valid JSON/);
   }finally{ fs.rmSync(tmp, { recursive: true, force: true }); }

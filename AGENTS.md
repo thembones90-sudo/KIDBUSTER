@@ -2,6 +2,15 @@
 
 You are working on the **development clone**, not the official Pathfinder deployment.
 
+## Release line (2026-10-23) — read first
+The product is **Classbuster** (`https://classbuster.com`, Vercel project `kidbuster`). Production serves paying customers.
+- **All work branches from the protected line** `feature/classbuster-scout-owner-restore-20261022` (or a verified descendant). Onboarding work continues on `integration/classbuster-onboarding-protected-20261023`, not on the older `codex/classbuster-first-time-onboarding`.
+- **Never deploy `main`, `pathfinder-v2` before fast-forwarding, release snapshot folders, or any branch that is not a descendant of the protected line.** Older branches lack Scout, owner statistics, the Krisp self-heal and the authentication protections, and would silently remove them from production.
+- `scripts/verify-release-integrity.cjs` is the build command. Never bypass, weaken or edit it to make a release pass; fix the release instead.
+- Follow `RELEASE-CHECKLIST.md`. Promotion to production needs the owner's explicit authorization.
+- **Keep `kidbuster.vercel.app` serving without a redirect.** Lemon Squeezy webhooks, Krisp webhook links and installed Scout clients still use it.
+- Customer-record key prefixes (`license:`, `email:`, `paymentCustomer:`, `usage:`, `krisp:…`, `stats:v1:` and others in the gate) must never be renamed.
+
 ## Non-negotiable boundaries
 - Work exclusively in `A:\PATHFINDER V2` and its subdirectories. Never write project artifacts to C:.
 - Current Git branch: `pathfinder-v2`. The production branch `main` and the public site `https://kidbuster.vercel.app/` must remain unchanged.
