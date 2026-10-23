@@ -29,11 +29,38 @@ Verification:
   smoke script passed **23/23** through authenticated Vercel CLI transport.
   Deployment protection was not disabled; public Scout download stays unpublished.
 
-Not yet promoted: awaiting the owner's candidate account/plan, report and inbox
-check as required by RELEASE-CHECKLIST.md. Publishing authorization was explicitly
-received. Record current production again before promotion; last observed rollback
-was `dpl_ADN6X9RxoLMPm5pUHu2Kq3ApMbu6` (ef51c8c). Post-promotion smoke and
-CSS verification on both classbuster.com and kidbuster.vercel.app remain required.
+## Published after authenticated verification
+
+The owner signed in to the candidate and explicitly delegated the browser checks.
+The UI showed Owner Pro, Full access forever and Unlimited usage; the owner-only
+Scout section was available. A synthetic Classic report generated successfully,
+Copy became available, and the granite inbox showed separate Krisp/Scout empty
+states. No actual student information or account credential was read or copied.
+The test draft was cleared and the original Long report preference restored.
+The generated Short report raised an existing pronunciation-format validator
+warning; generation rules were not changed as part of this visual release.
+
+Before promotion, production had advanced to `1040ca9` (legacy-domain browser
+forwarding). Preserved it by merging into this branch: release code `30708d5`.
+The inbox, account/backend and import modules were unchanged from the authenticated
+candidate; the added forwarding script explicitly does nothing on candidate hosts
+or classbuster.com. The combined full suite passed **all 107 test files**.
+
+Final candidate: https://kidbuster-cvnxz6l39-thembones90-sudos-projects.vercel.app
+(`dpl_6QbdNPHdyL27nc4DaJNpmvvuoCJx`). Exact CSS hash and all **23/23** candidate
+smoke checks passed. Promoted with the owner's explicit publishing authorization.
+Rollback recorded immediately before promotion: `dpl_aGEEWFi919HN43i5ooguj5zQXfWo`.
+
+Post-promotion: **23/23 public live smoke checks passed on each hostname**,
+classbuster.com and kidbuster.vercel.app. A fresh authenticated Chrome tab on
+classbuster.com loaded stylesheet version `20261023b` and visibly rendered the
+new granite inbox with both source sections. Existing production workspace was
+not altered. The live inbox tab was left open for the owner.
+
+Bounded error-log inspection returned the expected refused unsigned-payment
+probe and two existing Node url.parse deprecation warnings; no new inbox runtime
+failure was identified. This is a short post-release observation, not ongoing
+monitoring or a full product audit.
 
 Local artifacts: `.v2-tmp/inbox-full-tests-clean.log`,
 `.v2-tmp/inbox-screenshots/`, `.v2-tmp/authenticated-smoke.mjs`.
