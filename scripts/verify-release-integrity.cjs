@@ -99,10 +99,13 @@ function checkRelease(root){
   const rv = need('api/_lib/radar-van.js', 'Scout backend');
   need('api/_lib/radar-van-session-handler.js', 'Scout session route');
   need('api/_lib/radar-van-ingest-handler.js', 'Scout device ingest');
+  const privateDownload = need('api/_lib/radar-van-download-handler.js', 'private owner Scout installer');
+  must(privateDownload, /accountEntitlement\(identity\)/, 'Scout installer is missing master-only authorization');
+  must(privateDownload, /issueSignedToken/, 'Scout installer does not mint private signed links');
   need('assets/radar-van-client.js', 'Scout browser client');
   need('assets/scout-integration.css', 'Scout inbox styles');
   const feedback = need('api/feedback.js', 'shared function hosting Scout routes');
-  if(!/radar-van-session-handler\.js/.test(feedback) || !/radar-van-ingest-handler\.js/.test(feedback))
+  if(!/radar-van-session-handler\.js/.test(feedback) || !/radar-van-ingest-handler\.js/.test(feedback) || !/radar-van-download-handler\.js/.test(feedback))
     problems.push('api/feedback.js no longer dispatches the Scout routes');
   if(/configured\s*===\s*undefined\)\s*return\s+true/.test(rv)) problems.push('Scout owner gate fails OPEN when RADAR_VAN_OWNER_SHA256 is unset');
   must(rv, /if\(!configured\)\s*return\s+false/, 'Scout owner gate does not deny a missing fingerprint');
@@ -115,7 +118,8 @@ function checkRelease(root){
   need('assets/owner-usage-stats.css', 'owner usage panel styles');
   const manifest = need('assets/scout-release.json', 'Scout download manifest');
   need('assets/scout-release.js', 'Scout download gate');
-  if(manifest){ try{ JSON.parse(manifest); }catch{ problems.push('assets/scout-release.json is not valid JSON'); } }
+  if(manifest){ try{ if(JSON.parse(manifest).available !== false) problems.push('Public Scout download must remain frozen'); }catch{ problems.push('assets/scout-release.json is not valid JSON'); } }
+  if(html && !html.includes('id="radarVanDownloadBtn"')) problems.push('Owner Scout download button is missing');
   for(const asset of ['assets/radar-van-client.js', 'assets/scout-integration.css', 'assets/owner-usage-stats.js', 'assets/owner-usage-stats.css', 'assets/scout-release.js'])
     if(html && !html.includes(asset)) problems.push('index.html does not load ' + asset);
 
@@ -123,7 +127,7 @@ function checkRelease(root){
   let config = {};
   try{ config = JSON.parse(read('vercel.json') || '{}'); }catch{ problems.push('vercel.json is not valid JSON'); }
   const rewrites = Array.isArray(config.rewrites) ? config.rewrites : [];
-  for(const [source, destination] of [['/api/radar-van-ingest', '/api/feedback?radar=ingest'], ['/api/radar-van-session', '/api/feedback?radar=session']])
+  for(const [source, destination] of [['/api/radar-van-ingest', '/api/feedback?radar=ingest'], ['/api/radar-van-session', '/api/feedback?radar=session'], ['/api/radar-van-download', '/api/feedback?radar=download']])
     if(!rewrites.some(r => r.source === source && r.destination === destination)) problems.push('vercel.json is missing the rewrite ' + source);
   // The gate runs in the install step: a build command would make Vercel demand
   // a 'public' output directory and stop serving the project root as before.

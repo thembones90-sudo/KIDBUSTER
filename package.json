@@ -14,6 +14,7 @@
     "dev:v2:alias": "node tools/v2-owner-alias-bridge.cjs"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.2",
     "@vercel/kv": "^2.0.0"
   },
   "devDependencies": {

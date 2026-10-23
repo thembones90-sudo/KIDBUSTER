@@ -396,6 +396,38 @@
 
   document.addEventListener('kidbuster:access-key-saved', resetForAccount);
   document.addEventListener('kidbuster:workspace-reset', pollSoon);
+  // Owner-only installer: a fresh, five-minute private Blob URL is minted
+  // only after the same server-side master fingerprint check as Scout itself.
+  // Never expose this via the public scout-release.json manifest.
+  var downloadButton = $('DownloadBtn');
+  if (downloadButton) downloadButton.addEventListener('click', async function(){
+    var key = savedKey(), status = $('DownloadStatus');
+    if (!key || section.hidden) return;
+    downloadButton.disabled = true;
+    if (status) status.textContent = 'Preparing your private Scout download…';
+    try {
+      var res = await fetch('/api/radar-van-download', {
+        method: 'GET', headers: { 'x-app-key': key }, cache: 'no-store'
+      });
+      var data = await res.json().catch(function(){ return {}; });
+      if (key !== savedKey()) return;
+      if (!res.ok || !data.downloadUrl) throw new Error(
+        res.status === 403 ? 'Scout is restricted to the master account.' : 'Private download is temporarily unavailable.'
+      );
+      var url = new URL(data.downloadUrl);
+      if (url.protocol !== 'https:' || !/^[a-z0-9]+\.private\.blob\.vercel-storage\.com$/i.test(url.hostname) ||
+          url.pathname !== '/releases/Classbuster-Scout-10ZT-Windows.zip' || url.username || url.password) {
+        throw new Error('The private download URL is invalid.');
+      }
+      if (status) status.textContent = 'Your 10ZT download is starting. Extract the ZIP before running RadarVan.exe.';
+      window.location.assign(url.href);
+    } catch(err) {
+      if (status) status.textContent = err.message || 'Could not start the Scout download.';
+    } finally {
+      downloadButton.disabled = false;
+    }
+  });
+
   // "disabled" (feature off / account not entitled) stays until the account changes or the page reloads.
   document.addEventListener('visibilitychange', function(){ if(document.hidden) stopPolling(); else if(savedKey() && !state.disabled){ Object.keys(state.retry).forEach(function(id){ state.retry[id].n = 0; }); poll(); } });
   document.getElementById('accountBtn')?.addEventListener('click', function(){ if(savedKey() && !state.disabled) pollSoon(); });

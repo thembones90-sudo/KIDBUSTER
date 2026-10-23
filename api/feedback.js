@@ -36,7 +36,7 @@ function radarRouteOf(req) {
   if (value === undefined && req.query === undefined) {
     try { value = new URL(req.url || '/', 'http://x').searchParams.get('radar'); } catch (_err) { value = null; }
   }
-  return value === 'ingest' || value === 'session' ? value : null;
+  return value === 'ingest' || value === 'session' || value === 'download' ? value : null;
 }
 
 async function radarDispatch(route, req, res) {
@@ -47,7 +47,9 @@ async function radarDispatch(route, req, res) {
   try {
     const module = route === 'ingest'
       ? await import('./_lib/radar-van-ingest-handler.js')
-      : await import('./_lib/radar-van-session-handler.js');
+      : route === 'download'
+        ? await import('./_lib/radar-van-download-handler.js')
+        : await import('./_lib/radar-van-session-handler.js');
     return await module.default(req, res);
   } catch (err) {
     console.error('radar-van dispatch failed:', (err && err.name) || 'error');

@@ -18,6 +18,10 @@
       "destination": "/api/feedback?radar=session"
     },
     {
+      "source": "/api/radar-van-download",
+      "destination": "/api/feedback?radar=download"
+    },
+    {
       "source": "/api/radar-van-ingest",
       "destination": "/api/feedback?radar=ingest"
     },
