@@ -2540,6 +2540,15 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
       </div>
       <div class="account-owner-result" id="resetClaimResult" style="display:none;"></div>
       <hr class="help-divider">
+      <p class="account-trials-title">Link a recovery email to a paid key</p>
+      <p class="account-summary">If a paying customer's recovery link keeps opening a Free account, paste their paid key and their email. Their email will then sign in to that paid key. Nothing else about the key changes.</p>
+      <div class="license-modal-inline">
+        <input type="text" id="linkEmailKeyField" placeholder="kb_live_... (paid key)" autocomplete="off">
+        <input type="email" id="linkEmailField" placeholder="customer@example.com" autocomplete="off">
+        <button class="btn-secondary" id="linkEmailBtn" type="button">Link</button>
+      </div>
+      <div class="account-owner-result" id="linkEmailResult" style="display:none;"></div>
+      <hr class="help-divider">
       <p class="account-trials-title">September 11 inventory replacement</p>
       <p class="account-summary">Paste the 20 old codes below. Preview first. Only expired manual codes issued September 11 are retired; renewed and active customer accounts are protected. Your master key is never changed.</p>
       <textarea id="retireBatchKeys" rows="5" spellcheck="false" placeholder="Paste the old 20 codes, one per line"></textarea>
@@ -6680,6 +6689,36 @@ async function resetLicenseClaim(licenseKey){
     resultEl.textContent = 'Could not reach the server. Try again.';
   }
 }
+
+async function linkRecoveryEmail(){
+  var ownerKey = getStoredAccessKey();
+  var keyField = document.getElementById('linkEmailKeyField');
+  var emailField = document.getElementById('linkEmailField');
+  var resultEl = document.getElementById('linkEmailResult');
+  if(!ownerKey || !keyField || !emailField || !resultEl) return;
+  var licenseKey = keyField.value.trim(), email = emailField.value.trim();
+  resultEl.style.display = 'block';
+  if(!licenseKey || !email){ resultEl.textContent = 'Enter both the paid key and the customer\u2019s email.'; return; }
+  resultEl.textContent = 'Linking...';
+  try{
+    var res = await fetch('/api/admin-license-lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-app-key': ownerKey },
+      body: JSON.stringify({ licenseKey: licenseKey, email: email, action: 'link-email' })
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if(!res.ok || !data.linked){
+      resultEl.textContent = (data && data.error) || 'Could not link this email.';
+      return;
+    }
+    resultEl.textContent = data.unchanged
+      ? 'Already linked \u2014 this email signs in to that paid key.'
+      : 'Linked \u2014 the next recovery link for this email opens the paid key (' + ((data.license && data.license.plan) || 'pro') + ').';
+  }catch(e){
+    resultEl.textContent = 'Could not reach the server. Try again.';
+  }
+}
+document.getElementById('linkEmailBtn')?.addEventListener('click', linkRecoveryEmail);
 
 function capitalizeStudentNameFirstLetter(){
   var field = document.getElementById('studentName');

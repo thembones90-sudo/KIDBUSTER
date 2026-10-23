@@ -187,8 +187,18 @@ export async function createManualProLicense({ email = '', days = 30, note = '' 
     expiresAt
   });
 
+  // Never steal a paying subscriber's recovery email: if the email already
+  // points to a live provider subscription, the manual key is created but the
+  // email keeps signing into the subscription account.
+  let emailLinked = false;
   if(normalizedEmail){
-    await saveEmailIndex(normalizedEmail, licenseKey);
+    const currentKey = await getLicenseKeyByEmail(normalizedEmail);
+    const current = currentKey && currentKey !== licenseKey ? effectiveSubscriptionLicense(await getLicense(currentKey)) : null;
+    const liveSubscription = !!current && current.plan === 'pro' && (!!current.paymentSubscriptionId || current.source === 'subscription');
+    if(!liveSubscription){
+      await saveEmailIndex(normalizedEmail, licenseKey);
+      emailLinked = true;
+    }
   }
 
   await notifyAccessEvent({
@@ -198,11 +208,12 @@ export async function createManualProLicense({ email = '', days = 30, note = '' 
     licenseKey,
     details: [
       'Activation: pending; 30-day clock starts at first use',
-      note ? 'Note: ' + String(note || '').slice(0, 200) : ''
+      note ? 'Note: ' + String(note || '').slice(0, 200) : '',
+      normalizedEmail && !emailLinked ? 'Email NOT linked: it belongs to a live subscription account' : ''
     ]
   });
 
-  return { licenseKey, expiresAt, days: durationDays };
+  return { licenseKey, expiresAt, days: durationDays, emailLinked };
 }
 
 /**
@@ -277,6 +288,45 @@ async function notifyManualLicenseClaim({ licenseKey, license, installationId })
  * @param {string} licenseKey
  * @returns {Promise<{ok: boolean, reason: string|null, license: object|null}>}
  */
+// A license counts as paid (or owner-issued) when it must never lose its email
+// link to another account: Pro, a provider subscription, or a manual key.
+function isPaidOrIssuedLicense(license){
+  return !!license && (license.plan === 'pro' || !!license.paymentCustomerId || !!license.paymentSubscriptionId || license.manual === true);
+}
+
+/**
+ * Owner-only repair: make email recovery return an existing PAID license.
+ * Needed when a paid key (e.g. a manual key issued without an email) is not
+ * the license the customer's email points to, so every recovery link signs
+ * them into a separate Free account. Only the email index is written: the paid
+ * license record itself (key, Krisp identity, expiry, usage, device claim,
+ * subscription ids) is never rewritten. The index may move away from an
+ * auto-created Free account, never from another paid or issued license.
+ * @returns {Promise<{ok:boolean, reason?:string, previousKey?:string|null, unchanged?:boolean, license?:object|null}>}
+ */
+export async function linkRecoveryEmailToLicense(licenseKey, email){
+  const normalized = normalizeEmail(email || '');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) return { ok: false, reason: 'invalid_email', license: null };
+  const license = await getLicense(licenseKey);
+  if(!license) return { ok: false, reason: 'invalid_key', license: null };
+  if(license.plan !== 'pro') return { ok: false, reason: 'not_paid', license };
+  const previousKey = await getLicenseKeyByEmail(normalized);
+  if(previousKey === licenseKey) return { ok: true, unchanged: true, previousKey, license };
+  if(previousKey){
+    const previous = await getLicense(previousKey);
+    if(isPaidOrIssuedLicense(previous)) return { ok: false, reason: 'email_owned_by_paid_account', previousKey, license };
+  }
+  await saveEmailIndex(normalized, licenseKey);
+  await notifyAccessEvent({
+    type: 'recovery_email_linked',
+    title: 'Recovery email linked to an existing paid license.',
+    email: normalized,
+    licenseKey,
+    details: [previousKey ? 'Moved from an unpaid Free account (record kept).' : 'Email had no account before.', 'Plan: ' + license.plan + (license.manual ? ' (manual)' : '')]
+  });
+  return { ok: true, previousKey: previousKey || null, license };
+}
+
 export async function resetManualLicenseClaim(licenseKey){
   const license = await getLicense(licenseKey);
   if(!license){

@@ -1,5 +1,5 @@
 import { getLicense, isFounderLicenseKey, isLicenseExpired } from './_lib/licensing.js';
-import { resetManualLicenseClaim, renewManualProLicense } from './_lib/license-service.js';
+import { resetManualLicenseClaim, renewManualProLicense, linkRecoveryEmailToLicense } from './_lib/license-service.js';
 import { applySubscriptionReconciliation } from './_lib/subscription-reconciliation.js';
 import { fetchSubscriptionSnapshot } from './_lib/providers/lemonsqueezy.js';
 
@@ -42,6 +42,13 @@ function publicLicenseStatus(license){
     } : null
   };
 }
+
+const LINK_FAILURE_MESSAGES = {
+  invalid_email: "Enter the customer's email address.",
+  invalid_key: 'That license key was not found.',
+  not_paid: 'Only a paid (Pro) license can be linked to a recovery email.',
+  email_owned_by_paid_account: 'That email already signs in to another paid account. Nothing was changed; review both keys first.'
+};
 
 const RESET_FAILURE_MESSAGES = {
   invalid_key: 'That license key was not found.',
@@ -109,6 +116,22 @@ export default async function handler(req, res){
       }
       return res.status(200).json({
         renewed: true,
+        license: publicLicenseStatus(result.license)
+      });
+    }
+    // 'link-email' makes email recovery return this PAID license (for a
+    // manual key issued without the customer's email). Only the email index
+    // changes; the license record itself is never rewritten.
+    if(action === 'link-email'){
+      const result = await linkRecoveryEmailToLicense(licenseKey, req.body?.email);
+      if(!result.ok){
+        return res.status(result.reason === 'email_owned_by_paid_account' ? 409 : 400).json({
+          error: LINK_FAILURE_MESSAGES[result.reason] || 'Could not link this email.',
+          license: publicLicenseStatus(result.license)
+        });
+      }
+      return res.status(200).json({
+        linked: true, unchanged: !!result.unchanged, movedFromFreeAccount: !!result.previousKey && !result.unchanged,
         license: publicLicenseStatus(result.license)
       });
     }
