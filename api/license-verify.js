@@ -2,6 +2,7 @@ import { consumeVerificationToken } from './_lib/account-verification.js';
 import { getOrCreateFreeLicense } from './_lib/license-service.js';
 import { getLicense, getLicenseKeyByEmail } from './_lib/licensing.js';
 import { notifyAccessEvent } from './_lib/access-notifications.js';
+import { recordEvent } from './_lib/event-log.js';
 import { issueLegacyTransfer, redeemLegacyTransfer } from './_lib/legacy-transfer.js';
 
 export default async function handler(req, res){
@@ -20,6 +21,7 @@ export default async function handler(req, res){
       const record = await redeemLegacyTransfer({ ticket: req.body.ticket, origin: req.headers.origin });
       if(!record) return res.status(400).json({ error: 'This transfer link is invalid, expired, or has already been used. Use your existing access key or request a new sign-in link.' });
       const license = await getLicense(record.licenseKey);
+      await recordEvent('sign_in', { via: 'old_address_transfer', plan: license?.plan || 'free' });
       return res.status(200).json({ licenseKey: record.licenseKey, installationId: record.installationId, plan: license?.plan || 'free' });
     }
     const record = await consumeVerificationToken(req.body?.token);
@@ -44,6 +46,7 @@ export default async function handler(req, res){
       licenseKey,
       details: ['Source: verified email link']
     });
+    await recordEvent('sign_in', { via: 'email_link', intent: String(record.intent || ''), plan: license?.plan || 'free' });
     return res.status(200).json({ licenseKey, plan: license?.plan || 'free' });
   }catch(err){
     console.error('license-verify error:', err);

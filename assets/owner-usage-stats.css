@@ -79,3 +79,7 @@
 @media (prefers-reduced-motion: reduce) {
   #accountPanel .owner-usage > summary::after { transition: none; }
 }
+
+.owner-activity-list{list-style:none;margin:8px 0 0;padding:0;max-height:260px;overflow:auto;font-size:12px;line-height:1.5}
+.owner-activity-list li{padding:3px 0;border-bottom:1px solid #ffffff14}
+.owner-activity-list .owner-activity-bad{color:#ff9b8a;font-weight:600}

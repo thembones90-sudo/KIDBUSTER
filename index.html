@@ -2540,7 +2540,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
       <p class="account-trials-title">Owner code tools</p>
       <p class="account-summary">Create a 30-day Pro access code for someone who paid you personally.</p>
       <div class="license-modal-inline">
-        <input type="email" id="manualLicenseEmail" placeholder="buyer@email.com (optional)" aria-label="Buyer email for 30-day access code">
+        <input type="email" id="manualLicenseEmail" placeholder="customer@email.com (required)" aria-label="Customer email for 30-day access code (required)" required>
         <button class="btn-secondary" id="manualLicenseBtn" type="button">Create 30-day code</button>
       </div>
       <div class="account-owner-result" id="manualLicenseResult" style="display:none;"></div>
@@ -10677,6 +10677,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 </style>
 <script src="assets/scout-release.js" defer></script>
 <script defer src="assets/owner-usage-stats.js?v=1"></script>
+<script defer src="assets/owner-activity.js?v=1"></script>
 <script src="assets/radar-van-client.js?v=20261021-auto"></script>
 </body>
 </html>

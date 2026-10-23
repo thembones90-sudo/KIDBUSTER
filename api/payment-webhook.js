@@ -8,6 +8,8 @@ import {
 } from './_lib/subscription-lifecycle.js';
 import { hasProcessedWebhook, markWebhookProcessed } from './_lib/licensing.js';
 import { acquirePaymentLock, releasePaymentLock } from './_lib/kv-client.js';
+import { recordEvent } from './_lib/event-log.js';
+import { alertOwner } from './_lib/owner-alerts.js';
 
 export const config = { api: { bodyParser: false } };
 export const MAX_WEBHOOK_BYTES = 256 * 1024;
@@ -90,9 +92,15 @@ export default async function handler(req,res){
     // stale; still record it as handled so retries won't repeat work.
     await applySubscriptionEvent({...event,licenseKey});
     await markWebhookProcessed(bodyHash);
+    await recordEvent('payment',{event:String(event.type)});
     return res.status(200).json({received:true});
   }catch(err){
     console.error('payment-webhook: event could not be committed:',err.message);
+    // A correctly SIGNED payment event failed: the provider retries, but the
+    // owner must know (a paying customer may be waiting for Pro).
+    await recordEvent('payment_failed',{event:String(event.type)});
+    await alertOwner({type:'payment_failed',title:'A payment event could not be processed (provider will retry)',
+      details:['Event: '+String(event.type),'Error: '+String(err&&err.message||'unknown').slice(0,200)],dedupeKey:'payfail:'+bodyHash});
     return res.status(500).json({error:'Webhook not committed; retry delivery'});
   }finally{
     if(held){

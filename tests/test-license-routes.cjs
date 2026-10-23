@@ -206,6 +206,8 @@ module.exports = async function run(){
     });
     check('creating a manual key with a normal key is forbidden', normalUser.statusCode === 403);
 
+    const noEmail = await send(adminCreateLicenseHandler, { headers: { 'x-app-key': 'test_owner_key' }, body: {} });
+    check('a 30-day key cannot be created without the customer email', noEmail.statusCode === 400 && /email/i.test(noEmail.jsonBody.error));
     const created = await send(adminCreateLicenseHandler, {
       headers: { 'x-app-key': 'test_owner_key' },
       body: { email: 'Buyer@Example.com' }

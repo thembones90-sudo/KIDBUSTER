@@ -10,6 +10,7 @@ import {
   serializedBodyBytes, RadarBusyError, RADAR_VAN_MAX_BODY_BYTES, radarRateExceeded, radarRatePeek
 } from './radar-van.js';
 import { getRequestIp } from './account-verification.js';
+import { recordEvent } from './event-log.js';
 
 const BEARER = /^Bearer (rv1_[A-Za-z0-9_-]{43})$/;
 const IDENTITY_RATE = { limit: 60, windowSeconds: 60 };
@@ -70,6 +71,7 @@ export default async function handleRadarIngest(req, res){
     const meetingId = 'rv:' + parsed.lesson.lessonId;
     if(result.revoked) return reply(res, 401, { error: 'Invalid or revoked RADAR VAN token.' });
     if(result.full) return reply(res, 503, { error: 'RADAR VAN inbox is full. Retry later.', reason: 'inbox_full' }, { 'Retry-After': '60' });
+    await recordEvent('scout_delivery', { duplicate: !!result.duplicate });
     return reply(res, result.duplicate ? 200 : 201, { stored: true, duplicate: result.duplicate, matched: result.matched, meetingId });
   }catch(err){
     console.error('radar-van ingest unavailable:', err instanceof RadarBusyError ? 'busy' : (err && err.name) || 'error');

@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "npm install && node scripts/verify-release-integrity.cjs",
+  "crons": [
+    { "path": "/api/feedback?task=daily", "schedule": "0 6 * * *" }
+  ],
   "git": {
     "deploymentEnabled": {
       "pathfinder-v2": false

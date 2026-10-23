@@ -81,6 +81,16 @@ export default async function handler(req, res){
       return res.status(503).json({ error: 'Usage statistics are temporarily unavailable.', reason: 'stats_unavailable' });
     }
   }
+  if(action === 'recent-events'){
+    try{
+      const { readEvents } = await import('./_lib/event-log.js');
+      if(typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json({ events: await readEvents({ days: 7, limit: 300 }) });
+    }catch(err){
+      console.error('admin-license-lookup recent-events error:', err?.message || 'unknown error');
+      return res.status(503).json({ error: 'Activity is temporarily unavailable.' });
+    }
+  }
   if(req.method === 'GET'){
     return res.status(405).json({ error: 'Method not allowed' });
   }

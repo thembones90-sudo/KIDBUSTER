@@ -1,8 +1,9 @@
 import { createManualProLicense } from './_lib/license-service.js';
 import { isFounderLicenseKey, normalizeEmail } from './_lib/licensing.js';
 
+// The customer's email is required: a key issued without one cannot be
+// recovered by email sign-in later (the 2026-10-23 Christopher case).
 function isValidEmail(email){
-  if(!email) return true;
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
@@ -18,7 +19,7 @@ export default async function handler(req, res){
 
   const email = normalizeEmail(req.body?.email || '');
   if(!isValidEmail(email)){
-    return res.status(400).json({ error: 'Please enter a valid buyer email, or leave it blank.' });
+    return res.status(400).json({ error: "Enter the customer's email. Every 30-day key is linked to an email so the customer can always sign back in." });
   }
 
   try{

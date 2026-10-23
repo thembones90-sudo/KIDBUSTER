@@ -134,7 +134,19 @@ async function fetchProviderJsonWithTimeout(url,options,timeoutMs){
 // Abuse guard in front of the whole pipeline: per-key rate + concurrency caps.
 // Requests without a key or with the wrong method fall straight through to the
 // normal 405/401 handling; the guard never changes those responses.
+// Records content-free failure events for the owner (no notes, no report).
 export default async function handler(req, res) {
+  const status = res.status.bind(res);
+  res.status = code => {
+    if(code >= 500) import('./_lib/event-log.js')
+      .then(({ recordEvent }) => recordEvent('generation_failed', { status: code }))
+      .catch(() => {});
+    return status(code);
+  };
+  return generateHandler(req, res);
+}
+
+async function generateHandler(req, res) {
   const licenseKey = req.method === 'POST' ? req.headers['x-app-key'] : '';
   if (!licenseKey) return runGeneration(req, res);
 

@@ -10,6 +10,7 @@
 // items. Lives in this handler (not a new file) to stay within the
 // deployment's serverless function budget.
 
+import crypto from 'node:crypto';
 import { getLicense, isFounderLicenseKey } from './_lib/licensing.js';
 import { FEEDBACK_CATEGORIES, recordFeedback, listFeedback, summarizeFeedback } from './_lib/feedback-store.js';
 
@@ -57,7 +58,36 @@ async function radarDispatch(route, req, res) {
   }
 }
 
+// Vercel cron (vercel.json "crons") calls /api/feedback?task=daily with
+// Authorization: Bearer $CRON_SECRET. Without a configured secret it never runs.
+function taskOf(req) {
+  let value = req.query?.task;
+  if (value === undefined && req.query === undefined) {
+    try { value = new URL(req.url || '/', 'http://x').searchParams.get('task'); } catch (_err) { value = null; }
+  }
+  return value === 'daily' ? value : null;
+}
+
+async function dailyTask(req, res) {
+  res.setHeader?.('Cache-Control', 'no-store');
+  const secret = String(process.env.CRON_SECRET || '');
+  const given = String(req.headers?.authorization || '');
+  const expected = 'Bearer ' + secret;
+  if (secret.length < 16 || given.length !== expected.length ||
+      !crypto.timingSafeEqual(Buffer.from(given), Buffer.from(expected))) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    const { runDailyTasks } = await import('./_lib/daily-tasks.js');
+    return res.status(200).json({ ok: true, ...(await runDailyTasks()) });
+  } catch (err) {
+    console.error('daily task failed:', (err && err.name) || 'error');
+    return res.status(503).json({ error: 'Daily task failed; it runs again tomorrow.' });
+  }
+}
+
 export default async function handler(req, res) {
+  if (taskOf(req)) return dailyTask(req, res);
   const radarRoute = radarRouteOf(req);
   if (radarRoute) return radarDispatch(radarRoute, req, res);
   if (req.method === 'GET') return ownerFeedback(req, res);
