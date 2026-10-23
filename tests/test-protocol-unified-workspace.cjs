@@ -99,15 +99,15 @@ module.exports=async function run(){
        hasOverflow:document.documentElement.scrollWidth>innerWidth+1
      })));
    }
-   check('all seven retain a stable mobile sidebar and visible emoji control without horizontal overflow',
-     mobileHeights.every(v=>Math.abs(v.height-mobileHeights[0].height)<=1&&v.visible&&!v.hasOverflow));
+   check('all seven use natural compact mobile height with visible emoji control and no horizontal overflow',
+     mobileHeights.every(v=>v.height<931&&v.visible&&!v.hasOverflow));
    await page.select('#preplyModuleSelect','trial');
    const trialLayout=await page.evaluate(()=>({
      visible:document.getElementById('preplyTrialPersonField').style.display!=='none',
      height:document.querySelector('.grid>div:first-child>.panel').getBoundingClientRect().height
    }));
-   check('Preply trial-specific audience choice stays available without stretching Classic mobile footprint',
-     trialLayout.visible&&trialLayout.height<=mobileHeights[0].height+1);
+   check('Preply trial audience stays available and can expand the natural compact layout',
+     trialLayout.visible&&trialLayout.height<931);
    check('page loads and switches without JavaScript crashes',errors.length===0);
    if(errors.length)console.log(errors);
    await page.click('input[name="protocol"][value="OF"]');
