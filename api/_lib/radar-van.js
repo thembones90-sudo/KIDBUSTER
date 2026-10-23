@@ -496,11 +496,15 @@ export async function readRadarSession(identity, { lease = false } = {}){
     }
     const visible = pending.items.filter(x => !claimed(x, nowMs))
       .sort((a, b) => Date.parse(b.receivedAt) - Date.parse(a.receivedAt)).map(summary);
+    // Owner-facing pending inbox presents Scout matched + pending records
+    // together. Legacy auto-lease consumers retain the original fields.
+    const inboxPending = [...visible, ...matched.items.map(summary)]
+      .sort((a,b) => Date.parse(b.receivedAt) - Date.parse(a.receivedAt));
     const lastReceivedAt = await kv.get(K.last(identity)).catch(() => null);
     return {
       enabled: true, connected: !!settings.tokenHash, armed: !!settings.tokenHash && (settings.automatic || settings.armed),
       automatic: !!settings.tokenHash && settings.automatic,
-      pending: visible, pendingCount: visible.length, matched: delivered, matchedCount: matched.items.length,
+      pending: visible, pendingCount: visible.length, inboxPending, matched: delivered, matchedCount: matched.items.length,
       waitingCount: pending.items.length + matched.items.length,
       lastReceivedAt: lastReceivedAt || null, retentionDays: RADAR_VAN_RETENTION_DAYS, version
     };
@@ -539,19 +543,31 @@ async function inboxAction(identity, action, meetingId){
     const pending = await readQueue(K.pending(identity), nowMs);
     const matched = await readQueue(K.matched(identity), nowMs);
     if(action === 'claim'){
-      const item = pending.items.find(x => x.meetingId === meetingId);
+      const pendingItem = pending.items.find(x => x.meetingId === meetingId);
+      const matchedItem = matched.items.find(x => x.meetingId === meetingId);
+      const item = pendingItem || matchedItem;
       if(!item) return { missing: true };
-      if(claimed(item, nowMs)) return { conflict: true };
-      item.claimedUntil = nowMs + RADAR_VAN_LEASE_MS;
-      item.claimCount = (item.claimCount || 0) + 1;
-      await writeQueue(K.pending(identity), pending.items, nowMs);
+      if((pendingItem && claimed(item, nowMs)) || (matchedItem && leased(item, nowMs)))
+        return { conflict: true };
+      if(pendingItem){
+        item.claimedUntil = nowMs + RADAR_VAN_LEASE_MS;
+        item.claimCount = (item.claimCount || 0) + 1;
+        await writeQueue(K.pending(identity), pending.items, nowMs);
+      }else{
+        item.leasedUntil = nowMs + RADAR_VAN_LEASE_MS;
+        item.deliveryCount = (item.deliveryCount || 0) + 1;
+        await writeQueue(K.matched(identity), matched.items, nowMs);
+      }
       return { claimed: fullRecord(item) };
     }
     if(action === 'dismiss'){
       const next = pending.items.filter(x => x.meetingId !== meetingId);
-      if(next.length !== pending.items.length) await writeQueue(K.pending(identity), next, nowMs);
-      else if(pending.pruned) await writeQueue(K.pending(identity), next, nowMs);
-      return { dismissed: next.length !== pending.items.length };
+      const nextMatched = matched.items.filter(x => x.meetingId !== meetingId);
+      if(next.length !== pending.items.length || pending.pruned)
+        await writeQueue(K.pending(identity), next, nowMs);
+      if(nextMatched.length !== matched.items.length || matched.pruned)
+        await writeQueue(K.matched(identity), nextMatched, nowMs);
+      return { dismissed: next.length !== pending.items.length || nextMatched.length !== matched.items.length };
     }
     if(action === 'ack-matched'){
       // Finalises a matched delivery or a claimed pending import. An

@@ -109,11 +109,33 @@
   }
 
   function hideToken(){ $('TokenBox').hidden = true; $('TokenField').value = ''; }
+  function announcePending(authorized,count){
+    document.dispatchEvent(new CustomEvent('classbuster:scout-pending',{
+      detail:{authorized:authorized===true,count:authorized?count:0}
+    }));
+  }
+  function showScoutPending(items){
+    var group=document.getElementById('radarVanPendingGroup');
+    var list=document.getElementById('radarVanPendingPopoverList');
+    if(!group||!list) return;
+    group.hidden=false;
+    list.replaceChildren.apply(list,items.map(itemNode));
+    var n=document.getElementById('radarVanPendingPopoverCount');
+    if(n)n.textContent=String(items.length);
+    var status=document.getElementById('radarVanPendingPopoverStatus');
+    if(status)status.textContent=items.length
+      ?items.length+(items.length===1?' Scout transcript awaiting review.':' Scout transcripts awaiting review.')
+      :'No Scout transcripts pending.';
+    announcePending(true,items.length);
+  }
   function hideAll(){
     section.hidden = true; hideToken(); say('');
     workspaceSay('');
     $('List').replaceChildren(); $('Count').textContent = '0';
     document.getElementById('accountBtn')?.removeAttribute('data-radar-pending');
+    var group=document.getElementById('radarVanPendingGroup');
+    if(group){group.hidden=true;document.getElementById('radarVanPendingPopoverList').replaceChildren();}
+    announcePending(false,0);
     state.connected = false; state.armed = false; state.matchedCount = 0;
   }
   function stopPolling(){ clearTimeout(state.timer); state.timer = null; }
@@ -172,14 +194,16 @@
     badge.textContent = !state.connected ? 'Not connected' : 'Connected · automatic';
     $('ConnectBtn').textContent = state.connected ? 'Replace device token' : 'Connect Scout';
     $('DisconnectBtn').hidden = !state.connected;
-    var items = Array.isArray(data.pending) ? data.pending : [];
+    var items = Array.isArray(data.inboxPending) ? data.inboxPending :
+      (Array.isArray(data.pending) ? data.pending : []);
+    showScoutPending(items);
     $('List').replaceChildren.apply($('List'), items.map(itemNode));
     $('Count').textContent = String(items.length);
     $('Empty').hidden = items.length > 0;
     var waiting = $('Waiting');
     waiting.hidden = !state.matchedCount;
     if(state.matchedCount){
-      waiting.textContent = state.matchedCount + (state.matchedCount === 1 ? ' lesson is' : ' lessons are') + ' waiting. ' + (state.connected ? 'Scout imports automatically once your notes and report are empty.' : 'Reconnect Scout to import. Your queued lessons are kept.');
+      waiting.textContent = state.matchedCount + (state.matchedCount === 1 ? ' lesson is' : ' lessons are') + ' waiting. ' + (state.connected ? 'Open Pending transcripts to review Scout lessons.' : 'Reconnect Scout to import. Your queued lessons are kept.');
       workspaceSay(waiting.textContent);
     }
     var accountBtn = document.getElementById('accountBtn');
@@ -193,7 +217,7 @@
     if(!box || !workspaceIdle()) return false;
     box.value = String(record.transcript || '');
     box.dispatchEvent(new Event('input', { bubbles: true }));
-    workspaceSay('Scout transcript added to your lesson notes. Choose your protocol and rating, then Generate feedback.');
+    workspaceSay('Scout transcript added to your lesson notes. Choose a protocol, then Generate feedback.');
     return box.value === String(record.transcript || '');
   }
 
@@ -311,7 +335,7 @@
     try{
       await currentScope();
       if(key !== savedKey()) return;
-      var r = await api('GET', null, workspaceIdle(), sinceVersion());
+      var r = await api('GET', null, false, sinceVersion());
       if(r === null) return;
       if(r.status === 404 || r.status === 403 || r.status === 401){ hideAll(); stopPolling(); state.failures = 0; state.disabled = true; return; }
       if(!r.ok){ state.failures++; if(!section.hidden) say('Scout is temporarily unreachable. Retrying shortly.'); return; }
@@ -319,14 +343,15 @@
       if(r.data.unchanged){ await retryReceipts(); return; }
       // Migrate existing connected Scout accounts once; no token rotation,
       // no Krisp calls, and no extra ARM switch for the teacher.
-      if(r.data.connected && !r.data.automatic){
+      if(false && r.data.connected && !r.data.automatic){
         var automatic = await api('POST', { action: 'enable-automatic' });
         if(automatic === null) return;
         if(!automatic.ok){ state.failures++; workspaceSay('Scout automatic import could not be enabled. Retrying; your lessons are kept.'); return; }
         r = automatic;
       }
       render(r.data);
-      if(r.data.matched) await settleMatched(r.data.matched);
+      // Scout is a separate pending inbox, not a silent notes autofill.
+      // Claim into notes only when the owner explicitly requests it.
       await retryReceipts(); // after settleMatched: a leased, already-imported record must not be re-applied
     }catch(e){
       state.failures++;

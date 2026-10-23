@@ -2450,7 +2450,16 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
     <p class="krisp-inbox-description">Lesson notes you haven’t imported yet. Choose a transcript when you’re ready.</p>
     <p id="krispInboxStatus" role="status" aria-live="polite">Checking your inbox…</p>
     <p id="krispInboxEmpty" hidden>You’re all caught up. New unused transcripts will appear here.</p>
-    <div id="krispInboxContent"></div>
+    <section class="source-pending-group" id="krispPendingGroup">
+      <h3 class="source-pending-title">Krisp <span id="krispSourcePendingCount">0</span></h3>
+      <div id="krispInboxContent"></div>
+    </section>
+    <section class="source-pending-group" id="radarVanPendingGroup" aria-label="Scout pending transcripts" hidden>
+      <h3 class="source-pending-title">Classbuster Scout <span id="radarVanPendingPopoverCount">0</span></h3>
+      <p class="radar-van-hint">Scout transcripts waiting for review. Krisp transcripts stay separate.</p>
+      <p id="radarVanPendingPopoverStatus" class="radar-van-hint" role="status">No Scout transcripts pending.</p>
+      <ul id="radarVanPendingPopoverList" class="radar-van-list" aria-label="Pending Scout transcripts"></ul>
+    </section>
   </section>
   <div class="account-panel" id="accountPanel" style="display:none;">
     <div class="account-panel-head">
@@ -2507,7 +2516,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
         <button type="button" class="btn-secondary" id="radarVanConnectBtn">Connect Scout</button>
         <button type="button" class="btn-secondary" id="radarVanDisconnectBtn" aria-describedby="radarVanDisconnectHint" hidden>Disconnect Scout</button>
       </div>
-      <p class="radar-van-hint">Connected Scout automatically adds finished transcripts to empty lesson notes. If you are working on another report, lessons wait safely and import one at a time. No report is generated automatically.</p>
+      <p class="radar-van-hint">Connected Scout sends finished transcripts to Pending transcripts, in a separate Scout section. Claim the lesson into notes when you are ready. No report is generated automatically.</p>
       <p class="radar-van-hint" id="radarVanDisconnectHint">Disconnect revokes the device token on our server. Clearing the token inside the Scout desktop app only forgets it on that computer and does not revoke it.</p>
       <div class="radar-van-inbox" id="radarVanInboxWrap">
         <h4 class="radar-van-inbox-title" id="radarVanInboxTitle">Pending Scout lessons (<span id="radarVanCount">0</span>)</h4>
@@ -9267,6 +9276,17 @@ button.btn-secondary.account-btn.krisp-integration-btn:focus-visible {
 #krispPendingBtn:focus-visible{outline-color:rgb(var(--pending-gold-rgb));}
 #krispInboxPanel{position:fixed;inset:auto;margin:0;width:min(520px,calc(100vw - 32px));max-height:calc(100dvh - 32px);box-sizing:border-box;padding:26px;overflow:auto;overscroll-behavior:contain;border:1px solid #68786a60;border-radius:22px;background:linear-gradient(145deg,#222a24,#171d19 65%);color:#dce6de;box-shadow:0 24px 80px #0009;}
 #krispInboxPanel:not(:popover-open){display:none;}
+#krispInboxPanel .source-pending-group{padding:12px 0;margin:0;border-top:1px solid #ffffff22}
+#krispInboxPanel .source-pending-group[hidden]{display:none}
+#krispInboxPanel .source-pending-title{margin:0 0 12px;font-size:14px;color:#e0e9e2;font-weight:700}
+#krispInboxPanel .source-pending-title span{display:inline-flex;min-width:24px;padding:3px 7px;border-radius:12px;background:#25372d;color:#a3f1b8;font-size:12px}
+#krispInboxPanel .radar-van-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:12px}
+#krispInboxPanel .radar-van-item{padding:13px;border:1px solid #42604d;border-radius:12px;background:#142119;min-width:0}
+#krispInboxPanel .radar-van-item-title{font-weight:700}
+#krispInboxPanel .radar-van-item-preview{overflow-wrap:anywhere;white-space:pre-wrap;max-height:110px;overflow:hidden}
+#krispInboxPanel .radar-van-row{display:flex;gap:8px;flex-wrap:wrap}
+#krispInboxPanel .radar-van-row button{flex:1;min-width:125px}
+
 #krispInboxPanel::backdrop{background:transparent;}
 .krisp-inbox-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;}
 .krisp-inbox-eyebrow{margin:0 0 6px;font:600 10px/1.4 var(--font-body);letter-spacing:.13em;color:#a7b8aa;}
@@ -9776,8 +9796,12 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     count = Math.max(0, Math.floor(Number(count) || 0));
     var button = document.getElementById('krispPendingBtn');
     var badge = document.getElementById('krispInboxBadge');
-    if(badge) badge.textContent = String(count);
-    if(button){ button.dataset.hasPending = String(count > 0); button.setAttribute('aria-label','Pending transcripts — ' + count + ' unused'); button.removeAttribute('title'); }
+    if(button) button.dataset.krispPendingCount = String(count);
+    var total = count + (window.__classbusterScoutPendingCount || 0);
+    if(badge) badge.textContent = String(total);
+    var sourceCount = document.getElementById('krispSourcePendingCount');
+    if(sourceCount) sourceCount.textContent = String(count);
+    if(button){ button.dataset.hasPending = String(total > 0); button.setAttribute('aria-label','Pending transcripts — ' + total + ' unused'); button.removeAttribute('title'); }
     var empty = document.getElementById('krispInboxEmpty');
     if(empty) empty.hidden = count > 0;
     var status = document.getElementById('krispInboxStatus');
@@ -10129,12 +10153,28 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     var integrationBtn = document.getElementById('krispIntegrationBtn');
     if(integrationBtn) integrationBtn.hidden = !visible;
     var pendingBtn = document.getElementById('krispPendingBtn');
-    if(pendingBtn) pendingBtn.hidden = !visible;
-    if(!visible){
+    window.__classbusterKrispEntitled = !!visible;
+    var scoutVisible = !!window.__classbusterScoutPendingAuthorized;
+    if(pendingBtn) pendingBtn.hidden = !(visible || scoutVisible);
+    var krispGroup = document.getElementById('krispPendingGroup');
+    if(krispGroup) krispGroup.hidden = !visible;
+    if(!visible && !scoutVisible){
       var inbox = document.getElementById('krispInboxPanel');
       if(inbox && inbox.matches(':popover-open')) inbox.hidePopover();
     }
   }
+
+  // Owner-only Scout inbox participates in the same header, but never shares
+  // transcript records with Krisp.
+  document.addEventListener('classbuster:scout-pending', function(event){
+    var info = event.detail || {}, authorized = info.authorized === true;
+    window.__classbusterScoutPendingAuthorized = authorized;
+    window.__classbusterScoutPendingCount = authorized ? Math.max(0,Number(info.count)||0) : 0;
+    if(authorized) wireButtons(); // Scout-only master account still needs a working inbox popover.
+    setKrispHeaderButtonVisible(!!window.__classbusterKrispEntitled);
+    var button = document.getElementById('krispPendingBtn');
+    updatePendingCount(Number(button && button.dataset.krispPendingCount) || 0);
+  });
 
   // Optional official Krisp mark: if a logo file is placed at one of these
   // paths it replaces the neutral fallback icon. Nothing is drawn here.
