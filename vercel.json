@@ -6,7 +6,8 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "pathfinder-v2": false
+      "pathfinder-v2": false,
+      "main": false
     }
   },
   "functions": {
