@@ -75,8 +75,12 @@ module.exports = async function run(){
       const s0 = before.indexOf('const KidbusterCore = (function(){');
       const coreBefore = new Function(before.slice(s0, before.indexOf('\n})();', s0) + 6) + '\nreturn KidbusterCore;')();
       const params = { MA: { rating: '4', forcedClassicStyleVariant: 'crisp' }, MS: { rating: '2' }, FAIRY: { rating: '4' }, BEIDA: { rating: 'excellent' }, OF: { rating: 'Medium' }, PREPLY: { module: 'adult' } };
-      const same = Object.entries(params).filter(([p, prm]) => quiet(() => core.PROTOCOLS[p].buildSystemPrompt(prm)) === quiet(() => coreBefore.PROTOCOLS[p].buildSystemPrompt(prm))).map(([p]) => p);
-      check('the other six protocols\' system prompts are byte-identical to before Blitz V1.2 (' + same.join(',') + ')', same.length === 6);
+      // Scout Media Intelligence intentionally adds ONE evidence-grounding
+      // line to all protocol prompts. After subtracting that authorized line,
+      // their prior wording must remain byte-identical to the baseline.
+      const withoutScoutMediaRule = text => text.replace(/^• Scout media notes and lines labelled Media activity \(not speech\):[^\n]*\r?\n/m, '');
+      const same = Object.entries(params).filter(([p, prm]) => withoutScoutMediaRule(quiet(() => core.PROTOCOLS[p].buildSystemPrompt(prm))) === quiet(() => coreBefore.PROTOCOLS[p].buildSystemPrompt(prm))).map(([p]) => p);
+      check('other six prompts are unchanged except the reviewed shared Scout media rule (' + same.join(',') + ')', same.length === 6);
       const msg = (c, p) => c.buildUserMessage({ protocol: p, studentName: 'Mia', notes: 'Teacher: Hi.\nStudent: Hi.', rating: p === 'BEIDA' ? 'excellent' : p === 'OF' ? 'Medium' : '4', teacherName: 'Layne', studentGender: 'girl' });
       check('the other six protocols\' user messages are unchanged', Object.keys(params).every(p => msg(core, p) === msg(coreBefore, p)));
     }else{
