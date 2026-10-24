@@ -10,11 +10,11 @@ body #krispInboxPanel{
   min-height:0;
   padding:24px;
   background:linear-gradient(145deg,#25282b,#1c1e20 75%);
-  border:1px solid #ffffff22;
+  border:1px solid #ffffff38;
   border-radius:20px;
   color:#edf0ee;
   font-family:var(--font-body),sans-serif;
-  box-shadow:0 24px 80px #0008,inset 0 1px #ffffff08;
+  box-shadow:0 28px 80px #000a,0 8px 24px #0005,inset 0 1px #ffffff0d;
   overscroll-behavior:contain;
   scrollbar-width:thin;
   scrollbar-color:#5c6260 transparent;
@@ -33,33 +33,36 @@ body #krispInboxPanel #krispInboxTitle{
 body #krispInboxPanel #krispInboxClose{
   flex:none;width:44px;height:44px;min-height:44px;
   display:grid;place-items:center;
-  color:#acb4af;background:#ffffff04;
-  border:1px solid #ffffff16;
-  border-radius:12px;box-shadow:none;padding:0;
-  font:300 26px/1 var(--font-body),sans-serif;
-  transition:background .16s,color .16s
+  color:#bec6c9;background:linear-gradient(145deg,#353a3e,#292d30);
+  border:1px solid #ffffff2e;
+  border-radius:50%;box-shadow:inset 0 1px #ffffff0b,0 2px 6px #0003;padding:0;
+  transition:background .16s,color .16s,border-color .16s
 }
+body #krispInboxPanel #krispInboxClose svg{width:18px;height:18px;pointer-events:none}
 body #krispInboxPanel #krispInboxClose:hover{
-  background:#ffffff0c;color:#edf0ee
+  background:#3d4448;color:#fff;border-color:#ffffff55
 }
 body #krispInboxPanel .krisp-inbox-description{
   margin:8px 0 22px;max-width:550px;
   color:#acb4af;font:400 14px/1.55 var(--font-body),sans-serif
 }
 body #krispInboxPanel .source-pending-group{
-  padding:18px 0 0;margin:0;border:0;border-top:1px solid #ffffff16;min-width:0
+  --source-accent:#6fd1c4;
+  padding:16px;margin:0;border:1px solid #ffffff2b;border-left:3px solid var(--source-accent);
+  border-radius:14px;min-width:0;background:linear-gradient(135deg,#303539,#282c2f);
+  box-shadow:inset 0 1px #ffffff07,0 3px 10px #0002
 }
 body #krispInboxPanel #krispPendingGroup{
-  background:none;border-radius:0;box-shadow:none
+  --source-accent:#6fd1c4
 }
 body #krispInboxPanel #radarVanPendingGroup{
-  margin-top:18px;padding:18px 0 0;border-top:1px solid #ffffff16
+  --source-accent:#9deb52;margin-top:12px
 }
 body #krispInboxPanel .source-pending-group[hidden]{display:none!important}
 body #krispInboxPanel .source-pending-title{
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   margin:0 0 12px;
-  color:#edf0ee;font:600 15px/1.4 var(--font-body),sans-serif;letter-spacing:0
+  color:#f5f7f6;font:600 15px/1.4 var(--font-body),sans-serif;letter-spacing:0
 }
 body #krispInboxPanel .source-pending-icon{
   flex:none;display:inline-grid;place-items:center;
@@ -67,9 +70,9 @@ body #krispInboxPanel .source-pending-icon{
   font:500 17px/1 var(--font-body),sans-serif
 }
 body #krispInboxPanel .source-pending-icon svg{width:17px;height:17px}
-body #krispInboxPanel .krisp-source-icon{color:#9deb52}
-body #krispInboxPanel .scout-source-icon{
-  color:#9deb52;text-shadow:none
+body #krispInboxPanel .source-pending-title .krisp-source-icon{color:#6fd1c4;background:#6fd1c416}
+body #krispInboxPanel .source-pending-title .scout-source-icon{
+  color:#9deb52;background:#9deb5216;text-shadow:none
 }
 body #krispInboxPanel .source-pending-title>span[id$="PendingCount"] ,
 body #krispInboxPanel .source-pending-title #radarVanPendingPopoverCount{
@@ -81,6 +84,10 @@ body #krispInboxPanel .source-pending-title #radarVanPendingPopoverCount{
 }
 body #krispInboxPanel #radarVanPendingPopoverCount{
   border-color:#ffffff16;background:#ffffff05;color:#acb4af;box-shadow:none
+}
+body #krispInboxPanel #krispPendingGroup:has(.krisp-pending-card) #krispSourcePendingCount,
+body #krispInboxPanel #radarVanPendingGroup:has(.radar-van-item) #radarVanPendingPopoverCount{
+  color:var(--source-accent);border-color:var(--source-accent);background:#0002
 }
 body #krispInboxPanel #krispInboxEmpty{
   margin:0;padding:2px 0 4px 38px;min-height:0;border:0;border-radius:0;background:none;

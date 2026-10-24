@@ -35,6 +35,13 @@ module.exports=async function(){
     return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,height:r.height,overflow:el.scrollWidth-el.clientWidth,
      titleFont:title.fontFamily,titleSize:parseFloat(title.fontSize),bg:s.backgroundImage,
      groupBg:getComputedStyle(el.querySelector('#krispPendingGroup')).backgroundImage,
+     groupBorder:parseFloat(getComputedStyle(el.querySelector('#krispPendingGroup')).borderRightWidth),
+     krispAccent:getComputedStyle(el.querySelector('.krisp-source-icon')).color,
+     scoutAccent:getComputedStyle(el.querySelector('.scout-source-icon')).color,
+     badge:getComputedStyle(el.querySelector('#krispSourcePendingCount')).color,
+     scoutBadge:getComputedStyle(el.querySelector('#radarVanPendingPopoverCount')).color,
+     closeIcon:!!el.querySelector('#krispInboxClose svg[aria-hidden="true"]'),
+     closeRadius:getComputedStyle(el.querySelector('#krispInboxClose')).borderRadius,
      emptyBorder:getComputedStyle(el.querySelector('#krispInboxEmpty')).borderTopWidth,
      closeHeight:el.querySelector('#krispInboxClose').getBoundingClientRect().height};
    });
@@ -42,13 +49,19 @@ module.exports=async function(){
    assert.ok(layout.overflow<=1,'no horizontal inbox clipping');
    assert.ok(!/Georgia|Times/.test(layout.titleFont)&&layout.titleSize<=22,'compact sans-serif heading');
    assert.ok(layout.bg.includes('37, 40, 43'),'granite background');
-   assert.equal(layout.groupBg,'none');assert.equal(layout.emptyBorder,'0px');assert.ok(layout.closeHeight>=44);
-   if(!populated)assert.ok(layout.height<360,'empty state is compact: '+JSON.stringify({width,height,...layout}));
+   assert.ok(layout.groupBg.includes('gradient')&&layout.groupBorder>=1,'source cards have distinct surfaces and borders');
+   assert.equal(layout.krispAccent,'rgb(111, 209, 196)');assert.equal(layout.scoutAccent,'rgb(157, 235, 82)');
+   assert.equal(layout.badge,populated?layout.krispAccent:'rgb(172, 180, 175)');
+   assert.equal(layout.scoutBadge,populated?layout.scoutAccent:'rgb(172, 180, 175)');
+   assert.equal(layout.emptyBorder,'0px');assert.ok(layout.closeHeight>=44&&layout.closeIcon&&layout.closeRadius==='50%','accessible circular SVG close control');
+   if(!populated)assert.ok(layout.height<400,'empty state is compact: '+JSON.stringify({width,height,...layout}));
    if(process.env.INBOX_SCREENSHOTS&&[1440,390].includes(width)){
     fs.mkdirSync(process.env.INBOX_SCREENSHOTS,{recursive:true});
     await page.screenshot({path:path.join(process.env.INBOX_SCREENSHOTS,'inbox-'+width+'-'+(populated?'populated':'empty')+'.png')});
    }
   }
+  await page.click('#krispInboxClose');assert.equal(await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')),false,'close icon dismisses dialog');
+  await page.$eval('#krispInboxPanel',e=>e.showPopover());
   await page.keyboard.press('Escape');assert.equal(await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')),false);
   console.log('PASS granite inbox: empty/populated desktop, mobile, short windows, compact typography, no nested empty boxes, Escape');return 0;
  }finally{await browser.close();await new Promise(r=>server.close(r));}
