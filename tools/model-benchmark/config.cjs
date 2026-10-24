@@ -52,13 +52,28 @@ const TRANSCRIPTS = {
     expectedSha256Prefix:'4d546eb523933e37',
     note:'User-authorized real transcript from the 2026-10-15 audit (one whitespace byte differs from Codex\'s copy).' },
   'mixed-fictional': { kind:'fictional', caseId:'mixed_performance' },
-  'scaffolded-fictional': { kind:'fictional', caseId:'heavy_scaffolding' }
+  'scaffolded-fictional': { kind:'fictional', caseId:'heavy_scaffolding' },
+  // Protocol audit 2026-10-24: every committed fictional scenario.
+  'strong-fictional': { kind:'fictional', caseId:'strong_independent' },
+  'noisy-fictional': { kind:'fictional', caseId:'noisy_transcript' },
+  'thin-fictional': { kind:'fictional', caseId:'insufficient_evidence' },
+  'quiet-fictional': { kind:'fictional', caseId:'barely_participates' },
+  'mistakes-fictional': { kind:'fictional', caseId:'repeated_mistakes' },
+  'multi-fictional': { kind:'fictional', caseId:'multi_subject' },
+  'long-fictional': { kind:'fictional', caseId:'long_buried' },
+  'scout-fictional': { kind:'fictional', caseId:'scout_format' }
 };
 
 const PHASES = {
   initial: { transcripts:['real-1'], repetitions:1, description:'21 reports: 7 protocols x 3 models, real transcript, one sample each.' },
   full: { transcripts:['real-1','mixed-fictional','scaffolded-fictional'], repetitions:2,
-    description:'126 reports: 3 transcripts x 7 protocols x 3 models x 2 repetitions. The two fictional transcripts can be replaced by real anonymized transcripts before running.' }
+    description:'126 reports: 3 transcripts x 7 protocols x 3 models x 2 repetitions. The two fictional transcripts can be replaced by real anonymized transcripts before running.' },
+  // Protocol audit 2026-10-24: all ten fictional scenarios on every protocol,
+  // twice each (consistency). Run with --models claude-haiku-5-5 --profile
+  // haiku-high to measure exactly what production sends.
+  audit: { transcripts:['strong-fictional','mixed-fictional','scaffolded-fictional','noisy-fictional','thin-fictional',
+    'quiet-fictional','mistakes-fictional','multi-fictional','long-fictional','scout-fictional'], repetitions:2,
+    description:'Protocol audit: 10 fictional scenarios x 7 protocols x 2 repetitions per model (140 reports for the production model).' }
 };
 
 const PROTOCOLS = ['MA','MS','FAIRY','BLITZ','BEIDA','OF','PREPLY'];
