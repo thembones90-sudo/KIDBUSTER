@@ -45,7 +45,9 @@ module.exports=async function run(){
     check('download is rewritten to existing feedback function',vercel.rewrites.some(x=>x.source==='/api/radar-van-download' && x.destination==='/api/feedback?radar=download'));
     check('public download continues to be unpublished',manifest.available===false && !('downloadUrl' in manifest));
     const downloadHandler=fs.readFileSync(path.join(root,'api/_lib/radar-van-download-handler.js'),'utf8');
-    check('private Scout release points to centered 10ZU ZIP',html.includes('Download Scout 10ZU') &&
+    // The version stays private: the page says only "Download Scout".
+    check('download button and status show no version',html.includes('>Download Scout</button>') && !/Download Scout \d|10Z[A-Z]/.test(html) && !/download is starting[^']*10Z/.test(ui));
+    check('private Scout release points to centered 10ZU ZIP',
       ui.includes('/releases/Classbuster-Scout-10ZU-Windows.zip') &&
       downloadHandler.includes("releases/Classbuster-Scout-10ZU-Windows.zip"));
     check('private Scout ZIP checksum pinned to verified 10ZU package',

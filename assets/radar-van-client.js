@@ -543,7 +543,7 @@
           url.pathname !== '/releases/Classbuster-Scout-10ZU-Windows.zip' || url.username || url.password) {
         throw new Error('The private download URL is invalid.');
       }
-      if (status) status.textContent = 'Your 10ZU download is starting. Extract the ZIP before running RadarVan.exe.';
+      if (status) status.textContent = 'Your download is starting. Extract the ZIP before running RadarVan.exe.';
       window.location.assign(url.href);
     } catch(err) {
       if (status) status.textContent = err.message || 'Could not start the Scout download.';
