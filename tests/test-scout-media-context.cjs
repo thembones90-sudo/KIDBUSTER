@@ -37,6 +37,12 @@ module.exports = async function run(){
   check('ordinary labeled speech is not converted',noNote.includes('Student: I can play the guitar.')&&!noNote.includes('Media activity'));
   const metadataOnly=core.cleanTranscript('[00:01] TEACHER: Here we go.\n'+note+'\n[00:08] STUDENT: Dog.');
   check('media note handling survives line breaks with no blank lines',metadataOnly.includes('Media activity (not speech)')&&metadataOnly.includes('Student: Dog.'));
+  const manual='(Scout recording note: teacher marked listening-only activity for about 0m 30s; 5 transcript lines withheld. Scout could not independently verify the speakers.)';
+  const manualText=core.cleanTranscript('[00:00] TEACHER: Please listen.\n'+manual+'\n[00:39] STUDENT: A lion.');
+  check('teacher-confirmed marker stays a media activity, not speech',manualText.includes('Media activity (not speech): The teacher marked a listening-only activity'));
+  check('teacher marker does not assert independent verification',manualText.includes('does not identify a speaker or establish student comprehension'));
+  check('teacher marker does not leak removed lyric count',!manualText.includes('5 transcript lines withheld'));
+  check('student answer after the listening interval remains attributed',manualText.includes('Student: A lion.'));
   const options={
     MA:{rating:'3'},MS:{rating:'3'},FAIRY:{rating:'3'},BLITZ:{rating:'3'},
     BEIDA:{rating:'try_harder'},OF:{rating:'Medium'},PREPLY:{rating:''}
