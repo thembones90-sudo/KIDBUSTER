@@ -5,6 +5,10 @@ projects at the same time: before changing anything, check `git status`, `git lo
 newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
 ## What is live
+- Frontend release update 2026-10-24: live commit `2dc0783` on
+  `codex/scout-card-parity-20261024`; see `SCOUT-CARD-PARITY-RELEASE-20261024.md`.
+  Preserve these card changes when integrating the canonical folder's concurrent
+  unpublished Classic edits. Do not deploy the older canonical snapshot as-is.
 - **Classbuster web app**: https://classbuster.com (Vercel project `kidbuster`,
   `prj_HmRSSnwgkegIGaDnoX0txcKGVwai`). Live code: `A:\CLASSBUSTER-LEGACY-LIVE-RELEASE-20261023`,
   branch `release/classbuster-legacy-safe-20261023` (GitHub `thembones90-sudo/KIDBUSTER`).
