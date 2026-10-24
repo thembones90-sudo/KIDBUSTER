@@ -14,8 +14,12 @@ newest `*.md` notes in the folder you work in, and never overwrite newer work.
   links and older Scout installs still post there. Never add a server redirect for it or `/api`.
 - **Lemon Squeezy** webhook: `https://classbuster.com/api/payment-webhook` (store 429633).
 - **Classbuster Scout** (desktop, owner-only pilot): source `A:\RADAR VAN`, private GitHub
-  `thembones90-sudo/classbuster-scout`. Installed in `A:\RADAR VAN\Classbuster Scout\`:
+  `thembones90-sudo/classbuster-scout`. Installed in `%LOCALAPPDATA%\Classbuster Scout\`:
   `profile\` (permanent: lessons, settings, connection), `versions\<build>\`, `current.txt`.
+  Current program is `versions\<build>\Scout\Scout.exe`, installed by ScoutSetup.exe.
+  The Start menu shortcut is Classbuster Scout. The A-drive install and old ZIP are
+  retained copies, not the current launch path. `publish_scout.py` defaults to the
+  per-user home; use an explicit `--home` only for a retained installation.
 
 ## Release process (web)
 1. Change + regression test; `npm test` must pass (all files). Never weaken a test to pass.
