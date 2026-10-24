@@ -3097,6 +3097,32 @@ const KidbusterCore = (function(){
     return problems;
   }
 
+  // Shared lesson reading (owner request 2026-10-24: reports must capture what
+  // mattered most, not summarize everything that was discussed). Decides
+  // emphasis only: every protocol keeps its own sections, limits and voice.
+  const LESSON_ESSENCE_RULES = `LESSON ESSENCE RULES (ALL PROTOCOLS)
+Before writing, silently work out what mattered most in this lesson. Never output this analysis.
+• Speaker labels (Teacher:, Student:, Speaker 1:, Speaker 2:) show who said each line. Use them to decide who said what and never copy them into the report. Where your protocol says to ignore transcript or "Speaker" labels, it means do not reproduce the label; the words on that line are still lesson evidence. With Speaker 1:/Speaker 2: labels, the teacher is the speaker who asks the questions, gives models and corrects; if you cannot tell, credit neither line to the student.
+• The main goal: the language, skill or task the teacher spent the most time on, kept coming back to, corrected again and again, or summed up at the end. Greetings, small talk, warm-up chat, technical problems and scheduling are not the lesson.
+• The student's defining moments: the clearest success (for example the best sentence the student produced without a model, or a task finished) and the clearest difficulty (the mistake that kept coming back, or the point that needed the most help). Read the whole lesson: these moments are often in the middle or near the end, not at the start.
+• Weigh by the teacher's emphasis and by time spent, not by the order things came up or by how easy they are to list.
+• If the student said very little, that is itself a central fact of the lesson. Report it honestly in the tone of the selected rating and never fill the gap with the teacher's words.
+• Build the report around these points: the lesson topic or opening names the main goal, the strongest praise is the clearest success, and the improvement point, next step or homework targets the clearest difficulty. Give secondary topics a short mention or leave them out. When a lesson covered several subjects, name the main one first and keep the others brief.
+• A reader should finish the report knowing what this lesson was really about and the one thing this student most needs next. A report that lists everything that was discussed but misses that has failed.
+• This decides emphasis only. Keep your protocol's sections, order, limits, tone and sign-off exactly. Where your protocol has its own central-observation rule, these rules support it.`;
+
+  // Claims about earlier lessons or habits ("a few lessons ago", "every
+  // lesson") that the lesson evidence never mentions. Blitz writing models
+  // and rating language invite them; the grounding rules forbid them.
+  const HISTORY_CLAIMS = /\b(a few|several|previous|past|last|recent|earlier) (lessons|classes|sessions)\b|\b(last|previous) (lesson|class|session|week)\b|\bevery (lesson|class|session)\b|\bas always\b|\bthe usual dip\b/gi;
+  function findHistoryClaims(body, notes){
+    // A phrase the lesson itself used (the teacher said "last lesson ...") is evidence.
+    const lesson = ' ' + String(notes || '').toLowerCase().replace(/\s+/g, ' ') + ' ';
+    const found = [...new Set((String(body || '').match(HISTORY_CLAIMS) || []).map(m => m.toLowerCase().replace(/\s+/g, ' ')))]
+      .filter(m => !lesson.includes(m));
+    return found.length ? ['Remove claims about earlier lessons or habits that this lesson\'s evidence does not show: ' + found.map(m => '"' + m + '"').join(', ') + '. Describe this lesson only.'] : [];
+  }
+
   // OF no longer shares MA's numeric rating scale at all. It has its own
   // 5-tier qualitative scale, selected directly by the teacher — this is
   // OF's equivalent of MA's LEVELS array. (Earlier this was derived from
@@ -3158,6 +3184,8 @@ RATING EVIDENCE RULE (ALL RATINGS)
 ${RATING_EVIDENCE_GUARD}
 
 ${EVIDENCE_GROUNDING_RULES}
+
+${LESSON_ESSENCE_RULES}
 
 ${HUMAN_VOICE_RULES}
 
@@ -3414,6 +3442,8 @@ Content
 
 ${EVIDENCE_GROUNDING_RULES}
 
+${LESSON_ESSENCE_RULES}
+
 ${HUMAN_VOICE_RULES}
 
 • Evaluate at the level the evidence shows. Prefer precise phrasing such as "with a model to follow", "after repeated prompting" or "by the end of the lesson, with support" over inflated judgments such as "a solid ability", "a good ear" or "growing independence" unless the transcript clearly shows it.
@@ -3523,6 +3553,8 @@ ${LEVELS.map(score => '  • ' + score + '/5: ' + LEVEL_TONE_DESC[score]).join('
 * Stars follow the rating: ${MA_NO_STAR_LEVELS.includes(lvl) ? 'this report is rated ' + lvl + '/5 (below 3), so OMIT the entire "Total stars today" line — no stars anywhere in the report.' : 'this report is rated ' + lvl + '/5, so include "Total stars today:" with exactly 10 stars.'}
 
 ${EVIDENCE_GROUNDING_RULES}
+
+${LESSON_ESSENCE_RULES}
 
 ${HUMAN_VOICE_RULES}
 
@@ -3972,10 +4004,20 @@ Love, Teacher [Name]` + '\n\n─────────────────
     const wholeLineTimestampPattern = /^\s*[\[\(]?\d{1,2}:\d{2}(:\d{2})?[\]\)]?\s*$/;
     const leadingBracketedTimestampPattern = /^\s*[\[\(]\d{1,2}:\d{2}(:\d{2})?[\]\)]\s*/;
 
-    // Leading "Speaker 1:", "Speaker:", "Teacher:", "Student:" style labels
-    // — only when they look like a transcript label at the start of a line,
-    // not when "teacher" or "student" appears naturally in a sentence.
+    // Leading "Speaker 1:", "Teacher:", "Student:" style labels (Scout sends
+    // "[00:12] TEACHER: ..."). They are KEPT, normalized to "Teacher:",
+    // "Student:" or "Speaker N:": the grounding rules credit the student only
+    // with Student lines, so the model must see who said what. Only a bare
+    // "Speaker:" carries no identity and is removed. Matches only at the start
+    // of a line, not when "teacher" or "student" appears in a sentence.
     const speakerLabelPattern = /^\s*(speaker\s*\d*|teacher|student|tutor)\s*[:\-]\s*/i;
+    const speakerLabel = raw => {
+      const word = raw.trim().toLowerCase();
+      if(word === 'teacher' || word === 'tutor') return 'Teacher: ';
+      if(word === 'student') return 'Student: ';
+      const n = word.match(/\d+/);
+      return n ? 'Speaker ' + n[0] + ': ' : '';
+    };
 
     // Obvious system-generated noise markers.
     const systemNoiseInline = /\[(inaudible|crosstalk|cross[-\s]?talk|music|silence|background noise|noise|laughter|pause|unintelligible|audio (cut|drop)(ped)?)\]/gi;
@@ -3989,10 +4031,10 @@ Love, Teacher [Name]` + '\n\n─────────────────
       let l = line;
       l = l.replace(leadingBracketedTimestampPattern, '');
       l = l.replace(systemNoiseInline, '');
-      l = l.replace(speakerLabelPattern, '');
+      l = l.replace(speakerLabelPattern, (m, who) => speakerLabel(who));
       l = l.replace(/[ \t]{2,}/g, ' ');
       return l.trim();
-    });
+    }).filter(l => !/^(Teacher|Student|Speaker \d+):$/.test(l));
 
     lines = lines.filter(l => {
       if(l.length === 0) return false;
@@ -4004,12 +4046,20 @@ Love, Teacher [Name]` + '\n\n─────────────────
 
     // Remove duplicated adjacent lines (case-insensitive) — a common Krisp
     // artifact where the same fragment gets transcribed twice in a row.
+    // Consecutive lines from the same labelled speaker (Scout writes one line
+    // per speech segment) are merged into one turn.
     const deduped = [];
+    const labelOf = l => (l.match(/^(Teacher|Student|Speaker \d+): /) || [])[1] || null;
     for(const l of lines){
       const prev = deduped[deduped.length - 1];
-      if(!prev || prev.toLowerCase() !== l.toLowerCase()){
-        deduped.push(l);
+      if(prev && prev.toLowerCase() === l.toLowerCase()) continue;
+      const who = labelOf(l);
+      if(prev && who && labelOf(prev) === who){
+        const next = l.slice(who.length + 2);
+        if(!prev.toLowerCase().endsWith(next.toLowerCase())) deduped[deduped.length - 1] = prev + ' ' + next;
+        continue;
       }
+      deduped.push(l);
     }
 
     let cleaned = deduped.join('\n');
@@ -4828,6 +4878,8 @@ Apply this same distinction to whatever lesson evidence is actually supplied for
 
 ${EVIDENCE_GROUNDING_RULES}
 
+${LESSON_ESSENCE_RULES}
+
 ${HUMAN_VOICE_RULES}
 
 IMMUTABLE RULES
@@ -4855,6 +4907,8 @@ Exactly one writing model has been randomly selected for this generation, shown 
 The bracketed placeholders in the model below, like [Student] and [topics], are illustrative only, showing where that kind of information goes — they are not the model's own content to copy. Replace [Student] with the actual student's name and [topics] with the actual topics genuinely covered, both drawn from the lesson evidence and the Student field in the user message. Never output a literal bracket or placeholder text in the final comment. The model's sentences themselves are a style and structure guide, not a fill-in-the-blank template — the actual substance must come from this lesson's evidence, not from the model's own example wording.
 
 Never copy the selected model verbatim. Treat the selected model strictly as a writing example, not as a script. Preserve its overall style, rhythm, and structure, while naturally rewriting every sentence using this lesson's own evidence. Every generated comment should feel newly written for this specific lesson, not copied or lightly reworded from the example.
+
+The model was picked at random, so it sets voice and rhythm only, never the angle. Use its theme (progress, consistency, knowledge, speaking and so on) only when this lesson's evidence supports it; otherwise keep its rhythm and build the comment around what mattered most in this lesson. Never carry over the model's claims about earlier lessons, habits or a group ("a few lessons ago", "recent classes", "the usual dip", "the whole class", "every activity") unless the lesson evidence states them.
 
 Model: __BLITZ_MODEL_LABEL__
 
@@ -5069,6 +5123,8 @@ Distinguish clearly between safe and unsafe inference from the supplied lesson e
 
 ${EVIDENCE_GROUNDING_RULES}
 
+${LESSON_ESSENCE_RULES}
+
 ${HUMAN_VOICE_RULES}
 
 STUDENT PERFORMANCE RATING (IMMUTABLE)
@@ -5255,6 +5311,8 @@ self-correction skills"); outright hallucination — an activity, a
 mistake, or a quote that never happened — is forbidden.
 
 ${EVIDENCE_GROUNDING_RULES}
+
+${LESSON_ESSENCE_RULES}
 
 ${HUMAN_VOICE_RULES}
 
@@ -5572,6 +5630,7 @@ because it's about a single lesson.`
       else advisory.push(message);
     }
     for(const message of findStockPhrasing(body, ctx.notes)) blocking.push({ code:'stock_phrasing', message, repairable:true });
+    for(const message of findHistoryClaims(body, ctx.notes)) blocking.push({ code:'history_claim', message, repairable:true });
     const limits = contractLimits(protocol, ctx);
     let softRepair = false;
     if(limits.targetWords){
@@ -5792,6 +5851,8 @@ because it's about a single lesson.`
     evaluateOutputContract,
     buildComplianceRepairPrompt,
     findStockPhrasing,
+    findHistoryClaims,
+    LESSON_ESSENCE_RULES,
     HUMAN_VOICE_RULES,
     PREPLY_MODULES,
     PROTOCOLS
