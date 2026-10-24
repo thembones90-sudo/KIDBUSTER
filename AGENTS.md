@@ -5,6 +5,9 @@ projects at the same time: before changing anything, check `git status`, `git lo
 newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
 ## What is live
+- Responsive workspace release 2026-10-25: commit `963a4d9` on the canonical release line,
+  deployment `dpl_AtjPcA3ezEt4ahe23m66mNKW2818`. See
+  `RESPONSIVE-WORKSPACE-RELEASE-20261025.md`. This includes the Scout card releases below.
 - Frontend release update 2026-10-24: live commit `c566e5e` on
   `codex/scout-card-parity-20261024`; see `SCOUT-CARD-PARITY-RELEASE-20261024.md`.
   Preserve these card changes when integrating the canonical folder's concurrent
