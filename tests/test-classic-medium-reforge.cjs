@@ -27,5 +27,5 @@ module.exports = function run() {
   const sugar = core.PROTOCOLS.MS.analyze(valid,'4','Layne');
   assert.ok(!sugar.some(w=>w.includes('Classic Medium closing must contain only')),'Sugarcoat not constrained by Classic-only check');
   console.log('PASS Classic Medium sign-off and evidence regression (9 assertions)');
-  return {passed:9,failed:0};
+  return 0;
 };

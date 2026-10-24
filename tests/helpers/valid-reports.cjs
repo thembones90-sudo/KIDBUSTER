@@ -25,7 +25,7 @@ function maFamily({ student, teacher, signoff, emoji, rating, extraVocab = 0 }){
     ...(lowRating ? ['Parent Note:', 'Short daily practice of the three ocean words at home would help.', ''] : []),
     'Mini Homework:', '', 'Speaking Mission 🎯', 'Say three sentences about ocean animals.', '',
     ...(lowRating ? [] : ['Total Stars Today:', '', STARS, '']),
-    'See you next time!', '',
+    ...(signoff === 'Cheers,' ? [] : ['See you next time!', '']),
     signoff + '\nTeacher ' + teacher + (emoji ? ' ' + emoji : '')
   ].join('\n');
 }

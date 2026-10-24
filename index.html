@@ -165,12 +165,7 @@ body.protocol-preply{
   --toxin-border:rgba(178,102,255,0.28);
   --toxin-glow:rgba(178,102,255,0.18);
 }
-/* Redundant, JS-independent safety net: applies the exact same theme
-   values directly from which radio is checked, via :has(). If the JS
-   class-toggle mechanism above ever fails to apply for any reason (a
-   timing issue, a missed call site), this still guarantees the correct
-   theme — pure CSS, nothing that can be "not called yet" or "called with
-   a stale value". Modern browsers all support :has() as of 2026. */
+/* CSS-only theme fallback when the JS class toggle has not run. */
 body:has(input[name="protocol"][value="OF"]:checked){
   --toxin-rgb:11,195,255;
   --toxin:#0BC3FF;
