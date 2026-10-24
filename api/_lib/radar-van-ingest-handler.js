@@ -67,9 +67,13 @@ export default async function handleRadarIngest(req, res){
     const parsed = parseLesson(body);
     if(parsed.error) return reply(res, parsed.status, { error: 'Invalid lesson payload.', field: parsed.error });
 
-    const result = await ingestRadarLesson(identity, parsed.lesson, tokenHash);
+    // Explicit owner-device recovery only. Ordinary retries keep deduplication;
+    // a restore can recreate only a lesson already seen for this same account.
+    const restore = req.headers['x-scout-restore'] === '1';
+    const result = await ingestRadarLesson(identity, parsed.lesson, tokenHash, { restore });
     const meetingId = 'rv:' + parsed.lesson.lessonId;
     if(result.revoked) return reply(res, 401, { error: 'Invalid or revoked RADAR VAN token.' });
+    if(result.restoreMissing) return reply(res, 409, { error: 'Only a previously delivered lesson can be restored.' });
     if(result.full) return reply(res, 503, { error: 'RADAR VAN inbox is full. Retry later.', reason: 'inbox_full' }, { 'Retry-After': '60' });
     await recordEvent('scout_delivery', { duplicate: !!result.duplicate });
     return reply(res, result.duplicate ? 200 : 201, { stored: true, duplicate: result.duplicate, matched: result.matched, meetingId });
