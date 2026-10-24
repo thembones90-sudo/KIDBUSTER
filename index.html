@@ -4032,10 +4032,13 @@ Love, Teacher [Name]` + '\n\n─────────────────
       // accepts only TEACHER/STUDENT headers. Keep its educational context
       // but move it into a neutral, non-spoken category before any turn
       // merging. Do not preserve possible lyric text or participant claims.
-      if(/^\s*\(Scout recording note:\s*music detected\b.*\)\s*$/i.test(l)){
+      if(/^\s*\(Scout recording note:\s*(?:music detected|teacher marked listening-only activity)\b.*\)\s*$/i.test(l)){
         const duration = (l.match(/\babout\s+(\d{1,3}m\s+\d{1,2}s)\b/i) || [])[1];
-        l = 'Media activity (not speech): Scout detected music in captured lesson audio' +
-          (duration ? ' for approximately ' + duration : '') + '. This does not identify a speaker or establish student comprehension.';
+        const marked = /Scout recording note:\s*teacher marked listening-only activity/i.test(l);
+        l = 'Media activity (not speech): ' +
+          (marked ? 'The teacher marked a listening-only activity' : 'Scout detected music in captured lesson audio') +
+          (duration ? ' for approximately ' + duration : '') +
+          '. This does not identify a speaker or establish student comprehension.';
       }
       l = l.replace(leadingBracketedTimestampPattern, '');
       l = l.replace(systemNoiseInline, '');
