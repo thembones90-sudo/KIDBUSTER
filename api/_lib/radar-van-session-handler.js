@@ -7,7 +7,7 @@
 import {
   radarVanEnabled, accountEntitlement, issueRadarToken, revokeRadarToken, setRadarArmed,
   readRadarSession, radarInboxAction, serializedBodyBytes, RadarBusyError, peekRadarVersion, enableRadarAutomatic,
-  bindRadarTokenHash
+  bindRadarTokenHash, setRadarTeacherName
 } from './radar-van.js';
 
 const MAX_BODY_BYTES = 4096;
@@ -53,10 +53,17 @@ export default async function handleRadarSession(req, res){
       return reply(res, 200, { ...state, connected: true, token, tokenShownOnce: true });
     }
     if(action === 'pair-approve'){
-      const out = await bindRadarTokenHash(identity, body.tokenHash);
+      const out = await bindRadarTokenHash(identity, body.tokenHash, body.teacherDisplayName);
       if(out.invalid) return reply(res, 400, { error: 'This Scout connection link is invalid. Click Connect in Scout again.' });
+      if(out.invalidName) return reply(res, 400, { error: 'The teacher display name is invalid.' });
       if(out.taken) return reply(res, 409, { error: 'This Scout connection link was already used. Click Connect in Scout again.', reason: 'taken' });
       return reply(res, 200, { ...(await readRadarSession(identity)), paired: true, unchanged: !!out.unchanged });
+    }
+    if(action === 'set-teacher-name'){
+      const out = await setRadarTeacherName(identity, body.teacherDisplayName);
+      if(out.invalid) return reply(res, 400, { error: 'Teacher name must be plain text of at most 80 characters.' });
+      if(out.notConnected) return reply(res, 409, { error: 'Connect Scout first.' });
+      return reply(res, 200, { updated: true, teacherDisplayName: out.teacherDisplayName });
     }
     if(action === 'disconnect'){
       await revokeRadarToken(identity);
