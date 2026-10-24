@@ -45,10 +45,19 @@ module.exports=async()=>{
   const fs=require('node:fs'),path=require('node:path'),http=require('node:http');
   const root=path.resolve(__dirname,'..');
   const session=(await import('../api/_lib/radar-van-session-handler.js')).default;
+  let krispPrimary=null,krispAcks=0;
   const server=http.createServer(async(req,res)=>{
    const url=new URL(req.url,'http://localhost');
    const json=(body,status=200)=>{res.writeHead(status,{'content-type':'application/json'});res.end(JSON.stringify(body));};
    if(url.pathname==='/api/license-status')return json({plan:'pro',status:'active',founder:true});
+   if(url.pathname==='/api/krisp-session'){
+    if(req.method==='POST'){
+     let body='';for await(const part of req)body+=part;
+     const action=body?JSON.parse(body):{};
+     if(action.action==='ack-matched'&&action.meetingId===krispPrimary?.meetingId){krispAcks++;krispPrimary=null;}
+    }
+    return json({waiting:true,pending:[],matched:krispPrimary});
+   }
    if(url.pathname==='/api/radar-van-session'){
     let body='';for await(const part of req)body+=part;
     const out={code:200,setHeader(){},status(n){this.code=n;return this;},json(v){this.body=v;return this;}};
@@ -77,6 +86,22 @@ module.exports=async()=>{
    await page.waitForFunction(()=>document.querySelector('#krispNotes').value.includes('Synthetic preserved lesson'));
    await page.waitForFunction(()=>document.querySelector('#radarVanPendingPopoverCount').textContent==='1');
    assert.equal((await rv.readRadarSession(owner)).inboxPending.length,1,'only explicit successful import is acknowledged');
+   // Both providers are active: Krisp fills an empty workspace while the
+   // unclaimed Scout alternative remains in its own pending compartment.
+   krispPrimary={meetingId:'synthetic-krisp-primary',title:'Synthetic primary class',
+    transcript:'[00:00] TEACHER: Synthetic Krisp primary\n[00:02] STUDENT: Hello'};
+   const isolated=await browser.createBrowserContext();
+   try{
+    const primary=await isolated.newPage();
+    await primary.evaluateOnNewDocument(key=>localStorage.setItem('kidbuster_access_key',key),owner);
+    await primary.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'load'});
+    await primary.waitForFunction(()=>document.querySelector('#krispNotes').value.includes('Synthetic Krisp primary'));
+    await primary.waitForFunction(()=>document.querySelector('#radarVanPendingPopoverCount').textContent==='1');
+    assert.equal(await primary.$eval('#krispNotes',e=>e.value),krispPrimary?.transcript||'[00:00] TEACHER: Synthetic Krisp primary\n[00:02] STUDENT: Hello');
+    await primary.waitForFunction(()=>document.querySelector('#krispIntegrationBtn').getAttribute('aria-label').includes('Armed'));
+    assert.equal(krispAcks,1,'Krisp primary is acknowledged only after import');
+    assert.equal((await rv.readRadarSession(owner,{lease:true})).inboxPending.length,1,'Krisp import never consumes the Scout alternative');
+   }finally{await isolated.close();}
   }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));}
   console.log('PASS Scout webhook recovery preserves IDs, deduplication and explicit pending-inbox import across old/new browser clients');return 0;
  }finally{for(const k of vars){if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k];}}

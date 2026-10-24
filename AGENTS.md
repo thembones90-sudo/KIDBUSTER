@@ -42,7 +42,10 @@ by hand, never start a second Scout while one runs.
   download, sales entitlement or customer rollout without the owner's separate explicit approval.
 - No production datastore writes except through owner tools; no reading/decrypting production
   secrets; no emails to real customers; no payments/refunds; no Krisp deliveries in tests.
-- Never delete lesson audio or transcripts; old Scout profiles go to `PRESERVED LESSON DATA`.
+- Owner privacy decision 2026-10-24: temporary Scout audio/transcripts must be removed
+  after durable authenticated webhook confirmation, leaving a content-free SENT receipt.
+  Never delete active, failed, queued, quarantined or otherwise unconfirmed lessons.
+  Retained legacy profiles require separately verified delivery before cleanup.
 - Grant Pro only on verified identity (manual 30-day keys always carry the customer's email).
 - Preserve all seven protocols, teacher names and sign-offs, official formatting, the nested
   Generate button `.btn-label`, and protocol color theming via `var(--toxin-rgb)`.
