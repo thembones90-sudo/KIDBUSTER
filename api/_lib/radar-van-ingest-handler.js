@@ -7,7 +7,7 @@
 // or identity, and error bodies are fixed strings.
 import {
   radarVanEnabled, resolveRadarToken, hashRadarToken, accountEntitlement, parseLesson, ingestRadarLesson,
-  serializedBodyBytes, RadarBusyError, RADAR_VAN_MAX_BODY_BYTES, radarRateExceeded, radarRatePeek
+  serializedBodyBytes, RadarBusyError, RADAR_VAN_MAX_BODY_BYTES, radarRateExceeded, radarRatePeek, readRadarSettings
 } from './radar-van.js';
 import { getRequestIp } from './account-verification.js';
 import { recordEvent } from './event-log.js';
@@ -55,7 +55,8 @@ export default async function handleRadarIngest(req, res){
     // Desktop pairing: "is my credential approved yet?" Answered only after
     // the bearer check above, so it reveals nothing to an unpaired caller.
     if(req.body && typeof req.body === 'object' && !Array.isArray(req.body) && req.body.action === 'credential-check'){
-      return reply(res, 200, { connected: true });
+      const profile = await readRadarSettings(identity);
+      return reply(res, 200, { connected: true, teacherLabel: profile.teacherDisplayName || null });
     }
     // Measure what was actually received (serialized UTF-8), not what the
     // client claimed in Content-Length.

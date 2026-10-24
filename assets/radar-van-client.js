@@ -425,6 +425,21 @@
     }
   }
 
+  var nameSyncTimer = null;
+  document.addEventListener('classbuster:teacher-name-changed', function(){
+    if(!state.connected || !savedKey()) return;
+    if(nameSyncTimer) clearTimeout(nameSyncTimer);
+    nameSyncTimer = setTimeout(async function(){
+      nameSyncTimer = null;
+      var field = document.getElementById('teacherName');
+      if(!field || !state.connected) return;
+      var name = field.value.trim();
+      if(name.length > 80) return;
+      try{ await api('POST', { action: 'set-teacher-name', teacherDisplayName: name }); }
+      catch(e){ /* preserve previous verified name on network failure */ }
+    }, 1200);
+  });
+
   // ---- one-click desktop pairing (?scout-pair=<sha256 of Scout's own token>) ----
   // Scout keeps its token; only the hash travels through this page. The owner
   // compares the short code with the one Scout shows, then approves.
@@ -456,7 +471,9 @@
       approve.addEventListener('click', async function(){
         approve.disabled = true; status.textContent = 'Connecting…';
         try{
-          var r = await api('POST', { action: 'pair-approve', tokenHash: hash });
+          var teacherField=document.getElementById('teacherName');
+          var teacherDisplayName=teacherField ? teacherField.value.trim() : '';
+          var r = await api('POST', { action: 'pair-approve', tokenHash: hash, teacherDisplayName: teacherDisplayName });
           if(r === null) return;
           if(!r.ok){ status.textContent = (r.data && r.data.error) || 'Scout could not be connected. Nothing was changed.'; approve.disabled = false; return; }
           clearPairParam(); render(r.data);
