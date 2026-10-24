@@ -2406,7 +2406,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
 @media(max-width:560px){#scoutReleaseBanner{padding:15px;gap:12px}.scout-release-action{width:100%}#scoutReleaseLink{width:100%}#scoutReleaseBanner h2{font-size:19px}}
 </style>
 <link rel="stylesheet" href="assets/scout-integration.css?v=20261020">
-<link rel="stylesheet" href="assets/pending-inbox-premium.css?v=20261024c">
+<link rel="stylesheet" href="assets/pending-inbox-premium.css?v=20261024-card-parity">
 </head>
 <body>
 <div class="wrap">
@@ -10012,7 +10012,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 
     var importBtn = document.createElement('button');
     importBtn.type = 'button';
-    importBtn.textContent = 'Import Comment';
+    importBtn.textContent = 'Import into notes';
     importBtn.className = 'btn-secondary krisp-insert-btn'; importBtn.style.border = '1px solid rgba(var(--toxin-rgb),0.55)'; importBtn.style.width = '100%';
     importBtn.addEventListener('click', function(){ handleImportClick(item.meetingId, importBtn, card); });
 
@@ -10865,6 +10865,6 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 <script src="assets/scout-release.js" defer></script>
 <script defer src="assets/owner-usage-stats.js?v=1"></script>
 <script defer src="assets/owner-activity.js?v=1"></script>
-<script src="assets/radar-van-client.js?v=20261024-scout-110"></script>
+<script src="assets/radar-van-client.js?v=20261024-card-parity"></script>
 </body>
 </html>

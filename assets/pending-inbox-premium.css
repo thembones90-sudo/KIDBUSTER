@@ -233,3 +233,38 @@ body #krispInboxPanel button:focus-visible{outline:2px solid #9deb52;outline-off
   body #krispInboxPanel .radar-van-item,
   body #krispInboxPanel button{transform:none!important;transition:none!important}
 }
+/* Shared transcript-card hierarchy: content left, identical actions right. */
+body #krispInboxPanel #krispPendingWrap>div:first-child{display:none!important}
+body #krispInboxPanel .radar-van-list .radar-van-item{
+  display:grid;grid-template-columns:minmax(0,1fr) 145px;align-items:start;gap:16px;
+  padding:16px 18px
+}
+body #krispInboxPanel .radar-van-item-body{position:relative;min-width:0}
+body #krispInboxPanel .radar-van-item-header{display:flex;align-items:flex-start;gap:6px}
+body #krispInboxPanel .radar-van-item-title{
+  flex:1;min-width:0;padding-right:0;font-size:14.5px;font-weight:700
+}
+body #krispInboxPanel .radar-van-item-meta{margin-top:5px;font-size:12.5px}
+body #krispInboxPanel .radar-van-item-time{
+  margin-top:3px;color:#969e99;font-size:11px;line-height:1.6;overflow-wrap:anywhere
+}
+body #krispInboxPanel .radar-van-item-preview{
+  margin:9px 0 0;padding-left:11px;border-left:2px solid var(--source-accent);
+  color:#acb4af;font-size:12.5px;font-style:italic;line-height:1.5
+}
+body #krispInboxPanel .radar-van-row{display:flex;flex-direction:column;gap:9px;min-width:0}
+body #krispInboxPanel .radar-van-row button{width:100%;border-radius:9px}
+body #krispInboxPanel .radar-van-dismiss::before{content:none}
+body #krispInboxPanel .radar-van-list .radar-van-item .radar-van-more{
+  position:static;flex:none;width:28px;min-height:28px;height:28px;margin:-3px 0 0;
+  font-size:21px
+}
+body #krispInboxPanel .radar-van-item-menu{top:30px;right:0}
+body #krispInboxPanel .radar-van-expanded-preview{margin:10px 0 0}
+body #krispInboxPanel .krisp-pending-card>div:last-child{width:145px;min-width:145px!important}
+@media(max-width:520px){
+  body #krispInboxPanel .radar-van-list .radar-van-item{grid-template-columns:minmax(0,1fr);gap:14px}
+  body #krispInboxPanel .radar-van-row{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}
+  body #krispInboxPanel .krisp-pending-card>div:last-child{width:100%;flex-direction:row!important}
+  body #krispInboxPanel .krisp-pending-card>div:last-child button{flex:1;min-width:0}
+}
