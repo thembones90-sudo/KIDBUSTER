@@ -1,0 +1,31 @@
+'use strict';
+const assert = require('node:assert/strict');
+const { extractKidbusterCore } = require('./helpers/extract-core.cjs');
+
+module.exports = function run() {
+  const core = extractKidbusterCore();
+  const prompt = core.buildMASystemPrompt({ rating:'4', lengthFormat:'medium', forcedClassicStyleVariant:'standard' });
+  assert.ok(!prompt.includes('[Positive closing sentence.]'), 'Classic template must not request an extra closing');
+  assert.ok(prompt.includes('Distinguish independent answers'), 'Classic Medium must distinguish prompted from independent speech');
+  assert.ok(prompt.includes('ambiguously diarized'), 'Classic Medium must acknowledge ambiguous child identity');
+  const stars = '⭐ 🌟 ⭐ 🌟 ✨ ⭐ 🌟 💫 ⭐ 🌠';
+  const suffix = 'Total Stars Today:\n\n' + stars + '\n\nCheers,\nTeacher Layne 🐺';
+  const valid = 'Hi Cyrus!\nMini Homework:\nSpeaking Mission 🎯\nPractice counting.\n\n' + suffix;
+  const analyze = text => core.PROTOCOLS.MA.analyze(text,'4','Layne','medium');
+  const closureWarnings = text => analyze(text).filter(w => w.includes('Classic Medium closing must contain only'));
+  assert.equal(closureWarnings(valid).length,0,'Valid exact stars/signature tail is accepted');
+  assert.equal(closureWarnings(valid.replace('\n\nCheers,','\n\nThanks for the lesson.\n\nCheers,')).length,1,'Extra prose after stars rejected');
+  assert.equal(closureWarnings(valid.replace('\n\nCheers,','\n\nMini Homework:\nDo this task.\n\nCheers,')).length,1,'Homework after stars rejected');
+  assert.equal(closureWarnings(valid+'\nPostscript').length,1,'Text after signature rejected');
+  assert.ok(analyze(valid.replace('Total Stars Today:','Stars Today:')).some(w=>w.includes('Classic Medium closing requires a Total Stars Today header')),'Missing required Classic stars header rejected');
+  const shortPrompt = core.buildMASystemPrompt({rating:'4',lengthFormat:'short',forcedClassicStyleVariant:'standard'});
+  const longPrompt = core.buildMASystemPrompt({rating:'4',lengthFormat:'long',forcedClassicStyleVariant:'standard'});
+  assert.ok(shortPrompt.includes('[Positive closing sentence.]') && longPrompt.includes('[Positive closing sentence.]'),'Classic Short and Long retain their previous template');
+  assert.ok(!shortPrompt.includes('CLASSIC MEDIUM ONLY') && !longPrompt.includes('CLASSIC MEDIUM ONLY'),'Medium instructions never leak to Short or Long');
+  assert.equal(core.PROTOCOLS.MA.analyze(valid.replace('\n\nCheers,','\n\nThanks!\n\nCheers,'),'4','Layne','short').filter(w=>w.includes('Classic Medium closing must contain only')).length,0,'Classic Short closing unaffected');
+  assert.equal(core.PROTOCOLS.MA.analyze(valid.replace('\n\nCheers,','\n\nThanks!\n\nCheers,'),'4','Layne','long').filter(w=>w.includes('Classic Medium closing must contain only')).length,0,'Classic Long closing unaffected');
+  const sugar = core.PROTOCOLS.MS.analyze(valid,'4','Layne');
+  assert.ok(!sugar.some(w=>w.includes('Classic Medium closing must contain only')),'Sugarcoat not constrained by Classic-only check');
+  console.log('PASS Classic Medium sign-off and evidence regression (9 assertions)');
+  return {passed:9,failed:0};
+};

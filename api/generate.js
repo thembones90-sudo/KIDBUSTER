@@ -42,7 +42,7 @@ function buildCacheableSystemBlocks(systemPrompt) {
 import crypto from 'node:crypto';
 import { reserveGeneration, releaseGeneration, commitGeneration } from './_lib/license-service.js';
 import { ALWAYS_FREE_PROTOCOLS, TRIAL_GENERATIONS_PER_PROTOCOL } from './_lib/licensing.js';
-import { buildServerGeneration, evaluateGeneratedOutput, buildRepairMessage, GenerationRequestError } from './_lib/server-generation.js';
+import { buildServerGeneration, evaluateGeneratedOutput, buildRepairMessage, normalizeClassicEnding, GenerationRequestError } from './_lib/server-generation.js';
 import {beginGenerationRequest,completeGenerationRequest,releaseGenerationRequest} from './_lib/kv-client.js';
 import {acquireGenerateThrottle} from './_lib/generate-throttle.js';
 import { recordGenerationTelemetry } from './_lib/feedback-store.js';
@@ -351,6 +351,7 @@ async function runGenerationInner(req, res, run) {
   // length/field limits, required sections, delimiters, sign-off/identity,
   // placeholders). One bounded repair is allowed, inside the same deadline,
   // reservation and request marker; it never touches quota on its own.
+  text=normalizeClassicEnding(protocol,text,form);
   let usage=data.usage||null;
   let contract;
   try{contract=evaluateGeneratedOutput(protocol,text,form);}
@@ -397,7 +398,7 @@ async function runGenerationInner(req, res, run) {
           const candidate=providerText(result.data);
           if(!candidate)repair.outcome='provider_error';
           else if(wasTruncated(result.data))repair.outcome='truncated';
-          else repaired=candidate;
+          else repaired=normalizeClassicEnding(protocol,candidate,form);
         }
       }catch(repairErr){
         if(!repairLogged)run.attempts.push({kind:'repair',nano:null});

@@ -90,6 +90,28 @@ export function buildServerGeneration(input){
   return {protocol,systemPrompt,userMessage,form};
 }
 
+export function normalizeClassicEnding(protocol, output, form={}){
+  if(protocol!=='MA' || form.lengthFormat!=='medium' || !['3','3.5','4','4.5','5','5.5','6'].includes(String(form.rating||'')))return output;
+  const src=String(output||'');
+  const heading=/^Total Stars Today:\s*$/im;
+  const match=heading.exec(src);
+  if(!match)return output;
+  const remainder=src.slice(match.index+match[0].length);
+  const lines=remainder.split(/\r?\n/);
+  const nonempty=lines.map((value,index)=>({value:value.trim(),index})).filter(x=>x.value);
+  if(!nonempty.length)return output;
+  const starLine=nonempty[0].value;
+  const approved=new Set(['⭐','🌟','✨','💫','🌠','🌌','🌃','🌄','🌅','🌆','🌇','🌉','🌙','🌛','🌜']);
+  const tokens=starLine.split(/\s+/u).filter(Boolean);
+  if(tokens.length!==10 || tokens.some(x=>!approved.has(x)))return output;
+  const name=String(form.teacherName||'Layne').trim();
+  const emoji=String(form.signoffEmoji||'').trim()||(name==='Layne'?'🐺':'');
+  const signature='Cheers,\nTeacher '+name+(emoji?' '+emoji:'');
+  const exact=new RegExp('Cheers,\\s*\\n\\s*Teacher '+name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+(emoji?'\\s*'+emoji:'')+'\\s*$','i');
+  if(!exact.test(src))return output;
+  return src.slice(0,match.index).trimEnd()+'\n\nTotal Stars Today:\n\n'+starLine+'\n\n'+signature;
+}
+
 // Final-output contract for a generated report, judged by the same trusted
 // core (and therefore the same validators the browser shows). Structural
 // compliance only: contentReviewed is always false.

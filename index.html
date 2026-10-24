@@ -3660,7 +3660,10 @@ Love, Teacher [Name]` + '\n\n─────────────────
 
   function buildMASystemPrompt(params){
     const runtimeParams = buildMARuntimeParams(params);
-    const combined = MA_PROTOCOL_V2_10_SOURCE + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
+    const mediumOnly = params && params.lengthFormat === 'medium';
+    const mediumRules = mediumOnly ? '\n\nCLASSIC MEDIUM ONLY: Distinguish independent answers, guided answers, and teacher repetition. Recognize explicit teacher grammar and pronunciation corrections. In multi-student lessons do not attribute ambiguously diarized speech to an individual child. Focus on the most meaningful demonstrated learning instead of arbitrary lists. The last content must be exactly ten stars followed by the teacher signature, with no words or homework between or after them.' : '';
+    const classicSource = mediumOnly ? MA_PROTOCOL_V2_10_SOURCE.replace('[Positive closing sentence.]\n\n', '') : MA_PROTOCOL_V2_10_SOURCE;
+    const combined = classicSource + mediumRules + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
     const variantKey = pickClassicStyleVariant(params);
     const classicStyleRuntime =
       'CLASSIC STYLE VARIANT FOR THIS REPORT (hidden app choice; do not mention this to the user):\n' +
@@ -4393,6 +4396,18 @@ Love, Teacher [Name]` + '\n\n─────────────────
     const expectedSignoffLabel = phrase + ' / Teacher ' + name + (emoji ? ' ' + emoji : '');
     if(!signoffMatch){
       warnings.push('Closing sign-off does not exactly match "' + expectedSignoffLabel + '".');
+    }
+    if(phrase === 'Cheers,' && tier.key === 'medium' && !MA_NO_STAR_LEVELS.includes(lvl)){
+      const tail = text.match(/Total Stars Today:\s*\n([\s\S]*)$/i);
+      if(!tail){
+        warnings.push('Classic Medium closing requires a Total Stars Today header.');
+      }else{
+        const lines=tail[1].split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+        const finalTeacher='Teacher '+name+(emoji?' '+emoji:'');
+        if(lines.length!==3 || lines[1]!==phrase || lines[2]!==finalTeacher){
+          warnings.push('Classic Medium closing must contain only the 10-star line followed by the teacher sign-off.');
+        }
+      }
     }
 
     // --- no third-person self-reference outside the signature ---
@@ -5632,7 +5647,7 @@ because it's about a single lesson.`
     { code:'section', re:/No "Today's Superpower"|Superpower section is not meaningful|More than one Superpower|No homework mission found|Multiple homework missions|Parent Note section is (missing|present)|section is missing\.$|Missing required section|Sections are out of order/ },
     { code:'structure', re:/Could not find both "LEARNING CONTENT:"/ },
     { code:'length_field', re:/^(Strengths section|Areas for Improvement section|Learning Content|General and Detailed Performance) is \d+ characters/ },
-    { code:'signoff', re:/Closing sign-off does not exactly match|Custom teacher sign-off is missing|does not open with "Hi / },
+    { code:'signoff', re:/Closing sign-off does not exactly match|Classic Medium closing (requires|must contain)|Custom teacher sign-off is missing|does not open with "Hi / },
     { code:'placeholder', re:/placeholder/i },
     { code:'tier_leak', re:/qualitative guidance tier label/ },
     { code:'formatting', re:/^Markdown bold heading detected/ },
