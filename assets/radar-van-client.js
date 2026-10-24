@@ -540,10 +540,10 @@
       );
       var url = new URL(data.downloadUrl);
       if (url.protocol !== 'https:' || !/^[a-z0-9]+\.private\.blob\.vercel-storage\.com$/i.test(url.hostname) ||
-          url.pathname !== '/releases/Classbuster-Scout-10ZU-Windows.zip' || url.username || url.password) {
+          url.pathname !== '/releases/scout-1.0.0-20261024/ScoutSetup.exe' || url.username || url.password) {
         throw new Error('The private download URL is invalid.');
       }
-      if (status) status.textContent = 'Your download is starting. Extract the ZIP before running RadarVan.exe.';
+      if (status) status.textContent = 'Your download is starting. Run ScoutSetup.exe to install Classbuster Scout. Close Scout before upgrading; your lesson data is preserved.';
       window.location.assign(url.href);
     } catch(err) {
       if (status) status.textContent = err.message || 'Could not start the Scout download.';

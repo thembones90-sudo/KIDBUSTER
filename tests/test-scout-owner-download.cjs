@@ -47,11 +47,15 @@ module.exports=async function run(){
     const downloadHandler=fs.readFileSync(path.join(root,'api/_lib/radar-van-download-handler.js'),'utf8');
     // The version stays private: the page says only "Download Scout".
     check('download button and status show no version',html.includes('>Download Scout</button>') && !/Download Scout \d|10Z[A-Z]/.test(html) && !/download is starting[^']*10Z/.test(ui));
-    check('private Scout release points to centered 10ZU ZIP',
-      ui.includes('/releases/Classbuster-Scout-10ZU-Windows.zip') &&
-      downloadHandler.includes("releases/Classbuster-Scout-10ZU-Windows.zip"));
-    check('private Scout ZIP checksum pinned to verified 10ZU package',
-      downloadHandler.includes('ebce02307209eebe2750b714f20000f35d719295067d942da25d04f5d546fdc6'));
+    check('private Scout release points to the verified Windows installer',
+      ui.includes('/releases/scout-1.0.0-20261024/ScoutSetup.exe') &&
+      downloadHandler.includes('releases/scout-1.0.0-20261024/ScoutSetup.exe') &&
+      downloadHandler.includes("filename: 'ScoutSetup.exe'"));
+    check('private Scout installer checksum is pinned to the verified artifact',
+      downloadHandler.includes('cde12397d764d857d7929b30cc97392ab33d897797e3472245b0f688b24ea7a7'));
+    check('download guidance uses installer branding, not ZIP extraction or RadarVan',
+      ui.includes('Run ScoutSetup.exe to install Classbuster Scout') &&
+      !ui.includes('Extract the ZIP') && !ui.includes('RadarVan.exe'));
   }catch(e){console.error('owner Scout download regression:',e.message);check('test handler completed',false);}
   finally{for(const k of keys){if(previous[k]===undefined)delete process.env[k];else process.env[k]=previous[k];}}
   return getFailures();
