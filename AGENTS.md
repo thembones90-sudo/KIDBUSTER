@@ -5,7 +5,7 @@ projects at the same time: before changing anything, check `git status`, `git lo
 newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
 ## What is live
-- Frontend release update 2026-10-24: live commit `35bbb97` on
+- Frontend release update 2026-10-24: live commit `154a553` on
   `codex/scout-card-parity-20261024`; see `SCOUT-CARD-PARITY-RELEASE-20261024.md`.
   Preserve these card changes when integrating the canonical folder's concurrent
   unpublished Classic edits. Do not deploy the older canonical snapshot as-is.

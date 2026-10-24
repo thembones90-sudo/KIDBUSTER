@@ -1,5 +1,23 @@
 # Live transcript card parity — 2026-10-24
 
+## Logo alignment correction — live
+
+Commit `154a5534999cbbbf3478e69030a728a29e59afb7`, deployment
+`dpl_FTzZe8B78Y9nD3ryemMjGgaER7UB`, supersedes the provider-logo release below.
+The legacy `.source-pending-title span` counter rule was overriding icon badge
+padding and moving each image 7px right. A specific badge selector now isolates
+it from that rule. CSS-only optical offsets account for uneven transparent
+asset padding; original image files remain unchanged. Browser regression tests
+measure visible alpha-bound centers (<0.3px deviation) at four viewport sizes,
+not only the image element dimensions. Synthetic visual preview was checked.
+
+All 114 test files passed on full rerun. The initial run hit an unrelated
+appearance-test click timing failure; that test passed unchanged on retry.
+Candidate checks: 24/24 plus five refusal probes passed. Rollback:
+`dpl_7bragfFQeuzHUfhgKNknEYVgQUiB`. Exact export: `.v2-tmp/deploy-154a553`.
+Both public domains passed 24/24 after promotion; public HTML and cache-busted
+inbox CSS matched the tested export byte-for-byte.
+
 ## Provider logo follow-up — live
 
 Commit `35bbb97c724bb07b79092ac7a70c6a7e05d04ca7` on the same source branch is
