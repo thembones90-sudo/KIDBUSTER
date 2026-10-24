@@ -1,5 +1,20 @@
 # Live transcript card parity — 2026-10-24
 
+## Current Scout brand correction — live
+
+Commit `c566e5e05f0382511cfde382a78a5a0c6f4e3050`, deployment
+`dpl_8MDrxMc7YNiDaMwkA4bHA5yMAxR9`, replaces the retired Pathfinder compass
+with the current Classbuster book-and-lightning asset
+`assets/brand/classbuster/apple-touch-icon.png` in the Scout inbox heading.
+This matches the brand used by Scout's `assets/classbuster-icon-180.png`.
+Removed the old compass optical offset; kept the badge alignment isolation and
+Krisp styling. No backend, queue, protocol or lesson behavior changed.
+All 114 test files passed; candidate 24/24 plus five refusal probes passed.
+Synthetic populated inbox was visually checked. Export `.v2-tmp/deploy-c566e5e`.
+Rollback: `dpl_FTzZe8B78Y9nD3ryemMjGgaER7UB`.
+Both public domains passed 24/24 after promotion. Public HTML, cache-busted CSS
+and the Classbuster logo matched the tested release byte-for-byte.
+
 ## Logo alignment correction — live
 
 Commit `154a5534999cbbbf3478e69030a728a29e59afb7`, deployment
