@@ -98,10 +98,13 @@ module.exports=async function run(){
       const cs=getComputedStyle(card),claim=getComputedStyle(card.querySelector('.radar-van-claim'));
       return {radius:parseInt(st.borderTopLeftRadius,10),
         bg:st.backgroundImage,cardRadius:parseInt(cs.borderTopLeftRadius,10),
-        claimBg:claim.backgroundImage, scoutVisible:!el.querySelector('#radarVanPendingGroup').hidden};
+        claimBg:claim.backgroundColor,titleFont:getComputedStyle(el.querySelector('#krispInboxTitle')).fontFamily,
+        titleSize:parseInt(getComputedStyle(el.querySelector('#krispInboxTitle')).fontSize,10),
+        scoutVisible:!el.querySelector('#radarVanPendingGroup').hidden};
     });
-    check('premium inbox uses rich dark gradient and rounded surfaces',
-      look.radius>=20 && look.cardRadius>=15 && look.bg.includes('gradient') && look.claimBg.includes('gradient'));
+    check('inbox uses granite surfaces, compact sans-serif headings and green import action',
+      look.radius>=20 && look.cardRadius===12 && look.bg.includes('gradient') &&
+      look.claimBg==='rgb(157, 235, 82)' && !/Georgia|Times/.test(look.titleFont) && look.titleSize<=22);
     check('premium styling preserves independent Scout section',look.scoutVisible);
     await page.click('#radarVanPendingPopoverList .radar-van-more');
     check('premium more-options menu opens',await page.$eval('#radarVanPendingPopoverList .radar-van-item-menu',el=>!el.hidden));

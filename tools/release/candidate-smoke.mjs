@@ -47,6 +47,15 @@ await probe('page loads with Classbuster branding, protocol engine and security 
 });
 for(const asset of ['/assets/radar-van-client.js', '/assets/scout-integration.css', '/assets/owner-usage-stats.js', '/assets/owner-usage-stats.css', '/assets/scout-release.js'])
   await probe('asset served: ' + asset, async () => status(await call('GET', asset), 200));
+await probe('transcript inbox keeps the compact granite design', async () => {
+  const page = await call('GET', '/'); status(page, 200);
+  expect(page.text.includes('assets/pending-inbox-premium.css?'), 'inbox stylesheet missing');
+  expect(!page.text.includes('Your captured lessons, beautifully organized.'), 'superseded inbox markup returned');
+  const css = await call('GET', '/assets/pending-inbox-premium.css'); status(css, 200);
+  expect(css.text.includes('#25282b') && css.text.includes('font:650 22px/1.3 var(--font-body)'), 'compact granite styling missing');
+  expect(!/Georgia|Times New Roman/.test(css.text), 'superseded serif inbox returned');
+  return 'current markup, granite surfaces and compact sans-serif heading';
+});
 await probe('Scout download stays unpublished', async () => {
   const r = await call('GET', '/assets/scout-release.json'); status(r, 200);
   expect(JSON.parse(r.text).available === false, 'Scout download manifest is published'); return 'available:false';
