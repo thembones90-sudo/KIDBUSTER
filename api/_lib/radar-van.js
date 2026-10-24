@@ -94,7 +94,17 @@ async function withLock(lockKey, work, waitMs = radarTuning.lockWaitMs){
 }
 
 // ---------- durable settings (token + automatic import; legacy ARM compatible) ----------
-function blankSettings(){ return { tokenHash: null, armed: false, automatic: false, connectedAt: null }; }
+function blankSettings(){ return { tokenHash: null, armed: false, automatic: false, connectedAt: null, teacherDisplayName: null }; }
+
+// Teacher name is explicitly chosen in the authenticated Classbuster form.
+// It is not guessed from speech, the Windows username, or a device token.
+export function validateScoutTeacherName(value){
+  if(value === null || value === '') return null;
+  if(typeof value !== 'string' || value.length > 80 || !value.trim() ||
+      /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069\u200e\u200f]/u.test(value)) return undefined;
+  return value.trim().replace(/ {2,}/g, ' ');
+}
+
 export async function readRadarSettings(identity){
   const stored = await kv.get(K.settings(identity));
   if(!stored || typeof stored !== 'object') return blankSettings();
@@ -103,7 +113,8 @@ export async function readRadarSettings(identity){
     armed: stored.armed === true,
     automatic: stored.automatic === true,
     inboxOnly: stored.inboxOnly === true,
-    connectedAt: stored.connectedAt || null
+    connectedAt: stored.connectedAt || null,
+    teacherDisplayName: validateScoutTeacherName(stored.teacherDisplayName) || null
   };
 }
 async function writeSettings(identity, settings){
@@ -143,20 +154,46 @@ export async function issueRadarToken(identity, { automatic = false } = {}){
   });
 }
 
+// Authenticated browser-only name sync. This updates the teacher's display
+// metadata, not the device credential and never a raw audio transcript.
+export async function setRadarTeacherName(identity, name){
+  const checked = validateScoutTeacherName(name);
+  if(checked === undefined) return { invalid: true };
+  return withLock(K.settingsLock(identity), async () => {
+    const settings = await readRadarSettings(identity);
+    if(!settings.tokenHash) return { notConnected: true };
+    if(settings.teacherDisplayName !== checked){
+      await writeSettings(identity, { ...settings, teacherDisplayName: checked });
+      await bumpVersion(identity);
+    }
+    return { updated: true, teacherDisplayName: checked };
+  });
+}
+
 // One-click pairing: the desktop app created its own token and sent only its
 // SHA-256 through the owner's signed-in browser. The raw token never reaches
 // the browser or this server. A hash already bound to any account is refused.
 export const RADAR_TOKEN_HASH = /^[0-9a-f]{64}$/;
-export async function bindRadarTokenHash(identity, hash){
+export async function bindRadarTokenHash(identity, hash, displayName){
   if(!RADAR_TOKEN_HASH.test(String(hash || ''))) return { invalid: true };
+  const checked = displayName === undefined ? undefined : validateScoutTeacherName(displayName);
+  if(displayName !== undefined && checked === undefined && displayName !== null && displayName !== '') return { invalidName: true };
   return withLock(K.settingsLock(identity), async () => {
     const settings = await readRadarSettings(identity);
-    if(settings.tokenHash === hash) return { unchanged: true };
+    if(settings.tokenHash === hash){
+      if(displayName !== undefined && settings.teacherDisplayName !== checked){
+        await writeSettings(identity, { ...settings, teacherDisplayName: checked });
+        await bumpVersion(identity);
+      }
+      return { unchanged: true };
+    }
     if(await kv.get(K.token(hash))) return { taken: true };
     const now = new Date().toISOString();
     await kv.set(K.token(hash), { identity, createdAt: now, paired: true });
     try{
-      await writeSettings(identity, { ...settings, automatic: true, inboxOnly: true, tokenHash: hash, connectedAt: settings.tokenHash ? settings.connectedAt : now });
+      await writeSettings(identity, { ...settings, automatic: true, inboxOnly: true, tokenHash: hash,
+        teacherDisplayName: displayName === undefined ? settings.teacherDisplayName : checked,
+        connectedAt: settings.tokenHash ? settings.connectedAt : now });
     }catch(err){
       await kv.del(K.token(hash)).catch(() => {});
       throw err;

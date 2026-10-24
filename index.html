@@ -8727,6 +8727,7 @@ function saveTeacherIdentity(){
       signoffEmoji: document.getElementById('teacherSignoffEmoji').value
     }));
   }catch(e){ /* storage unavailable */ }
+  document.dispatchEvent(new Event('classbuster:teacher-name-changed'));
 }
 function readTeacherIdentity(){
   try{ return JSON.parse(localStorage.getItem(TEACHER_IDENTITY_KEY)) || null; }catch(e){ return null; }
