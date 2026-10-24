@@ -53,17 +53,7 @@
   --font-body:'Inter','Segoe UI',Arial,sans-serif;
   --font-mono:'JetBrains Mono',monospace;
 }
-/* Ice-blue palette for OF protocol — overrides the same variable names the
-   acid-green (MA) theme uses, so every consumer (panels, badge, focus
-   states, background glow, status dot, generate button, section-title
-   words) re-themes itself automatically without needing protocol-specific
-   rules at each usage site.
-   Deliberately does NOT touch the Performance Rating buttons — those have
-   their own dedicated color functions (ratingColor / ofTierColor) and are
-   excluded from this reskin by design. Also does not touch the KIDBUSTER
-   brand-name gradient (permanent identity, not part of this theme) or the
-   generic lint-ok success-green indicator (a universal pass/fail
-   convention, not a branded color). */
+/* OF palette; rating colors, brand identity and success green stay independent. */
 body.protocol-of{
   --toxin-rgb:11,195,255;
   --toxin:#0BC3FF;
@@ -78,12 +68,7 @@ body.protocol-of{
   --toxin-border:rgba(11,195,255,0.28);
   --toxin-glow:rgba(11,195,255,0.18);
 }
-/* Sweet Protocol: same MA engine, soft pink theme so it's
-   immediately, visually distinct from standard MA at a glance. Kept
-   entirely light (no dark corner) rather than mirroring the acid/ice
-   dark-to-bright gradient shape — verified via real contrast math that
-   an all-light gradient reads better with the button's dark text than
-   forcing a dark corner just for visual parity with the other themes. */
+/* Sweet palette stays light for dark-text contrast. */
 body.protocol-ms{
   --toxin-rgb:255,11,237;
   --toxin:#FF0BED;
@@ -132,11 +117,7 @@ body.protocol-blitz{
   --toxin-border:rgba(255,253,11,0.28);
   --toxin-glow:rgba(255,253,11,0.18);
 }
-/* Beida: orange/white, per direct request rather than a single-hue
-   gradient like the other four — --toxin-bright is genuine white (not a
-   pale tint of the hue) so the "white" half of the combination actually
-   reads as white in the button gradient and glow, not just a lighter
-   orange. */
+/* Beida uses genuine white, not a pale orange tint. */
 body.protocol-beida{
   --toxin-rgb:246,141,13;
   --toxin:#F68D0D;
@@ -586,12 +567,7 @@ label.field-label{
   text-shadow:0 0 8px rgba(178,102,255,0.85);
   line-height:1;
 }
-/* OF's label is much longer than the other three ("OF Protocol (Trial
-   Evaluation)" vs one word each) — forcing it to occupy the full row
-   width pushes it onto its own line in the wrapping flex layout,
-   regardless of exactly how much room the other three (plus their info
-   icons) take up first. Targeted by :has() rather than nth-child so this
-   stays correct even if the options are ever reordered. */
+/* Let the long OF label wrap independently of option order. */
 .protocol-select label:has(input[value="OF"]){
   flex-basis:100%;
 }
@@ -717,10 +693,7 @@ textarea::placeholder, input::placeholder{color:var(--text-faint);}
   font-size:14px;
   font-weight:700;
 }
-/* OF's 5 tier labels ("Low/Medium", "Medium/High") are much longer than
-   MA/Sugarcoat's plain numbers, in the same button width — without this,
-   the longer two get clipped by .rating-btn's overflow:hidden instead of
-   actually fitting. */
+/* Fit OF's longer rating labels without clipping. */
 .rating-track-of .btn-label{
   font-size:11px;
   letter-spacing:-0.01em;
@@ -891,12 +864,7 @@ textarea::placeholder, input::placeholder{color:var(--text-faint);}
   100%{ opacity:1; transform:translateY(0); filter:blur(0); }
 }
 
-/* OF ice-blue variant of the button — fully self-contained literal values
-   and its own keyframe sets (@keyframes can't be selector-scoped, so a
-   separate name is needed wherever the animation itself carries color).
-   Deliberately not using shared CSS variables here after the self-
-   reference bug that broke the base button — this component now owns
-   its own two complete, independently-verifiable color sets. */
+/* Literal button colors avoid self-reference; keyframe names are global. */
 body.protocol-of .generate-btn{
   background:linear-gradient(135deg, #052E3C 0%, #0BC3FF 55%, #B2ECFF 100%);
   box-shadow:0 0 16px 1px rgba(12,189,247,0.4), 0 0 32px 4px rgba(9,141,184,0.22), 0 4px 18px -4px rgba(0,0,0,0.35);
@@ -926,10 +894,7 @@ body.protocol-of .generate-btn.loading{
   50%{ filter:brightness(1.08) saturate(1.18); box-shadow:0 0 22px rgba(115,220,255,0.45); }
 }
 
-/* MA Sweet Voice pink variant of the button — same self-contained-literal-
-   values structure as the ice-blue variant above, its own keyframe names
-   since @keyframes can't be selector-scoped. Kept fully light (no dark
-   corner) per the contrast reasoning above. */
+/* Sweet button: literal light palette and unique keyframes. */
 body.protocol-ms .generate-btn{
   background:linear-gradient(135deg, #F261E8 0%, #FF0BED 55%, #FFB2F9 100%);
   box-shadow:0 0 16px 1px rgba(247,12,230,0.4), 0 0 32px 4px rgba(184,9,171,0.22), 0 4px 18px -4px rgba(0,0,0,0.25);
@@ -959,8 +924,7 @@ body.protocol-ms .generate-btn.loading{
   50%{ filter:brightness(1.08) saturate(1.18); box-shadow:0 0 22px rgba(255,115,245,0.45); }
 }
 
-/* Blitz yellow "lightning" variant of the button — same self-contained-
-   literal-values structure as the other two variants above. */
+/* Fairy button palette. */
 body.protocol-fairy .generate-btn{
   background:linear-gradient(135deg, #FF8FD3 0%, #FFB7E6 55%, #FFE0F3 100%);
   box-shadow:0 0 16px 1px rgba(255,151,216,0.38), 0 0 32px 4px rgba(232,111,191,0.2), 0 4px 18px -4px rgba(0,0,0,0.22);
@@ -1022,9 +986,7 @@ body.protocol-blitz .generate-btn.loading{
   50%{ filter:brightness(1.08) saturate(1.18); box-shadow:0 0 22px rgba(255,254,173,0.45); }
 }
 
-/* Beida orange/white variant — --toxin-bright is genuine white here
-   (see the theme variables above), so the gradient's top stop is real
-   white rather than a pale tint of the hue like the other four themes. */
+/* Beida button: orange to genuine white. */
 body.protocol-beida .generate-btn{
   background:linear-gradient(135deg, #3C2509 0%, #F68D0D 55%, #FFFFFF 100%);
   box-shadow:0 0 16px 1px rgba(247,142,12,0.4), 0 0 32px 4px rgba(184,105,9,0.22), 0 4px 18px -4px rgba(0,0,0,0.35);
