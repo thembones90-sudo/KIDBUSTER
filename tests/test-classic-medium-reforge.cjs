@@ -6,8 +6,8 @@ module.exports = function run() {
   const core = extractKidbusterCore();
   const prompt = core.buildMASystemPrompt({ rating:'4', lengthFormat:'medium', forcedClassicStyleVariant:'standard' });
   assert.ok(!prompt.includes('[Positive closing sentence.]'), 'Classic template must not request an extra closing');
-  assert.ok(prompt.includes('Distinguish independent answers'), 'Classic Medium must distinguish prompted from independent speech');
-  assert.ok(prompt.includes('ambiguously diarized'), 'Classic Medium must acknowledge ambiguous child identity');
+  assert.ok(prompt.includes('spontaneous student idea'), 'Classic Medium must distinguish prompted from independent speech');
+  assert.ok(prompt.includes('genuinely uncertain'), 'Classic Medium must acknowledge ambiguous child identity');
   const stars = '⭐ 🌟 ⭐ 🌟 ✨ ⭐ 🌟 💫 ⭐ 🌠';
   const suffix = 'Total Stars Today:\n\n' + stars + '\n\nCheers,\nTeacher Layne 🐺';
   const valid = 'Hi Cyrus!\nMini Homework:\nSpeaking Mission 🎯\nPractice counting.\n\n' + suffix;
