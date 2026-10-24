@@ -11,6 +11,11 @@ module.exports=async()=>{
   await page.goto(fixture.url,{waitUntil:'load'});
   await page.waitForFunction(()=>document.querySelectorAll('.radar-van-item').length===2&&document.querySelectorAll('.krisp-pending-card').length===1);
   await page.click('#krispPendingBtn');
+  await page.waitForFunction(()=>[...document.querySelectorAll('.source-pending-icon img')].every(e=>e.complete&&e.naturalWidth>0));
+  const logos=await page.$$eval('.source-pending-icon img',es=>es.map(e=>({src:e.getAttribute('src'),alt:e.alt,width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height})));
+  assert.deepEqual(logos,[{src:'assets/logos/krisp-neutral.png',alt:'',width:28,height:28},{src:'assets/logos/premium-v1/compass-classic.png',alt:'',width:28,height:28}],'use real provider logos with equal proportions');
+  assert.equal(await page.$eval('.krisp-source-icon',e=>getComputedStyle(e).backgroundColor),'rgb(231, 235, 230)','dark Krisp mark has a readable pale backing');
+  assert.equal(await page.$$eval('.source-pending-icon svg',es=>es.length),0,'generic source glyphs are replaced, not overlaid');
   assert.deepEqual(await page.$$eval('.radar-van-item-title',es=>es.map(e=>e.textContent)),['Jackie','Lesson · Oct 24, 12:59 PM']);
   assert.equal(await page.$eval('.radar-van-item-meta',e=>e.textContent),'26 min recorded · Scout');
   assert.match(await page.$eval('.radar-van-item-time',e=>e.textContent),/12:59.*1:25/);

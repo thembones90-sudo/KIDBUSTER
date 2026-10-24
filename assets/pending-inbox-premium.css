@@ -70,7 +70,9 @@ body #krispInboxPanel .source-pending-icon{
   font:500 17px/1 var(--font-body),sans-serif
 }
 body #krispInboxPanel .source-pending-icon svg{width:17px;height:17px}
-body #krispInboxPanel .source-pending-title .krisp-source-icon{color:#6fd1c4;background:#6fd1c416}
+body #krispInboxPanel .source-pending-icon img{display:block;width:28px;height:28px;object-fit:contain}
+body #krispInboxPanel .source-pending-title .scout-source-icon:has(img){background:#151b16}
+body #krispInboxPanel .source-pending-title .krisp-source-icon{color:#6fd1c4;background:#e7ebe6}
 body #krispInboxPanel .source-pending-title .scout-source-icon{
   color:#9deb52;background:#9deb5216;text-shadow:none
 }
