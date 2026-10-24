@@ -12,7 +12,7 @@ module.exports=async()=>{
   await page.waitForFunction(()=>document.querySelectorAll('.radar-van-item').length===2&&document.querySelectorAll('.krisp-pending-card').length===1);
   await page.click('#krispPendingBtn');
   await page.waitForFunction(()=>[...document.querySelectorAll('.source-pending-icon img')].every(e=>e.complete&&e.naturalWidth>0));
-  const logos=await page.$$eval('.source-pending-icon img',es=>es.map(e=>({src:e.getAttribute('src'),alt:e.alt,width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height})));
+  const logos=await page.$$eval('.source-pending-icon img',es=>es.map(e=>({src:e.getAttribute('src'),alt:e.alt,width:parseFloat(getComputedStyle(e).width),height:parseFloat(getComputedStyle(e).height)})));
   assert.deepEqual(logos,[{src:'assets/logos/krisp-neutral.png',alt:'',width:28,height:28},{src:'assets/logos/premium-v1/compass-classic.png',alt:'',width:28,height:28}],'use real provider logos with equal proportions');
   assert.equal(await page.$eval('.krisp-source-icon',e=>getComputedStyle(e).backgroundColor),'rgb(231, 235, 230)','dark Krisp mark has a readable pale backing');
   assert.equal(await page.$$eval('.source-pending-icon svg',es=>es.length),0,'generic source glyphs are replaced, not overlaid');
@@ -26,6 +26,15 @@ module.exports=async()=>{
   for(const [width,height] of [[1440,1000],[900,550],[390,780],[320,480]]){
    await page.setViewport({width,height});
    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+   const centers=await page.$$eval('.source-pending-icon img',es=>es.map(e=>{
+    const badge=e.parentElement.getBoundingClientRect(),image=e.getBoundingClientRect(),style=getComputedStyle(e.parentElement);
+    const canvas=document.createElement('canvas');canvas.width=e.naturalWidth;canvas.height=e.naturalHeight;
+    const ctx=canvas.getContext('2d');ctx.drawImage(e,0,0);const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+    let left=canvas.width,top=canvas.height,right=0,bottom=0;
+    for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++)if(data[(y*canvas.width+x)*4+3]>20){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
+    return{dx:image.left+(left+right)/2/canvas.width*image.width-(badge.left+badge.width/2),dy:image.top+(top+bottom)/2/canvas.height*image.height-(badge.top+badge.height/2),padding:style.padding,badgeWidth:badge.width,badgeHeight:badge.height};
+   }));
+   for(const center of centers){assert.equal(center.padding,'0px','legacy count span padding must not affect logo badges');assert.equal(center.badgeWidth,28);assert.equal(center.badgeHeight,28);assert.ok(Math.abs(center.dx)<.3&&Math.abs(center.dy)<.3,'visible provider artwork must be centered: '+JSON.stringify({width,...center}));}
    const layout=await page.$$eval('.radar-van-item',es=>es.map(e=>{
     const r=e.getBoundingClientRect(),body=e.querySelector('.radar-van-item-body').getBoundingClientRect(),actions=e.querySelector('.radar-van-row').getBoundingClientRect();
     return {left:r.left,right:r.right,overflow:e.scrollWidth-e.clientWidth,bodyRight:body.right,bodyBottom:body.bottom,actionsLeft:actions.left,actionsTop:actions.top};

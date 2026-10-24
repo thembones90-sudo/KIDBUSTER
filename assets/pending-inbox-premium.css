@@ -64,13 +64,16 @@ body #krispInboxPanel .source-pending-title{
   margin:0 0 12px;
   color:#f5f7f6;font:600 15px/1.4 var(--font-body),sans-serif;letter-spacing:0
 }
-body #krispInboxPanel .source-pending-icon{
-  flex:none;display:inline-grid;place-items:center;
-  width:28px;height:28px;min-width:28px;padding:0;border-radius:8px;background:#ffffff07;
+body #krispInboxPanel .source-pending-title .source-pending-icon{
+  flex:none;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;
+  width:28px;height:28px;min-width:28px;padding:0;border:0;border-radius:8px;background:#ffffff07;
   font:500 17px/1 var(--font-body),sans-serif
 }
 body #krispInboxPanel .source-pending-icon svg{width:17px;height:17px}
 body #krispInboxPanel .source-pending-icon img{display:block;width:28px;height:28px;object-fit:contain}
+/* Optical centering compensates for transparent padding in the existing brand assets. */
+body #krispInboxPanel .krisp-source-icon img{transform:translate(-.75px,-1.45px) scale(1.2)}
+body #krispInboxPanel .scout-source-icon img{transform:translate(0,.42px)}
 body #krispInboxPanel .source-pending-title .scout-source-icon:has(img){background:#151b16}
 body #krispInboxPanel .source-pending-title .krisp-source-icon{color:#6fd1c4;background:#e7ebe6}
 body #krispInboxPanel .source-pending-title .scout-source-icon{
