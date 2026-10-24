@@ -1,9 +1,9 @@
-// Master-account-only 10ZU ZIP download. Shares /api/feedback so no new function.
+// Master-account-only Scout Windows installer. No public release entitlement.
 import { issueSignedToken, presignUrl } from '@vercel/blob';
 import { accountEntitlement, radarVanEnabled } from './radar-van.js';
 
-const PATHNAME = 'releases/Classbuster-Scout-10ZU-Windows.zip';
-const SHA256 = 'ebce02307209eebe2750b714f20000f35d719295067d942da25d04f5d546fdc6';
+const PATHNAME = 'releases/scout-1.0.0-20261024/ScoutSetup.exe';
+const SHA256 = 'cde12397d764d857d7929b30cc97392ab33d897797e3472245b0f688b24ea7a7';
 
 function reply(res, status, body) {
   res.setHeader?.('Cache-Control', 'private, no-store');
@@ -32,7 +32,7 @@ export default async function handleScoutDownload(req, res) {
         !/^https:\/\/[a-z0-9]+\.private\.blob\.vercel-storage\.com\//i.test(presignedUrl))
       throw new Error('Bad private Blob URL');
     return reply(res, 200, {
-      version: '10ZU', filename: 'Classbuster-Scout-10ZU-Windows.zip',
+      version: '1.0.0', filename: 'ScoutSetup.exe',
       sha256: SHA256, downloadUrl: presignedUrl, expiresAt
     });
   } catch (err) {
