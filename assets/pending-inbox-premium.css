@@ -73,7 +73,7 @@ body #krispInboxPanel .source-pending-icon svg{width:17px;height:17px}
 body #krispInboxPanel .source-pending-icon img{display:block;width:28px;height:28px;object-fit:contain}
 /* Optical centering compensates for transparent padding in the existing brand assets. */
 body #krispInboxPanel .krisp-source-icon img{transform:translate(-.75px,-1.45px) scale(1.2)}
-body #krispInboxPanel .scout-source-icon img{transform:translate(0,.42px)}
+body #krispInboxPanel .scout-source-icon img{transform:none;border-radius:8px}
 body #krispInboxPanel .source-pending-title .scout-source-icon:has(img){background:#151b16}
 body #krispInboxPanel .source-pending-title .krisp-source-icon{color:#6fd1c4;background:#e7ebe6}
 body #krispInboxPanel .source-pending-title .scout-source-icon{
