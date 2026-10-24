@@ -226,10 +226,12 @@
     if(!data || data.enabled === false) return;
     if(typeof data.version === 'string'){ state.version = data.version; state.lastFull = Date.now(); }
     section.hidden = false;
-    state.connected = !!data.connected; state.armed = !!data.automatic; state.matchedCount = data.waitingCount ?? data.matchedCount ?? 0;
+    state.connected = !!data.connected; state.armed = !!data.automatic; state.inboxOnly = !!data.inboxOnly; state.matchedCount = data.waitingCount ?? data.matchedCount ?? 0;
     var badge = $('State');
     badge.dataset.state = !state.connected ? 'off' : 'connected';
     badge.textContent = !state.connected ? 'Not connected' : 'Connected · automatic';
+    var policy = $('ImportPolicy');
+    if(policy) policy.textContent = state.inboxOnly ? 'Scout sends completed transcripts automatically to Pending transcripts → Classbuster Scout. Choose a lesson to import into your notes; nothing is imported or generated without your choice.' : 'Connected Scout automatically adds finished transcripts to empty lesson notes. If your notes or report already have content, nothing is overwritten: the lesson waits in Pending transcripts until you import it. No report is generated automatically.';
     $('ConnectBtn').textContent = state.connected ? 'Replace device token' : 'Connect Scout';
     $('DisconnectBtn').hidden = !state.connected;
     var items = Array.isArray(data.inboxPending) ? data.inboxPending :
@@ -241,7 +243,7 @@
     var waiting = $('Waiting');
     waiting.hidden = !state.matchedCount;
     if(state.matchedCount){
-      waiting.textContent = state.matchedCount + (state.matchedCount === 1 ? ' lesson is' : ' lessons are') + ' waiting in Pending transcripts. ' + (state.connected ? 'Your notes were not changed. Scout imports automatically once your notes and report are empty, or open Pending transcripts to import now.' : 'Reconnect Scout to import. Your queued lessons are kept.');
+      waiting.textContent = state.matchedCount + (state.matchedCount === 1 ? ' lesson is' : ' lessons are') + ' waiting in Pending transcripts. ' + (state.inboxOnly ? 'Open the Classbuster Scout section and choose a lesson to import. Nothing is added to your notes until you choose it.' : state.connected ? 'Your notes were not changed. Scout imports automatically once your notes and report are empty, or open Pending transcripts to import now.' : 'Reconnect Scout to import. Your queued lessons are kept.');
       workspaceSay(waiting.textContent);
     }
     var accountBtn = document.getElementById('accountBtn');
@@ -315,7 +317,7 @@
   }
 
   async function claimItem(item, button){
-    if(alreadyImported(item.meetingId)){ await acknowledge(item.meetingId); await poll(); return; }
+    if(alreadyImported(item.meetingId) && !item.restored){ await acknowledge(item.meetingId); await poll(); return; }
     if(!workspaceIdle()){
       say('Your notes or report already have content, so nothing was imported or overwritten. Press New Student (or clear the notes), then claim again.');
       return;
@@ -373,7 +375,7 @@
     try{
       await currentScope();
       if(key !== savedKey()) return;
-      var r = await api('GET', null, workspaceIdle(), sinceVersion());
+      var r = await api('GET', null, !state.inboxOnly && workspaceIdle(), sinceVersion());
       if(r === null) return;
       if(r.status === 404 || r.status === 403 || r.status === 401){ hideAll(); stopPolling(); state.failures = 0; state.disabled = true; maybePair(false); return; }
       if(!r.ok){ state.failures++; if(!section.hidden) say('Scout is temporarily unreachable. Retrying shortly.'); return; }

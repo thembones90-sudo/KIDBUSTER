@@ -102,6 +102,7 @@ export async function readRadarSettings(identity){
     tokenHash: typeof stored.tokenHash === 'string' && /^[0-9a-f]{64}$/.test(stored.tokenHash) ? stored.tokenHash : null,
     armed: stored.armed === true,
     automatic: stored.automatic === true,
+    inboxOnly: stored.inboxOnly === true,
     connectedAt: stored.connectedAt || null
   };
 }
@@ -155,7 +156,7 @@ export async function bindRadarTokenHash(identity, hash){
     const now = new Date().toISOString();
     await kv.set(K.token(hash), { identity, createdAt: now, paired: true });
     try{
-      await writeSettings(identity, { ...settings, automatic: true, tokenHash: hash, connectedAt: settings.tokenHash ? settings.connectedAt : now });
+      await writeSettings(identity, { ...settings, automatic: true, inboxOnly: true, tokenHash: hash, connectedAt: settings.tokenHash ? settings.connectedAt : now });
     }catch(err){
       await kv.del(K.token(hash)).catch(() => {});
       throw err;
@@ -396,7 +397,7 @@ function summary(record){
     endedAt: record.endedAt || null, studentLabel: record.studentLabel || null, teacherLabel: record.teacherLabel || null,
     fragmentCount: Number.isInteger(record.fragmentCount) ? record.fragmentCount : null,
     interruptionCount: Number.isInteger(record.interruptionCount) ? record.interruptionCount : null,
-    receivedAt: record.receivedAt, source: 'RADAR VAN',
+    receivedAt: record.receivedAt, source: 'RADAR VAN', restored: record.restored === true,
     contentPreview: String(record.transcript || '').replace(/\s+/g, ' ').slice(0, 200)
   };
 }
@@ -417,7 +418,7 @@ const claimed = (item, nowMs) => Number(item.claimedUntil) > nowMs;
 // revoke and ARM only ever take the settings lock), so a rotate/revoke/ARM
 // either completes before this commit starts - and the stale bearer is refused
 // with { revoked: true } - or waits until the commit has finished.
-export async function ingestRadarLesson(identity, lesson, tokenHash){
+export async function ingestRadarLesson(identity, lesson, tokenHash, { restore = false } = {}){
   return withLock(K.settingsLock(identity), () => withLock(K.lock(identity), async () => {
     const nowMs = Date.now();
     const iso = new Date(nowMs).toISOString();
@@ -428,14 +429,19 @@ export async function ingestRadarLesson(identity, lesson, tokenHash){
     const [seen, pending, matched] = await Promise.all([kv.get(seenKey), readQueue(K.pending(identity), nowMs), readQueue(K.matched(identity), nowMs)]);
     const inMatched = matched.items.some(x => x.meetingId === meetingId);
     const inPending = pending.items.some(x => x.meetingId === meetingId);
-    if(seen || inMatched || inPending){
+    if(restore && !seen && !inMatched && !inPending) return { restoreMissing: true };
+    if(restore && !settings.inboxOnly){
+      await writeSettings(identity, { ...settings, inboxOnly: true });
+      settings.inboxOnly = true;
+    }
+    if((seen && !restore) || inMatched || inPending){
       const route = seen && seen.route ? seen.route : (inMatched ? 'matched' : 'pending');
       if(!seen) await kv.set(seenKey, { at: iso, route }, { ex: RADAR_VAN_SEEN_TTL_SECONDS });
       // A sender retry after a lost bump repairs it; a spurious bump only costs one full read.
       await bumpVersion(identity);
       return { duplicate: true, matched: route === 'matched' };
     }
-    let route = settings.automatic || settings.armed ? 'matched' : 'pending';
+    let route = !settings.inboxOnly && (settings.automatic || settings.armed) ? 'matched' : 'pending';
     // A full matched queue falls back to pending (explicit, nothing evicted).
     if(route === 'matched' && matched.items.length >= RADAR_VAN_MAX_ITEMS) route = 'pending';
     const target = route === 'matched' ? matched.items : pending.items;
@@ -444,7 +450,7 @@ export async function ingestRadarLesson(identity, lesson, tokenHash){
       meetingId, lessonId: lesson.lessonId, title: lesson.title, startedAt: lesson.startedAt,
       durationSeconds: lesson.durationSeconds, endedAt: lesson.endedAt || null, studentLabel: lesson.studentLabel || null,
       teacherLabel: lesson.teacherLabel || null, fragmentCount: lesson.fragmentCount ?? null, interruptionCount: lesson.interruptionCount ?? null,
-      transcript: lesson.transcript, receivedAt: iso, source: 'RADAR VAN'
+      transcript: lesson.transcript, receivedAt: iso, source: 'RADAR VAN', restored: restore
     };
     const queueKey = route === 'matched' ? K.matched(identity) : K.pending(identity);
     await writeQueue(queueKey, [...target, record], nowMs);
@@ -476,7 +482,7 @@ export async function readRadarSession(identity, { lease = false } = {}){
     let delivered = null, dirtyPending = pending.pruned, dirtyMatched = matched.pruned;
     // Automatic clients need only a connection. Legacy clients retain their
     // ARM contract during rollout. Disconnect keeps queued lessons untouched.
-    const deliverable = !!settings.tokenHash && (settings.automatic || settings.armed);
+    const deliverable = !!settings.tokenHash && !settings.inboxOnly && (settings.automatic || settings.armed);
     if(write && lease && deliverable){
       const candidates = settings.automatic
         ? [...matched.items, ...pending.items].sort((a, b) => Date.parse(a.receivedAt) - Date.parse(b.receivedAt))
@@ -529,6 +535,7 @@ export async function readRadarSession(identity, { lease = false } = {}){
     return {
       enabled: true, connected: !!settings.tokenHash, armed: !!settings.tokenHash && (settings.automatic || settings.armed),
       automatic: !!settings.tokenHash && settings.automatic,
+      inboxOnly: settings.inboxOnly === true,
       pending: visible, pendingCount: visible.length, inboxPending, matched: delivered, matchedCount: matched.items.length,
       waitingCount: pending.items.length + matched.items.length,
       lastReceivedAt: lastReceivedAt || null, retentionDays: RADAR_VAN_RETENTION_DAYS, version
@@ -539,7 +546,7 @@ export async function readRadarSession(identity, { lease = false } = {}){
   // plain read; the locked view re-checks everything, so this only saves work.
   if(lease){
     const settings = await readRadarSettings(identity);
-    lease = !!settings.tokenHash && (settings.automatic || settings.armed) && (
+    lease = !!settings.tokenHash && !settings.inboxOnly && (settings.automatic || settings.armed) && (
       (await readQueue(K.matched(identity), Date.now())).items.length > 0 ||
       (settings.automatic && (await readQueue(K.pending(identity), Date.now())).items.length > 0));
   }
