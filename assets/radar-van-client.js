@@ -269,6 +269,18 @@
     }
     var accountBtn = document.getElementById('accountBtn');
     if(accountBtn) accountBtn.setAttribute('data-radar-pending', String(state.matchedCount));
+    // Existing paired owners predate teacher-name sync. On first authenticated
+    // connection, seed their explicitly saved browser name ONLY when the
+    // server has no verified name yet; never overwrite a different profile.
+    if(!state.connected){ state.initialNameSyncKey = null; }
+    else if(!data.teacherDisplayName && state.initialNameSyncKey !== savedKey()){
+      var teacherField=document.getElementById('teacherName');
+      var chosen=teacherField && teacherField.value.trim();
+      if(chosen && chosen.length<=80){
+        state.initialNameSyncKey=savedKey();
+        document.dispatchEvent(new Event('classbuster:teacher-name-changed'));
+      }
+    }
   }
 
   function applyTranscript(record){
@@ -580,7 +592,7 @@
       );
       var url = new URL(data.downloadUrl);
       if (url.protocol !== 'https:' || !/^[a-z0-9]+\.private\.blob\.vercel-storage\.com$/i.test(url.hostname) ||
-          url.pathname !== '/releases/scout-1.1.0-live/ScoutSetup.exe' || url.username || url.password) {
+          url.pathname !== '/releases/scout-1.2.0-owner-20261024/ScoutSetup.exe' || url.username || url.password) {
         throw new Error('The private download URL is invalid.');
       }
       if (status) status.textContent = 'Your download is starting. Run ScoutSetup.exe to install Classbuster Scout. Close Scout before upgrading; your lesson data is preserved.';

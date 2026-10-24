@@ -573,6 +573,7 @@ export async function readRadarSession(identity, { lease = false } = {}){
       enabled: true, connected: !!settings.tokenHash, armed: !!settings.tokenHash && (settings.automatic || settings.armed),
       automatic: !!settings.tokenHash && settings.automatic,
       inboxOnly: settings.inboxOnly === true,
+      teacherDisplayName: settings.teacherDisplayName || null,
       pending: visible, pendingCount: visible.length, inboxPending, matched: delivered, matchedCount: matched.items.length,
       waitingCount: pending.items.length + matched.items.length,
       lastReceivedAt: lastReceivedAt || null, retentionDays: RADAR_VAN_RETENTION_DAYS, version

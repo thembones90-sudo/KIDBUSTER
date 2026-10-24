@@ -27,6 +27,8 @@ module.exports = async function run(){
     const device=newToken(),other=newToken();
     const pair=await request('session',{action:'pair-approve',tokenHash:digest(device),teacherDisplayName:'Layne'},browser);
     check('account-bound pairing stores explicitly chosen teacher name',pair.code===200&&pair.body.paired);
+    check('browser session exposes only its verified saved display name',
+      (await rv.readRadarSession(owner)).teacherDisplayName==='Layne');
     let result=await request('ingest',{action:'credential-check'},{authorization:'Bearer '+device});
     check('paired device reads Layne',result.code===200&&result.body.teacherLabel==='Layne');
     result=await request('ingest',{action:'credential-check'},{authorization:'Bearer '+other});
