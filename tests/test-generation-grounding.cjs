@@ -39,7 +39,7 @@ module.exports=async function run(){
   check('Classic is MA V2.10',prompts.MA.startsWith('MA PROTOCOL COMMAND CHAIN V2.10'));
   check('Sugarcoat is Sweet Voice V1.1',prompts.MS.startsWith('SWEET VOICE PROTOCOL COMMAND CHAIN V1.1'));
   check('OF is V1.5',prompts.OF.startsWith('OF PROTOCOL COMMAND CHAIN V1.5'));
-  check('Blitz is V1.1',prompts.BLITZ.startsWith('BLITZ PROTOCOL COMMAND CHAIN V1.1'));
+  check('Blitz is V1.2',prompts.BLITZ.startsWith('BLITZ PROTOCOL COMMAND CHAIN V1.2'));
   check('Beida is V1.1',prompts.BEIDA.startsWith('BEIDA PROTOCOL COMMAND CHAIN V1.1'));
   check('Preply is V1.1',prompts.PREPLY.startsWith('PREPLY PROTOCOL COMMAND CHAIN V1.1'));
 
@@ -75,7 +75,7 @@ module.exports=async function run(){
   check('Classic keeps its professional "Cheers," sign-off',/Cheers,\nTeacher Nora/.test(prompts.MA));
   check('Sugarcoat keeps "Love, ... 💖" and its loving narration',prompts.MS.includes('Love, Teacher Nora 💖')&&prompts.MS.includes('endless patience, kindness, and genuine joy'));
   check('Fairy keeps child-friendly narration and "Love, Teacher"',prompts.FAIRY.includes('child-friendly narration')&&prompts.FAIRY.includes('Love, Teacher [Name]'));
-  check('Blitz keeps its 70-120 word, no-emoji identity',prompts.BLITZ.includes('Length target: 70-120 words')&&prompts.BLITZ.includes('Never use emojis'));
+  check('Blitz keeps its 150-word ceiling, adaptive length and no-emoji identity',prompts.BLITZ.includes('Hard limit: 150 words')&&prompts.BLITZ.includes('LENGTH (ADAPTIVE)')&&prompts.BLITZ.includes('Never use emojis'));
   check('OF keeps third-person trial narrative for adults',prompts.OF.includes('Write about the student in the third person'));
   check('Preply keeps relationship-building philosophy',prompts.PREPLY.includes('Classic documents lessons. Preply builds relationships.'));
   const distinct=new Set(Object.values(prompts).map(p=>p.slice(0,40)));

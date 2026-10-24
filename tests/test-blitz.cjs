@@ -74,14 +74,18 @@ module.exports = function run(){
     check('label is identical across all 3 voices for the same focus', warmPrompt.includes('Model: Balanced') && simplePrompt.includes('Model: Balanced') && polishedPrompt.includes('Model: Balanced'));
   }
 
-  console.log('\n5) All 30 example texts (10 Focus x 3 Voice) individually satisfy Blitz\'s own length and content rules');
+  console.log('\n5) All 30 example texts (10 Focus x 3 Voice) are short, fact-free skeletons (V1.2)');
   {
     const banned = ['performed well', 'completed successfully', 'developed english skills', 'continued developing', 'demonstrated understanding', 'superstar', 'rockstar'];
     focusKeys.forEach(key => {
       KidbusterCore.BLITZ_VOICES.forEach(voice => {
         const text = KidbusterCore.BLITZ_MODEL_POOL[key][voice];
         const wc = text.trim().split(/\s+/).filter(Boolean).length;
-        check(key + '.' + voice + ' is 65-90 words (found ' + wc + ')', wc >= 65 && wc <= 90);
+        // V1.2: examples model short notes; every fact is a [slot] filled from the notes.
+        check(key + '.' + voice + ' is 20-55 words (found ' + wc + ')', wc >= 20 && wc <= 55);
+        check(key + '.' + voice + ' has [Student], [topics] and at least one notes slot', text.includes('[Student]') && text.includes('[topics]') && (text.match(/\[[^\]]+\]/g) || []).length >= 3);
+        check(key + '.' + voice + ' makes no history, group or unsupported-skill claim',
+          !/lessons? ago|recent (classes|lessons)|usual dip|whole class|every (activity|lesson)|(than|as) before|explained once|listened|pronunciation|fluen|confidence|\u2014/i.test(text.replace(/\[[^\]]*\]/g, '')));
         const foundBanned = banned.filter(b => text.toLowerCase().includes(b));
         check(key + '.' + voice + ' avoids corporate/exaggerated phrasing', foundBanned.length === 0);
         check(key + '.' + voice + ' contains no literal emoji (Blitz forbids emoji entirely, including in its own examples)', !/\p{Extended_Pictographic}/u.test(text));
@@ -94,14 +98,17 @@ module.exports = function run(){
     const prompt = KidbusterCore.buildBlitzSystemPrompt({ forcedModelKey: 'standard' });
     check('no leftover __BLITZ_MODEL_LABEL__ token', !prompt.includes('__BLITZ_MODEL_LABEL__'));
     check('no leftover __BLITZ_MODEL_TEXT__ token', !prompt.includes('__BLITZ_MODEL_TEXT__'));
-    check('mentions the 70-120 word target', prompt.includes('70-120 words'));
+    check('describes the adaptive length (V1.2) and never pads', prompt.includes('LENGTH (ADAPTIVE)') && prompt.includes('Never pad'));
     check('mentions the 150-word hard limit', prompt.includes('150 words'));
   }
 
-  console.log('\n7) buildUserMessage includes the Rating line for every protocol, including Blitz (which now has ratings again)');
+  console.log('\n7) buildUserMessage: Blitz rating is optional (V1.2), every other rated protocol keeps its Rating line');
   {
     const blitzMsg = KidbusterCore.buildUserMessage({ studentName:'Sam', notes:'practiced past tense', rating:'4', protocol:'BLITZ' });
-    check('Blitz user message now has a "Rating:" line', blitzMsg.includes('Rating: 4/5'));
+    check('Blitz user message has a "Rating:" line when a rating was chosen', blitzMsg.includes('Rating: 4/5'));
+    const unrated = KidbusterCore.buildUserMessage({ studentName:'Sam', notes:'practiced past tense', protocol:'BLITZ' });
+    check('Blitz without a rating sends no Rating line (no invented 3/5)', !/Rating:/.test(unrated));
+    check('Blitz user message carries the suggested length', /Suggested length for this comment: \d+-\d+ words/.test(unrated));
     check('Blitz user message still has Student/notes', blitzMsg.includes('Student: Sam') && blitzMsg.includes('practiced past tense'));
 
     const maMsg = KidbusterCore.buildUserMessage({ studentName:'Sam', notes:'practiced past tense', rating:'4', protocol:'MA' });
@@ -117,11 +124,11 @@ module.exports = function run(){
 
     const overTarget = words(135);
     const warnOverTarget = KidbusterCore.analyzeBlitzOutput(overTarget);
-    check('135 words -> soft warning over 70-120 target, not CRITICAL', warnOverTarget.some(w => w.includes('70-120')) && !warnOverTarget.some(w => w.includes('CRITICAL')));
+    check('135 words -> soft warning over the range, not CRITICAL', warnOverTarget.some(w => w.includes('over the suggested 30-120')) && !warnOverTarget.some(w => w.includes('CRITICAL')));
 
-    const tooShort = words(40);
+    const tooShort = words(20);
     const warnTooShort = KidbusterCore.analyzeBlitzOutput(tooShort);
-    check('40 words -> warning under 70-120 target', warnTooShort.some(w => w.includes('under the 70-120')));
+    check('20 words -> advisory warning under the range', warnTooShort.some(w => w.includes('under the suggested 30-120')) && !warnTooShort.some(w => w.includes('CRITICAL')));
 
     const justRight = words(100);
     const warnJustRight = KidbusterCore.analyzeBlitzOutput(justRight);
@@ -212,24 +219,25 @@ module.exports = function run(){
     check('5 consecutive cycles of 10 draws -> each cycle is a full, repeat-free permutation', allCyclesClean);
   }
 
-  console.log('\n14) Relaxed word-count floor: 70-120 target, 150 hard ceiling');
+  console.log('\n14) Adaptive word count (V1.2): range follows the notes, 150 hard ceiling');
   {
-    const at70 = words(70);
-    check('70 words -> no length warning (new floor)', !KidbusterCore.analyzeBlitzOutput(at70).some(w => w.includes('word')));
-
-    const at69 = words(69);
-    const warn69 = KidbusterCore.analyzeBlitzOutput(at69);
-    check('69 words -> under 70-120 target warning', warn69.some(w => w.includes('under the 70-120')));
-
+    const sparse = 'John was great today. Thanks.';
+    const rich = 'Practised past simple irregular verbs went saw ate bought; read a short market story aloud; bought still difficult; strong storytelling about weekend park trip; asked good questions; needs article practice; homework idea review verbs list';
+    check('sparse notes -> 30-55 words suggested', JSON.stringify(KidbusterCore.blitzLengthBand(sparse, '', 'John')) === JSON.stringify({ min: 30, max: 55 }));
+    check('repeated words do not raise the range', JSON.stringify(KidbusterCore.blitzLengthBand('good good very good good lesson good', '', 'Sam')) === JSON.stringify({ min: 30, max: 55 }));
+    check('informative notes -> 85-120 words suggested', KidbusterCore.blitzLengthBand(rich, '', 'Lucas').max === 120);
+    check('special remarks count as information', KidbusterCore.blitzLengthBand(sparse, 'Distracted, interrupted often, animals topic, answered few questions, tried hard', 'John').min > 30);
+    check('40 words for sparse notes -> no length warning', !KidbusterCore.analyzeBlitzOutput(words(40), 'Layne', '', sparse, '', 'John').some(w => w.includes('word')));
+    check('90 words for sparse notes -> advisory over-range warning, not CRITICAL', KidbusterCore.analyzeBlitzOutput(words(90), 'Layne', '', sparse, '', 'John').some(w => w.includes('over the suggested 30-55')) && !KidbusterCore.analyzeBlitzOutput(words(90), 'Layne', '', sparse, '', 'John').some(w => w.includes('CRITICAL')));
     const at135 = words(135);
-    const warn135 = KidbusterCore.analyzeBlitzOutput(at135);
-    check('135 words -> over 70-120 target warning, not CRITICAL', warn135.some(w => w.includes('70-120')) && !warn135.some(w => w.includes('CRITICAL')));
+    const warn135 = KidbusterCore.analyzeBlitzOutput(at135, 'Layne', '', rich, '', 'Lucas');
+    check('135 words for rich notes -> over-range warning, not CRITICAL', warn135.some(w => w.includes('over the suggested 85-120')) && !warn135.some(w => w.includes('CRITICAL')));
 
     const at160 = words(160);
     check('160 words -> still CRITICAL over 150 hard ceiling (unchanged)', KidbusterCore.analyzeBlitzOutput(at160).some(w => w.includes('CRITICAL') && w.includes('150')));
 
     const prompt = KidbusterCore.buildBlitzSystemPrompt({ forcedModelKey: 'standard' });
-    check('prompt now says "70-120 words"', prompt.includes('70-120 words'));
+    check('prompt no longer imposes a fixed "70-120 words" target', !prompt.includes('70-120 words'));
     check('prompt no longer says the old "80-120 words"', !prompt.includes('80-120 words'));
   }
 
@@ -291,8 +299,9 @@ module.exports = function run(){
   const prompt = KidbusterCore.buildBlitzSystemPrompt({ forcedModelKey: 'standard' });
   check('no leftover "lesson transcript" phrasing implying evidence must be a full transcript', !prompt.includes('lesson transcript'));
   check('no leftover "the transcript actually supports" phrasing', !prompt.includes('the transcript actually supports'));
-  check('safe-fallback phrasing for participation/effort still present', prompt.includes('stayed engaged throughout the lesson') || prompt.includes('worked steadily through today\'s activities'));
-  check('still permits leaning toward the low end of the word target for brief evidence', prompt.includes('a shorter, honest comment near the low end of the target is correct and expected'));
+  // V1.2: no invented participation fallback; short notes give a short comment.
+  check('participation is claimed only when the notes say so', prompt.includes('If the notes say nothing about participation, effort or a specific strength, do not claim any.') && !prompt.includes('are safe and appropriate when nothing more specific was given'));
+  check('short notes produce a short, graceful comment, never padding', prompt.includes('a short, honest, graceful comment is the correct result for short notes'));
 
   const msg = KidbusterCore.buildUserMessage({ studentName: 'Sam', notes: 'x', rating: '4', protocol: 'BLITZ' });
   check('outgoing user message now labels this "Lesson evidence", not "Lesson notes"', msg.includes('Lesson evidence ('));

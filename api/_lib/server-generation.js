@@ -50,7 +50,7 @@ export function buildServerGeneration(input){
     studentName:text(input.studentName,120,'studentName',true),
     notes:text(input.notes,100000,'notes',true),
     remarks:text(input.remarks,5000,'remarks'),
-    rating:text(input.rating,30,'rating',protocol!=='PREPLY'),
+    rating:text(input.rating,30,'rating',protocol!=='PREPLY'&&protocol!=='BLITZ'),
     lengthFormat:text(input.lengthFormat,20,'lengthFormat')||'long',
     studentGender:text(input.studentGender,10,'studentGender'),
     signoffEmoji:text(input.signoffEmoji,8,'signoffEmoji'),
@@ -61,6 +61,7 @@ export function buildServerGeneration(input){
   const allowedRatings=protocol==='OF'?c.OF_TIERS
     :protocol==='BEIDA'?Object.keys(c.BEIDA_RATING_TIERS)
     :protocol==='PREPLY'?['']
+    :protocol==='BLITZ'?['',...c.LEVELS]
     :c.LEVELS;
   // An optional signature is a short emoji choice, never a second free-text prompt.
   // This also blocks direct API callers from injecting instructions through it.
@@ -97,7 +98,7 @@ export function evaluateGeneratedOutput(protocol,text,form){
     rating:form.rating,teacherName:form.teacherName,lengthFormat:form.lengthFormat,
     studentGender:(form.studentGender||'').toLowerCase(),signoffEmoji:form.signoffEmoji,
     preplyModule:form.preplyModule,studentName:form.studentName,preplyTrialPerson:form.preplyTrialPerson,
-    notes:form.notes
+    notes:form.notes,remarks:form.remarks
   });
 }
 

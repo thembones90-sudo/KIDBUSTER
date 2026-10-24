@@ -2668,7 +2668,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
           </div>
         </div>
         <div class="field" id="ratingField" style="margin-bottom:0;">
-          <label class="field-label">Performance rating</label>
+          <label class="field-label" id="ratingLabel">Performance rating</label>
           <div class="rating-track" id="ratingTrack"></div>
           <div class="rating-caption" id="ratingCaption"></div>
         </div>
@@ -4213,6 +4213,11 @@ Love, Teacher [Name]` + '\n\n─────────────────
       // would be nonsensical to read and to the model alike.
       const beidaLabel = (BEIDA_RATING_TIERS[rating] || BEIDA_RATING_TIERS.excellent).label;
       msg += `Selected rating: ${beidaLabel}\n`;
+    }else if(isBlitz){
+      // Blitz's rating is optional (V1.2): sent only when the teacher chose one.
+      if(params.rating) msg += `Rating: ${params.rating}/5\n`;
+      const band = blitzLengthBand(notes, remarks, params.studentName);
+      msg += `Suggested length for this comment: ${band.min}-${band.max} words, based on how much information the notes contain. Shorter is right when the notes say little; never more than 150 words.\n`;
     }else if(!isPreply){
       // Preply is purely evidence-driven by design (confirmed decision,
       // not an oversight) — there's no rating dial in its UI at all, so
@@ -4701,91 +4706,97 @@ Love, Teacher [Name]` + '\n\n─────────────────
     return warnings;
   }
 
-  // ---------- BLITZ PROTOCOL V1.0 ----------
-  // Unlike MA/Sweet Voice (long, structured, rating-driven reports) or OF
-  // (a 3-section trial narrative), Blitz exists for one purpose: a short,
-  // neutral, professional platform comment a teacher could leave in under
-  // a minute. It doesn't use a rating at all, and it doesn't use the
-  // Short/Medium/Long length tiers either — it has its own fixed 70-120
-  // word target with a 150-word hard ceiling, built into the protocol
-  // itself rather than being selectable.
-  //
-  // The 10 "models" below are not separate protocols and never appear as
-  // UI options — they're internal writing-style variants belonging to
-  // Blitz. Exactly one is randomly selected per generation and its full
-  // example text is shown to the model as a style guide (not a fill-in-
-  // the-blank template to copy verbatim) — see BLITZ_PROTOCOL_V1_1_SOURCE's
-  // own instruction on this below. Adding an 11th model later means only
-  // appending to this array — nothing else in the protocol changes.
+  // ---------- BLITZ PROTOCOL V1.2 ----------
+  // The convenience protocol: a teacher types a few rough words and Blitz
+  // turns them into a ready-to-send comment. The teacher supplies the facts,
+  // Blitz supplies the language. Rating optional, no length tiers: the
+  // suggested length follows how much the notes say (blitzLengthBand), with a
+  // 150-word hard ceiling. The 10 "models" are internal writing-style
+  // archetypes, never UI options; one is drawn per generation.
   const BLITZ_VOICES = ['warm', 'simple', 'polished'];
   const BLITZ_DEFAULT_VOICE = 'warm';
 
   // Two-dimensional: Focus (10 archetypes, picked automatically via the
-  // shuffle bag below, unchanged from V1.0) x Voice (3 selectable writing
-  // voices, chosen by the teacher via a UI dropdown). Same comment focus,
-  // different sound — see BLITZ_PROTOCOL_V1_1_SOURCE's own WRITING MODEL
-  // section for how this gets used as a style example, never a template to
-  // copy verbatim.
+  // shuffle bag below) x Voice (3 selectable writing voices, chosen by the
+  // teacher via a UI dropdown). Same comment focus, different sound.
+  //
+  // V1.2 (2026-10-24): the examples are fact-free skeletons. Up to V1.1 each
+  // was a rich 70-90-word comment full of specific claims ("listened
+  // carefully", "only needed things explained once", "a few lessons ago",
+  // "the whole class"), and with ten words of notes the model imitated those
+  // claims. Every fact is now a [slot] filled only from the teacher's notes,
+  // and `emphasis` says what the archetype leans toward when the notes allow
+  // it. An archetype shapes emphasis, structure and rhythm, never facts.
   const BLITZ_MODEL_POOL = {
     standard: {
       label: 'Standard',
-      warm: `Great lesson today, [Student]! We worked on [topics], and you brought real energy to the whole class. You listened carefully and joined in with everything we tried, which made the lesson fly by. It's lovely to see how naturally things are starting to click for you. A little review before next time will help today's ideas settle in even more. Looking forward to seeing you again soon!`,
-      simple: `Great lesson today, [Student]! We worked on [topics] together in class. You listened well and tried every activity we did. You answered questions with real confidence too. You were full of energy the whole time, and it showed in everything you did. Things are starting to feel easier for you now, which is wonderful. Please look at today's material again before next class. It will help you remember it well. See you soon!`,
-      polished: `It was a pleasure to see you so engaged in today's lesson on [topics], [Student]. You listened attentively throughout and took part in every activity with genuine enthusiasm, which made for a wonderfully smooth session. It's encouraging to see these ideas beginning to feel more natural for you. A brief review before our next lesson will help reinforce what we covered today. I look forward to our next class together.`
+      emphasis: 'A straightforward summary: the topics, how the lesson went, and a gentle next step.',
+      warm: `Great to see you today, [Student]! We worked on [topics]. [Something the teacher said went well.] [A difficulty the teacher noted, put kindly, if there was one.] A quick look back at today's work before our next lesson would help. See you soon!`,
+      simple: `Hello [Student]! Today we worked on [topics]. [Something that went well, from the notes.] [Something to practise, from the notes, if any.] Please look at today's work again before next time. See you soon!`,
+      polished: `Thank you for today's lesson, [Student]. Our focus was [topics]. [A strength from the notes, stated precisely.] [An area to keep practising, from the notes, if any.] A short review before our next session would be worthwhile. I look forward to continuing.`
     },
     progress: {
       label: 'Progress',
-      warm: `[Student], you continued building your confidence with [topics] today, and it really showed. Things that felt tricky a few lessons ago are starting to feel easier, and you answered more quickly and with less hesitation than before. A little extra thinking time is still needed here and there, which is completely normal at this stage. This kind of steady progress is exactly what we love to see!`,
-      simple: `[Student], you are getting more confident with [topics] every lesson. Things that were hard before are becoming much easier for you now. You answered faster today, with less waiting and less worry. You are also trying more new words than before, which is great to see. Sometimes you still need a little extra time to think things through, and that is completely okay. You are making steady progress. That is exactly what we want to see!`,
-      polished: `You've continued building your confidence with [topics], [Student], and today's lesson made that especially clear. Ideas that felt challenging just a few lessons ago are becoming noticeably easier, and your answers came more quickly and with less hesitation than before. A touch of extra thinking time is still needed occasionally, which is entirely expected at this stage. This kind of steady, visible progress is exactly what we hope to see.`
+      emphasis: 'Growth. Lead with an improvement only if the notes describe one; otherwise present today\'s work as a step forward without claiming that anything improved.',
+      warm: `[Student], today's lesson on [topics] was a good step forward. [If the notes mention an improvement, say what improved.] [A difficulty from the notes, if any] still needs a bit of practice, and that's completely fine at this stage. We'll keep building on it together. Bye for now!`,
+      simple: `[Student], we worked on [topics] today. [If the notes say something got better, say what.] [Something still hard, from the notes, if any.] That is okay. We will keep practising it together. See you next time!`,
+      polished: `Today's lesson on [topics] moved things forward, [Student]. [Any improvement the notes describe, stated plainly.] [An area that still needs attention, from the notes, if any.] We will continue to build on this in our next lesson.`
     },
     participation: {
       label: 'Participation',
-      warm: `You were wonderfully engaged in today's lesson on [topics], [Student], joining in with every activity we tried. Even when you weren't sure of an answer, you weren't afraid to try new language instead of staying quiet, and that attitude makes such a difference. The whole class felt lively because of your energy today. Keep bringing that same willingness to try — it's helping you grow so much!`,
-      simple: `You joined in with everything today, [Student]! We practiced [topics] together in class. Even when you were not sure of an answer, you still tried instead of staying quiet. You asked good questions too, which helped the whole class learn more. That is a wonderful habit to have. The lesson felt fun and lively because of your energy today. Please keep trying like this — it is really helping you learn and grow!`,
-      polished: `You were wonderfully engaged throughout today's lesson on [topics], [Student], taking part in every activity with real willingness. Even when uncertain of an answer, you chose to try new language rather than stay quiet, and that attitude makes a genuine difference to your progress. Your energy brought a lively feel to the whole class today. Please continue bringing that same willingness to try — it's helping you grow a great deal.`
+      emphasis: 'How the student took part. Use it only if the notes mention participation or attitude; otherwise lead with the topics and the teacher\'s overall feeling.',
+      warm: `Thanks for a lovely lesson on [topics], [Student]! [How you took part, if the notes mention it.] [A difficulty from the notes, if any, kindly put.] I enjoyed working with you today. Until next time!`,
+      simple: `Thank you for today's lesson, [Student]! We practised [topics]. [How you joined in, if the notes say.] [Something to work on, from the notes, if any.] See you next time!`,
+      polished: `Thank you for today's lesson on [topics], [Student]. [Your participation, as the notes describe it.] [An area for further practice, from the notes, if any.] I look forward to our next session.`
     },
     knowledge: {
       label: 'Knowledge',
-      warm: `You showed a really clear understanding of [topics] in today's lesson, [Student]. New vocabulary was used correctly in most of today's activities, and you only needed things explained once before they clicked. You sometimes needed a small reminder to recall a word on your own, which is a totally normal part of making new language feel automatic. A really solid lesson today — well done!`,
-      simple: `You understood [topics] really well today, [Student]. You used the new words correctly in most of the activities we did. I only needed to explain things one time, which was excellent. You also answered several questions completely on your own, without much help from me. Sometimes you needed a small hint to remember a word by yourself, and that is okay. That is normal while you are still learning. Well done today!`,
-      polished: `You demonstrated a genuinely clear grasp of [topics] in today's lesson, [Student]. New vocabulary was applied correctly throughout most of today's activities, and explanations only needed to be given once before they were understood. A gentle reminder was occasionally needed to recall a word independently, which is a perfectly natural part of making new language feel automatic. A thoroughly solid lesson today — well done.`
+      emphasis: 'Understanding of the material, exactly as far as the notes describe it.',
+      warm: `We spent today's lesson on [topics], [Student]. [What you understood well, from the notes.] [What still needs practice, from the notes, if any.] A little review at home would help it stick. Well done today!`,
+      simple: `Today we learned about [topics], [Student]. [What you understood, from the notes.] [What is still hard, from the notes, if any.] Please review it at home. Well done!`,
+      polished: `Today's lesson covered [topics], [Student]. [Your understanding, as the notes describe it.] [Points that need more practice, from the notes, if any.] A brief review will help consolidate the material. Well done.`
     },
     effort: {
       label: 'Effort',
-      warm: `You worked so carefully in today's lesson on [topics], [Student], staying focused even during the trickier parts. That kind of steady effort made a real difference, and you approached each activity with a positive attitude instead of giving up when something felt new. A little hesitation before answering is expected at this stage and will ease naturally with practice. Your effort today was genuine, and that always pays off!`,
-      simple: `You worked really carefully today, [Student]! We practiced [topics] together in class. You stayed focused even during the harder parts of the lesson. You tried again when something felt difficult, instead of giving up. You kept a good attitude the whole time, which made a real difference. A little hesitation before answering is completely normal right now. It will get easier with more practice. Your effort today was truly wonderful!`,
-      polished: `You worked with real care throughout today's lesson on [topics], [Student], remaining focused even through the more challenging moments. That steady effort made a genuine difference, and you approached each activity with a positive attitude rather than becoming discouraged by anything unfamiliar. A degree of hesitation before answering is expected at this stage and will ease naturally with continued practice. Your effort today was sincere, and that will always pay off.`
+      emphasis: 'Effort and attitude. Use it only if the notes mention them; otherwise keep the warmth general.',
+      warm: `Thank you for your work today, [Student]! We focused on [topics]. [The effort or attitude the teacher noted.] [A difficulty from the notes, if any, said gently.] Keep it up, and see you next time!`,
+      simple: `Thanks for today, [Student]! We worked on [topics]. [Your effort or attitude, from the notes.] [Something hard, from the notes, if any.] Keep trying. See you soon!`,
+      polished: `Thank you for today's lesson, [Student]. We concentrated on [topics]. [Your effort or attitude, as noted.] [An area that remains challenging, from the notes, if any.] I look forward to our next lesson.`
     },
     balanced: {
       label: 'Balanced',
-      warm: `Today's lesson on [topics] had a lot of strong moments for you, [Student]. Your participation was great, and you kept a positive energy throughout the whole class. One thing that will get easier with more practice is working a little more independently, without as much help from me. That's a completely normal part of learning something new, not something to worry about. A lesson with real progress and a clear next step!`,
-      simple: `Today's lesson on [topics] had many good moments for you, [Student]. You joined in well and stayed positive throughout the whole class. You answered most questions with real confidence too, which was great to see. One thing to keep practicing is working a little more on your own, without as much help from me. This is completely normal when learning something new, so please do not worry about it. You made real progress today!`,
-      polished: `Today's lesson on [topics] included a number of genuinely strong moments for you, [Student]. Your participation was excellent, and you maintained a positive energy throughout the class. One area that will become easier with continued practice is working a touch more independently, with less guidance from me. This is a completely natural part of learning something new, not a cause for concern. A lesson marked by real progress and a clear next step forward.`
+      emphasis: 'One strength and one thing to practise, side by side. With no difficulty in the notes, simply describe what went well.',
+      warm: `There was a lot to like in today's lesson on [topics], [Student]. [A strength from the notes.] [A difficulty from the notes, if any] could use some more practice, which is a normal part of learning. We'll work on it together next time.`,
+      simple: `Today we did [topics], [Student]. You did well with [a strength from the notes]. [Something to practise a little more, from the notes, if any.] This is normal. We will work on it next time.`,
+      polished: `Today's lesson on [topics] had clear strengths, [Student]. [A strength from the notes.] At the same time, [a difficulty from the notes, if any] would benefit from further practice. We will address it in our next session.`
     },
     productive: {
       label: 'Productive',
-      warm: `We covered a lot of ground in today's lesson on [topics], [Student], and you kept up well with every part of the class. Nothing needed to be rushed or skipped, so we got to explore things a little more deeply than usual. You handled that extra depth easily and stayed focused the whole time. Lessons like today make the next one so much easier to build on!`,
-      simple: `We covered a lot of ground today, [Student]! We worked on [topics] together in class. You kept up well with every single part of the lesson. You stayed focused from start to finish, without slowing down at all. We did not need to rush or skip anything, which was great. This meant we could go a little deeper than usual, and you handled it easily and calmly. Great work today, [Student]!`,
-      polished: `We made excellent progress through today's lesson on [topics], [Student], and you kept pace comfortably with every part of the class. Nothing needed to be rushed or set aside, which allowed us to explore the material in a little more depth than usual. You handled that additional depth with ease and remained focused throughout. Lessons of this kind make the next one considerably easier to build upon.`
+      emphasis: 'The lesson content: name the topics the teacher listed and how the lesson went overall.',
+      warm: `Good lesson today, [Student]! We got through [topics]. [How it went, from the notes.] [Anything to review, from the notes, if any.] Nice work, and see you soon!`,
+      simple: `We worked on [topics] today, [Student]. [How it went, from the notes.] [Something to review, if the notes say.] Good work today!`,
+      polished: `Today's lesson covered [topics], [Student]. [How the lesson went, as the notes describe it.] [Any point to revisit, from the notes, if any.] We can build on this next time.`
     },
     speaking: {
       label: 'Speaking',
-      warm: `You had lots of chances to speak English out loud in today's lesson on [topics], [Student], and you made great use of them. Your sentences came out more naturally as the lesson went on, and you showed growing confidence trying new words instead of sticking to familiar ones. A few new sounds are still settling in, which is expected this early and will improve with practice. Your willingness to keep talking was the best part of today!`,
-      simple: `You had many chances to speak English today, [Student], and you used them well! We practiced [topics] together in class. Your sentences sounded more natural as the lesson went on. You tried new words instead of only using the easy, familiar ones. You also asked questions in English, which was wonderful to hear. A few new sounds still need a little more practice, and that is completely normal right now.`,
-      polished: `You had ample opportunity to speak English aloud during today's lesson on [topics], [Student], and made excellent use of it. Your sentences grew noticeably more natural as the lesson progressed, and you showed growing confidence experimenting with new words rather than relying on familiar ones. A few new sounds are still settling in, which is entirely expected this early and will improve with continued practice. Your willingness to keep talking was the standout part of today's lesson.`
+      emphasis: 'Speaking. Use it only if the notes mention speaking; otherwise lead with the topics and say nothing about speaking, pronunciation or fluency.',
+      warm: `[Student], today we worked on [topics]. [If the notes mention speaking, how it went.] [Something to practise, from the notes, if any.] Keep using your English whenever you can. Talk soon!`,
+      simple: `[Student], today we practised [topics]. [How your speaking went, if the notes say.] [Something to practise, from the notes, if any.] Try to use English at home too. See you next time!`,
+      polished: `Our lesson today focused on [topics], [Student]. [Your speaking, as the notes describe it.] [An area to develop, from the notes, if any.] Regular practice outside lessons will help. I look forward to our next conversation.`
     },
     consistency: {
       label: 'Consistency',
-      warm: `You brought the same steady focus to today's lesson on [topics], [Student], that's been showing up so nicely in recent classes. Your attention stayed strong the whole way through, without the usual dip that sometimes happens partway in. That kind of consistency really adds up over time, turning good individual lessons into real long-term progress. Today was another solid step in that direction — keep it going!`,
-      simple: `You brought the same good focus to today's lesson, [Student]! We worked on [topics] together. Your attention stayed strong all class, without the usual dip in the middle. You kept trying your best the whole time too. This kind of steady focus really helps over time. Good single lessons turn into real long-term progress this way. Today was another solid step — keep it going!`,
-      polished: `You brought the same steady focus to today's lesson on [topics], [Student], that has been so evident in recent classes. Your attention remained strong throughout, without the usual dip that sometimes occurs partway through a lesson. This kind of consistency accumulates meaningfully over time, turning individually good lessons into genuine long-term progress. Today marked another solid step in that direction — please keep it going.`
+      emphasis: 'Steadiness within today\'s lesson, only if the notes suggest it. Never compare with earlier lessons unless the notes do.',
+      warm: `[Student], today we worked on [topics]. [How you did across the lesson, from the notes.] [What to keep practising, from the notes, if any.] Regular practice adds up over time. See you next lesson!`,
+      simple: `Today's lesson was about [topics], [Student]. [How it went, from the notes.] [Something to keep practising, from the notes, if any.] A little practice every day helps a lot. See you soon!`,
+      polished: `Today's lesson centred on [topics], [Student]. [Your work in the lesson, as the notes describe it.] [Anything that needs continued attention, from the notes, if any.] Regular practice will make a real difference over time.`
     },
     general: {
       label: 'General',
-      warm: `Today's lesson on [topics] went really well for you, [Student], with good focus kept across the whole class. Most of the new material felt comfortable, and you stayed engaged and willing to try the whole time. A little more practice will help a couple of today's newer points feel fully natural, which is completely normal at this stage. Looking forward to building on today's lesson next time!`,
-      simple: `Today's lesson on [topics] went really well for you, [Student]! You kept good focus the whole class. Most of the new material felt easy for you. You stayed engaged and tried hard the whole time. You also asked good questions when unsure. A little more practice will help a few new points feel more natural. That is normal right now. Looking forward to next time!`,
-      polished: `Today's lesson on [topics] went particularly well for you, [Student], with good focus maintained throughout the class. Most of the new material felt comfortable, and you remained engaged and willing to try the entire time. A touch more practice will help a couple of today's newer points feel fully natural, which is entirely expected at this stage. I look forward to building on today's lesson next time.`
+      emphasis: 'An easygoing overall impression built on the teacher\'s own feeling about the lesson.',
+      warm: `Thanks for today, [Student]! We had a lesson on [topics]. [The teacher's overall impression.] [Anything to keep working on, from the notes, if any.] Looking forward to next time!`,
+      simple: `Thank you, [Student]! Today we did [topics]. [How the lesson went, from the notes.] [Something to practise, if any.] See you next time!`,
+      polished: `Thank you for today's lesson on [topics], [Student]. [The overall impression from the notes.] [Anything to continue working on, if any.] I look forward to seeing you again.`
     },
   };
 
@@ -4832,17 +4843,24 @@ Love, Teacher [Name]` + '\n\n─────────────────
     return blitzShuffleBag.pop();
   }
 
-  const BLITZ_PROTOCOL_V1_1_SOURCE = `BLITZ PROTOCOL COMMAND CHAIN V1.1
+  const BLITZ_PROTOCOL_V1_2_SOURCE = `BLITZ PROTOCOL COMMAND CHAIN V1.2
 
 PURPOSE
 
-Generate a short, professional lesson comment suitable for platforms where teachers need to leave quick feedback after class.
+Blitz turns a teacher's quick notes into a polished lesson comment they can copy and send straight away. Blitz teachers usually type one or two rough sentences, often 5 to 20 words, and do not record their lessons. The teacher supplies the facts; you supply the language. Blitz is a writing protocol, not a lesson analysis: make the best comment you can from whatever the teacher wrote, and never ask for more.
 
-The comment should sound like it was written by a real teacher in under a minute. It should summarize the lesson naturally, without excessive praise or emotional language.
+There is no separate "manual mode". The same rules apply whether the evidence is two hand-typed sentences or a longer transcript.
 
-Blitz works from whatever Lesson Evidence the teacher provides — see the LESSON EVIDENCE RULE below for exactly what that covers and how to handle it. There is no separate "manual mode" — the same rules apply whether the evidence is a full transcript or two hand-typed sentences.
+HOW TO WORK (silently, in one pass; never show these steps)
 
-Length target: 70-120 words. Hard limit: 150 words — the comment must never exceed this under any circumstance, for any reason. Some lessons genuinely don't justify 80+ words — staying concise and honest is better than padding a comment just to reach a higher number. This is especially true when the lesson evidence itself is brief: a shorter, honest comment near the low end of the target is correct and expected in that case, not a shortfall to compensate for.
+1. EXTRACT what the notes actually give: the topics, how the lesson went, participation or attitude, strengths, difficulties, the teacher's overall feeling, special remarks and any next step. Any of these may be missing. That is normal and never a reason to fill the gap.
+2. EXPAND fragments and shorthand into complete sentences. "Tim good, animals colors, few words hard, nice class" means a positive lesson about animals and colours in which a few words were hard. It does not mean any particular exercise, grammar rule, pronunciation work, score or independent achievement.
+3. PERSONALIZE: use the student's name naturally (once or twice, not in every sentence), name the actual topics, and keep every specific strength, difficulty and remark the teacher wrote.
+4. POLISH: correct the teacher's grammar and spelling, smooth the rhythm, add natural transitions, warmth and a fitting close. It should read like a thoughtful comment from a real teacher, not like AI stretching three facts into an essay.
+
+LENGTH (ADAPTIVE)
+
+The user message gives a suggested length for this comment, based on how much real information the notes contain. It is a guide, not a quota. If the notes say little or repeat themselves, stay at or below the bottom of the range. Never pad with generic praise or invented detail to reach a number: a short, honest, graceful comment is the correct result for short notes. Hard limit: 150 words. Priorities, in order: factual faithfulness, naturalness, clarity, length.
 
 LESSON EVIDENCE RULE (IMMUTABLE)
 
@@ -4853,7 +4871,7 @@ The lesson evidence may come from:
 - bullet points,
 - or any combination of these.
 
-Treat all supplied lesson evidence as the complete factual record of the lesson — sufficient on its own, regardless of length. Never invent lesson activities, grammar, vocabulary, achievements, strengths, weaknesses, or behavioral observations that are not reasonably supported by the supplied evidence. When the lesson evidence is brief, generate a naturally simpler comment rather than filling missing information with assumptions.
+Treat all supplied lesson evidence as the complete factual record of the lesson, sufficient on its own regardless of length. Never invent lesson activities, grammar, vocabulary, achievements, strengths, weaknesses, or behavioral observations that are not reasonably supported by the supplied evidence. When the lesson evidence is brief, generate a naturally simpler comment rather than filling missing information with assumptions.
 
 SAFE INFERENCE PRINCIPLE
 
@@ -4874,91 +4892,119 @@ Unsafe conclusions (not stated, and therefore never assumed):
 - Speaking confidence increased.
 - Vocabulary retention was excellent.
 
-Apply this same distinction to whatever lesson evidence is actually supplied for this generation, however much or little it is — only state what it reasonably supports, never a specific skill, activity, or improvement it doesn't mention.
+More examples of what short notes can and cannot support:
+- "Some words were hard" supports suggesting a vocabulary review. It says nothing about pronunciation.
+- "Was nice" supports a warm word about the student's manner, not mastery of the lesson.
+- "Good lesson" supports saying the lesson went well, not any specific achievement.
+
+Apply this same distinction to whatever lesson evidence is actually supplied for this generation, however much or little it is: only state what it reasonably supports, never a specific skill, activity, or improvement it doesn't mention.
+
+NEVER INVENT (unless the notes say it)
+
+Grammar exercises; vocabulary items the teacher did not name; pronunciation or fluency improvements; reading or listening achievements; specific activities; test results or grades; behaviour; improvement compared with earlier lessons; independence, confidence or participation; and moments between teacher and student that the notes never describe. General warmth and encouragement are always allowed.
+
+MIXED AND NEGATIVE NOTES
+
+Keep every difficulty and concern the teacher wrote (distraction, interrupting, struggling, little participation) in tactful but clear words. Never turn a difficult lesson into an excellent one, and never add criticism the teacher did not give. "Tom was distracted, struggled with vocabulary, but tried hard" must still say that focusing was hard, that the vocabulary was difficult, and that he tried hard.
+
+RATING
+
+The rating is optional for Blitz. When the user message includes one, let it set the overall warmth; the notes still decide every fact. When there is no rating, take the tone from the notes.
 
 ${EVIDENCE_GROUNDING_RULES}
 
 ${LESSON_ESSENCE_RULES}
+
+BLITZ AND THE LESSON ESSENCE RULES: Blitz notes are usually short. Then "what mattered most" is simply the most important thing the teacher wrote, and there may be no particular success or difficulty at all. Never create a goal, success, difficulty or next step that the notes do not give.
 
 ${HUMAN_VOICE_RULES}
 
 IMMUTABLE RULES
 
 • Use only information supported by the supplied lesson evidence. Lesson evidence may consist of a transcript, teacher notes, a short lesson summary, bullet points, or any combination of these. Never invent information beyond what the supplied evidence reasonably supports.
-• When the lesson evidence is brief, expand the facts it does contain into natural, complete sentences rather than restating them tersely — but never introduce a new specific fact, number, or incident the evidence doesn't actually support. Turning "practiced past tense and articles" into a full sentence describing that focus is expanding phrasing, not inventing content; adding a specific detail the teacher never mentioned is not.
-• If the lesson evidence doesn't explicitly describe participation, effort, or a specific strength, use a general, honest, professionally-safe observation instead of fabricating a specific instance — for example "stayed engaged throughout the lesson" or "worked steadily through today's activities" are safe and appropriate when nothing more specific was given; a claim like "answered every question correctly" is not, unless the evidence actually said so.
-• If "Special remarks" are provided in the user message, treat them as high-priority factual input from the teacher — not optional color — and reflect them clearly. If they describe a behavioral concern or something notable that happened during the lesson (for example, the student misbehaving, refusing to participate, or acting out), state this plainly and professionally, most often as the "one area that still needs practice," rather than softening it into vagueness or leaving it out.
+• When the lesson evidence is brief, expand the facts it does contain into natural, complete sentences rather than restating them tersely, but never introduce a new specific fact, number, or incident the evidence doesn't actually support. Turning "practiced past tense and articles" into a full sentence describing that focus is expanding phrasing, not inventing content; adding a specific detail the teacher never mentioned is not.
+• If the notes say nothing about participation, effort or a specific strength, do not claim any. Keep the warmth about the lesson itself instead ("it was a pleasure working with you today", "I'm happy with how our lesson went"). Claims such as "stayed engaged throughout" or "answered every question correctly" need the notes to say so.
+• If "Special remarks" are provided in the user message, treat them as high-priority factual input from the teacher, not optional color, and reflect them clearly. If they describe a behavioral concern or something notable that happened during the lesson (for example, the student misbehaving, refusing to participate, or acting out), state this plainly and professionally, most often as the one area that still needs practice, rather than softening it into vagueness or leaving it out.
 • Never exaggerate praise beyond what the lesson evidence actually supports.
 • Never use emojis, anywhere.
 • Never use bullet points.
 • Never use headings or labels of any kind.
-• Never sound robotic or templated — vary sentence rhythm naturally rather than mechanically following the writing model's exact sentence structure.
-• Never make every student sound exceptional — if effort was inconsistent or understanding was only partial, say so plainly and professionally rather than inflating it.
-• Mention what was practiced, described in your own words based on the lesson evidence provided.
-• Mention participation or effort, using the guidance above when the lesson evidence doesn't state this explicitly.
-• Mention one clear strength and, if the lesson evidence supports it, one area that still needs practice.
-• Finish with a short, professional closing sentence.
-• Output only the finished comment itself as plain prose — no heading, no label, no surrounding quotation marks, nothing else before or after it.
+• Never sound robotic or templated: vary sentence rhythm naturally rather than mechanically following the writing model's exact sentence structure.
+• Never make every student sound exceptional. If effort was inconsistent or understanding was only partial, say so plainly and professionally rather than inflating it.
+• Name the topics the teacher gave, in your own words. If no topic was given, do not invent one.
+• Keep each strength and difficulty the teacher wrote. If none were given, do not invent one.
+• Finish with a short, natural closing sentence, and vary it rather than reusing a stock closing.
+• Output only the finished comment itself as plain prose: no heading, no label, no surrounding quotation marks, nothing else before or after it.
 
 WRITING MODEL (IMMUTABLE FOR THIS GENERATION)
 
-Exactly one writing model has been randomly selected for this generation, shown below. Follow this model's tone, structure, and voice closely — it defines how this specific comment should sound. Do not blend it with any other style, and do not let any other tone leak in.
+One writing archetype and one voice were selected for this comment, shown below. The archetype was picked at random for variety. It shapes emphasis, structure and rhythm only, never facts. Follow the voice closely; it is how this comment should sound.
 
-The bracketed placeholders in the model below, like [Student] and [topics], are illustrative only, showing where that kind of information goes — they are not the model's own content to copy. Replace [Student] with the actual student's name and [topics] with the actual topics genuinely covered, both drawn from the lesson evidence and the Student field in the user message. Never output a literal bracket or placeholder text in the final comment. The model's sentences themselves are a style and structure guide, not a fill-in-the-blank template — the actual substance must come from this lesson's evidence, not from the model's own example wording.
+The bracketed slots in the example, like [Student], [topics] and [a strength from the notes], show where the teacher's own information goes. Fill each slot only from the notes and the Student field. When the notes give nothing for a slot, leave that sentence out entirely; never fill it with a plausible-sounding detail. Never output a literal bracket or placeholder text in the final comment.
 
 Never copy the selected model verbatim. Treat the selected model strictly as a writing example, not as a script. Preserve its overall style, rhythm, and structure, while naturally rewriting every sentence using this lesson's own evidence. Every generated comment should feel newly written for this specific lesson, not copied or lightly reworded from the example.
 
-The model was picked at random, so it sets voice and rhythm only, never the angle. Use its theme (progress, consistency, knowledge, speaking and so on) only when this lesson's evidence supports it; otherwise keep its rhythm and build the comment around what mattered most in this lesson. Never carry over the model's claims about earlier lessons, habits or a group ("a few lessons ago", "recent classes", "the usual dip", "the whole class", "every activity") unless the lesson evidence states them.
+The model was picked at random, so it sets voice and rhythm only, never the angle. Use its emphasis only when this lesson's evidence supports it; otherwise keep its rhythm and build the comment around what the teacher actually wrote. Never add claims about earlier lessons, habits or a group ("a few lessons ago", "recent classes", "the usual dip", "the whole class", "every activity") unless the lesson evidence states them.
 
 Model: __BLITZ_MODEL_LABEL__
+Emphasis, only where the notes support it: __BLITZ_MODEL_EMPHASIS__
+Voice: __BLITZ_VOICE_LABEL__. __BLITZ_VOICE_GUIDE__
 
 __BLITZ_MODEL_TEXT__
 
 VALIDATION CHECKLIST
 (Internal only. Never displayed.)
 
-✓ Comment is 70-120 words, and never exceeds the 150-word hard limit.
+✓ Length fits the suggested range for these notes, and never exceeds the 150-word hard limit. Short notes produce a short comment.
 ✓ No emojis anywhere.
 ✓ No bullet points or headings.
-✓ Every claim is grounded in the supplied lesson evidence — nothing invented or exaggerated, no matter how brief that evidence was.
+✓ Every claim is grounded in the supplied lesson evidence, with nothing invented or exaggerated, no matter how brief that evidence was.
 ✓ Conclusions drawn are safe inferences from the supplied evidence, per the Safe Inference Principle — not unsupported claims about grammar, pronunciation, reading, or specific skill improvements that weren't actually stated.
-✓ If the lesson evidence was brief, participation/effort/strength are phrased as safe, general, honest observations rather than fabricated specifics — and the comment leans toward the lower end of the word target rather than being padded.
+✓ Nothing from the Never Invent list appears unless the notes said it.
+✓ Every topic, strength, difficulty and concern the teacher wrote is still in the comment.
 ✓ Any "Special remarks" provided (including behavioral or disciplinary concerns) are clearly reflected, not omitted or softened into vagueness.
-✓ Mentions what was practiced, participation or effort, one strength, and (if supported by the evidence) one area needing more practice.
-✓ Ends with a short, professional closing sentence.
-✓ Follows the tone and structure of the single selected writing model above, not a blend of several.
-✓ Does not reuse the selected model's sentences verbatim or near-verbatim — every sentence is newly written from this lesson's own evidence.
+✓ Ends with a short, natural closing sentence.
+✓ Follows the voice and structure of the single selected writing model above, not a blend of several.
+✓ Does not reuse the selected model's sentences verbatim or near-verbatim; every sentence is newly written from this lesson's own evidence.
 ✓ No literal "[Student]", "[topics]", or other bracketed placeholder text remains in the output.`;
 
+  // How each teacher-selectable voice should sound. Changing the voice changes
+  // how the comment sounds, never what happened in the lesson.
+  const BLITZ_VOICE_GUIDES = {
+    warm: { label: 'Warm', guide: 'Friendly, personal and encouraging, suitable for younger learners. Conversational, never gushing.' },
+    simple: { label: 'Simple', guide: 'Clear, straightforward English with shorter sentences and everyday words, without sounding childish or robotic.' },
+    polished: { label: 'Polished', guide: 'Professional, refined and smooth, for teachers who prefer a more formal comment. No stiff phrasing or exaggerated academic vocabulary.' }
+  };
+
+  // Suggested Blitz length from how much real information the teacher gave:
+  // distinct content words in the notes and remarks (repeated words, function
+  // words and the student's name do not count), so "good good very good"
+  // earns a shorter comment than a short line full of concrete observations.
+  // A guide for the model, never a quota; 150 words stays the hard limit.
+  const BLITZ_STOPWORDS = new Set(('a an the and or but so to of in on at for with from by is are was were be been am it its this that these those ' +
+    'he she they we you i me my your his her their our us him them was very really too also just then there here as if not no yes do did does done ' +
+    'has have had will would can could should some any all').split(' '));
+  function blitzInformationCount(notes, remarks, studentName){
+    const name = String(studentName || '').toLowerCase().split(/\s+/).filter(Boolean);
+    const words = (String(notes || '') + ' ' + String(remarks || '')).toLowerCase().match(/[\p{L}][\p{L}'’-]*/gu) || [];
+    return new Set(words.filter(w => w.length > 1 && !BLITZ_STOPWORDS.has(w) && !name.includes(w))).size;
+  }
+  function blitzLengthBand(notes, remarks, studentName){
+    const n = blitzInformationCount(notes, remarks, studentName);
+    if(n <= 5) return { min: 30, max: 55 };
+    if(n <= 12) return { min: 50, max: 85 };
+    if(n <= 25) return { min: 70, max: 105 };
+    return { min: 85, max: 120 };
+  }
+
   /**
-   * Builds the Blitz system prompt. Unlike MA/Sweet Voice, this ignores
-   * rating and lengthFormat entirely — Blitz doesn't use either concept.
-   * Draws one Blitz model per call from the shuffle bag (see
-   * pickNextBlitzModel) — all 10 are used once before any repeat, per the
-   * protocol's own "exactly one, never blended" rule. forcedModelKey
-   * exists purely for deterministic testing and bypasses the bag entirely
-   * — normal call sites never pass it, so real generations always draw
-   * from the bag.
-   * @param {object} [params]
-   * @param {string} [params.forcedModelKey] - test-only override
-   * @returns {string}
-   */
-  /**
-   * Builds the Blitz system prompt. Unlike MA/Sweet Voice, this ignores
-   * rating and lengthFormat entirely — Blitz doesn't use either concept.
-   *
-   * Two independent selections go into the single injected example:
-   *   Focus  — which of the 10 archetypes (Standard, Progress, ...),
-   *            drawn from the shuffle bag exactly as in V1.0 (see
-   *            pickNextBlitzModel) — never user-selected, never changed.
-   *   Voice  — which of the 3 writing voices (warm/simple/polished),
-   *            chosen by the teacher via the UI dropdown and passed in
-   *            as params.voice. Defaults to 'warm' if not supplied.
-   *
-   * forcedModelKey exists purely for deterministic testing and bypasses
-   * the bag entirely for Focus — normal call sites never pass it, so real
-   * generations always draw Focus from the bag. Voice was never random to
-   * begin with, so there's no equivalent "forced" override needed for it.
+   * Builds the Blitz system prompt from two independent selections:
+   *   Focus  — one of the 10 archetypes, drawn from the shuffle bag (see
+   *            pickNextBlitzModel), never user-selected.
+   *   Voice  — warm/simple/polished, chosen by the teacher (params.voice,
+   *            default 'warm').
+   * Rating and length tiers are not part of the system prompt; the optional
+   * rating and the suggested length travel in the user message.
    * @param {object} [params]
    * @param {string} [params.forcedModelKey] - test-only Focus override
    * @param {string} [params.voice] - 'warm' | 'simple' | 'polished'
@@ -4980,8 +5026,11 @@ VALIDATION CHECKLIST
     if(typeof console !== 'undefined' && console.log){
       console.log('[Kidbuster Blitz] selected focus:', focusKey, '(' + focus.label + ') / voice:', voice);
     }
-    return BLITZ_PROTOCOL_V1_1_SOURCE
+    return BLITZ_PROTOCOL_V1_2_SOURCE
       .split('__BLITZ_MODEL_LABEL__').join(focus.label)
+      .split('__BLITZ_MODEL_EMPHASIS__').join(focus.emphasis)
+      .split('__BLITZ_VOICE_LABEL__').join(BLITZ_VOICE_GUIDES[voice].label)
+      .split('__BLITZ_VOICE_GUIDE__').join(BLITZ_VOICE_GUIDES[voice].guide)
       .split('__BLITZ_MODEL_TEXT__').join(modelText);
   }
 
@@ -5003,7 +5052,7 @@ VALIDATION CHECKLIST
     return {body:raw,valid:false};
   }
 
-  function analyzeBlitzOutput(text,teacherName,signoffEmoji){
+  function analyzeBlitzOutput(text,teacherName,signoffEmoji,notes,remarks,studentName){
     const warnings = [];
     const signed = stripOptionalTeacherFooter(text,teacherName,signoffEmoji);
     const trimmed = signed.body;
@@ -5011,14 +5060,16 @@ VALIDATION CHECKLIST
 
     warnings.push(...checkForbiddenFormatting(trimmed));
 
-    // --- word count: 70-120 target range, 150 hard ceiling ---
+    // --- word count: 150 hard ceiling; otherwise an advisory, evidence-aware
+    // range (V1.2). Without notes (older callers) the full 30-120 range applies.
     const wordCount = trimmed.split(/\s+/).filter(Boolean).length;
+    const band = notes === undefined ? { min: 30, max: 120 } : blitzLengthBand(notes, remarks, studentName);
     if(wordCount > 150){
       warnings.push('CRITICAL: Comment is ' + wordCount + ' words — over the absolute 150-word hard limit.');
-    }else if(wordCount > 120){
-      warnings.push('Comment is ' + wordCount + ' words — over the 70-120 word target. Consider trimming.');
-    }else if(wordCount < 70){
-      warnings.push('Comment is ' + wordCount + ' words — under the 70-120 word target. May be too brief for the platform.');
+    }else if(wordCount > band.max){
+      warnings.push('Comment is ' + wordCount + ' words — over the suggested ' + band.min + '-' + band.max + ' words for these notes. Consider trimming.');
+    }else if(wordCount < band.min){
+      warnings.push('Comment is ' + wordCount + ' words — under the suggested ' + band.min + '-' + band.max + ' words for these notes.');
     }
 
     // --- no emojis ---
@@ -5598,7 +5649,9 @@ because it's about a single lesson.`
   // pronoun is enforced as a Fact in the prompt and still shown as a warning.
   // OF's template and checklist name 300 words as the top of its range, so any
   // overshoot earns one shortening attempt; Preply's maximum gets 5% grace.
-  const SOFT_WORD_TOLERANCE = { OF:1.0, PREPLY:1.05 };
+  // Blitz: a comment well past the suggested length for short notes is padding,
+  // which V1.2 forbids, so it earns one shortening attempt.
+  const SOFT_WORD_TOLERANCE = { OF:1.0, PREPLY:1.05, BLITZ:1.3 };
 
   function countWords(text){ return String(text || '').trim().split(/\s+/).filter(Boolean).length; }
 
@@ -5607,7 +5660,10 @@ because it's about a single lesson.`
       const tier = LENGTH_TIERS[ctx.lengthFormat] || LENGTH_TIERS.long;
       return { goal:'the complete report under ' + tier.softTarget + ' characters (absolute maximum ' + (tier.hardCeiling - 1) + ')' };
     }
-    if(protocol === 'BLITZ') return { goal:'70-120 words of prose (absolute maximum 150)' };
+    if(protocol === 'BLITZ'){
+      const band = blitzLengthBand(ctx.notes, ctx.remarks, ctx.studentName);
+      return { goal:'about ' + band.min + '-' + band.max + ' words of prose for these notes, shorter when the notes say little (absolute maximum 150)', targetWords:band.max };
+    }
     if(protocol === 'BEIDA') return { goal:'Learning Content 200-2000 characters and General and Detailed Performance 200-4000 characters, as two separate fields' };
     if(protocol === 'OF') return { goal:'about 220-270 words in total (never over 300), with Strengths and Areas for Improvement each under 1300 characters', targetWords:300 };
     const module = PREPLY_MODULES[ctx.preplyModule] || PREPLY_MODULES.adult;
@@ -5622,7 +5678,7 @@ because it's about a single lesson.`
     if(!body){
       return { compliant:false, contentReviewed:false, blocking:[{ code:'empty', message:'Output is empty.', repairable:false }], advisory:[], softRepair:false, limits:contractLimits(protocol, ctx) };
     }
-    const findings = definition.analyze(body, ctx.rating, ctx.teacherName, ctx.lengthFormat, ctx.studentGender, ctx.signoffEmoji, ctx.preplyModule, ctx.studentName, ctx.preplyTrialPerson);
+    const findings = definition.analyze(body, ctx.rating, ctx.teacherName, ctx.lengthFormat, ctx.studentGender, ctx.signoffEmoji, ctx.preplyModule, ctx.studentName, ctx.preplyTrialPerson, ctx.notes, ctx.remarks);
     const blocking = [], advisory = [];
     for(const message of findings){
       const rule = BLOCKING_FINDINGS.find(r => r.re.test(message));
@@ -5634,7 +5690,7 @@ because it's about a single lesson.`
     const limits = contractLimits(protocol, ctx);
     let softRepair = false;
     if(limits.targetWords){
-      const signed = (protocol === 'PREPLY') ? stripOptionalTeacherFooter(body, ctx.teacherName, ctx.signoffEmoji).body : body;
+      const signed = (protocol === 'PREPLY' || protocol === 'BLITZ') ? stripOptionalTeacherFooter(body, ctx.teacherName, ctx.signoffEmoji).body : body;
       softRepair = countWords(signed) > Math.floor(limits.targetWords * (SOFT_WORD_TOLERANCE[protocol] || 1));
     }
     return { compliant: blocking.length === 0, contentReviewed:false, blocking, advisory, softRepair, limits };
@@ -5713,7 +5769,7 @@ because it's about a single lesson.`
       key: 'BLITZ',
       label: 'Blitz \u26A1',
       buildSystemPrompt: buildBlitzSystemPrompt,
-      analyze: (text, lvl, teacherName, lengthFormat, studentGender, customEmoji) => analyzeBlitzOutput(text, teacherName, customEmoji),
+      analyze: (text, lvl, teacherName, lengthFormat, studentGender, customEmoji, preplyModule, studentName, preplyTrialPerson, notes, remarks) => analyzeBlitzOutput(text, teacherName, customEmoji, notes, remarks, studentName),
       models: BLITZ_MODEL_POOL
     },
     BEIDA: {
@@ -5812,7 +5868,8 @@ because it's about a single lesson.`
     CLASSIC_STYLE_VARIANTS,
     MA_PROTOCOL_V2_10_SOURCE,
     OF_PROTOCOL_V1_5_SOURCE,
-    BLITZ_PROTOCOL_V1_1_SOURCE,
+    BLITZ_PROTOCOL_V1_2_SOURCE,
+    blitzLengthBand,
     BLITZ_MODEL_POOL,
     BLITZ_VOICES,
     BLITZ_DEFAULT_VOICE,
@@ -6039,6 +6096,7 @@ function buildRatingTrack(){
   // a different writing voice (warm/simple/polished) selected explicitly
   // by the teacher rather than drawn from the shuffle bag like Focus is.
   document.getElementById('blitzVoiceField').style.display = isBlitz ? '' : 'none';
+  document.getElementById('ratingLabel').textContent = isBlitz ? 'Performance rating (optional)' : 'Performance rating';
   // Module is a Preply-only concept — which of the three (soon more)
   // Modules this message is for. Explicitly does not reuse Voice's UI
   // pattern despite looking similar, since Module changes the entire
@@ -7827,7 +7885,7 @@ async function generate(){
       : 'Add the Krisp notes for this lesson before generating.';
     return;
   }
-  if(!form.rating && form.protocol !== 'PREPLY'){
+  if(!form.rating && form.protocol !== 'PREPLY' && form.protocol !== 'BLITZ'){
     flashGenerateBtnRejected(); outputBox.className = 'output-box error';
     outputBox.textContent = 'Pick a performance rating before generating.';
     return;
@@ -7911,7 +7969,7 @@ async function generate(){
         durationMs: durationMs
       });
     }
-    const lint = protocol.analyze(text, form.rating, form.teacherName, form.lengthFormat, form.studentGender, form.signoffEmoji, form.preplyModule, form.studentName, form.preplyTrialPerson);
+    const lint = protocol.analyze(text, form.rating, form.teacherName, form.lengthFormat, form.studentGender, form.signoffEmoji, form.preplyModule, form.studentName, form.preplyTrialPerson, form.notes, form.remarks);
     setCurrentReport(text, lint);
     renderReportToOutput(text);
     playOutputRevealAnimation();
