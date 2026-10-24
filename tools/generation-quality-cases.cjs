@@ -505,4 +505,42 @@ function ratingFor(protocol, c){
   return c.ratings.numeric;
 }
 
-module.exports = { CASES, PROTOCOLS, ratingFor };
+// Blitz is the convenience protocol: teachers type 5-20 rough words, no
+// transcript. These are the quick notes Blitz is judged on (owner assignment
+// 2026-10-24). `keep`: facts the comment must still contain. `notClaim`: things
+// it must not say. Every case carries a rating so the current production
+// build (rating required) and V1.2 (rating optional) get identical inputs.
+const BLITZ_NOTE_CASES = {
+  minimal_positive: { student: 'Alex', rating: '4', notes: 'Alex was nice, animals and colours, good lesson, thanks.',
+    keep: ['animals and colours', 'positive lesson / nice manner'], notClaim: ['specific words or activities', 'pronunciation, speaking or reading', 'improvement', 'participation details'] },
+  minimal_mixed: { student: 'Lucy', rating: '3.5', notes: 'Lucy good attitude, past tense difficult, tried hard.',
+    keep: ['good attitude', 'past tense was difficult', 'tried hard'], notClaim: ['mastery of the past tense', 'specific verbs or exercises', 'improvement'] },
+  vague: { student: 'John', rating: '4', notes: 'John was great today. Thanks.',
+    keep: ['positive impression'], notClaim: ['any lesson topic', 'any achievement or activity', 'participation details'] },
+  behaviour_concern: { student: 'Mike', rating: '2.5', notes: 'Mike distracted today, interrupted often, animals lesson, answered a few questions.',
+    keep: ['distracted / hard to focus', 'interrupted often', 'animals topic', 'answered a few questions (limited, not excellent)'], notClaim: ['excellent participation', 'specific animals or activities', 'causes of the behaviour'] },
+  broken_english: { student: 'Emma', rating: '3.5', notes: 'emma nice girl learn fruits some hard she try good',
+    keep: ['fruits topic', 'some of it was hard', 'she tried well'], notClaim: ['specific fruit words', 'mastery', 'activities'] },
+  distracted_tried: { student: 'Tom', rating: '3', notes: 'Tom was distracted, struggled with vocabulary, but tried hard.',
+    keep: ['distracted', 'vocabulary was a struggle', 'tried hard'], notClaim: ['specific vocabulary', 'a good or excellent lesson', 'improvement'] },
+  shorthand: { student: 'Tim', rating: '4', notes: 'Tim good, animals colors, few words hard, nice class.',
+    keep: ['animals and colours', 'a few words were hard', 'positive lesson'], notClaim: ['which words', 'exercises or games', 'pronunciation'] },
+  repetitive: { student: 'Sara', rating: '4.5', notes: 'Very good very good. Good lesson. Good good.',
+    keep: ['very positive lesson'], notClaim: ['any topic', 'any achievement or activity'] },
+  multi_topic: { student: 'Ana', rating: '4', notes: 'Ana - weather words, clothes, present continuous, short reading. all good, continuous a bit hard',
+    keep: ['weather words', 'clothes', 'present continuous', 'short reading', 'present continuous a bit hard', 'overall good'], notClaim: ['specific words', 'reading comprehension results'] },
+  negative: { student: 'Ben', rating: '2', notes: 'Ben struggled a lot today, didnt know most numbers 11-20, needed lots of help, tired',
+    keep: ['struggled a lot', 'numbers 11-20 mostly not known', 'needed lots of help', 'tired'], notClaim: ['progress', 'good performance', 'specific numbers he knew'] },
+  special_remarks: { student: 'Kai', rating: '3', notes: 'Fruits and vegetables. Nice.', remarks: 'Was 15 minutes late and had the camera off for half the lesson.',
+    keep: ['fruits and vegetables', 'positive manner', '15 minutes late', 'camera off for half the lesson'], notClaim: ['specific words', 'reasons for lateness'] },
+  detailed: { student: 'Nina', rating: '4', notes: 'Unit 5 food and ordering in a restaurant. Role play waiter/customer went really well, she used "Can I have..." and "I would like..." on her own. Prices and numbers over 100 still slow. Spelling of "restaurant" and "vegetables" practised. Very motivated today, asked to do the role play twice.',
+    keep: ['food / ordering in a restaurant', 'role play went well', '"Can I have" and "I would like" on her own', 'prices and big numbers still slow', 'spelling of restaurant and vegetables practised', 'motivated, asked to repeat the role play'], notClaim: ['pronunciation', 'other activities'] },
+  no_topic: { student: 'Leo', rating: '4', notes: 'Great energy, very chatty and happy today.',
+    keep: ['great energy', 'chatty', 'happy'], notClaim: ['any lesson topic', 'any skill achievement'] },
+  ultra_sparse: { student: 'Max', rating: '3', notes: 'ok',
+    keep: ['an okay lesson, nothing more'], notClaim: ['any topic', 'any praise beyond okay', 'any achievement or difficulty'] },
+  informal_typos: { student: 'Omar', rating: '4', notes: 'hw done, revised past simple irreg verbs, sum mistakes w/ went/goed, gr8 convo about his holiday',
+    keep: ['homework done', 'revised irregular past simple verbs', 'some mistakes with went (said goed)', 'great conversation about his holiday'], notClaim: ['mastery', 'other verbs', 'holiday details'] }
+};
+
+module.exports = { CASES, PROTOCOLS, ratingFor, BLITZ_NOTE_CASES };

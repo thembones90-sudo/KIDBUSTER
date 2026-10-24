@@ -68,12 +68,19 @@ const PHASES = {
   initial: { transcripts:['real-1'], repetitions:1, description:'21 reports: 7 protocols x 3 models, real transcript, one sample each.' },
   full: { transcripts:['real-1','mixed-fictional','scaffolded-fictional'], repetitions:2,
     description:'126 reports: 3 transcripts x 7 protocols x 3 models x 2 repetitions. The two fictional transcripts can be replaced by real anonymized transcripts before running.' },
-  // Protocol audit 2026-10-24: all ten fictional scenarios on every protocol,
-  // twice each (consistency). Run with --models claude-haiku-5-5 --profile
-  // haiku-high to measure exactly what production sends.
+  // Protocol audit 2026-10-24. Run with --models claude-haiku-5-5 --profile
+  // haiku-high to measure exactly what production sends. Six protocols on ten
+  // fictional transcripts, twice each (consistency); Blitz on quick teacher
+  // notes instead of transcripts (owner instruction). `control` fixes each
+  // prompt's Classic style variant and Blitz archetype/voice, so the production
+  // baseline and the revision get identical picks for identical inputs.
   audit: { transcripts:['strong-fictional','mixed-fictional','scaffolded-fictional','noisy-fictional','thin-fictional',
     'quiet-fictional','mistakes-fictional','multi-fictional','long-fictional','scout-fictional'], repetitions:2,
-    description:'Protocol audit: 10 fictional scenarios x 7 protocols x 2 repetitions per model (140 reports for the production model).' }
+    protocols:['MA','MS','FAIRY','BEIDA','OF','PREPLY'], control:true,
+    blitzNotes:['minimal_positive','minimal_mixed','vague','behaviour_concern','broken_english','distracted_tried','shorthand','repetitive',
+      'multi_topic','negative','special_remarks','detailed','no_topic','ultra_sparse','informal_typos'], blitzRepetitions:2,
+    blitzVoiceTriplets:['minimal_mixed','behaviour_concern'],
+    description:'Protocol audit: 10 fictional transcripts x 6 protocols x 2, plus Blitz on 15 quick-note cases x 2 and 2 voice triplets (156 reports per model).' }
 };
 
 const PROTOCOLS = ['MA','MS','FAIRY','BLITZ','BEIDA','OF','PREPLY'];

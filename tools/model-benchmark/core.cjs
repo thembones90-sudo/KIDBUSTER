@@ -5,7 +5,7 @@ const crypto = require('node:crypto');
 const path = require('node:path');
 const { extractBuildCacheableSystemBlocks } = require('../../tests/helpers/extract-generate-helpers.cjs');
 const C = require('./config.cjs');
-const { CASES } = require('../generation-quality-cases.cjs');
+const { CASES, BLITZ_NOTE_CASES } = require('../generation-quality-cases.cjs');
 
 // The production function, loaded verbatim from api/generate.js.
 const { buildCacheableSystemBlocks } = extractBuildCacheableSystemBlocks();
@@ -51,7 +51,7 @@ function transcriptSpec(id, readPrivate){
   }
   const c = CASES[t.caseId];
   const ratingFor = p => p === 'PREPLY' ? '' : p === 'BEIDA' ? c.ratings.BEIDA : p === 'OF' ? c.ratings.OF : c.ratings.numeric;
-  const gender = { Sam:'boy', Ava:'girl', Kai:'boy', Lily:'girl', Ben:'boy' }[c.student] || 'boy';
+  const gender = { Sam:'boy', Ava:'girl', Kai:'boy', Lily:'girl', Ben:'boy', Leo:'boy', Mila:'girl', Omar:'boy', Lucas:'boy', Ella:'girl' }[c.student] || 'boy';
   return { id, kind:'fictional', notes:c.transcript, sha256Prefix:sha(c.transcript).slice(0, 16),
     settings:{ teacherName:c.teacher, studentName:c.student, remarks:'', lengthFormat:'medium', studentGender:gender,
       signoffEmoji:'', blitzVoice:'warm', preplyModule:'parent', preplyTrialPerson:'child' }, rating:ratingFor, names:[c.student, c.teacher] };
@@ -68,29 +68,84 @@ function seededRandom(seed){
   let x = parseInt(sha('plan:' + seed).slice(0, 8), 16) || 1;
   return () => ((x = (x * 1103515245 + 12345) >>> 0) / 4294967296);
 }
+// Each prompt gets its own seed and a fresh core, so a prompt's random picks
+// depend only on its own id: two builds of the protocol code (for example the
+// production baseline and a revision) make identical picks for identical
+// inputs. A phase with `control` also fixes WHICH pick each prompt gets (Blitz
+// archetype, Classic style variant) by trying seeds in a fixed order until the
+// built prompt carries the assigned one; that is deterministic too.
+const BLITZ_ARCHETYPES = ['Standard','Progress','Participation','Knowledge','Effort','Balanced','Productive','Speaking','Consistency','General'];
+const CLASSIC_VARIANTS = ['standard','warm','crisp','coach'];
+const BLITZ_VOICES = ['warm','simple','polished'];
+function selections(prompt){
+  return { blitzModel:(prompt.match(/\nModel: ([A-Za-z]+)\s*\n/) || [])[1] || null,
+    classicVariant:(prompt.match(/Selected Classic style: ([a-z]+)\./) || [])[1] || null };
+}
 function planJobs(opts){
   const realRandom = Math.random;
-  if(opts.resetCore) opts.resetCore();
-  Math.random = seededRandom(opts.phase);
   try{ return buildPlan(opts); }
   finally{ Math.random = realRandom; if(opts.resetCore) opts.resetCore(); }
 }
-function buildPlan({ phase, buildServerGeneration, readPrivate, models }){
+function buildOne({ buildServerGeneration, resetCore }, generation, seedKey, wanted){
+  for(let attempt = 0; attempt < 400; attempt++){
+    if(resetCore) resetCore();
+    Math.random = seededRandom(seedKey + (attempt ? ':' + attempt : ''));
+    const built = buildServerGeneration(generation);
+    const picked = selections(built.systemPrompt);
+    if(!wanted || Object.entries(wanted).every(([k, v]) => picked[k] === v)) return { built, picked, seedAttempt:attempt };
+    if(!resetCore) break;
+  }
+  throw new Error('No seed produces the requested selection for ' + seedKey + ': ' + JSON.stringify(wanted));
+}
+function buildPlan({ phase, buildServerGeneration, readPrivate, models, resetCore }){
   const ph = C.PHASES[phase];
   if(!ph) throw new Error('Unknown phase ' + phase);
   const modelIds = models || Object.keys(C.MODELS);
   const prompts = [], jobs = [];
+  const ctx = { buildServerGeneration, resetCore };
+  const add = (promptId, meta, generation, wanted) => {
+    const { built, picked, seedAttempt } = buildOne(ctx, generation, phase + ':' + promptId, wanted);
+    prompts.push({ promptId, ...meta, form:built.form, systemPrompt:built.systemPrompt, userMessage:built.userMessage,
+      promptSha256:sha(built.systemPrompt + '\n' + built.userMessage),
+      selection:{ ...picked, blitzVoice:generation.protocol === 'BLITZ' ? generation.blitzVoice : null, seedAttempt } });
+    for(const model of modelIds) jobs.push({ jobId:promptId + '__' + model, promptId, model, protocol:generation.protocol, transcript:meta.transcript, rep:meta.rep });
+  };
+  let classicTurn = 0, blitzTurn = 0;
   for(const tid of ph.transcripts){
     const t = transcriptSpec(tid, readPrivate);
-    for(const protocol of C.PROTOCOLS){
+    for(const protocol of (ph.protocols || C.PROTOCOLS)){
       for(let rep = 1; rep <= ph.repetitions; rep++){
         const generation = { protocol, notes:t.notes, rating:t.rating(protocol), ...t.settings };
-        const built = buildServerGeneration(generation);
-        const promptId = tid + '__' + protocol + '__r' + rep;
-        prompts.push({ promptId, transcript:tid, transcriptKind:t.kind, protocol, rep, form:built.form, systemPrompt:built.systemPrompt,
-          userMessage:built.userMessage, promptSha256:sha(built.systemPrompt + '\n' + built.userMessage), names:t.names });
-        for(const model of modelIds) jobs.push({ jobId:promptId + '__' + model, promptId, model, protocol, transcript:tid, rep });
+        let wanted = null;
+        if(ph.control && protocol === 'MA') wanted = { classicVariant:CLASSIC_VARIANTS[classicTurn++ % CLASSIC_VARIANTS.length] };
+        if(ph.control && protocol === 'BLITZ'){
+          wanted = { blitzModel:BLITZ_ARCHETYPES[blitzTurn % 10] };
+          generation.blitzVoice = BLITZ_VOICES[blitzTurn++ % 3];
+        }
+        add(tid + '__' + protocol + '__r' + rep, { transcript:tid, transcriptKind:t.kind, protocol, rep, names:t.names }, generation, wanted);
       }
+    }
+  }
+  // Blitz on quick teacher notes: archetypes and voices rotate so all are
+  // covered, and `blitzVoiceTriplets` cases get one archetype in all three
+  // voices (tone differentiation with the facts held constant).
+  const blitzBase = c => ({ protocol:'BLITZ', notes:c.notes, remarks:c.remarks || '', rating:c.rating, teacherName:'Nora', studentName:c.student,
+    lengthFormat:'medium', studentGender:'', signoffEmoji:'', blitzVoice:'warm', preplyModule:'parent', preplyTrialPerson:'child' });
+  const blitzMeta = (id, c, rep) => ({ transcript:'blitz-' + id, transcriptKind:'blitz-notes', protocol:'BLITZ', rep, names:[c.student, 'Nora'] });
+  for(const id of (ph.blitzNotes || [])){
+    const c = BLITZ_NOTE_CASES[id];
+    if(!c) throw new Error('Unknown Blitz note case ' + id);
+    for(let rep = 1; rep <= (ph.blitzRepetitions || 1); rep++){
+      const turn = blitzTurn++;
+      add('blitz-' + id + '__BLITZ__r' + rep, blitzMeta(id, c, rep), { ...blitzBase(c), blitzVoice:BLITZ_VOICES[turn % 3] }, { blitzModel:BLITZ_ARCHETYPES[(turn * 3) % 10] });
+    }
+  }
+  for(const id of (ph.blitzVoiceTriplets || [])){
+    const c = BLITZ_NOTE_CASES[id];
+    if(!c) throw new Error('Unknown Blitz note case ' + id);
+    const archetype = BLITZ_ARCHETYPES[(blitzTurn++ * 7) % 10];
+    for(const voice of BLITZ_VOICES){
+      add('blitz-' + id + '__BLITZ__voice-' + voice, blitzMeta(id, c, 'voice-' + voice), { ...blitzBase(c), blitzVoice:voice }, { blitzModel:archetype });
     }
   }
   return { phase, prompts, jobs };
