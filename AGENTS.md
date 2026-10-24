@@ -5,6 +5,9 @@ projects at the same time: before changing anything, check `git status`, `git lo
 newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
 ## What is live
+- Equal-panel follow-up 2026-10-25: live runtime commit `8bd62cc`, deployment
+  `dpl_CnNe6bcRUN2MmHaBgcZ1Wrp1sFfD`. All three desktop panels have equal width and
+  height for every protocol. See the follow-up in `RESPONSIVE-WORKSPACE-RELEASE-20261025.md`.
 - Responsive workspace release 2026-10-25: commit `963a4d9` on the canonical release line,
   deployment `dpl_AtjPcA3ezEt4ahe23m66mNKW2818`. See
   `RESPONSIVE-WORKSPACE-RELEASE-20261025.md`. This includes the Scout card releases below.

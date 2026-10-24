@@ -1,5 +1,28 @@
 # Responsive workspace — live 2026-10-25
 
+## Equal-panel follow-up — current live release
+
+Owner requested three equally sized panels for every protocol. Runtime commit
+`8bd62ccf9999a67c0b95d2873a56274ba17a2f61` is now live, deployment
+`dpl_CnNe6bcRUN2MmHaBgcZ1Wrp1sFfD` at
+https://kidbuster-4m00fs5oc-thembones90-sudos-projects.vercel.app.
+Rollback: `dpl_AtjPcA3ezEt4ahe23m66mNKW2818`.
+
+Outer column sizing now accounts for both 14px gaps, producing three equal widths.
+The settings panel stretches to the common row height, aligning all top and bottom
+edges. The existing responsive breakpoints and normal mobile scrolling remain.
+
+All 117 test files passed; new geometry checks cover equal width, height, top and
+bottom for all seven protocols at five desktop sizes. Release integrity passed.
+Staged candidate passed 24/24 checks and five additional access refusal probes.
+After promotion both public domains passed 24/24. Actual live Chrome checks
+confirmed equal panels for every protocol at 1909x990 and 1366x650, with essential
+controls contained. Beida screenshots are saved in the chat outputs. Live CSS
+matched the archive SHA-256:
+`a55dd5ce39fed090f7efe3ec182d4759a9fd73b969266badf0868941594faaf5`.
+
+## Initial responsive release
+
 Published to classbuster.com after owner authorization. The earlier responsive patch had only been saved locally; this release makes it available on the live website.
 
 - Commit: `963a4d9407d64e51d9228deca35773fb89b1fad3`.
