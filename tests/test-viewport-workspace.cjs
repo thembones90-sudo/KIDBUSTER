@@ -18,6 +18,7 @@ module.exports=async function run(){
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   for(const [width,height] of [[1909,990],[1536,864],[1440,720],[1366,650],[1280,720]]){
    await page.setViewport({width,height});
+   let classicPanels;
    for(const protocol of ['MA','MS','FAIRY','BLITZ','BEIDA','OF','PREPLY']){
     await page.evaluate(p=>document.querySelector('input[name="protocol"][value="'+p+'"]').click(),protocol);
     await page.evaluate(()=>scrollTo(0,0));
@@ -31,6 +32,8 @@ module.exports=async function run(){
     });
     assert(geometry.scrollWidth<=width+1,`${protocol} ${width}x${height}: horizontal overflow`);
     assert.equal(geometry.panels.length,3,'three main workspace panels');
+    if(protocol==='MA')classicPanels=geometry.panels;
+    for(let i=0;i<3;i++)for(const dimension of ['width','height'])assert(Math.abs(geometry.panels[i][dimension]-classicPanels[i][dimension])<=1,`${protocol} ${width}x${height}: panel ${i} matches Classic ${dimension}`);
     for(const panel of geometry.panels){
      for(const dimension of ['top','bottom','width','height'])assert(Math.abs(panel[dimension]-geometry.panels[0][dimension])<=1,`${protocol} ${width}x${height}: equal panel ${dimension}`);
     }

@@ -23,7 +23,7 @@
   body { padding: clamp(12px, 2dvh, 24px) 24px 20px; }
   .wrap { max-width: 1760px; }
   .header { margin-bottom: 12px; }
-  .grid { grid-template-columns: minmax(0, calc((100% - 28px) / 3)) minmax(0, 1fr); gap: 14px; align-items: stretch; }
+  .grid { grid-template-columns: minmax(0, calc((100% - 28px) / 3)) minmax(0, 1fr); gap: 14px; align-items: stretch; min-height: 704px; }
   .grid .panel { padding: 14px; }
   .grid > div:nth-child(2) {
     display: grid;
@@ -98,6 +98,7 @@
 }
 
 @media (min-width: 1120px) and (max-height: 800px) {
+  .grid { min-height: 536px; }
   body { padding-top: 10px; padding-bottom: 10px; }
   .header { padding-bottom: 8px; margin-bottom: 8px; }
   .grid .panel { padding: 12px; }
