@@ -21,6 +21,10 @@ newest `*.md` notes in the folder you work in, and never overwrite newer work.
   `thembones90-sudo/classbuster-scout`. Installed in `%LOCALAPPDATA%\Classbuster Scout\`:
   `profile\` (permanent: lessons, settings, connection), `versions\<build>\`, `current.txt`.
   Current program is `versions\<build>\Scout\Scout.exe`, installed by ScoutSetup.exe.
+  Every shortcut (Start menu, Startup) targets `<home>\ScoutLauncher.exe`, which starts the
+  version in `current.txt`; never point a shortcut into `versions\` (pruning breaks it).
+  Never run ScoutSetup.exe or Scout tooling from inside Codex: its MSIX sandbox silently
+  redirects `%LOCALAPPDATA%` into its own package storage.
   The Start menu shortcut is Classbuster Scout. The A-drive install and old ZIP are
   retained copies, not the current launch path. `publish_scout.py` defaults to the
   per-user home; use an explicit `--home` only for a retained installation.
@@ -29,6 +33,13 @@ newest `*.md` notes in the folder you work in, and never overwrite newer work.
 1. Change + regression test; `npm test` must pass (all files). Never weaken a test to pass.
 2. Commit, then export the commit with `git archive` into `.v2-tmp\deploy-<sha>` (never deploy a
    working folder) and add `.vercel\project.json`.
+   **One release line.** Every production release is built from
+   `release/classbuster-legacy-safe-20261023` with your change committed on top. If production
+   currently runs a commit that is not on that branch (check: `git merge-base --is-ancestor
+   <live-commit> HEAD`), merge the live commit into the release branch first. Never deploy a side
+   branch: on 2026-10-24 side-branch releases twice dropped approved work that was already on the
+   release branch. Before deploying, review `git log <live-commit>..HEAD` so you ship everything
+   that is live plus your change, and nothing unapproved.
 3. `vercel deploy --prod --skip-domain` (staged candidate; production stays live).
 4. `tools/release/candidate-smoke.mjs <candidate>` plus migration/pairing/monitoring probes.
 5. Promote only with the owner's approval; verify classbuster.com AND kidbuster.vercel.app;
