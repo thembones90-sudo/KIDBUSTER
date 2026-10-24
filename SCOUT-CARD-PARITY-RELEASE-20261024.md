@@ -1,5 +1,22 @@
 # Live transcript card parity — 2026-10-24
 
+## Provider logo follow-up — live
+
+Commit `35bbb97c724bb07b79092ac7a70c6a7e05d04ca7` on the same source branch is
+now live at classbuster.com, deployment `dpl_7bragfFQeuzHUfhgKNknEYVgQUiB`.
+Export: `.v2-tmp/deploy-35bbb97`. Krisp uses `krisp-neutral.png` on a pale
+backing; Scout uses `premium-v1/compass-classic.png`. Both are 28px, decorative,
+and use the existing brand assets without recoloring. No transcript behavior changed.
+
+All 114 test files passed; candidate 24/24 checks plus five refusal probes passed.
+After promotion both public domains passed 24/24. Public HTML, inbox CSS and
+both PNG assets matched the tested export byte-for-byte. Populated visual QA
+used synthetic data only. Rollback is the prior deployment
+`dpl_FPg7cuvgFqLvuZVP2nt96TfxAsjv` listed below. Preserve this logo follow-up
+along with the card parity changes in future integrations.
+
+## Original card parity release
+
 Live at https://classbuster.com: deployment `dpl_FPg7cuvgFqLvuZVP2nt96TfxAsjv`,
 commit `2dc0783ae6292c069b30f388ac25c84337572085`, branch
 `codex/scout-card-parity-20261024` (pushed).
