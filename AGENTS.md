@@ -5,6 +5,9 @@ projects at the same time: before changing anything, check `git status`, `git lo
 newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
 ## What is live
+- Classic-size reference follow-up: live runtime commit `98a6df7`, deployment
+  `dpl_9gzpCc5LxSmxMFSrv4ffPWqmroph`. Every desktop protocol now adopts Classic's
+  dimensions at the same viewport, not just equal dimensions within its own mode.
 - Equal-panel follow-up 2026-10-25: live runtime commit `8bd62cc`, deployment
   `dpl_CnNe6bcRUN2MmHaBgcZ1Wrp1sFfD`. All three desktop panels have equal width and
   height for every protocol. See the follow-up in `RESPONSIVE-WORKSPACE-RELEASE-20261025.md`.

@@ -1,5 +1,25 @@
 # Responsive workspace — live 2026-10-25
 
+## Classic-size reference — current live release
+
+Owner clarified that Classic's dimensions must apply across every protocol.
+Runtime commit `98a6df7` is live at deployment `dpl_9gzpCc5LxSmxMFSrv4ffPWqmroph`.
+Rollback: `dpl_CnNe6bcRUN2MmHaBgcZ1Wrp1sFfD`.
+Exact archive: `.v2-tmp/deploy-98a6df7`.
+
+The shared desktop row now reserves Classic's measured height: 704px normally,
+536px with the existing short-screen layout. Column widths remain equal and
+responsive. Protocols with fewer fields no longer shrink their panels. Mobile
+retains natural scrolling.
+
+All 117 test files passed. Geometry tests explicitly compare every protocol's
+panel widths and heights against Classic at five viewport sizes. Release
+integrity, 24 candidate checks and five additional refusal checks passed.
+After promotion, both public domains passed 24/24 checks. Live Chrome checks
+compared all seven modes directly against Classic at 1909x990 and 1366x650:
+all panels matched, and essential controls remained within the viewport.
+Actual live screenshots are in the chat outputs as CLASSBUSTER-LIVE-CLASSIC-SIZE.
+
 ## Equal-panel follow-up — current live release
 
 Owner requested three equally sized panels for every protocol. Runtime commit
