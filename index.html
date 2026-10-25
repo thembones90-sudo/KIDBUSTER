@@ -7974,7 +7974,13 @@ async function generate(){
     document.getElementById('copyBeidaPerformanceBtn').disabled = !isBeidaOutput;
     newStudentBtn.disabled = false;
     showFeedbackCard(form.protocol, form.rating, form.protocol === 'PREPLY' ? form.preplyModule : null, (form.protocol === 'PREPLY' && form.preplyModule === 'trial') ? form.preplyTrialPerson : null, generationRef);
-    document.getElementById('actionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const fittedOutput = outputBox.closest('.fit-output-panel');
+    if(fittedOutput){
+      fittedOutput.scrollTop = 0;
+      fittedOutput.querySelectorAll('.output-box').forEach(box => { box.scrollTop = 0; });
+    }else{
+      document.getElementById('actionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     renderLint(lint);
     if(isBeidaOutput){
       // Two separate fields need two separate copies — auto-copying just
@@ -10842,7 +10848,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 <script defer src="assets/owner-usage-stats.js?v=1"></script>
 <script defer src="assets/owner-activity.js?v=1"></script>
 <script src="assets/radar-van-client.js?v=20261024-scout120-names"></script>
-<link rel="stylesheet" href="assets/fit-original.css?v=20261025-1">
-<script src="assets/fit-original.js?v=20261025-1"></script>
+<link rel="stylesheet" href="assets/fit-original.css?v=20261025-2">
+<script src="assets/fit-original.js?v=20261025-2"></script>
 </body>
 </html>

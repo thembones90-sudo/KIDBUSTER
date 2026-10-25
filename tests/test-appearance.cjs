@@ -58,7 +58,8 @@ module.exports=async function(){
   assert.equal(await page.$eval('html',e=>e.dataset.appearance),'light','manual light ignores OS changes');
   await page.click('#accountBtn');
   for(const mode of ['MA','MS','FAIRY','BLITZ','BEIDA','OF','PREPLY']){
-   await page.click('input[name="protocol"][value="'+mode+'"]');
+   await page.click('#protocolSelect label:has(input[value="'+mode+'"])');
+   await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
    if(mode==='MS'){
     const washTransition=await page.$eval('body',e=>{
      getComputedStyle(e).getPropertyValue('--workspace-wash');
@@ -102,7 +103,8 @@ module.exports=async function(){
    if(process.env.V2_APPEARANCE_SCREENSHOTS)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-brand-'+mode+'.png'),clip:{x:0,y:0,width:1440,height:460}});
    if(process.env.V2_APPEARANCE_SCREENSHOTS&&['MA','MS'].includes(mode)){await page.setViewport({width:2560,height:1440});await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'ambient-light-'+mode+'-wide.png')});await page.setViewport({width:1440,height:1100});}
   }
-  await page.click('input[name="protocol"][value="MA"]');
+  await page.click('#protocolSelect label:has(input[value="MA"])');
+  await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
   await page.evaluate(()=>document.fonts.ready);
   await page.waitForFunction(()=>!document.getElementById('kbLogo').getAnimations().some(a=>a.playState==='running'));
   if(process.env.V2_APPEARANCE_SCREENSHOTS)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-workspace-1440.png'),fullPage:true});

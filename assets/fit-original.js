@@ -5,6 +5,12 @@
   // Native popovers use viewport coordinates and stay outside the scaled canvas.
   canvas.querySelectorAll('[popover]').forEach(function(panel){document.body.appendChild(panel);});
   var scheduled=false;
+  var outputPanel=document.querySelector('#outputBox').parentElement;
+  // Reserve the original empty output footprint before report text arrives.
+  // A report is document content, not a reason to rescale the application.
+  canvas.style.zoom='1';
+  outputPanel.style.height=outputPanel.offsetHeight+'px';
+  outputPanel.classList.add('fit-output-panel');
   function fit(){
     scheduled=false;
     canvas.style.zoom='1';
