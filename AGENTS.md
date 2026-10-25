@@ -33,6 +33,13 @@ continue to apply. A new owner-approved behavior change must update this contrac
 its regression and the fingerprints together; passing a build alone is not approval.
 
 ## What is live
+- LINGOACE STATIC RATING HIGHLIGHT (owner correction, 2026-10-25): runtime
+  `a5c3d8b`, deployment `dpl_CPrcefoSXDL6F37iv7niPKHgUVb3`. LingoAce qualitative
+  rating buttons have a static white selection outline/glow, with no transform,
+  animation or motion/glow/filter transitions. Preserve this: the owner reported
+  permanent shaking. Sizing assets are unchanged. All 117 files passed; live
+  five-rating hovered/idle checks each had 60 identical frames across three
+  screen/DPR cases. See LINGOACE-STATIC-RATING-20261025.md.
 - ACCOUNT + PROTOCOL SIZE LOCK (latest owner corrections, 2026-10-25): runtime
   `de4098f`, deployment `dpl_9pqdEAJDTW1XEfhhTSmmnCXJzdF6`. All protocols use the
   identical Classic outer panel geometry. Account retains the fitted workspace
