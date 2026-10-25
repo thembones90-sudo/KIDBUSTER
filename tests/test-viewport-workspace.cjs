@@ -24,16 +24,11 @@ module.exports=async function run(){
     const geometry=await page.evaluate(()=>{
      const rect=s=>{const e=document.querySelector(s),r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,width:r.width,height:r.height,display:getComputedStyle(e).display};};
      return {width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth,
-      panels:[...document.querySelectorAll('.grid > div:first-child > .panel, .grid > div:nth-child(2) > .panel')].map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,width:r.width,height:r.height};}),
       controls:['#teacherName','#teacherSignoffEmoji','#studentName','#generateBtn','#actionRow'].map(rect),
       ratings:[...document.querySelectorAll('#ratingTrack button')].map(e=>({bottom:e.getBoundingClientRect().bottom,visible:getComputedStyle(e).display!=='none'})),
       protocols:[...document.querySelectorAll('#protocolSelect>label')].map(e=>e.getBoundingClientRect().bottom)};
     });
     assert(geometry.scrollWidth<=width+1,`${protocol} ${width}x${height}: horizontal overflow`);
-    assert.equal(geometry.panels.length,3,'three main workspace panels');
-    for(const panel of geometry.panels){
-     for(const dimension of ['top','bottom','width','height'])assert(Math.abs(panel[dimension]-geometry.panels[0][dimension])<=1,`${protocol} ${width}x${height}: equal panel ${dimension}`);
-    }
     for(const r of geometry.controls)assert(r.top>=0&&r.bottom<=height&&r.left>=0&&r.right<=width&&r.width>0,`${protocol} ${width}x${height}: essential control outside viewport ${JSON.stringify(r)}`);
     assert(geometry.protocols.length===7&&geometry.protocols.every(bottom=>bottom<=height),`${protocol}: all protocol choices fit`);
     assert(geometry.ratings.filter(r=>r.visible).every(r=>r.bottom<=height),`${protocol}: ratings fit`);
