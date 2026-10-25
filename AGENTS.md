@@ -33,6 +33,14 @@ continue to apply. A new owner-approved behavior change must update this contrac
 its regression and the fingerprints together; passing a build alone is not approval.
 
 ## What is live
+- ACCOUNT + PROTOCOL SIZE LOCK (latest owner corrections, 2026-10-25): runtime
+  `de4098f`, deployment `dpl_9pqdEAJDTW1XEfhhTSmmnCXJzdF6`. All protocols use the
+  identical Classic outer panel geometry. Account retains the fitted workspace
+  scale when opened/closed; Generate retains it before/during/after completion.
+  Normal page scrolling handles Account and report content. The contract above
+  supersedes historical instructions to unscale Account. All 117 files passed;
+  exact live protocol/Account/Generate checks passed at 1909x943 and 1366x650,
+  and both domains passed 24/24. See ACCOUNT-SAME-SIZE-LOCK-20261025.md.
 - GENERATE MUST KEEP THE SAME SIZE (owner correction, 2026-10-25): runtime
   `725eb0f`, deployment `dpl_8XunsdtLuFwhJCSWeJkGrKuENgXd`. Keep the fitted
   workspace scale before, during and after generation; never reset it to 100%
