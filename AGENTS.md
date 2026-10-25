@@ -5,6 +5,18 @@ projects at the same time: before changing anything, check `git status`, `git lo
 newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
 ## What is live
+- INITIAL-WORKSPACE-ONLY FIT (explicit owner clarification, 2026-10-25): runtime
+  `01e2e40`, deployment `dpl_E5GVzsTeZ8TsJ7UqycUx49X373oq`. The owner authorized
+  ONLY fitting the initial empty workspace. Account, popovers, dialogs, generation
+  and reports retain the locked original unscaled behavior and page scrolling.
+  `assets/initial-workspace-fit.*` is the separate display layer; index.html has
+  only two new asset references and no changes to existing application handlers.
+  Rating 6 must not change initial scale. New Student returns to initial fitting.
+  Do not broaden fitting to Account or reports, reparent controls or add Output
+  scroll containers. See `INITIAL-WORKSPACE-ONLY-FIT-RELEASE-20261025.md`.
+  All 117 test files passed; both domains passed 24/24 and the full sequence was
+  verified live using synthetic responses. Rollback is the original deployment
+  `dpl_5xc42UCfWnVw5JE8D2nhtpHj3kM1`.
 - OWNER-LOCKED ORIGINAL BEHAVIOR RESTORED (2026-10-25): live deployment
   `dpl_5xc42UCfWnVw5JE8D2nhtpHj3kM1`, original runtime `79e3e8e`.
   Canonical restoration commit `2ab8a53` restores index.html, assets and tests
