@@ -5,7 +5,7 @@ body.initial-workspace-fit { padding: 12px; min-height: 100dvh; }
 body.initial-workspace-fit .wrap { width: 1240px; max-width: none; }
 
 /* Protocol badge glyphs must not change the shared header footprint. */
-body.initial-workspace-fit .header-brand-copy .title { height:22px; min-height:22px; display:flex; align-items:center; }
+body.initial-workspace-fit .header-brand-copy .title { height:38px; min-height:38px; display:flex; align-items:center; }
 
 body.initial-workspace-fit .grid>div:first-child>.panel { height:var(--workspace-sidebar-height, auto); }
 

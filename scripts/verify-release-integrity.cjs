@@ -27,7 +27,7 @@ const WORKSPACE_FIT_LOCK = [
   ],
   [
     "assets/initial-workspace-fit.css",
-    "fbf43f687a4f72c5befdd177104560d23fc3cfba23a5959bc0d96ba8fb02e637"
+    "7a3594994d21f43092c26d978440978c722c978d2336f72f12c1852b48cf4487"
   ]
 ];
 const MAX_FUNCTIONS = 12;
