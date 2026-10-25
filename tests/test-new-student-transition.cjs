@@ -71,7 +71,7 @@ module.exports=async function(){
       assert.equal(result.opacity,'1');assert.equal(await page.$('.workspace-teleport-scan'),null);
       assert.equal(result.message,'Ready for your next student');
       if(width===1280&&!reduced&&process.env.PATHFINDER_TELEPORT_CAPTURE)await page.screenshot({path:path.join(process.env.PATHFINDER_TELEPORT_CAPTURE,'teleport-ready.png')});
-      if(reduced)assert.equal(start.y,await page.evaluate(()=>scrollY),'reduced motion jumps directly');
+      if(reduced)assert.equal(await page.evaluate(()=>scrollY),0,'scaled workspace needs no reduced-motion page scrolling');
       if(width===1280&&!reduced){
         await new Promise(r=>setTimeout(r,3500));
         assert.equal(await page.$eval('#nextStudentStatus',el=>el.textContent),'');

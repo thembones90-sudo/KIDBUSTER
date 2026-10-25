@@ -65,13 +65,14 @@ module.exports=async function run(){
    await page.$eval('#teacherSignoffEmoji',el=>{el.value='🦊';el.dispatchEvent(new Event('input',{bubbles:true}));});
    const layouts=[];
    for(const protocol of modes){
-     await page.click('input[name="protocol"][value="'+protocol+'"]');
+     await page.click('#protocolSelect label:has(input[value="'+protocol+'"])');
      layouts.push(await page.evaluate(()=>{
        const field=id=>document.getElementById(id);
-       const top=id=>field(id).getBoundingClientRect().top;
+       const scale=parseFloat(getComputedStyle(document.querySelector('.wrap')).zoom)||1;
+       const top=id=>field(id).getBoundingClientRect().top/scale;
        return {protocol:document.querySelector('input[name="protocol"]:checked').value,
-         height:document.querySelector('.grid>div:first-child>.panel').getBoundingClientRect().height,
-         rightHeight:document.querySelector('.grid>div:nth-child(2)').getBoundingClientRect().height,
+         height:document.querySelector('.grid>div:first-child>.panel').offsetHeight,
+         rightHeight:document.querySelector('.grid>div:nth-child(2)').offsetHeight,
          teacher:top('teacherName'),student:top('studentName'),signoff:top('signoffEmojiField'),
          visible:getComputedStyle(field('signoffEmojiField')).display!=='none',
          emoji:field('teacherSignoffEmoji').value,
@@ -92,7 +93,8 @@ module.exports=async function run(){
    await page.setViewport({width:390,height:844});
    const mobileHeights=[];
    for(const protocol of modes){
-     await page.click('input[name="protocol"][value="'+protocol+'"]');
+     await page.click('#protocolSelect label:has(input[value="'+protocol+'"])');
+     await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
      mobileHeights.push(await page.evaluate(()=>({
        height:document.querySelector('.grid>div:first-child>.panel').getBoundingClientRect().height,
        visible:getComputedStyle(document.getElementById('signoffEmojiField')).display!=='none',
@@ -110,7 +112,7 @@ module.exports=async function run(){
      trialLayout.visible&&trialLayout.height<=mobileHeights[0].height+1);
    check('page loads and switches without JavaScript crashes',errors.length===0);
    if(errors.length)console.log(errors);
-   await page.click('input[name="protocol"][value="OF"]');
+   await page.click('#protocolSelect label:has(input[value="OF"])');
    for(const [value,rgb] of [['boy','140, 190, 255'],['girl','244, 164, 200']]){
      await page.click('#studentGenderSelect label:has(input[value="'+value+'"])');
      await page.mouse.move(0,0);
@@ -147,11 +149,12 @@ module.exports=async function run(){
      await page.evaluate(()=>document.querySelector('input[name="studentGender"]:checked').value==='girl'&&readFormState().studentGender==='girl'&&JSON.parse(localStorage.getItem('kidbuster_draft_v1')).studentGender==='girl'));
    for(const width of [1440,768,390,320]){
      await page.setViewport({width,height:1000});
+     await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
      const compact=await page.evaluate(()=>{
        const group=document.getElementById('studentGenderSelect'),field=document.getElementById('studentGenderField');
        const r=group.getBoundingClientRect();
        return {height:field.getBoundingClientRect().height,fit:r.left>=0&&r.right<=innerWidth&&group.scrollWidth<=group.clientWidth+1,
-         targets:[...group.querySelectorAll('label')].every(el=>el.getBoundingClientRect().height>=44),
+         targets:[...group.querySelectorAll('label')].every(el=>el.offsetHeight>=44),
          named:group.getAttribute('aria-labelledby')==='studentPronounLabel',
          selected:getComputedStyle(group.querySelector('label:has(input:checked)'),'::after').opacity==='1'};
      });

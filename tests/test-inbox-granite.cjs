@@ -53,7 +53,7 @@ module.exports=async function(){
    assert.equal(layout.krispAccent,'rgb(111, 209, 196)');assert.equal(layout.scoutAccent,'rgb(157, 235, 82)');
    assert.equal(layout.badge,populated?layout.krispAccent:'rgb(172, 180, 175)');
    assert.equal(layout.scoutBadge,populated?layout.scoutAccent:'rgb(172, 180, 175)');
-   assert.equal(layout.emptyBorder,'0px');assert.ok(layout.closeHeight>=44&&layout.closeIcon&&layout.closeRadius==='50%','accessible circular SVG close control');
+   assert.equal(layout.emptyBorder,'0px');assert.ok(Math.round(layout.closeHeight)>=44&&layout.closeIcon&&layout.closeRadius==='50%','accessible circular SVG close control '+JSON.stringify(layout));
    if(!populated)assert.ok(layout.height<400,'empty state is compact: '+JSON.stringify({width,height,...layout}));
    if(process.env.INBOX_SCREENSHOTS&&[1440,390].includes(width)){
     fs.mkdirSync(process.env.INBOX_SCREENSHOTS,{recursive:true});

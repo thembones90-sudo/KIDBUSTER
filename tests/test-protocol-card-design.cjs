@@ -32,6 +32,7 @@ module.exports=async function(){
     await page.click('#protocolSelect>label:has(input[value="MA"])');
     for(const width of [1440,768,390,320])for(const skin of ['dark','light']){
       await page.setViewport({width,height:1000});
+      await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
       await page.evaluate(skin=>document.documentElement.dataset.appearance=skin,skin);
       assert.equal(await page.$$eval('#protocolSelect img',els=>els.length),0,'protocol pills stay free of logo overlays in both themes');
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no horizontal overflow at '+width);
@@ -39,7 +40,8 @@ module.exports=async function(){
         const text=[...e.childNodes].find(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim());
         const range=document.createRange();range.selectNodeContents(text);
         const rect=range.getBoundingClientRect(),subtitle=parseFloat(getComputedStyle(e,'::after').top);
-        return rect.bottom-e.getBoundingClientRect().top<subtitle;
+        const scale=parseFloat(getComputedStyle(document.querySelector('.wrap')).zoom)||1;
+        return rect.bottom-e.getBoundingClientRect().top<subtitle*scale+1;
       }));
       assert.ok(titlesFit,'titles never collide with descriptions at '+width);
       if(process.env.V2_PROTOCOL_SCREENSHOTS)await page.$('#protocolSelect').then(e=>e.screenshot({path:path.join(process.env.V2_PROTOCOL_SCREENSHOTS,'protocol-cards-'+skin+'-'+width+'.png')}));

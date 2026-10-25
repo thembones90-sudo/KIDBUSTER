@@ -1,0 +1,4 @@
+/* Preserve the original canvas proportions; the script only scales it down. */
+body { padding: 12px; min-height: 100dvh; }
+.wrap { width: 1240px; max-width: none; }
+.wrap [popover] { zoom: calc(1 / var(--canvas-scale, 1)); }

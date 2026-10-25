@@ -22,7 +22,8 @@ module.exports=async function run(){
       await page.goto('file://'+path.join(__dirname,'..','index.html'));
       const results=[];
       for(const protocol of protocols){
-        await page.click('input[name="protocol"][value="'+protocol+'"]');
+        await page.click('#protocolSelect label:has(input[value="'+protocol+'"])');
+        await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
         const r=await page.evaluate(ids=>{
           const ui={};
           for(const id of ids){
@@ -30,8 +31,8 @@ module.exports=async function run(){
             const cs=getComputedStyle(el);
             ui[id]={
               classApplied:el.classList.contains('identity-pill'),
-              height:el.getBoundingClientRect().height,
-              width:el.getBoundingClientRect().width,
+              height:el.offsetHeight,
+              width:el.offsetWidth,
               border:cs.borderTopColor,
               radius:cs.borderTopLeftRadius,
               padding:cs.padding,

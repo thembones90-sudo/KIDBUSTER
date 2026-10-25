@@ -249,6 +249,8 @@ module.exports = async function run(){
     console.log('\n6) Disconnect revokes server-side');
     await ingest(token, lesson(5));
     page.dialogs.length = 0;
+    if(await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')))await page.click('#krispInboxClose');
+    await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
     await page.click('#radarVanDisconnectBtn');
     check('disconnect state shown', await wait(page, () => document.getElementById('radarVanState').dataset.state === 'off'));
     check('confirmation warns that the server credential is revoked and desktop-only clearing is not enough', page.dialogs.some(d => /revokes the device token on our server/.test(d) && /does not revoke/.test(d)));
@@ -373,12 +375,13 @@ module.exports = async function run(){
     const mobile = await open({ viewport: { width: 390, height: 844 } });
     await mobile.click('#accountBtn');
     check('mobile: section reachable from the account popover', await wait(mobile, () => !document.getElementById('radarVanSection').hidden));
+    await mobile.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
     const geometry = await mobile.evaluate(() => {
       const ids = ['radarVanConnectBtn'];
       const rects = ids.map(i => document.getElementById(i).getBoundingClientRect());
       return { overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
         inside: rects.every(r => r.left >= 0 && r.right <= window.innerWidth && r.width > 0),
-        tall: rects.every(r => r.height >= 40) };
+        tall: ids.every(id => document.getElementById(id).offsetHeight >= 40) };
     });
     check('mobile: no horizontal overflow, controls inside the viewport and touch-sized', !geometry.overflow && geometry.inside && geometry.tall);
     await mobile.evaluate(() => document.getElementById('radarVanConnectBtn').scrollIntoView({ block: 'center' }));

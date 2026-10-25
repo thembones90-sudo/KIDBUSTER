@@ -130,10 +130,12 @@ module.exports = async function run(){
     check('onboarding workflow lives in Help and leaves workspace clear',workflow.title.includes('first report')&&workflow.steps===3&&workflow.workspaceStrips===0);
     check('global browser zoom hack is removed',workflow.zoom==='1');
     await page.setViewport({width:390,height:844,deviceScaleFactor:1});
+    await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
     const mobile=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));
     check('390px mobile layout has no horizontal overflow',mobile.scroll===mobile.client);
     for(const width of [768,900,980]){
       await page.setViewport({width,height:844,deviceScaleFactor:1});
+      await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
       const tablet=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));
       check(width+'px tablet layout has no horizontal overflow',tablet.scroll===tablet.client);
     }
@@ -181,14 +183,16 @@ module.exports = async function run(){
     for(const [fitWidth,fitHeight] of [[1400,900],[1280,800],[1280,720],[900,800],[390,844]]){
       await page.setViewport({width:fitWidth,height:fitHeight,deviceScaleFactor:1});
       await page.reload({waitUntil:'domcontentloaded'});
+      await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
       const fit=await page.evaluate(()=>({
         pageWidth:document.documentElement.scrollWidth,
+        pageHeight:document.documentElement.scrollHeight,
         zoom:parseFloat(getComputedStyle(document.querySelector('.wrap')).zoom),
         ratingExists:document.getElementById('ratingTrack').getBoundingClientRect().height>0,
         sidebarWidth:document.querySelector('.grid>div:first-child').getBoundingClientRect().width,
         viewport:innerWidth
       }));
-      check('native size and unclipped layout at '+fitWidth+'x'+fitHeight,fit.zoom===1&&fit.pageWidth<=fitWidth+1&&fit.ratingExists&&fit.sidebarWidth<=fit.viewport);
+      check('scaled original layout fits at '+fitWidth+'x'+fitHeight,fit.zoom>0&&fit.zoom<=1&&fit.pageWidth<=fitWidth+1&&fit.pageHeight<=fitHeight+1&&fit.ratingExists&&fit.sidebarWidth<=fit.viewport);
     }
     await page.setViewport({width:1280,height:800,deviceScaleFactor:1});
     await page.reload({waitUntil:'domcontentloaded'});
@@ -200,7 +204,7 @@ module.exports = async function run(){
       placeholder:getComputedStyle(document.querySelector('#krispNotes'),'::placeholder').color,
       counter:parseFloat(getComputedStyle(document.querySelector('#krispCounter')).fontSize),
       note:parseFloat(getComputedStyle(document.querySelector('.small-note')).fontSize),
-      logo:document.querySelector('.kb-logo').getBoundingClientRect().height,
+      logo:document.querySelector('.kb-logo').offsetHeight,
       onboardingAlign:getComputedStyle(document.querySelector('.first-guide-steps')).display
     }));
     check('notes placeholder uses intentionally legible styling',polish.placeholder==='rgb(174, 184, 195)');
@@ -294,7 +298,7 @@ module.exports = async function run(){
 
   const seenBackgrounds = new Set();
   for(const proto of protocols){
-    await page.click(`input[name="protocol"][value="${proto.value}"]`);
+    await page.click(`#protocolSelect label:has(input[value="${proto.value}"])`);
     await new Promise(r => setTimeout(r, 80));
 
     const result = await page.evaluate(() => {

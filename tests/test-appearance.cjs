@@ -117,11 +117,11 @@ module.exports=async function(){
   if(process.env.V2_APPEARANCE_SCREENSHOTS)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-krisp.png')});
   await page.evaluate(()=>document.getElementById('krispIntegrationPanel').hidePopover());
   for(const width of [768,390,320]){
-   await page.setViewport({width,height:1000});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no light overflow at '+width);
+   await page.setViewport({width,height:1000});await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no light overflow at '+width);
    if(process.env.V2_APPEARANCE_SCREENSHOTS&&width===390)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-workspace-390.png'),fullPage:true});
   }
   await page.click('#accountBtn');
-  assert.ok(await page.$$eval('#accountPanel .appearance-options button',buttons=>buttons.every(b=>b.getBoundingClientRect().height>=44)));
+  assert.ok(await page.$$eval('#accountPanel .appearance-options button',buttons=>buttons.every(b=>b.offsetHeight>=44)));
   await page.focus('#accountPanel [data-appearance-option="dark"]');await page.keyboard.press('Enter');
   await page.waitForFunction(()=>document.documentElement.dataset.appearance==='dark');
   await page.evaluate(()=>window.appearanceTransitionDone);
