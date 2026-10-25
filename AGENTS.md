@@ -5,6 +5,17 @@ projects at the same time: before changing anything, check `git status`, `git lo
 newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
 ## What is live
+- OWNER-LOCKED ORIGINAL BEHAVIOR RESTORED (2026-10-25): live deployment
+  `dpl_5xc42UCfWnVw5JE8D2nhtpHj3kM1`, original runtime `79e3e8e`.
+  Canonical restoration commit `2ab8a53` restores index.html, assets and tests
+  exactly to that pre-resizing baseline. ALL proportional resizing patches are
+  reverted. The owner explicitly rejected their Account and report behavior and
+  requested that the original controls and behavior be locked again. Do not
+  reintroduce fit-original assets, canvas zoom, viewport fitting, internal Output
+  scrolling or view changes without a new explicit owner request for that change.
+  Natural page scrolling and the original unscaled Account behavior are intended.
+  The resizing releases below are historical, NOT current instructions or live.
+  See `ORIGINAL-BEHAVIOR-LOCK-20261025.md`.
 - GENERATED REPORT FIT FIX: runtime `ab153bd`, deployment
   `dpl_DLuwNrt2zVD6yoE97qHJ4jxzchJQ`. Preserve the confirmed original layout
   and its scale after generation. The output panel keeps its initial footprint;
