@@ -5,6 +5,16 @@ projects at the same time: before changing anything, check `git status`, `git lo
 newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
 ## What is live
+- GENERATE MUST KEEP THE SAME SIZE (owner correction, 2026-10-25): runtime
+  `725eb0f`, deployment `dpl_8XunsdtLuFwhJCSWeJkGrKuENgXd`. Keep the fitted
+  workspace scale before, during and after generation; never reset it to 100%
+  or fit the height of generated text. Cache the empty workspace dimensions;
+  let the full report extend the page with normal scrolling at that same scale.
+  Account/popovers/dialogs keep their existing original behavior. No internal
+  Output scrolling or application handler changes. This supersedes the previous
+  entry's statement that generating/report views return to unscaled size.
+  All 117 files passed. Live exact geometry equality verified at 1909x943 and
+  1366x650; both domains passed 24/24. See `GENERATE-SAME-SIZE-RELEASE-20261025.md`.
 - INITIAL-WORKSPACE-ONLY FIT (explicit owner clarification, 2026-10-25): runtime
   `01e2e40`, deployment `dpl_E5GVzsTeZ8TsJ7UqycUx49X373oq`. The owner authorized
   ONLY fitting the initial empty workspace. Account, popovers, dialogs, generation
