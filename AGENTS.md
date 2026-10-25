@@ -5,6 +5,10 @@ projects at the same time: before changing anything, check `git status`, `git lo
 newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
 ## What is live
+- OWNER ROLLBACK 2026-10-25: the stretched original-default release below was
+  rolled back. Current live runtime is `98a6df7`, deployment
+  `dpl_9gzpCc5LxSmxMFSrv4ffPWqmroph` (three-column Classic-size view).
+  Do not republish `3943f8b`; the owner rejected its stretched layout.
 - Original-view default restoration: runtime commit `3943f8b`, deployment
   `dpl_26RJ1wsmsSQaHFk6atgNzjwCZS5s`. Settings left, notes above output on the right.
   Account → Change view selects the preserved three-column Classic-size option.
