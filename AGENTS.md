@@ -5,6 +5,13 @@ projects at the same time: before changing anything, check `git status`, `git lo
 newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
 ## What is live
+- ORIGINAL CENTERED LAYOUT RESTORED at owner's further rollback request:
+  runtime `79e3e8e`, deployment `dpl_5xc42UCfWnVw5JE8D2nhtpHj3kM1`.
+  Deployable files match `0650f80` exactly. All new viewport/view-mode changes
+  below are reverted. The live wrapper is 1240px, with notes above output.
+  Both public domains passed 24/24. Normal redeployment was used because Vercel
+  refused a deeper instant rollback with HTTP 402. Do not reintroduce these
+  rejected layout changes without a new owner request.
 - OWNER ROLLBACK 2026-10-25: the stretched original-default release below was
   rolled back. Current live runtime is `98a6df7`, deployment
   `dpl_9gzpCc5LxSmxMFSrv4ffPWqmroph` (three-column Classic-size view).
