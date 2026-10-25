@@ -5,6 +5,10 @@ projects at the same time: before changing anything, check `git status`, `git lo
 newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
 ## What is live
+- Original-view default restoration: runtime commit `3943f8b`, deployment
+  `dpl_26RJ1wsmsSQaHFk6atgNzjwCZS5s`. Settings left, notes above output on the right.
+  Account → Change view selects the preserved three-column Classic-size option.
+  See `ORIGINAL-VIEW-RELEASE-20261025.md`. Preserve both modes and the saved choice.
 - Classic-size reference follow-up: live runtime commit `98a6df7`, deployment
   `dpl_9gzpCc5LxSmxMFSrv4ffPWqmroph`. Every desktop protocol now adopts Classic's
   dimensions at the same viewport, not just equal dimensions within its own mode.
