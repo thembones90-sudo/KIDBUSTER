@@ -5,6 +5,12 @@ projects at the same time: before changing anything, check `git status`, `git lo
 newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
 ## What is live
+- GENERATED REPORT FIT FIX: runtime `ab153bd`, deployment
+  `dpl_DLuwNrt2zVD6yoE97qHJ4jxzchJQ`. Preserve the confirmed original layout
+  and its scale after generation. The output panel keeps its initial footprint;
+  long report text scrolls inside Output rather than shrinking the application.
+  See `GENERATED-REPORT-FIT-RELEASE-20261025.md`. All 117 test files passed,
+  both domains passed 24/24 and actual synthetic generation was checked live.
 - PROPORTIONAL ORIGINAL-PAGE FIT: runtime `947f02a`, deployment
   `dpl_5VAp2wsDwcTTJPHX5eMfmrkhwE7n`. Owner explicitly requested uniform,
   vector-like whole-page scaling with no page scrollbar. The original centered
