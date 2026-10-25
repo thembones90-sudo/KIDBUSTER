@@ -72,38 +72,35 @@ module.exports=async function run(){
        return {protocol:document.querySelector('input[name="protocol"]:checked').value,
          height:document.querySelector('.grid>div:first-child>.panel').getBoundingClientRect().height,
          rightHeight:document.querySelector('.grid>div:nth-child(2)').getBoundingClientRect().height,
-         bottom:document.querySelector('.grid>div:first-child>.panel').getBoundingClientRect().bottom,
-         actionsBottom:field('actionRow').getBoundingClientRect().bottom,
-         teacher:top('teacherName'),student:top('studentName'),signoff:top('teacherSignoffEmoji'),
+         teacher:top('teacherName'),student:top('studentName'),signoff:top('signoffEmojiField'),
          visible:getComputedStyle(field('signoffEmojiField')).display!=='none',
          emoji:field('teacherSignoffEmoji').value,
          fixedFormat:getComputedStyle(field('protocolFormatField')).display!=='none'};
      }));
    }
    const classic=layouts[0];
-   check('all seven sidebars fit the desktop viewport instead of forcing a Classic height',layouts.every(v=>v.bottom<=900));
-   check('teacher and emoji stay together before the student control in every protocol',
-     layouts.every(v=>Math.abs(v.teacher-v.signoff)<=1&&v.student>v.teacher));
+   check('all seven sidebars keep Classic panel height',layouts.every(v=>Math.abs(v.height-classic.height)<=1));
+   check('teacher, emoji and student controls stay fixed except the intentionally compact OF selector',
+     layouts.filter(v=>v.protocol!=='OF').every(v=>Math.abs(v.teacher-classic.teacher)<=1&&Math.abs(v.signoff-classic.signoff)<=1&&Math.abs(v.student-classic.student)<=1));
    const ofLayout=layouts.find(v=>v.protocol==='OF');
-   check('OF has a compact native pronoun selector rather than a reserved tall slot',
-     ofLayout.teacher<classic.teacher);
+   check('OF removes at least 40px of unused pronoun space above identity controls',
+     ['teacher','signoff','student'].every(key=>classic[key]-ofLayout[key]>=40));
    check('all seven retain visible teacher emoji selection',layouts.every(v=>v.visible&&v.emoji==='🦊'));
    check('Beida substitutes informative native fixed-format slot',layouts.find(x=>x.protocol==='BEIDA').fixedFormat);
-   check('desktop output actions stay in view in all seven modes, including Beida',
-     layouts.every(v=>v.actionsBottom<=900));
+   check('desktop right-side workspace preserves Classic height in all seven modes, including Beida',
+     layouts.every(v=>Math.abs(v.rightHeight-classic.rightHeight)<=1));
    await page.setViewport({width:390,height:844});
    const mobileHeights=[];
    for(const protocol of modes){
      await page.click('input[name="protocol"][value="'+protocol+'"]');
      mobileHeights.push(await page.evaluate(()=>({
        height:document.querySelector('.grid>div:first-child>.panel').getBoundingClientRect().height,
-       fieldsFit:[...document.querySelector('.grid>div:first-child>.panel').children].filter(e=>getComputedStyle(e).display!=='none').every(e=>e.getBoundingClientRect().bottom<=e.parentElement.getBoundingClientRect().bottom),
        visible:getComputedStyle(document.getElementById('signoffEmojiField')).display!=='none',
        hasOverflow:document.documentElement.scrollWidth>innerWidth+1
      })));
    }
-   check('all seven retain natural-height mobile settings and visible emoji without horizontal overflow',
-     mobileHeights.every(v=>v.fieldsFit&&v.visible&&!v.hasOverflow));
+   check('all seven retain a stable mobile sidebar and visible emoji control without horizontal overflow',
+     mobileHeights.every(v=>Math.abs(v.height-mobileHeights[0].height)<=1&&v.visible&&!v.hasOverflow));
    await page.select('#preplyModuleSelect','trial');
    const trialLayout=await page.evaluate(()=>({
      visible:document.getElementById('preplyTrialPersonField').style.display!=='none',

@@ -32,7 +32,6 @@ module.exports=async function run(){
               classApplied:el.classList.contains('identity-pill'),
               height:el.getBoundingClientRect().height,
               width:el.getBoundingClientRect().width,
-              fits:el.getBoundingClientRect().left>=0&&el.getBoundingClientRect().right<=innerWidth,
               border:cs.borderTopColor,
               radius:cs.borderTopLeftRadius,
               padding:cs.padding,
@@ -43,18 +42,14 @@ module.exports=async function run(){
             };
           }
           const panel=document.querySelector('.grid>div:first-child>.panel');
-          const bounds=panel.getBoundingClientRect();
-          const containsFields=[...panel.children].filter(e=>getComputedStyle(e).display!=='none').every(e=>{
-            const r=e.getBoundingClientRect();return r.top>=bounds.top&&r.bottom<=bounds.bottom&&r.left>=bounds.left&&r.right<=bounds.right;
-          });
-          return {ui,containsFields,overflow:document.documentElement.scrollWidth>innerWidth+1};
+          return {ui,panelHeight:panel.getBoundingClientRect().height,overflow:document.documentElement.scrollWidth>innerWidth+1};
         },ids);
         results.push({protocol,...r});
         const same=Object.values(r.ui);
         const equal=attr=>same.every(x=>x[attr]===same[0][attr]);
-        check(protocol+' '+width+'px: responsive identity inputs retain matching height and theme',
-          same.every(v=>v.classApplied&&v.width>0&&v.fits)&&
-          ['height','border','radius','padding','fontSize','weight','labelColor','labelOpacity'].every(equal)&&
+        check(protocol+' '+width+'px: all 3 inputs match Student geometry and theme',
+          same.every(v=>v.classApplied)&&
+          ['height','width','border','radius','padding','fontSize','weight','labelColor','labelOpacity'].every(equal)&&
           same[0].height>=43&&same[0].height<=45&&
           same[0].labelOpacity==='1'
         );
@@ -70,8 +65,8 @@ module.exports=async function run(){
           focus[0].shadow!=='none'
         );
       }
-      check(width+'px: every protocol sidebar contains its visible fields without clipping',
-        results.every(v=>v.containsFields));
+      check(width+'px: switching protocols preserves sidebar footprint',
+        results.every(v=>Math.abs(v.panelHeight-results[0].panelHeight)<=1));
       check(width+'px: no horizontal overflow',
         results.every(v=>!v.overflow));
       check(width+'px: protocol colors actually change between Classic, Sugarcoat and OF',

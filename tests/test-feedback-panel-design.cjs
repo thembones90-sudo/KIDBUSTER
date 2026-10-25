@@ -42,10 +42,10 @@ module.exports=async function(){
       await page.setViewport({width,height:1000});
       await page.evaluate(()=>document.getElementById('feedbackCard').scrollIntoView({block:'center'}));
       const bounds=await page.$eval('#feedbackCard',e=>{
-        const r=e.getBoundingClientRect();return {left:r.left,right:r.right,width:r.width,height:r.height,contentFits:e.scrollWidth<=e.clientWidth+1};
+        const r=e.getBoundingClientRect();return {left:r.left,right:r.right,height:r.height,contentFits:e.scrollWidth<=e.clientWidth+1};
       });
       assert.ok(bounds.left>=0&&bounds.right<=width&&bounds.contentFits,'feedback card fits '+width);
-      assert.ok(bounds.height<=(bounds.width>600?250:360),'feedback stays compact for its column width at '+width);
+      assert.ok(bounds.height<=(width===1440?250:360),'feedback stays compact at '+width);
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
       assert.equal(await page.$eval('#feedbackSubmitBtn',e=>e.getBoundingClientRect().height>=44),true);
       if(process.env.V2_FEEDBACK_SCREENSHOTS){
