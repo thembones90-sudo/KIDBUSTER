@@ -8,7 +8,6 @@ module.exports=async function run(){
  const browser=await puppeteer.launch({executablePath:process.env.PUPPETEER_EXECUTABLE_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',args:['--no-sandbox']});
  try{
   const page=await browser.newPage();
-  await page.evaluateOnNewDocument(()=>localStorage.setItem('classbuster_workspace_view','columns'));
   await page.setRequestInterception(true);
   page.on('request',r=>/^https?:/.test(r.url())?r.abort():r.continue());
   await page.goto(pathToFileURL(path.join(__dirname,'..','index.html')).href);
