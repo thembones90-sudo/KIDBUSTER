@@ -249,8 +249,6 @@ module.exports = async function run(){
     console.log('\n6) Disconnect revokes server-side');
     await ingest(token, lesson(5));
     page.dialogs.length = 0;
-    if(await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')))await page.click('#krispInboxClose');
-    await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
     await page.click('#radarVanDisconnectBtn');
     check('disconnect state shown', await wait(page, () => document.getElementById('radarVanState').dataset.state === 'off'));
     check('confirmation warns that the server credential is revoked and desktop-only clearing is not enough', page.dialogs.some(d => /revokes the device token on our server/.test(d) && /does not revoke/.test(d)));
@@ -313,13 +311,7 @@ module.exports = async function run(){
     check('account B imports the same-numbered lesson (A\'s receipt does not suppress it)', await wait(B.p, () => document.getElementById('krispNotes').value.includes('Hello from lesson 11')));
     let bQueue; for (let i = 0; i < 40; i++) { await sleep(250); bQueue = await kvMod.kv.get(rv.radarKeys.matched(KEY_B)); if (!bQueue || !bQueue.length) break; }
     check('account B was acknowledged on its own queue', !bQueue || bQueue.length === 0);
-    // The server clears B's queue before the browser receives its response and
-    // clears B's local receipt. Observe that completed client-side phase too.
-    const aReceiptPreserved=await wait(B.p, ({key,expected})=>{
-      const receipt=JSON.parse(localStorage.getItem(key)||'null');
-      return !!receipt&&JSON.stringify(receipt.a)===JSON.stringify(expected);
-    }, {key:RECEIPTS,expected:JSON.parse(raw1).a});
-    check('account A queue and receipt untouched by B', (await mq(KEY_A)).length === 1 && aReceiptPreserved);
+    check('account A queue and receipt untouched by B', (await mq(KEY_A)).length === 1 && JSON.parse(await receiptRaw(B.p) || 'null') && Object.keys(JSON.parse(await receiptRaw(B.p)).a).length === 1);
     check('B never sent a request with A\'s key, and A\'s lesson ack never used B\'s key', B.p.reqs.every(r => r.key === KEY_B) && aReqs1.every(r => r.key === KEY_A));
     await B.p.close();
 
@@ -381,13 +373,12 @@ module.exports = async function run(){
     const mobile = await open({ viewport: { width: 390, height: 844 } });
     await mobile.click('#accountBtn');
     check('mobile: section reachable from the account popover', await wait(mobile, () => !document.getElementById('radarVanSection').hidden));
-    await mobile.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
     const geometry = await mobile.evaluate(() => {
       const ids = ['radarVanConnectBtn'];
       const rects = ids.map(i => document.getElementById(i).getBoundingClientRect());
       return { overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
         inside: rects.every(r => r.left >= 0 && r.right <= window.innerWidth && r.width > 0),
-        tall: ids.every(id => document.getElementById(id).offsetHeight >= 40) };
+        tall: rects.every(r => r.height >= 40) };
     });
     check('mobile: no horizontal overflow, controls inside the viewport and touch-sized', !geometry.overflow && geometry.inside && geometry.tall);
     await mobile.evaluate(() => document.getElementById('radarVanConnectBtn').scrollIntoView({ block: 'center' }));

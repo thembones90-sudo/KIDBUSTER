@@ -120,7 +120,6 @@ module.exports=async function(){
     for(const width of [1440,1024,768,390,320]){
       await page.setViewport({width,height:1000});
       await page.evaluate(()=>window.dispatchEvent(new Event('resize')));
-      await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
       for(const skin of ['dark','light']){
         await page.evaluate(skin=>document.documentElement.dataset.appearance=skin,skin);
         await page.click('#krispPendingBtn');

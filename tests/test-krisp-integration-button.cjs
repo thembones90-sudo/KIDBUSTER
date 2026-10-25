@@ -316,7 +316,7 @@ module.exports = async function run(){
     state.logoFile = 'shipped';
     page = await open();
     const real = await page.evaluate(() => { const img = document.getElementById('krispLogoImg'), fb = document.getElementById('krispLogoFallback'), r = img.getBoundingClientRect();
-      return { shown: !img.hidden && img.offsetWidth >= 16 && img.offsetHeight >= 16 && r.width > 0 && r.height > 0, natural: img.naturalWidth, fbHidden: getComputedStyle(fb).display === 'none', src: img.getAttribute('src') }; });
+      return { shown: !img.hidden && r.width >= 16 && r.height >= 16, natural: img.naturalWidth, fbHidden: getComputedStyle(fb).display === 'none', src: img.getAttribute('src') }; });
     check('the shipped Krisp logo file loads in the header button (real image, not the fallback)', real.shown && real.natural > 0 && real.fbHidden && /krisp-logo\.png$/.test(real.src));
     await page.close();
     const logoPath = path.join(ROOT, 'assets', 'logos', 'krisp-logo.png');
@@ -368,7 +368,7 @@ module.exports = async function run(){
         const r = el => el.getBoundingClientRect();
         const b = r(document.getElementById('krispIntegrationBtn')), h = r(document.getElementById('helpBtn')), a = r(document.getElementById('accountBtn'));
         const hit = (x, y) => !(x.right <= y.left || y.right <= x.left || x.bottom <= y.top || y.bottom <= x.top);
-        return { inView: b.left >= 0 && b.right <= innerWidth, h: document.getElementById('krispIntegrationBtn').offsetHeight, noOverlap: !hit(b, h) && !hit(b, a),
+        return { inView: b.left >= 0 && b.right <= innerWidth, h: b.height, noOverlap: !hit(b, h) && !hit(b, a),
           noHScroll: document.documentElement.scrollWidth <= innerWidth + 1, w: b.width };
       });
       check(vp.name + ': button fully on screen, tall enough to tap, not overlapping neighbours', lay.inView && lay.h >= 40 && lay.noOverlap);

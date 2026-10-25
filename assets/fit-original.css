@@ -1,4 +1,0 @@
-/* Preserve the original canvas proportions; the script only scales it down. */
-html { scrollbar-gutter: stable; }
-body { padding: 12px; min-height: 100dvh; }
-.wrap { width: 1240px; max-width: none; }

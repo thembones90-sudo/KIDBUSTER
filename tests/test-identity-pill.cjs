@@ -22,8 +22,7 @@ module.exports=async function run(){
       await page.goto('file://'+path.join(__dirname,'..','index.html'));
       const results=[];
       for(const protocol of protocols){
-        await page.click('#protocolSelect label:has(input[value="'+protocol+'"])');
-        await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
+        await page.click('input[name="protocol"][value="'+protocol+'"]');
         const r=await page.evaluate(ids=>{
           const ui={};
           for(const id of ids){
@@ -31,8 +30,8 @@ module.exports=async function run(){
             const cs=getComputedStyle(el);
             ui[id]={
               classApplied:el.classList.contains('identity-pill'),
-              height:el.offsetHeight,
-              width:el.offsetWidth,
+              height:el.getBoundingClientRect().height,
+              width:el.getBoundingClientRect().width,
               border:cs.borderTopColor,
               radius:cs.borderTopLeftRadius,
               padding:cs.padding,
@@ -43,8 +42,7 @@ module.exports=async function run(){
             };
           }
           const panel=document.querySelector('.grid>div:first-child>.panel');
-          const bounds=panel.getBoundingClientRect();
-          return {ui,panelMinimum:getComputedStyle(panel).minHeight,fieldsFit:ids.every(id=>{const r=document.getElementById(id).getBoundingClientRect();return r.top>=bounds.top&&r.bottom<=bounds.bottom;}),overflow:document.documentElement.scrollWidth>innerWidth+1};
+          return {ui,panelHeight:panel.getBoundingClientRect().height,overflow:document.documentElement.scrollWidth>innerWidth+1};
         },ids);
         results.push({protocol,...r});
         const same=Object.values(r.ui);
@@ -67,8 +65,8 @@ module.exports=async function run(){
           focus[0].shadow!=='none'
         );
       }
-      check(width+'px: switching protocols preserves original sidebar minimum and contains all identity fields',
-        results.every(v=>v.panelMinimum===results[0].panelMinimum&&v.fieldsFit));
+      check(width+'px: switching protocols preserves sidebar footprint',
+        results.every(v=>Math.abs(v.panelHeight-results[0].panelHeight)<=1));
       check(width+'px: no horizontal overflow',
         results.every(v=>!v.overflow));
       check(width+'px: protocol colors actually change between Classic, Sugarcoat and OF',

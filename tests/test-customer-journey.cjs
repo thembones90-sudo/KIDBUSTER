@@ -95,7 +95,6 @@ module.exports=async function run(){
     if(rating){const b=[...document.querySelectorAll('#ratingTrack button, #ratingTrack [data-value]')].find(x=>(x.dataset.value||x.textContent.trim())===rating||x.textContent.trim()===rating);b&&b.click();}
     if(gender){const g=document.querySelector('input[name="studentGender"][value="'+gender+'"]');g&&g.click();}
    },{teacher,student,notes,protocol,rating,gender});
-   await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
   };
   const generate=async()=>{await page.click('#generateBtn');for(let i=0;i<40;i++){await sleep(150);if(!(await page.evaluate(()=>document.getElementById('generateBtn').disabled)))break;}await sleep(200);};
   const account=async()=>{await page.click('#accountBtn');await sleep(600);const a=await page.evaluate(()=>({plan:accountPlan.textContent.trim(),status:accountStatus.textContent.trim(),usage:accountUsage.textContent.trim(),trials:accountTrials.textContent.replace(/\s+/g,' ')}));await page.click('#accountBtn');return a;};

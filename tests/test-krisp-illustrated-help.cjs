@@ -20,7 +20,6 @@ module.exports=async function(){
     assert.match(copy,/Transcript created only/);assert.match(copy,/until you press DISARM KRISP/);assert.match(copy,/Copying the link alone does not confirm/);
     for(const width of [1440,390,320]){
       await page.setViewport({width,height:1000});
-      await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
       for(let i=0;i<2;i++){
         const fig=(await page.$$('.krisp-guide-figure'))[i];
         await fig.evaluate(e=>e.scrollIntoView({block:'center'}));

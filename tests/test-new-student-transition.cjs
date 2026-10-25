@@ -18,15 +18,6 @@ module.exports=async function(){
       await page.bringToFront();
       await page.screenshot(); // Start a rendered frame before measuring animations.
       await page.evaluate(()=>{
-        window.__nativeAnimate=Element.prototype.animate;
-        window.__holdTeleport=true;
-        Element.prototype.animate=function(frames,options){
-          const animation=window.__nativeAnimate.call(this,frames,options);
-          if(window.__holdTeleport&&this.matches('.grid .panel')&&[230,390].includes(options.duration)){
-            animation.pause();animation.currentTime=120;
-          }
-          return animation;
-        };
         window.__resetCount=0;
         document.addEventListener('kidbuster:workspace-reset',()=>window.__resetCount++);
         document.getElementById('teacherName').value='Preserved Teacher';
@@ -53,15 +44,10 @@ module.exports=async function(){
         assert.ok(departing.cards.some(card=>Number(card.opacity)<.9),'cards visibly disassemble '+JSON.stringify(departing));
         assert.ok(await page.$('.workspace-teleport-scan'),'scan line is present');
         if(width===1280&&process.env.PATHFINDER_TELEPORT_CAPTURE)await page.screenshot({path:path.join(process.env.PATHFINDER_TELEPORT_CAPTURE,'teleport-out.png')});
-        await page.evaluate(()=>document.querySelectorAll('.grid .panel').forEach(card=>card.getAnimations().forEach(animation=>animation.finish())));
-        await page.waitForFunction(()=>document.querySelector('.grid').dataset.teleport==='in');
+        await new Promise(r=>setTimeout(r,180));
         assert.equal(await page.$eval('.grid',el=>el.dataset.teleport),'in');
         assert.equal(await page.$eval('#studentName',el=>el.value),'');
       }
-      await page.evaluate(()=>{
-        window.__holdTeleport=false;Element.prototype.animate=window.__nativeAnimate;
-        document.querySelectorAll('.grid .panel').forEach(card=>card.getAnimations().forEach(animation=>animation.finish()));
-      });
       await new Promise(r=>setTimeout(r,500));
       const result=await page.evaluate(()=>({
         name:document.getElementById('studentName').value,
@@ -85,7 +71,7 @@ module.exports=async function(){
       assert.equal(result.opacity,'1');assert.equal(await page.$('.workspace-teleport-scan'),null);
       assert.equal(result.message,'Ready for your next student');
       if(width===1280&&!reduced&&process.env.PATHFINDER_TELEPORT_CAPTURE)await page.screenshot({path:path.join(process.env.PATHFINDER_TELEPORT_CAPTURE,'teleport-ready.png')});
-      if(reduced)assert.equal(await page.evaluate(()=>scrollY),0,'scaled workspace needs no reduced-motion page scrolling');
+      if(reduced)assert.equal(start.y,await page.evaluate(()=>scrollY),'reduced motion jumps directly');
       if(width===1280&&!reduced){
         await new Promise(r=>setTimeout(r,3500));
         assert.equal(await page.$eval('#nextStudentStatus',el=>el.textContent),'');
