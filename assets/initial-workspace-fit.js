@@ -9,8 +9,7 @@
   var workspaceSize=null;
   function visible(element){return !element.hidden&&getComputedStyle(element).display!=='none';}
   function workspace(){
-    return !visible(account)&&
-      !Array.from(document.querySelectorAll('.license-modal-overlay')).some(visible)&&
+    return !Array.from(document.querySelectorAll('.license-modal-overlay')).some(visible)&&
       !document.querySelector('[popover]:popover-open');
   }
   function release(){
@@ -52,7 +51,7 @@
     document.body.classList.add(marker);
     // Keep the empty workspace's reference dimensions during generation and
     // after completion. Report length must never change the display scale.
-    if(output.classList.contains('empty')||!workspaceSize){
+    if((output.classList.contains('empty')&&!visible(account))||!workspaceSize){
       canvas.style.zoom='1';
       workspaceSize=measure();
     }
@@ -65,7 +64,8 @@
   // Release before the existing handlers position/open their original views.
   // No existing application handler or DOM parent is replaced.
   document.addEventListener('click',function(event){
-    if(event.target.closest('.header-actions button'))release();
+    var button=event.target.closest('.header-actions button');
+    if(button&&button.id!=='accountBtn')release();
   },true);
   new MutationObserver(refresh).observe(output,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
   var visibilityObserver=new MutationObserver(refresh);

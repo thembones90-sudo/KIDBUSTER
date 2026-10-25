@@ -1,5 +1,5 @@
 /* Fit from the empty workspace; retain that scale through generation/reports.
-   Account and popovers still use their original unscaled layout. */
+   Account retains that scale; popovers use their original layout. */
 html.initial-workspace-fit { scrollbar-gutter: stable; }
 body.initial-workspace-fit { padding: 12px; min-height: 100dvh; }
 body.initial-workspace-fit .wrap { width: 1240px; max-width: none; }

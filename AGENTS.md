@@ -4,6 +4,32 @@ Updated 2026-10-24. Read this first. Several agents (Claude, Codex, others) work
 projects at the same time: before changing anything, check `git status`, `git log` and the
 newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
+## Owner-approved behavior lock — 2026-10-25
+
+The owner confirmed runtime 725eb0f works correctly and explicitly requested that
+these settings be locked. This section overrides conflicting historical notes below.
+Do not change this contract, bypass its tests, or refresh the release fingerprints
+without a new explicit owner request authorizing the behavior change.
+
+- Preserve the original centered two-column layout and existing controls/handlers.
+- Fit the initial workspace proportionally to the browser viewport.
+- Keep exactly the same fitted size before, during and after Generate, including
+  repeated generation. Rating 6 descriptions must never shrink the workspace.
+- Generated reports extend the page at that same scale with normal page scrolling;
+  do not introduce internal or nested Output scroll containers.
+- Account must keep the same fitted workspace scale when opened and closed. Its
+  content extends the page with normal scrolling. Dialogs/popovers keep their
+  existing behavior. New Student resets and fits normally.
+- Do not add a secondary view or Change View option without explicit owner instruction.
+
+The Vercel install integrity gate fingerprints both approved resizing assets and
+requires their versioned references. The browser regression
+`tests/test-initial-workspace-fit.cjs` checks all seven protocols/screens, rating 6,
+exact Generate geometry, page scrolling, Account/popovers and New Student. Preserve
+and run it when touching layout or generation presentation. Existing release rules
+continue to apply. A new owner-approved behavior change must update this contract,
+its regression and the fingerprints together; passing a build alone is not approval.
+
 ## What is live
 - GENERATE MUST KEEP THE SAME SIZE (owner correction, 2026-10-25): runtime
   `725eb0f`, deployment `dpl_8XunsdtLuFwhJCSWeJkGrKuENgXd`. Keep the fitted

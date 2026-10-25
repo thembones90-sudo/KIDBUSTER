@@ -40,10 +40,11 @@ module.exports=async function(){
    }
   }
   await page.setViewport({width:1909,height:943,isMobile:false});await settle();
+  const beforeAccount=await page.evaluate(()=>({zoom:getComputedStyle(document.querySelector('.wrap')).zoom,width:document.querySelector('.wrap').getBoundingClientRect().width}));
   await page.click('#accountBtn');
   await page.waitForFunction(()=>getComputedStyle(document.getElementById('accountPanel')).display!=='none');await settle();
   const account=await page.evaluate(()=>({zoom:getComputedStyle(document.querySelector('.wrap')).zoom,width:document.querySelector('.wrap').getBoundingClientRect().width,title:getComputedStyle(document.querySelector('#accountPanel .account-title')).fontSize,fitted:document.body.classList.contains('initial-workspace-fit')}));
-  assert.equal(account.zoom,'1');assert.equal(account.width,1240);assert.equal(account.title,'20px');assert.equal(account.fitted,false);
+  assert.equal(account.zoom,beforeAccount.zoom);assert.equal(account.width,beforeAccount.width);assert.equal(account.title,'20px');assert.equal(account.fitted,true);
   await page.click('#accountBtn');await settle();
   assert(await page.evaluate(()=>document.body.classList.contains('initial-workspace-fit')),'closing Account restores only initial fitting');
   const popover=await page.evaluate(()=>{const p=document.getElementById('krispInboxPanel');window.testPopoverParent=p.parentElement;p.showPopover();return true;});
@@ -88,6 +89,13 @@ module.exports=async function(){
   await page.waitForFunction(()=>!document.getElementById('outputBox').classList.contains('is-generating'));await settle();
   await page.waitForFunction(()=>!document.getElementById('generateBtn').disabled);
   assert.deepEqual(await dimensions(),beforeGenerate,'previous-report controls cannot change the display size');
+  for(let cycle=0;cycle<3;cycle++){
+   await page.click('#accountBtn');await settle();
+   assert.deepEqual(await dimensions(),beforeGenerate,'opening Account retains exact report/workspace geometry');
+   assert(await page.evaluate(()=>document.documentElement.scrollHeight>innerHeight),'Account uses normal page scrolling');
+   await page.click('#accountBtn');await settle();
+   assert.deepEqual(await dimensions(),beforeGenerate,'closing Account retains exact geometry');
+  }
   await page.click('#newStudentBtn');
   await page.waitForFunction(()=>document.getElementById('outputBox').classList.contains('empty')&&document.body.classList.contains('initial-workspace-fit'));
   await settle();
