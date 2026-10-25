@@ -109,6 +109,6 @@ module.exports=async function(){
   assert(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight),'New Student returns to fitted initial workspace');
   assert.equal(errors.length,0,errors.join('\n'));
   console.log('PASS fixed workspace scale: 7 protocols/7 screens, stable rating 6; identical dimensions before/during/after repeated generation, normal page scrolling, original Account/popovers and New Student');return 0;
- }finally{await browser.close();await new Promise(r=>server.close(r));}
+ }finally{await Promise.all((await browser.pages()).map(p=>p.close()));await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
 };
 if(require.main===module)module.exports().then(n=>process.exitCode=n).catch(e=>{console.error(e);process.exitCode=1;});
