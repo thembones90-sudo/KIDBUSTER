@@ -2,6 +2,8 @@
   'use strict';
   var canvas=document.querySelector('.wrap');
   if(!canvas)return;
+  // Native popovers use viewport coordinates and stay outside the scaled canvas.
+  canvas.querySelectorAll('[popover]').forEach(function(panel){document.body.appendChild(panel);});
   var scheduled=false;
   function fit(){
     scheduled=false;
@@ -11,7 +13,6 @@
     var height=canvas.offsetHeight;
     var scale=Math.min(1,(document.documentElement.clientWidth-padding)/width,(window.innerHeight-padding)/height);
     var zoom=String(Math.max(0.01,Math.floor(scale*10000)/10000));
-    canvas.style.setProperty('--canvas-scale',zoom);
     if(canvas.style.zoom!==zoom)canvas.style.zoom=zoom;
   }
   function schedule(){if(!scheduled){scheduled=true;requestAnimationFrame(fit);}}

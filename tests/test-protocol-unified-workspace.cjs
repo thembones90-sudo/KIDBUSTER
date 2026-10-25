@@ -97,12 +97,14 @@ module.exports=async function run(){
      await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
      mobileHeights.push(await page.evaluate(()=>({
        height:document.querySelector('.grid>div:first-child>.panel').getBoundingClientRect().height,
+       minimum:getComputedStyle(document.querySelector('.grid>div:first-child>.panel')).minHeight,
+       fits:[...document.querySelectorAll('#teacherName,#teacherSignoffEmoji,#studentName,#ratingTrack')].every(e=>{const r=e.getBoundingClientRect(),p=document.querySelector('.grid>div:first-child>.panel').getBoundingClientRect();return r.top>=p.top&&r.bottom<=p.bottom;}),
        visible:getComputedStyle(document.getElementById('signoffEmojiField')).display!=='none',
        hasOverflow:document.documentElement.scrollWidth>innerWidth+1
      })));
    }
-   check('all seven retain a stable mobile sidebar and visible emoji control without horizontal overflow',
-     mobileHeights.every(v=>Math.abs(v.height-mobileHeights[0].height)<=1&&v.visible&&!v.hasOverflow));
+   check('all seven retain the original mobile sidebar minimum, contained fields and visible emoji without overflow',
+     mobileHeights.every(v=>v.minimum===mobileHeights[0].minimum&&v.fits&&v.visible&&!v.hasOverflow));
    await page.select('#preplyModuleSelect','trial');
    const trialLayout=await page.evaluate(()=>({
      visible:document.getElementById('preplyTrialPersonField').style.display!=='none',
