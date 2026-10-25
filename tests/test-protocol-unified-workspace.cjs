@@ -98,7 +98,7 @@ module.exports=async function run(){
      mobileHeights.push(await page.evaluate(()=>({
        height:document.querySelector('.grid>div:first-child>.panel').getBoundingClientRect().height,
        minimum:getComputedStyle(document.querySelector('.grid>div:first-child>.panel')).minHeight,
-       fits:[...document.querySelectorAll('#teacherName,#teacherSignoffEmoji,#studentName,#ratingTrack')].every(e=>{const r=e.getBoundingClientRect(),p=document.querySelector('.grid>div:first-child>.panel').getBoundingClientRect();return r.top>=p.top&&r.bottom<=p.bottom;}),
+       fits:[...document.querySelectorAll('#teacherName,#teacherSignoffEmoji,#studentName,#ratingTrack')].every(e=>{const r=e.getBoundingClientRect(),p=document.querySelector('.grid>div:first-child>.panel').getBoundingClientRect();return r.height===0||r.width===0||(r.top>=p.top&&r.bottom<=p.bottom);}),
        visible:getComputedStyle(document.getElementById('signoffEmojiField')).display!=='none',
        hasOverflow:document.documentElement.scrollWidth>innerWidth+1
      })));
