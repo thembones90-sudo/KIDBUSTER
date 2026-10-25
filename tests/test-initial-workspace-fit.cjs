@@ -57,21 +57,43 @@ module.exports=async function(){
    for(const [id,value] of Object.entries({teacherName:'Teacher',studentName:'Synthetic Student',krispNotes:'A fictional lesson about past tense and vocabulary.'})){
     const el=document.getElementById(id);el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));
    }
-   callClaude=async()=>({text:'Hi Synthetic Student!\n\n'+('Fictional vocabulary and past-tense practice.\n\n').repeat(80)+'Teacher',usage:null,trialStatus:null});
+   callClaude=()=>new Promise(resolve=>{
+    window.finishSyntheticFitReport=()=>resolve({text:'Hi Synthetic Student!\n\n'+('Fictional vocabulary and past-tense practice.\n\n').repeat(80)+'Teacher',usage:null,trialStatus:null});
+   });
    copyOutputToClipboard=()=>true;
   });
   await new Promise(r=>setTimeout(r,180));await settle();
+  const dimensions=()=>page.evaluate(()=>{
+   const box=s=>document.querySelector(s).getBoundingClientRect();
+   return {zoom:getComputedStyle(document.querySelector('.wrap')).zoom,canvas:box('.wrap').width,notes:box('#krispNotes').width,notesHeight:box('#krispNotes').height,teacher:box('#teacherName').height,logo:box('#kbLogo').width};
+  });
+  const beforeGenerate=await dimensions();
   await page.click('#generateBtn');
+  await page.waitForFunction(()=>typeof window.finishSyntheticFitReport==='function');await settle();
+  assert.deepEqual(await dimensions(),beforeGenerate,'Generate must not resize the canvas, notes, teacher input or logo while preparing');
+  await page.evaluate(()=>window.finishSyntheticFitReport());
   await page.waitForFunction(()=>document.getElementById('outputBox').textContent.includes('Hi Synthetic Student!'));
+  await page.waitForFunction(()=>!document.getElementById('generateBtn').disabled);
   await page.waitForFunction(()=>window.scrollY>0);await settle();
   const report=await page.evaluate(()=>{const o=document.getElementById('outputBox');return {zoom:getComputedStyle(document.querySelector('.wrap')).zoom,length:o.textContent.length,internal:o.scrollHeight-o.clientHeight,panel:o.parentElement.scrollHeight-o.parentElement.clientHeight,height:document.documentElement.scrollHeight};});
-  assert.equal(report.zoom,'1');assert(report.length>3000&&report.height>943);assert(report.internal<=1&&report.panel<=1,'original natural report, without internal scrollbars');
+  assert.deepEqual(await dimensions(),beforeGenerate,'completed report must retain the exact pre-Generate display dimensions');
+  assert.equal(report.zoom,beforeGenerate.zoom);assert(report.length>3000&&report.height>943);assert(report.internal<=1&&report.panel<=1,'natural report, without internal scrollbars');
+  await page.evaluate(()=>{
+   const notes=document.getElementById('krispNotes');notes.value='A second fictional lesson.';notes.dispatchEvent(new Event('input',{bubbles:true}));
+   void generate();
+  });
+  await page.waitForFunction(()=>document.getElementById('outputBox').classList.contains('is-generating'));
+  assert.deepEqual(await dimensions(),beforeGenerate,'generating a second report keeps the same display size');
+  await page.evaluate(()=>window.finishSyntheticFitReport());
+  await page.waitForFunction(()=>!document.getElementById('outputBox').classList.contains('is-generating'));await settle();
+  await page.waitForFunction(()=>!document.getElementById('generateBtn').disabled);
+  assert.deepEqual(await dimensions(),beforeGenerate,'previous-report controls cannot change the display size');
   await page.click('#newStudentBtn');
   await page.waitForFunction(()=>document.getElementById('outputBox').classList.contains('empty')&&document.body.classList.contains('initial-workspace-fit'));
   await settle();
   assert(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight),'New Student returns to fitted initial workspace');
   assert.equal(errors.length,0,errors.join('\n'));
-  console.log('PASS initial-only fitting: 7 protocols/7 screens, stable rating 6; original Account/popovers/report scrolling; original New Student flow');return 0;
+  console.log('PASS fixed workspace scale: 7 protocols/7 screens, stable rating 6; identical dimensions before/during/after repeated generation, normal page scrolling, original Account/popovers and New Student');return 0;
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 };
 if(require.main===module)module.exports().then(n=>process.exitCode=n).catch(e=>{console.error(e);process.exitCode=1;});

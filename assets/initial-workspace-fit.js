@@ -6,9 +6,10 @@
   if(!canvas||!output||!account)return;
   var marker='initial-workspace-fit';
   var scheduled=false;
+  var workspaceSize=null;
   function visible(element){return !element.hidden&&getComputedStyle(element).display!=='none';}
-  function initial(){
-    return output.classList.contains('empty')&&!visible(account)&&
+  function workspace(){
+    return !visible(account)&&
       !Array.from(document.querySelectorAll('.license-modal-overlay')).some(visible)&&
       !document.querySelector('[popover]:popover-open');
   }
@@ -46,11 +47,16 @@
   }
   function refresh(){
     scheduled=false;
-    if(!initial()){release();return;}
+    if(!workspace()){release();return;}
     document.documentElement.classList.add(marker);
     document.body.classList.add(marker);
-    canvas.style.zoom='1';
-    var size=measure();
+    // Keep the empty workspace's reference dimensions during generation and
+    // after completion. Report length must never change the display scale.
+    if(output.classList.contains('empty')||!workspaceSize){
+      canvas.style.zoom='1';
+      workspaceSize=measure();
+    }
+    var size=workspaceSize;
     // Allow for body padding and device-pixel rounding of scaled borders.
     var scale=Math.min(1,(document.documentElement.clientWidth-48)/size.width,(window.innerHeight-48)/size.height);
     canvas.style.zoom=String(Math.max(0.01,Math.floor(scale*10000)/10000));
@@ -59,7 +65,7 @@
   // Release before the existing handlers position/open their original views.
   // No existing application handler or DOM parent is replaced.
   document.addEventListener('click',function(event){
-    if(event.target.closest('.header-actions button,#generateBtn,#mobileGenerateBtn'))release();
+    if(event.target.closest('.header-actions button'))release();
   },true);
   new MutationObserver(refresh).observe(output,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
   var visibilityObserver=new MutationObserver(refresh);

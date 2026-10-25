@@ -1,4 +1,5 @@
-/* Only the empty workspace fits the screen. All other views use original CSS. */
+/* Fit from the empty workspace; retain that scale through generation/reports.
+   Account and popovers still use their original unscaled layout. */
 html.initial-workspace-fit { scrollbar-gutter: stable; }
 body.initial-workspace-fit { padding: 12px; min-height: 100dvh; }
 body.initial-workspace-fit .wrap { width: 1240px; max-width: none; }
