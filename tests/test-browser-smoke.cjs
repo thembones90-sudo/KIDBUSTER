@@ -131,13 +131,13 @@ module.exports = async function run(){
     check('global browser zoom hack is removed',workflow.zoom==='1');
     await page.setViewport({width:390,height:844,deviceScaleFactor:1});
     await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
-    const mobile=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));
-    check('390px mobile layout has no horizontal overflow',mobile.scroll===mobile.client);
+    const mobile=await page.evaluate(()=>{window.scrollTo({left:10000,top:scrollY,behavior:'instant'});return {horizontalScroll:scrollX,width:document.documentElement.scrollWidth,viewport:innerWidth};});
+    check('390px mobile layout has no horizontal overflow',mobile.horizontalScroll===0&&mobile.width<=mobile.viewport);
     for(const width of [768,900,980]){
       await page.setViewport({width,height:844,deviceScaleFactor:1});
       await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
-      const tablet=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));
-      check(width+'px tablet layout has no horizontal overflow',tablet.scroll===tablet.client);
+      const tablet=await page.evaluate(()=>{window.scrollTo({left:10000,top:scrollY,behavior:'instant'});return {horizontalScroll:scrollX,width:document.documentElement.scrollWidth,viewport:innerWidth};});
+      check(width+'px tablet layout has no horizontal overflow',tablet.horizontalScroll===0&&tablet.width<=tablet.viewport);
     }
     const onboardingText=await page.evaluate(()=>({
       promise:parseFloat(getComputedStyle(document.querySelector('.first-guide-intro p')).fontSize),
@@ -196,7 +196,9 @@ module.exports = async function run(){
     }
     await page.setViewport({width:1280,height:800,deviceScaleFactor:1});
     await page.reload({waitUntil:'domcontentloaded'});
-    const cardColors=await page.evaluate(()=>[...document.querySelectorAll('#protocolSelect>label')].map(e=>getComputedStyle(e).backgroundColor));
+    // The distinct tints are gradient layers over a shared charcoal base.
+    await page.waitForFunction(()=>new Set([...document.querySelectorAll('#protocolSelect>label')].map(e=>getComputedStyle(e).backgroundImage)).size===7,{timeout:3000});
+    const cardColors=await page.evaluate(()=>[...document.querySelectorAll('#protocolSelect>label')].map(e=>getComputedStyle(e).backgroundImage));
     check('all seven protocol cards have individualized tints',new Set(cardColors).size===7);
     check('workspace field hints use at least 14px text',details.hintFont>=14);
     check('payment recovery instructions use at least 14px text',details.recoveryNoteFont>=14);

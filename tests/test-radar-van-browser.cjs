@@ -313,7 +313,13 @@ module.exports = async function run(){
     check('account B imports the same-numbered lesson (A\'s receipt does not suppress it)', await wait(B.p, () => document.getElementById('krispNotes').value.includes('Hello from lesson 11')));
     let bQueue; for (let i = 0; i < 40; i++) { await sleep(250); bQueue = await kvMod.kv.get(rv.radarKeys.matched(KEY_B)); if (!bQueue || !bQueue.length) break; }
     check('account B was acknowledged on its own queue', !bQueue || bQueue.length === 0);
-    check('account A queue and receipt untouched by B', (await mq(KEY_A)).length === 1 && JSON.parse(await receiptRaw(B.p) || 'null') && Object.keys(JSON.parse(await receiptRaw(B.p)).a).length === 1);
+    // The server clears B's queue before the browser receives its response and
+    // clears B's local receipt. Observe that completed client-side phase too.
+    const aReceiptPreserved=await wait(B.p, ({key,expected})=>{
+      const receipt=JSON.parse(localStorage.getItem(key)||'null');
+      return !!receipt&&JSON.stringify(receipt.a)===JSON.stringify(expected);
+    }, {key:RECEIPTS,expected:JSON.parse(raw1).a});
+    check('account A queue and receipt untouched by B', (await mq(KEY_A)).length === 1 && aReceiptPreserved);
     check('B never sent a request with A\'s key, and A\'s lesson ack never used B\'s key', B.p.reqs.every(r => r.key === KEY_B) && aReqs1.every(r => r.key === KEY_A));
     await B.p.close();
 

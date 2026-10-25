@@ -66,10 +66,12 @@ module.exports=async function run(){
    const layouts=[];
    for(const protocol of modes){
      await page.click('#protocolSelect label:has(input[value="'+protocol+'"])');
+     await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
      layouts.push(await page.evaluate(()=>{
        const field=id=>document.getElementById(id);
        const scale=parseFloat(getComputedStyle(document.querySelector('.wrap')).zoom)||1;
-       const top=id=>field(id).getBoundingClientRect().top/scale;
+       const panelTop=document.querySelector('.grid>div:first-child>.panel').getBoundingClientRect().top;
+       const top=id=>(field(id).getBoundingClientRect().top-panelTop)/scale;
        return {protocol:document.querySelector('input[name="protocol"]:checked').value,
          height:document.querySelector('.grid>div:first-child>.panel').offsetHeight,
          rightHeight:document.querySelector('.grid>div:nth-child(2)').offsetHeight,

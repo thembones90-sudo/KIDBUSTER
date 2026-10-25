@@ -56,8 +56,9 @@ module.exports = async function run(){
     const top = await m.evaluate(() => {
       const bar = document.getElementById('mobileGenerateBar');
       const main=document.getElementById('generateBtn').getBoundingClientRect();
+      window.scrollTo({left:10000,top:scrollY,behavior:'instant'});
       return { mainVisible:main.top>=0&&main.bottom<=innerHeight,hidden: bar.hidden, display: getComputedStyle(bar).display, summary: document.getElementById('mobileGenerateSummary').textContent,
-        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+        overflow: scrollX>0 || document.documentElement.scrollWidth>innerWidth };
     });
     check('phone has the main Generate button or its mobile bar visible', top.mainVisible||(!top.hidden && top.display === 'flex'));
     check('bar names the protocol and rating state', top.summary === 'Classic · no rating yet');
