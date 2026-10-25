@@ -5,6 +5,11 @@ projects at the same time: before changing anything, check `git status`, `git lo
 newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
 ## What is live
+- PROPORTIONAL ORIGINAL-PAGE FIT: runtime `947f02a`, deployment
+  `dpl_5VAp2wsDwcTTJPHX5eMfmrkhwE7n`. Owner explicitly requested uniform,
+  vector-like whole-page scaling with no page scrollbar. The original centered
+  two-column arrangement is retained; do not stretch panels or substitute a
+  different arrangement. See `PROPORTIONAL-FIT-RELEASE-20261025.md`.
 - ORIGINAL CENTERED LAYOUT RESTORED at owner's further rollback request:
   runtime `79e3e8e`, deployment `dpl_5xc42UCfWnVw5JE8D2nhtpHj3kM1`.
   Deployable files match `0650f80` exactly. All new viewport/view-mode changes
