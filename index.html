@@ -1955,6 +1955,16 @@ label[for="teacherName"],label[for="teacherSignoffEmoji"],label[for="studentName
 #specialRemarks{min-height:78px}
 .rating-btn.active{outline:2px solid #fff;outline-offset:2px;filter:saturate(1.12) brightness(1.06)}
 .rating-btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+/* LingoAce selection stays still at every fitted scale, including hover/focus. */
+#ratingTrack.rating-track-of .rating-btn,
+#ratingTrack.rating-track-of .rating-btn:hover,
+#ratingTrack.rating-track-of .rating-btn.active{
+  transform:none;animation:none;transition:background-color .18s ease,border-color .18s ease;
+}
+#ratingTrack.rating-track-of .rating-btn.active{
+  outline:2px solid #fff;outline-offset:2px;filter:none;
+  box-shadow:0 0 0 1px rgba(255,255,255,.9),0 0 8px rgba(255,255,255,.25);
+}
 .output-box.empty{display:flex;align-items:center;justify-content:center;text-align:center;color:#BAC6D0;font-style:normal;line-height:1.55;border-style:dashed}
 .output-box.is-generating{display:flex;align-items:center;justify-content:center;text-align:center;color:var(--toxin);font-weight:650;border-color:rgba(var(--toxin-rgb),.6)}
 .output-box:not(.empty):not(.error):not(.is-generating){line-height:1.7}

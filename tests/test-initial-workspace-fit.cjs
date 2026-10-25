@@ -38,6 +38,30 @@ module.exports=async function(){
     });
     if(protocol==='MA')classicGeometry=geometry;
     else assert.deepEqual(geometry,classicGeometry,'every protocol matches Classic geometry '+protocol+' at '+width+'x'+height);
+    if(protocol==='OF'&&width===1909){
+     await page.evaluate(()=>document.querySelector('#ratingTrack [data-lvl="Medium"]').click());
+     await new Promise(r=>setTimeout(r,500));
+     const idle=await page.evaluate(()=>new Promise(resolve=>{
+      let mutations=0,frames=0;const canvas=document.querySelector('.wrap');
+      const observer=new MutationObserver(records=>mutations+=records.length);
+      observer.observe(canvas,{attributes:true,attributeFilter:['style']});
+      function sample(){if(++frames<90)requestAnimationFrame(sample);else{observer.disconnect();resolve(mutations);}}
+      requestAnimationFrame(sample);
+     }));
+     assert.equal(idle,0,'LingoAce idle selection must not repeatedly remeasure or rewrite the workspace scale');
+     const rating='#ratingTrack [data-lvl="Medium"]';
+     for(const hover of [true,false]){
+      if(hover)await page.hover(rating);else await page.mouse.move(1,1);
+      const motion=await page.$eval(rating,b=>{const s=getComputedStyle(b);return {transform:s.transform,animation:s.animationName,transition:s.transitionProperty};});
+      assert.equal(motion.transform,'none','LingoAce highlight never scales or translates');
+      assert.equal(motion.animation,'none','LingoAce highlight never animates');
+      assert(!/transform|box-shadow|filter|all/.test(motion.transition),'LingoAce outline and glow stay static');
+      const frames=await page.$eval(rating,b=>new Promise(resolve=>{
+       const samples=[];let count=0;function sample(){const r=b.getBoundingClientRect(),s=getComputedStyle(b);samples.push(JSON.stringify([r.x,r.y,r.width,r.height,s.boxShadow,s.outlineWidth,s.outlineOffset]));if(++count<60)requestAnimationFrame(sample);else resolve(new Set(samples).size);}requestAnimationFrame(sample);
+      }));
+      assert.equal(frames,1,'LingoAce selected button and white glow remain identical across animation frames');
+     }
+    }
     const hasSix=await page.evaluate(()=>{const b=document.querySelector('#ratingTrack [data-lvl="6"]');if(b)b.click();return !!b;});
     if(hasSix){
      await new Promise(r=>setTimeout(r,180));await settle();
