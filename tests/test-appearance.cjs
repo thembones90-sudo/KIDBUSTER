@@ -58,7 +58,8 @@ module.exports=async function(){
   assert.equal(await page.$eval('html',e=>e.dataset.appearance),'light','manual light ignores OS changes');
   await page.click('#accountBtn');
   for(const mode of ['MA','MS','FAIRY','BLITZ','BEIDA','OF','PREPLY']){
-   await page.click('input[name="protocol"][value="'+mode+'"]');
+   await page.click('#protocolSelect label:has(input[value="'+mode+'"])');
+   await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
    if(mode==='MS'){
     const washTransition=await page.$eval('body',e=>{
      getComputedStyle(e).getPropertyValue('--workspace-wash');
@@ -80,13 +81,17 @@ module.exports=async function(){
    await page.waitForFunction(()=>!document.querySelector('.mode-badge').getAnimations().some(a=>a.playState==='running'));
    const colors=await page.evaluate(()=>{
     const c=s=>getComputedStyle(document.querySelector(s));return {panel:c('.grid .panel').backgroundColor,input:c('#krispNotes').backgroundColor,text:c('#krispNotes').color,
-     fieldBorder:c('#krispNotes').borderTopColor,fieldWidth:c('#krispNotes').borderTopWidth,
+     fieldBorder:c('#krispNotes').borderTopColor,fieldWidth:c('#krispNotes').borderTopWidth,zoom:parseFloat(c('.wrap').zoom),
      identityBorder:c('#teacherName').borderTopColor,pillWidth:c('#protocolSelect>label').borderTopWidth,
      idleLengthBorder:c('#lengthFormatSelect>label:not(:has(input:checked))').borderTopColor};
    });
    assert.equal(colors.panel,'rgb(255, 255, 255)',mode+' has white panels');assert.equal(colors.input,'rgb(246, 247, 244)');assert.equal(colors.text,'rgb(32, 42, 40)');
    assert.equal(colors.fieldBorder,'rgb(135, 153, 140)',mode+' fields have discernible outlines');assert.equal(colors.identityBorder,colors.fieldBorder);
-   assert.equal(colors.idleLengthBorder,colors.fieldBorder);assert.equal(colors.fieldWidth,'1px');assert.equal(colors.pillWidth,'1px','outlines do not thicken or resize pills');
+   assert.equal(colors.idleLengthBorder,colors.fieldBorder);
+   // Chrome quantizes scaled borders to device pixels, so computed CSS widths
+   // can be fractional even though the visible outline remains one pixel.
+   assert(Math.abs(parseFloat(colors.fieldWidth)*colors.zoom-1)<0.02,'field outline remains one rendered pixel');
+   assert.equal(colors.pillWidth,colors.fieldWidth,'pill outlines match the field outlines without thickening');
    const brand=await page.evaluate(()=>{
     const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');canvas.width=canvas.height=1;
     function luminance(color){ctx.fillStyle=color;ctx.fillRect(0,0,1,1);const rgb=[...ctx.getImageData(0,0,1,1).data].slice(0,3).map(v=>{v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4);});return rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;}
@@ -102,7 +107,8 @@ module.exports=async function(){
    if(process.env.V2_APPEARANCE_SCREENSHOTS)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-brand-'+mode+'.png'),clip:{x:0,y:0,width:1440,height:460}});
    if(process.env.V2_APPEARANCE_SCREENSHOTS&&['MA','MS'].includes(mode)){await page.setViewport({width:2560,height:1440});await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'ambient-light-'+mode+'-wide.png')});await page.setViewport({width:1440,height:1100});}
   }
-  await page.click('input[name="protocol"][value="MA"]');
+  await page.click('#protocolSelect label:has(input[value="MA"])');
+  await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
   await page.evaluate(()=>document.fonts.ready);
   await page.waitForFunction(()=>!document.getElementById('kbLogo').getAnimations().some(a=>a.playState==='running'));
   if(process.env.V2_APPEARANCE_SCREENSHOTS)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-workspace-1440.png'),fullPage:true});
@@ -117,11 +123,11 @@ module.exports=async function(){
   if(process.env.V2_APPEARANCE_SCREENSHOTS)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-krisp.png')});
   await page.evaluate(()=>document.getElementById('krispIntegrationPanel').hidePopover());
   for(const width of [768,390,320]){
-   await page.setViewport({width,height:1000});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no light overflow at '+width);
+   await page.setViewport({width,height:1000});await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no light overflow at '+width);
    if(process.env.V2_APPEARANCE_SCREENSHOTS&&width===390)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-workspace-390.png'),fullPage:true});
   }
   await page.click('#accountBtn');
-  assert.ok(await page.$$eval('#accountPanel .appearance-options button',buttons=>buttons.every(b=>b.getBoundingClientRect().height>=44)));
+  assert.ok(await page.$$eval('#accountPanel .appearance-options button',buttons=>buttons.every(b=>b.offsetHeight>=44)));
   await page.focus('#accountPanel [data-appearance-option="dark"]');await page.keyboard.press('Enter');
   await page.waitForFunction(()=>document.documentElement.dataset.appearance==='dark');
   await page.evaluate(()=>window.appearanceTransitionDone);

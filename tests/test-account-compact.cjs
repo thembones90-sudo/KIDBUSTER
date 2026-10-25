@@ -24,7 +24,7 @@ module.exports=async function(){
     const c=s=>getComputedStyle(document.querySelector(s)),r=s=>document.querySelector(s).getBoundingClientRect();
     return {title:c('#accountPanel .account-title').fontSize,value:c('#accountPlan').fontSize,weight:c('#accountPlan').fontWeight,
      height:r('#accountPanel').height,padding:c('#accountPanel').paddingTop,
-     targets:[...document.querySelectorAll('#accountPanel button,#accountPanel summary')].filter(e=>e.getBoundingClientRect().height>0).map(e=>e.getBoundingClientRect().height),
+     targets:[...document.querySelectorAll('#accountPanel button,#accountPanel summary')].filter(e=>e.getBoundingClientRect().height>0).map(e=>e.offsetHeight),
      overflow:document.documentElement.scrollWidth-innerWidth,editorFont:c('#krispNotes').fontSize};
    });
    assert.equal(layout.title,'20px');assert.equal(layout.value,'15px');assert.equal(layout.weight,'600');

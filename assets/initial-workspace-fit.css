@@ -1,0 +1,4 @@
+/* Only the empty workspace fits the screen. All other views use original CSS. */
+html.initial-workspace-fit { scrollbar-gutter: stable; }
+body.initial-workspace-fit { padding: 12px; min-height: 100dvh; }
+body.initial-workspace-fit .wrap { width: 1240px; max-width: none; }

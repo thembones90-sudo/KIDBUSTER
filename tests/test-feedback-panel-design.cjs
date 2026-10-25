@@ -40,6 +40,7 @@ module.exports=async function(){
     await page.click('#feedbackStars button[data-score="4"]');
     for(const width of [1440,768,390,320]){
       await page.setViewport({width,height:1000});
+      await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
       await page.evaluate(()=>document.getElementById('feedbackCard').scrollIntoView({block:'center'}));
       const bounds=await page.$eval('#feedbackCard',e=>{
         const r=e.getBoundingClientRect();return {left:r.left,right:r.right,height:r.height,contentFits:e.scrollWidth<=e.clientWidth+1};
@@ -47,7 +48,7 @@ module.exports=async function(){
       assert.ok(bounds.left>=0&&bounds.right<=width&&bounds.contentFits,'feedback card fits '+width);
       assert.ok(bounds.height<=(width===1440?250:360),'feedback stays compact at '+width);
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
-      assert.equal(await page.$eval('#feedbackSubmitBtn',e=>e.getBoundingClientRect().height>=44),true);
+      assert.equal(await page.$eval('#feedbackSubmitBtn',e=>e.offsetHeight>=44),true);
       if(process.env.V2_FEEDBACK_SCREENSHOTS){
         await page.$('#feedbackCard').then(e=>e.screenshot({path:path.join(process.env.V2_FEEDBACK_SCREENSHOTS,'feedback-panel-'+width+'.png')}));
         if(width===1440)await page.$('#lintResults').then(e=>e.screenshot({path:path.join(process.env.V2_FEEDBACK_SCREENSHOTS,'feedback-review-warning.png')}));

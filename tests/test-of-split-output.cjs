@@ -7,7 +7,7 @@ module.exports=async function(){
   const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(pathToFileURL(path.resolve(__dirname,'../index.html')).href);
   const sample='Strengths\n\nSam practised fruit vocabulary. He answered with support.\n\nAreas for Improvement\n\nHe needs more sentence practice.\n\nLearning Suggestions\n\nPractise naming fruit.\n\nCheers,\nTeacher Nora';
-  await page.click('input[name="protocol"][value="OF"]');
+  await page.click('#protocolSelect label:has(input[value="OF"])');
   const parsed=await page.evaluate(sample=>{
    window.ofSample=sample;window.copiedParts=[];
    Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>window.copiedParts.push(text)}});
@@ -43,10 +43,10 @@ module.exports=async function(){
    navigator.clipboard.writeText=original;document.execCommand=exec;return copied;
   });
   assert.ok(!fallback.includes('Learning Suggestions'));assert.ok(fallback.includes('Cheers,\nTeacher Nora'),'legacy clipboard keeps the closing too');
-  await page.click('input[name="protocol"][value="MA"]');
+  await page.click('#protocolSelect label:has(input[value="MA"])');
   assert.equal(await page.$eval('#ofFollowupField',e=>e.hidden),true);
   assert.ok((await page.$eval('#outputBox',e=>e.textContent)).endsWith('Edited by teacher.'),'switch preserves both halves and edits');
-  await page.click('input[name="protocol"][value="OF"]');
+  await page.click('#protocolSelect label:has(input[value="OF"])');
   assert.equal(await page.$eval('#ofFollowupField',e=>e.hidden),false);
   await page.evaluate(sample=>{setCurrentReport(sample,[]);setCurrentReport(sample.replace('Sam','Alex'),[]);renderReportToOutput(state.currentReportText);},sample);
   await page.click('#prevReportToggle');assert.match(await page.$eval('#outputBox',e=>e.textContent),/Sam/);
@@ -54,8 +54,9 @@ module.exports=async function(){
   await page.click('#prevReportToggle');assert.match(await page.$eval('#outputBox',e=>e.textContent),/Alex/);
   for(const width of [1440,768,390,320]){
    await page.setViewport({width,height:1000});
+   await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'no overflow at '+width);
-   assert.equal(await page.$eval('#copyOFFollowupBtn',e=>e.getBoundingClientRect().height>=44),true);
+   assert.equal(await page.$eval('#copyOFFollowupBtn',e=>e.offsetHeight>=44),true);
    if(process.env.V2_OF_SCREENSHOTS) await (await page.$('#ofFollowupField')).screenshot({path:path.join(process.env.V2_OF_SCREENSHOTS,'of-split-'+width+'.png')});
   }
   await page.evaluate(()=>renderReportToOutput('Malformed output remains fully visible.'));

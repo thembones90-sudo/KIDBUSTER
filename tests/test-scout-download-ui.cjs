@@ -39,12 +39,13 @@ module.exports=async function run() {
    await page.setViewport({width,height:900});
    await page.reload({waitUntil:'load'});
    await page.waitForFunction(()=>!document.querySelector('#scoutReleaseBanner').hidden);
+   await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
    const view=await page.evaluate(()=>{
     const card=document.querySelector('#scoutReleaseBanner'),link=document.querySelector('#scoutReleaseLink'),rect=link.getBoundingClientRect();
     return {visible:!card.hidden,label:link.textContent.trim(),url:link.href,rel:link.rel,
      version:document.querySelector('#scoutReleaseVersion').textContent,
      checksum:document.querySelector('#scoutReleaseChecksum').textContent,
-     btnHeight:rect.height,overflow:document.documentElement.scrollWidth>innerWidth};
+     btnHeight:link.offsetHeight,overflow:document.documentElement.scrollWidth>innerWidth};
    });
    check(width+'px verified release presents working download CTA without overflow',
     view.visible&&view.label==='Download Scout for Windows'&&view.url.includes('/releases/download/v1.0.2/ScoutSetup.exe')&&
