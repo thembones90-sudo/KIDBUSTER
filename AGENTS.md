@@ -12,6 +12,8 @@ Do not change this contract, bypass its tests, or refresh the release fingerprin
 without a new explicit owner request authorizing the behavior change.
 
 - Preserve the original centered two-column layout and existing controls/handlers.
+- Every protocol uses the same Classic sizing reference and identical outer panel
+  geometry; protocol switches and rating captions must never change that envelope.
 - Fit the initial workspace proportionally to the browser viewport.
 - Keep exactly the same fitted size before, during and after Generate, including
   repeated generation. Rating 6 descriptions must never shrink the workspace.

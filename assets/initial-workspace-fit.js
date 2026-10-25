@@ -18,6 +18,23 @@
     canvas.style.removeProperty('zoom');
   }
   function measure(){
+    // Measure the Classic control slots for every protocol, then restore styles
+    // synchronously before paint. No selection, handler or DOM parent changes.
+    var restored=[];
+    function temporary(id,property,value){
+      var element=document.getElementById(id);if(!element)return;
+      restored.push([element,property,element.style.getPropertyValue(property)]);
+      element.style.setProperty(property,value);
+    }
+    var sidebar=canvas.querySelector('.grid>div:first-child>.panel');
+    restored.push([sidebar,'height',sidebar.style.height]);sidebar.style.height='auto';
+    temporary('lengthFormatField','display','block');
+    temporary('lengthFormatField','height','139px');
+    temporary('lengthFormatField','overflow','hidden');
+    ['blitzVoiceField','preplyModuleField','studentGenderField','protocolFormatField','preplyTrialPersonField'].forEach(function(id){temporary(id,'display','none');});
+    temporary('ratingField','display','block');
+    temporary('ratingTrack','height','86px');
+    temporary('ratingTrack','min-height','86px');
     var caption=document.getElementById('ratingCaption');
     var previous=caption.style.minHeight;
     if(caption.offsetWidth){
@@ -40,8 +57,9 @@
       probe.remove();
       caption.style.minHeight=height+'px';
     }
-    var size={width:canvas.offsetWidth,height:canvas.offsetHeight};
+    var size={width:canvas.offsetWidth,height:canvas.offsetHeight,sidebar:sidebar.offsetHeight};
     caption.style.minHeight=previous;
+    restored.forEach(function(item){if(item[2])item[0].style.setProperty(item[1],item[2]);else item[0].style.removeProperty(item[1]);});
     return size;
   }
   function refresh(){
@@ -56,6 +74,7 @@
       workspaceSize=measure();
     }
     var size=workspaceSize;
+    canvas.style.setProperty('--workspace-sidebar-height',size.sidebar+'px');
     // Allow for body padding and device-pixel rounding of scaled borders.
     var scale=Math.min(1,(document.documentElement.clientWidth-48)/size.width,(window.innerHeight-48)/size.height);
     canvas.style.zoom=String(Math.max(0.01,Math.floor(scale*10000)/10000));

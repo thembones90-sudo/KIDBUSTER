@@ -23,11 +23,11 @@ const { pathToFileURL } = require('node:url');
 const WORKSPACE_FIT_LOCK = [
   [
     "assets/initial-workspace-fit.js",
-    "32bf4e93d0a9717ea5eec04ce21ab3dadff7643eb8bed16a671e3568e5da2913"
+    "0c2f190bd57df53bac3e985cf9f6f6c298e9381d374b8be7c9edec657b68ec12"
   ],
   [
     "assets/initial-workspace-fit.css",
-    "59d315fe4dd40370be1b57ed0846bf3d97d4908bda38940734795406862d50b2"
+    "fbf43f687a4f72c5befdd177104560d23fc3cfba23a5959bc0d96ba8fb02e637"
   ]
 ];
 const MAX_FUNCTIONS = 12;

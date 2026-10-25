@@ -26,11 +26,18 @@ module.exports=async function(){
   const settle=()=>page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>requestAnimationFrame(r)))));
   for(const [width,height] of [[1909,943],[1536,864],[1440,720],[1366,650],[1280,600],[1024,768],[390,844]]){
    await page.setViewport({width,height,isMobile:width===390});
+   let classicGeometry;
    for(const protocol of ['MA','MS','FAIRY','BLITZ','BEIDA','OF','PREPLY']){
     await page.evaluate(p=>document.querySelector('input[name="protocol"][value="'+p+'"]').click(),protocol);await settle();
     const before=await page.evaluate(()=>({zoom:document.querySelector('.wrap').style.zoom,width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight}));
     assert(before.width<=width&&before.height<=height,protocol+' initial workspace fits '+width+'x'+height+' '+JSON.stringify(before));
     assert(+before.zoom>0&&+before.zoom<=1);
+    const geometry=await page.evaluate(()=>{
+     const box=s=>{const r=document.querySelector(s).getBoundingClientRect();return {width:r.width,height:r.height};};
+     return {zoom:document.querySelector('.wrap').style.zoom,canvas:box('.wrap').width,sidebar:box('.grid>div:first-child>.panel'),notes:box('.grid>div:nth-child(2)>.panel:first-child'),output:box('.grid>div:nth-child(2)>.panel:last-child')};
+    });
+    if(protocol==='MA')classicGeometry=geometry;
+    else assert.deepEqual(geometry,classicGeometry,'every protocol matches Classic geometry '+protocol+' at '+width+'x'+height);
     const hasSix=await page.evaluate(()=>{const b=document.querySelector('#ratingTrack [data-lvl="6"]');if(b)b.click();return !!b;});
     if(hasSix){
      await new Promise(r=>setTimeout(r,180));await settle();
