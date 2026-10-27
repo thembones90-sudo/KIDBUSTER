@@ -48,11 +48,11 @@ module.exports=async function run(){
     // The version stays private: the page says only "Download Scout".
     check('download button and status show no version',html.includes('>Download Scout</button>') && !/Download Scout \d|10Z[A-Z]/.test(html) && !/download is starting[^']*10Z/.test(ui));
     check('private Scout release points to the verified Windows installer',
-      ui.includes('/releases/scout-1.2.0-owner-20261024/ScoutSetup.exe') &&
-      downloadHandler.includes('releases/scout-1.2.0-owner-20261024/ScoutSetup.exe') &&
+      ui.includes('/releases/scout-1.4.1-owner-20261027/ScoutSetup.exe') &&
+      downloadHandler.includes('releases/scout-1.4.1-owner-20261027/ScoutSetup.exe') &&
       downloadHandler.includes("filename: 'ScoutSetup.exe'"));
     check('private Scout installer checksum is pinned to the verified artifact',
-      downloadHandler.includes('c258e9b9aea4b2bb58591029b0c267cdc189adb7e32672bc06350634ee5736f9'));
+      downloadHandler.includes('aa0ce0099bb324014d610f8d510c7455d0d31872d6459be7ab8111f0de75d910'));
     check('download guidance uses installer branding, not ZIP extraction or RadarVan',
       ui.includes('Run ScoutSetup.exe to install Classbuster Scout') &&
       !ui.includes('Extract the ZIP') && !ui.includes('RadarVan.exe'));

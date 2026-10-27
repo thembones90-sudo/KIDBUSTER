@@ -1,5 +1,5 @@
 /* Fit from the empty workspace; retain that scale through generation/reports.
-   Account retains that scale; popovers use their original layout. */
+   Account, menus and dialogs retain that scale. Short windows scroll normally. */
 html.initial-workspace-fit { scrollbar-gutter: stable; }
 body.initial-workspace-fit { padding: 12px; min-height: 100dvh; }
 body.initial-workspace-fit .wrap { width: 1240px; max-width: none; }
@@ -11,3 +11,13 @@ body.initial-workspace-fit .grid>div:first-child>.panel { height:var(--workspace
 
 /* Stacked screens reserve one output envelope, including Beida's two fields. */
 @media(max-width:860px){ body.initial-workspace-fit .grid>div:nth-child(2)>.panel:last-child { min-height:650px; box-sizing:border-box; } }
+@media(max-width:860px){ body.initial-workspace-fit .wrap { width:100%; max-width:1240px; } }
+
+/* In-page Voice menu avoids native select popup placement at fractional zoom. */
+.scout-voice-control{position:relative;width:100%}
+.scout-voice-trigger{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;font:inherit;color:var(--text);background:var(--input-bg,#1d1f20);border:1px solid var(--border,#434947);border-radius:9px;padding:10px 12px;min-height:40px}
+.scout-voice-trigger::after{content:'⌄';margin-left:12px}
+.scout-voice-options{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:100;background:#242729;border:1px solid var(--toxin-border,#65724f);border-radius:9px;padding:4px;box-shadow:0 8px 24px #0008}
+.scout-voice-options[hidden]{display:none}
+.scout-voice-options button{display:block;width:100%;border:0;background:transparent;color:#e6e9e7;text-align:left;padding:10px 12px;border-radius:6px;font:inherit}
+.scout-voice-options button:hover,.scout-voice-options button:focus-visible,.scout-voice-options button[aria-selected=true]{background:rgba(var(--toxin-rgb),.16);outline:none}

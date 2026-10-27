@@ -4,19 +4,13 @@
   var output=document.getElementById('outputBox');
   var account=document.getElementById('accountPanel');
   if(!canvas||!output||!account)return;
+  // Top-layer dialogs belong outside the zoomed workspace, like the existing
+  // Krisp integration panel. Move the same nodes once: handlers/IDs stay intact.
+  canvas.querySelectorAll('[popover]').forEach(function(panel){document.body.appendChild(panel);});
   var marker='initial-workspace-fit';
   var scheduled=false;
   var workspaceSize=null;
   function visible(element){return !element.hidden&&getComputedStyle(element).display!=='none';}
-  function workspace(){
-    return !Array.from(document.querySelectorAll('.license-modal-overlay')).some(visible)&&
-      !document.querySelector('[popover]:popover-open');
-  }
-  function release(){
-    document.documentElement.classList.remove(marker);
-    document.body.classList.remove(marker);
-    canvas.style.removeProperty('zoom');
-  }
   function measure(){
     // Measure the Classic control slots for every protocol, then restore styles
     // synchronously before paint. No selection, handler or DOM parent changes.
@@ -64,7 +58,6 @@
   }
   function refresh(){
     scheduled=false;
-    if(!workspace()){release();return;}
     document.documentElement.classList.add(marker);
     document.body.classList.add(marker);
     // Keep the empty workspace's reference dimensions during generation and
@@ -76,16 +69,16 @@
     var size=workspaceSize;
     canvas.style.setProperty('--workspace-sidebar-height',size.sidebar+'px');
     // Allow for body padding and device-pixel rounding of scaled borders.
-    var scale=Math.min(1,(document.documentElement.clientWidth-48)/size.width,(window.innerHeight-48)/size.height);
-    canvas.style.zoom=String(Math.max(0.01,Math.floor(scale*10000)/10000));
+    // Never sacrifice readability to fit a tall form into a short window.
+    // Scroll the page instead. All protocols still share the Classic envelope.
+    var narrow=window.matchMedia('(max-width:860px)').matches;
+    var scale=narrow?1:Math.min(1,(document.documentElement.clientWidth-48)/size.width,Math.max(.8,(window.innerHeight-48)/size.height));
+    var fitted=String(Math.max(0.01,Math.floor(scale*10000)/10000));
+    canvas.style.setProperty('--workspace-scale',fitted);
+    canvas.style.zoom=fitted;
   }
   function schedule(){if(!scheduled){scheduled=true;requestAnimationFrame(refresh);}}
-  // Release before the existing handlers position/open their original views.
-  // No existing application handler or DOM parent is replaced.
-  document.addEventListener('click',function(event){
-    var button=event.target.closest('.header-actions button');
-    if(button&&button.id!=='accountBtn')release();
-  },true);
+  // Menus/dialogs must not unscale the workspace underneath them.
   new MutationObserver(refresh).observe(output,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
   var visibilityObserver=new MutationObserver(refresh);
   [account].concat(Array.from(document.querySelectorAll('.license-modal-overlay'))).forEach(function(panel){

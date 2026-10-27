@@ -192,7 +192,7 @@ module.exports = async function run(){
         sidebarWidth:document.querySelector('.grid>div:first-child').getBoundingClientRect().width,
         viewport:innerWidth
       }));
-      check('scaled original layout fits at '+fitWidth+'x'+fitHeight,fit.zoom>0&&fit.zoom<=1&&fit.pageWidth<=fitWidth+1&&fit.pageHeight<=fitHeight+1&&fit.ratingExists&&fit.sidebarWidth<=fit.viewport);
+      check('readable original layout has no horizontal clipping at '+fitWidth+'x'+fitHeight,fit.zoom>0&&fit.zoom<=1&&fit.pageWidth<=fitWidth+1&&fit.ratingExists&&fit.sidebarWidth<=fit.viewport);
     }
     await page.setViewport({width:1280,height:800,deviceScaleFactor:1});
     await page.reload({waitUntil:'domcontentloaded'});

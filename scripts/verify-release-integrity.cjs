@@ -18,16 +18,16 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
-// Owner-approved 2026-10-25. Do not refresh these fingerprints without a new
+// Owner-approved correction 2026-10-27. Do not refresh these fingerprints without a new
 // explicit owner request to change the locked sizing behavior (see AGENTS.md).
 const WORKSPACE_FIT_LOCK = [
   [
     "assets/initial-workspace-fit.js",
-    "0c2f190bd57df53bac3e985cf9f6f6c298e9381d374b8be7c9edec657b68ec12"
+    "ca0e8fb98f11aabaa9d309edb36c3230516c14eb5aa392acdacd9f16d15f9050"
   ],
   [
     "assets/initial-workspace-fit.css",
-    "7a3594994d21f43092c26d978440978c722c978d2336f72f12c1852b48cf4487"
+    "f37fd127bf6dc125da1ba3b5fbf0f9a8e404b9a5088efc11a5d49cee5b35bffc"
   ]
 ];
 const MAX_FUNCTIONS = 12;
@@ -67,7 +67,7 @@ function checkRelease(root){
     const source = need(rel, 'owner-approved workspace sizing lock');
     const actual = require('node:crypto').createHash('sha256').update(source.replace(/\r\n/g, '\n')).digest('hex');
     if(actual !== expected) problems.push('workspace sizing lock changed: ' + rel + '; explicit owner approval is required before updating the baseline');
-    if(!(read('index.html') || '').includes(rel + '?v=20261025-3')) problems.push('workspace sizing lock reference missing: ' + rel);
+    if(!(read('index.html') || '').includes(rel + '?v=20261027-readable')) problems.push('workspace sizing lock reference missing: ' + rel);
   }
 
   // --- Customer sign-in, recovery and registration ---

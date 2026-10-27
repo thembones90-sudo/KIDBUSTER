@@ -6,6 +6,16 @@ newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
 ## Owner-approved behavior lock — 2026-10-25
 
+2026-10-27 owner correction: do not shrink the desktop workspace below 80%
+solely to fit its height; use normal page scrolling instead. Narrow screens use
+the existing stacked layout at readable native size. Keep the Classic reference
+and identical geometry across all protocols. Opening/closing header menus must
+never unscale/rescale the page. Blitz Voice must work at fractional workspace
+zoom, retaining the native saved value and protocol prompt behavior. This explicit
+correction supersedes the initial fit-entire-height/popover-unscale rules below.
+Top-layer popover nodes live under body (as the integration popover already did)
+to retain native-size tap targets without temporarily unscaling the workspace.
+
 The owner confirmed runtime 725eb0f works correctly and explicitly requested that
 these settings be locked. This section overrides conflicting historical notes below.
 Do not change this contract, bypass its tests, or refresh the release fingerprints

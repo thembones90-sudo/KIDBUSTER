@@ -30,7 +30,8 @@ module.exports=async function(){
    for(const protocol of ['MA','MS','FAIRY','BLITZ','BEIDA','OF','PREPLY']){
     await page.evaluate(p=>document.querySelector('input[name="protocol"][value="'+p+'"]').click(),protocol);await settle();
     const before=await page.evaluate(()=>({zoom:document.querySelector('.wrap').style.zoom,width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight}));
-    assert(before.width<=width&&before.height<=height,protocol+' initial workspace fits '+width+'x'+height+' '+JSON.stringify(before));
+    assert(before.width<=width,protocol+' workspace never overflows horizontally '+width+'x'+height+' '+JSON.stringify(before));
+    assert(+before.zoom>=(width<=860?1:Math.min(.8,(width-48)/1240))-.001,'workspace remains readable instead of fitting all form height');
     assert(+before.zoom>0&&+before.zoom<=1);
     const geometry=await page.evaluate(()=>{
      const box=s=>{const r=document.querySelector(s).getBoundingClientRect();return {width:r.width,height:r.height};};
@@ -66,7 +67,7 @@ module.exports=async function(){
     if(hasSix){
      await new Promise(r=>setTimeout(r,180));await settle();
      assert.equal(await page.evaluate(()=>document.querySelector('.wrap').style.zoom),before.zoom,'rating 6 never changes initial scale '+protocol);
-     assert(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight),'rating explanation remains on screen');
+     assert.equal(await page.evaluate(()=>document.querySelector('.wrap').style.zoom),before.zoom,'rating explanation never shrinks the page');
     }
    }
   }
@@ -78,11 +79,34 @@ module.exports=async function(){
   assert.equal(account.zoom,beforeAccount.zoom);assert.equal(account.width,beforeAccount.width);assert.equal(account.title,'20px');assert.equal(account.fitted,true);
   await page.click('#accountBtn');await settle();
   assert(await page.evaluate(()=>document.body.classList.contains('initial-workspace-fit')),'closing Account restores only initial fitting');
+  const beforePopover=await page.evaluate(()=>document.querySelector('.wrap').style.zoom);
   const popover=await page.evaluate(()=>{const p=document.getElementById('krispInboxPanel');window.testPopoverParent=p.parentElement;p.showPopover();return true;});
   await settle();
-  assert.equal(await page.evaluate(()=>getComputedStyle(document.querySelector('.wrap')).zoom),'1','native popovers use original unscaled workspace');
+  assert.equal(await page.evaluate(()=>document.querySelector('.wrap').style.zoom),beforePopover,'opening a popover never enlarges the workspace');
   assert(await page.evaluate(()=>document.getElementById('krispInboxPanel').parentElement===window.testPopoverParent),'popover DOM parent is preserved');
   await page.evaluate(()=>document.getElementById('krispInboxPanel').hidePopover());await settle();
+  assert.equal(await page.evaluate(()=>document.querySelector('.wrap').style.zoom),beforePopover,'closing a popover never shrinks the workspace');
+  for(const [button,close] of [['helpBtn','helpModalCloseBtn'],['krispPendingBtn','krispInboxClose'],['krispIntegrationBtn','krispPanelClose']]){
+   const during=await page.evaluate(id=>{
+    const b=document.getElementById(id);b.hidden=false;b.click();
+    return document.querySelector('.wrap').style.zoom;
+   },button);
+   assert.equal(during,beforePopover,button+' never unscales the page even synchronously during its click handler');
+   await settle();
+   assert.equal(await page.evaluate(()=>document.querySelector('.wrap').style.zoom),beforePopover,button+' stays at the same size while open');
+   await page.evaluate(id=>document.getElementById(id).click(),close);await settle();
+   assert.equal(await page.evaluate(()=>document.querySelector('.wrap').style.zoom),beforePopover,button+' stays at the same size after closing');
+  }
+  await page.evaluate(()=>document.querySelector('input[name="protocol"][value="BLITZ"]').click());await settle();
+  const blitzScale=await page.evaluate(()=>document.querySelector('.wrap').style.zoom);
+  await page.click('#blitzVoiceTrigger');await settle();
+  assert.equal(await page.$eval('#blitzVoiceOptions',e=>e.hidden),false,'Blitz Voice menu opens');
+  await page.click('#blitzVoiceOptions [data-value="polished"]');await settle();
+  assert.equal(await page.$eval('#blitzVoiceSelect',e=>e.value),'polished','menu updates the real saved/prompt Voice value');
+  assert.equal(await page.$eval('#blitzVoiceTrigger',e=>e.textContent),'Polished');
+  assert.equal(await page.evaluate(()=>document.querySelector('.wrap').style.zoom),blitzScale,'Voice selection keeps the shared workspace scale');
+  await page.focus('#blitzVoiceTrigger');await page.keyboard.press('ArrowDown');await page.keyboard.press('Home');await page.keyboard.press('Enter');
+  assert.equal(await page.$eval('#blitzVoiceSelect',e=>e.value),'warm','Voice menu works with keyboard');
   await page.evaluate(()=>{
    document.querySelector('input[name="protocol"][value="MA"]').click();
    document.querySelector('#ratingTrack [data-lvl="6"]').click();
@@ -130,7 +154,7 @@ module.exports=async function(){
   await page.click('#newStudentBtn');
   await page.waitForFunction(()=>document.getElementById('outputBox').classList.contains('empty')&&document.body.classList.contains('initial-workspace-fit'));
   await settle();
-  assert(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight),'New Student returns to fitted initial workspace');
+  assert.equal(await page.evaluate(()=>document.querySelector('.wrap').style.zoom),beforeGenerate.zoom,'New Student retains the readable shared workspace size');
   assert.equal(errors.length,0,errors.join('\n'));
   console.log('PASS fixed workspace scale: 7 protocols/7 screens, stable rating 6; identical dimensions before/during/after repeated generation, normal page scrolling, original Account/popovers and New Student');return 0;
  }finally{await Promise.all((await browser.pages()).map(p=>p.close()));await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
