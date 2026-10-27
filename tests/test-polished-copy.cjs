@@ -49,6 +49,7 @@ module.exports=async function(){
     await page.evaluate(()=>{document.querySelector('#protocolSelect input[value="MA"]').click();document.querySelector('input[name="lengthFormat"][value="medium"]').click();});
     for(const width of [1440,768,390,320]){
       await page.setViewport({width,height:1000});
+      await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no overflow at '+width);
       await page.focus('#lengthDetails summary');await page.keyboard.press('Enter');
       const bounds=await page.$eval('#lengthFormatDetails',e=>{const b=e.getBoundingClientRect();return {left:b.left,right:b.right};});

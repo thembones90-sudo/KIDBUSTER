@@ -141,7 +141,23 @@
   function stopPolling(){ clearTimeout(state.timer); state.timer = null; }
 
   // Display-only helpers. All values are untrusted and only ever set via textContent.
-  function lessonHeading(item){ return item.studentLabel || item.title || 'Scout lesson'; }
+  function genericTitle(title){ return !title || /^(?:(?:classbuster\s+)?scout|radar\s+van)(?:\s+lesson)?(?:\s+\d{4}-\d{2}-\d{2})?$/i.test(title.trim()); }
+  function lessonHeading(item){
+    if(item.studentLabel) return item.studentLabel;
+    if(!genericTitle(item.title)) return item.title;
+    var start = new Date(item.startedAt || item.receivedAt);
+    return isNaN(start.getTime()) ? 'Lesson' : 'Lesson · ' + start.toLocaleDateString(undefined,{month:'short',day:'numeric'}) + ', ' + start.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+  }
+  function lessonDay(item){
+    var start = new Date(item.startedAt || item.receivedAt);
+    if(isNaN(start.getTime())) return '';
+    var today = new Date(), yesterday = new Date(); yesterday.setDate(today.getDate()-1);
+    var day = start.toDateString() === today.toDateString() ? 'Today' : start.toDateString() === yesterday.toDateString() ? 'Yesterday' : start.toLocaleDateString(undefined,{month:'short',day:'numeric',...(start.getFullYear()!==today.getFullYear()?{year:'numeric'}:{})});
+    var time = start.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+    var end = item.endedAt ? new Date(item.endedAt) : null;
+    if(end && !isNaN(end.getTime()) && end >= start && end.toDateString() === start.toDateString()) time += '–' + end.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+    return day + ', ' + time;
+  }
   function lessonWhen(item){
     var start = new Date(item.startedAt || item.receivedAt);
     if(isNaN(start.getTime())) return '';
@@ -165,10 +181,13 @@
     var li = document.createElement('li'); li.className = 'radar-van-item'; li.dataset.meetingId = item.meetingId;
     var heading = lessonHeading(item);
     var title = document.createElement('div'); title.className = 'radar-van-item-title'; title.textContent = heading;
+    var body = document.createElement('div'); body.className = 'radar-van-item-body';
+    var header = document.createElement('div'); header.className = 'radar-van-item-header';
     var meta = document.createElement('div'); meta.className = 'radar-van-item-meta';
     var mins = item.durationSeconds ? Math.max(1, Math.round(item.durationSeconds / 60)) + ' min recorded' : '';
-    var extraTitle = item.studentLabel && item.title && item.title !== item.studentLabel && item.title !== 'Scout lesson' ? item.title : '';
-    meta.textContent = [extraTitle, lessonWhen(item), mins, lessonParts(item), 'Scout'].filter(Boolean).join(' · ');
+    var extraTitle = item.studentLabel && item.title !== item.studentLabel && !genericTitle(item.title) ? item.title : '';
+    meta.textContent = [extraTitle, mins, lessonParts(item), 'Scout'].filter(Boolean).join(' · ');
+    var when = document.createElement('div'); when.className = 'radar-van-item-time'; when.textContent = lessonDay(item); when.title = lessonWhen(item);
     var preview = document.createElement('div'); preview.className = 'radar-van-item-preview'; preview.textContent = item.contentPreview || '';
     // Review without claiming: expand the server-provided EXCERPT only.
     // The full transcript is retrieved through the existing protected Claim
@@ -210,15 +229,17 @@
     });
     var row = document.createElement('div'); row.className = 'radar-van-row';
     var claim = document.createElement('button'); claim.type = 'button'; claim.className = 'btn-secondary radar-van-claim';
-    claim.textContent = 'Claim into notes'; claim.setAttribute('aria-label', 'Claim ' + heading + (lessonWhen(item) ? ' from ' + lessonWhen(item) : '') + ' into your notes');
+    claim.textContent = 'Import into notes'; claim.setAttribute('aria-label', 'Import ' + heading + (lessonWhen(item) ? ' from ' + lessonWhen(item) : '') + ' into your notes');
     claim.addEventListener('click', function(){ claimItem(item, claim); });
     var dismiss = document.createElement('button'); dismiss.type = 'button'; dismiss.className = 'btn-secondary radar-van-dismiss';
     dismiss.textContent = 'Dismiss'; dismiss.setAttribute('aria-label', 'Dismiss ' + heading + (lessonWhen(item) ? ' from ' + lessonWhen(item) : '') + ' from your inbox');
     dismiss.addEventListener('click', function(){ dismissItem(item, dismiss); });
     row.append(claim, dismiss);
-    li.append(title, meta, menuButton, menu);
-    if(item.contentPreview) li.append(preview);
-    li.append(expandedPreview, row);
+    header.append(title, menuButton);
+    body.append(header, meta, when, menu);
+    if(item.contentPreview) body.append(preview);
+    body.append(expandedPreview);
+    li.append(body, row);
     return li;
   }
 
@@ -248,6 +269,18 @@
     }
     var accountBtn = document.getElementById('accountBtn');
     if(accountBtn) accountBtn.setAttribute('data-radar-pending', String(state.matchedCount));
+    // Existing paired owners predate teacher-name sync. On first authenticated
+    // connection, seed their explicitly saved browser name ONLY when the
+    // server has no verified name yet; never overwrite a different profile.
+    if(!state.connected){ state.initialNameSyncKey = null; }
+    else if(!data.teacherDisplayName && state.initialNameSyncKey !== savedKey()){
+      var teacherField=document.getElementById('teacherName');
+      var chosen=teacherField && teacherField.value.trim();
+      if(chosen && chosen.length<=80){
+        state.initialNameSyncKey=savedKey();
+        document.dispatchEvent(new Event('classbuster:teacher-name-changed'));
+      }
+    }
   }
 
   function applyTranscript(record){
@@ -404,6 +437,21 @@
     }
   }
 
+  var nameSyncTimer = null;
+  document.addEventListener('classbuster:teacher-name-changed', function(){
+    if(!state.connected || !savedKey()) return;
+    if(nameSyncTimer) clearTimeout(nameSyncTimer);
+    nameSyncTimer = setTimeout(async function(){
+      nameSyncTimer = null;
+      var field = document.getElementById('teacherName');
+      if(!field || !state.connected) return;
+      var name = field.value.trim();
+      if(name.length > 80) return;
+      try{ await api('POST', { action: 'set-teacher-name', teacherDisplayName: name }); }
+      catch(e){ /* preserve previous verified name on network failure */ }
+    }, 1200);
+  });
+
   // ---- one-click desktop pairing (?scout-pair=<sha256 of Scout's own token>) ----
   // Scout keeps its token; only the hash travels through this page. The owner
   // compares the short code with the one Scout shows, then approves.
@@ -435,7 +483,9 @@
       approve.addEventListener('click', async function(){
         approve.disabled = true; status.textContent = 'Connecting…';
         try{
-          var r = await api('POST', { action: 'pair-approve', tokenHash: hash });
+          var teacherField=document.getElementById('teacherName');
+          var teacherDisplayName=teacherField ? teacherField.value.trim() : '';
+          var r = await api('POST', { action: 'pair-approve', tokenHash: hash, teacherDisplayName: teacherDisplayName });
           if(r === null) return;
           if(!r.ok){ status.textContent = (r.data && r.data.error) || 'Scout could not be connected. Nothing was changed.'; approve.disabled = false; return; }
           clearPairParam(); render(r.data);
@@ -542,7 +592,7 @@
       );
       var url = new URL(data.downloadUrl);
       if (url.protocol !== 'https:' || !/^[a-z0-9]+\.private\.blob\.vercel-storage\.com$/i.test(url.hostname) ||
-          url.pathname !== '/releases/scout-1.1.0-live/ScoutSetup.exe' || url.username || url.password) {
+          url.pathname !== '/releases/scout-1.2.0-owner-20261024/ScoutSetup.exe' || url.username || url.password) {
         throw new Error('The private download URL is invalid.');
       }
       if (status) status.textContent = 'Your download is starting. Run ScoutSetup.exe to install Classbuster Scout. Close Scout before upgrading; your lesson data is preserved.';

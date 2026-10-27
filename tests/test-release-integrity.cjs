@@ -12,7 +12,7 @@ const path = require('node:path');
 const { createChecker } = require('./helpers/assert.cjs');
 
 const ROOT = path.resolve(__dirname, '..');
-const COPY = ['index.html', 'vercel.json', '.vercelignore', 'api', 'scripts', 'assets/radar-van-client.js', 'assets/scout-integration.css',
+const COPY = ['assets/initial-workspace-fit.js', 'assets/initial-workspace-fit.css', 'index.html', 'vercel.json', '.vercelignore', 'api', 'scripts', 'assets/radar-van-client.js', 'assets/scout-integration.css',
   'assets/owner-usage-stats.js', 'assets/owner-usage-stats.css', 'assets/scout-release.js', 'assets/scout-release.json'];
 
 module.exports = async function run(){
@@ -48,6 +48,10 @@ module.exports = async function run(){
   };
   try{
     check('a faithful copy passes', (await gate.verifyRelease(fresh(), ['https://classbuster.com'])).length === 0);
+
+    await fails('approved workspace sizing JavaScript changes', d => edit(d, 'assets/initial-workspace-fit.js', s => s + '\n/* accidental change */'), /workspace sizing lock changed/);
+    await fails('approved workspace sizing CSS changes', d => edit(d, 'assets/initial-workspace-fit.css', s => s + '\n.wrap { zoom: 1; }'), /workspace sizing lock changed/);
+    await fails('workspace sizing asset reference disappears', d => edit(d, 'index.html', s => s.replace('assets/initial-workspace-fit.js?v=20261025-3', 'assets/missing.js')), /workspace sizing lock reference missing/);
 
     console.log('\n  Customer sign-in, recovery, registration, authentication email');
     await fails('the registration route is missing', rm('api/license-signup.js'), /registration/);

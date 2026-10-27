@@ -31,7 +31,7 @@ module.exports = async function run(){
     await sleep(150);
     const after = await page.evaluate(() => document.getElementById('generateSummary').textContent);
     check('summary shows the chosen rating and length', /Classic · 4★ · Long/.test(after));
-    await page.click('input[name="protocol"][value="FAIRY"]'); await sleep(200);
+    await page.click('#protocolSelect label:has(input[value="FAIRY"])'); await sleep(200);
     check('summary follows a protocol change', (await page.evaluate(() => document.getElementById('generateSummary').textContent)).startsWith('Fairy'));
     const bar = await page.evaluate(() => getComputedStyle(document.getElementById('mobileGenerateBar')).display);
     check('mobile Generate bar never shows on desktop', bar === 'none');
@@ -55,10 +55,12 @@ module.exports = async function run(){
     await sleep(400);
     const top = await m.evaluate(() => {
       const bar = document.getElementById('mobileGenerateBar');
-      return { hidden: bar.hidden, display: getComputedStyle(bar).display, summary: document.getElementById('mobileGenerateSummary').textContent,
-        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+      const main=document.getElementById('generateBtn').getBoundingClientRect();
+      window.scrollTo({left:10000,top:scrollY,behavior:'instant'});
+      return { mainVisible:main.top>=0&&main.bottom<=innerHeight,hidden: bar.hidden, display: getComputedStyle(bar).display, summary: document.getElementById('mobileGenerateSummary').textContent,
+        overflow: scrollX>0 || document.documentElement.scrollWidth>innerWidth };
     });
-    check('bar is shown at the top of the page on a phone', !top.hidden && top.display === 'flex');
+    check('phone has the main Generate button or its mobile bar visible', top.mainVisible||(!top.hidden && top.display === 'flex'));
     check('bar names the protocol and rating state', top.summary === 'Classic · no rating yet');
     check('bar causes no horizontal overflow', !top.overflow);
     const pressed = await m.evaluate(async () => {

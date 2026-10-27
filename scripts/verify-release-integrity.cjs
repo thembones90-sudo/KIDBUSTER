@@ -18,6 +18,18 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
+// Owner-approved 2026-10-25. Do not refresh these fingerprints without a new
+// explicit owner request to change the locked sizing behavior (see AGENTS.md).
+const WORKSPACE_FIT_LOCK = [
+  [
+    "assets/initial-workspace-fit.js",
+    "0c2f190bd57df53bac3e985cf9f6f6c298e9381d374b8be7c9edec657b68ec12"
+  ],
+  [
+    "assets/initial-workspace-fit.css",
+    "7a3594994d21f43092c26d978440978c722c978d2336f72f12c1852b48cf4487"
+  ]
+];
 const MAX_FUNCTIONS = 12;
 
 // Rules of the mail relay deployed on Railway (tools/mail-relay/server.mjs at
@@ -49,6 +61,14 @@ function checkRelease(root){
   const read = rel => { try{ return fs.readFileSync(path.join(root, rel), 'utf8'); }catch{ return null; } };
   const need = (rel, why) => { const text = read(rel); if(text === null) problems.push('missing ' + rel + ' (' + why + ')'); return text || ''; };
   const must = (text, pattern, message) => { if(text && !pattern.test(text)) problems.push(message); };
+
+  // Preserve the approved display layer; unrelated application work stays editable.
+  for(const [rel, expected] of WORKSPACE_FIT_LOCK){
+    const source = need(rel, 'owner-approved workspace sizing lock');
+    const actual = require('node:crypto').createHash('sha256').update(source.replace(/\r\n/g, '\n')).digest('hex');
+    if(actual !== expected) problems.push('workspace sizing lock changed: ' + rel + '; explicit owner approval is required before updating the baseline');
+    if(!(read('index.html') || '').includes(rel + '?v=20261025-3')) problems.push('workspace sizing lock reference missing: ' + rel);
+  }
 
   // --- Customer sign-in, recovery and registration ---
   need('api/license-signup.js', 'new customer registration');

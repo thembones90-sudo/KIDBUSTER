@@ -53,17 +53,7 @@
   --font-body:'Inter','Segoe UI',Arial,sans-serif;
   --font-mono:'JetBrains Mono',monospace;
 }
-/* Ice-blue palette for OF protocol — overrides the same variable names the
-   acid-green (MA) theme uses, so every consumer (panels, badge, focus
-   states, background glow, status dot, generate button, section-title
-   words) re-themes itself automatically without needing protocol-specific
-   rules at each usage site.
-   Deliberately does NOT touch the Performance Rating buttons — those have
-   their own dedicated color functions (ratingColor / ofTierColor) and are
-   excluded from this reskin by design. Also does not touch the KIDBUSTER
-   brand-name gradient (permanent identity, not part of this theme) or the
-   generic lint-ok success-green indicator (a universal pass/fail
-   convention, not a branded color). */
+/* OF palette; rating colors, brand identity and success green stay independent. */
 body.protocol-of{
   --toxin-rgb:11,195,255;
   --toxin:#0BC3FF;
@@ -78,12 +68,7 @@ body.protocol-of{
   --toxin-border:rgba(11,195,255,0.28);
   --toxin-glow:rgba(11,195,255,0.18);
 }
-/* Sweet Protocol: same MA engine, soft pink theme so it's
-   immediately, visually distinct from standard MA at a glance. Kept
-   entirely light (no dark corner) rather than mirroring the acid/ice
-   dark-to-bright gradient shape — verified via real contrast math that
-   an all-light gradient reads better with the button's dark text than
-   forcing a dark corner just for visual parity with the other themes. */
+/* Sweet palette stays light for dark-text contrast. */
 body.protocol-ms{
   --toxin-rgb:255,11,237;
   --toxin:#FF0BED;
@@ -132,11 +117,7 @@ body.protocol-blitz{
   --toxin-border:rgba(255,253,11,0.28);
   --toxin-glow:rgba(255,253,11,0.18);
 }
-/* Beida: orange/white, per direct request rather than a single-hue
-   gradient like the other four — --toxin-bright is genuine white (not a
-   pale tint of the hue) so the "white" half of the combination actually
-   reads as white in the button gradient and glow, not just a lighter
-   orange. */
+/* Beida uses genuine white, not a pale orange tint. */
 body.protocol-beida{
   --toxin-rgb:246,141,13;
   --toxin:#F68D0D;
@@ -586,12 +567,7 @@ label.field-label{
   text-shadow:0 0 8px rgba(178,102,255,0.85);
   line-height:1;
 }
-/* OF's label is much longer than the other three ("OF Protocol (Trial
-   Evaluation)" vs one word each) — forcing it to occupy the full row
-   width pushes it onto its own line in the wrapping flex layout,
-   regardless of exactly how much room the other three (plus their info
-   icons) take up first. Targeted by :has() rather than nth-child so this
-   stays correct even if the options are ever reordered. */
+/* Let the long OF label wrap independently of option order. */
 .protocol-select label:has(input[value="OF"]){
   flex-basis:100%;
 }
@@ -717,10 +693,7 @@ textarea::placeholder, input::placeholder{color:var(--text-faint);}
   font-size:14px;
   font-weight:700;
 }
-/* OF's 5 tier labels ("Low/Medium", "Medium/High") are much longer than
-   MA/Sugarcoat's plain numbers, in the same button width — without this,
-   the longer two get clipped by .rating-btn's overflow:hidden instead of
-   actually fitting. */
+/* Fit OF's longer rating labels without clipping. */
 .rating-track-of .btn-label{
   font-size:11px;
   letter-spacing:-0.01em;
@@ -891,12 +864,7 @@ textarea::placeholder, input::placeholder{color:var(--text-faint);}
   100%{ opacity:1; transform:translateY(0); filter:blur(0); }
 }
 
-/* OF ice-blue variant of the button — fully self-contained literal values
-   and its own keyframe sets (@keyframes can't be selector-scoped, so a
-   separate name is needed wherever the animation itself carries color).
-   Deliberately not using shared CSS variables here after the self-
-   reference bug that broke the base button — this component now owns
-   its own two complete, independently-verifiable color sets. */
+/* Literal button colors avoid self-reference; keyframe names are global. */
 body.protocol-of .generate-btn{
   background:linear-gradient(135deg, #052E3C 0%, #0BC3FF 55%, #B2ECFF 100%);
   box-shadow:0 0 16px 1px rgba(12,189,247,0.4), 0 0 32px 4px rgba(9,141,184,0.22), 0 4px 18px -4px rgba(0,0,0,0.35);
@@ -926,10 +894,7 @@ body.protocol-of .generate-btn.loading{
   50%{ filter:brightness(1.08) saturate(1.18); box-shadow:0 0 22px rgba(115,220,255,0.45); }
 }
 
-/* MA Sweet Voice pink variant of the button — same self-contained-literal-
-   values structure as the ice-blue variant above, its own keyframe names
-   since @keyframes can't be selector-scoped. Kept fully light (no dark
-   corner) per the contrast reasoning above. */
+/* Sweet button: literal light palette and unique keyframes. */
 body.protocol-ms .generate-btn{
   background:linear-gradient(135deg, #F261E8 0%, #FF0BED 55%, #FFB2F9 100%);
   box-shadow:0 0 16px 1px rgba(247,12,230,0.4), 0 0 32px 4px rgba(184,9,171,0.22), 0 4px 18px -4px rgba(0,0,0,0.25);
@@ -959,8 +924,7 @@ body.protocol-ms .generate-btn.loading{
   50%{ filter:brightness(1.08) saturate(1.18); box-shadow:0 0 22px rgba(255,115,245,0.45); }
 }
 
-/* Blitz yellow "lightning" variant of the button — same self-contained-
-   literal-values structure as the other two variants above. */
+/* Fairy button palette. */
 body.protocol-fairy .generate-btn{
   background:linear-gradient(135deg, #FF8FD3 0%, #FFB7E6 55%, #FFE0F3 100%);
   box-shadow:0 0 16px 1px rgba(255,151,216,0.38), 0 0 32px 4px rgba(232,111,191,0.2), 0 4px 18px -4px rgba(0,0,0,0.22);
@@ -1022,9 +986,7 @@ body.protocol-blitz .generate-btn.loading{
   50%{ filter:brightness(1.08) saturate(1.18); box-shadow:0 0 22px rgba(255,254,173,0.45); }
 }
 
-/* Beida orange/white variant — --toxin-bright is genuine white here
-   (see the theme variables above), so the gradient's top stop is real
-   white rather than a pale tint of the hue like the other four themes. */
+/* Beida button: orange to genuine white. */
 body.protocol-beida .generate-btn{
   background:linear-gradient(135deg, #3C2509 0%, #F68D0D 55%, #FFFFFF 100%);
   box-shadow:0 0 16px 1px rgba(247,142,12,0.4), 0 0 32px 4px rgba(184,105,9,0.22), 0 4px 18px -4px rgba(0,0,0,0.35);
@@ -1993,6 +1955,16 @@ label[for="teacherName"],label[for="teacherSignoffEmoji"],label[for="studentName
 #specialRemarks{min-height:78px}
 .rating-btn.active{outline:2px solid #fff;outline-offset:2px;filter:saturate(1.12) brightness(1.06)}
 .rating-btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+/* LingoAce selection stays still at every fitted scale, including hover/focus. */
+#ratingTrack.rating-track-of .rating-btn,
+#ratingTrack.rating-track-of .rating-btn:hover,
+#ratingTrack.rating-track-of .rating-btn.active{
+  transform:none;animation:none;transition:background-color .18s ease,border-color .18s ease;
+}
+#ratingTrack.rating-track-of .rating-btn.active{
+  outline:2px solid #fff;outline-offset:2px;filter:none;
+  box-shadow:0 0 0 1px rgba(255,255,255,.9),0 0 8px rgba(255,255,255,.25);
+}
 .output-box.empty{display:flex;align-items:center;justify-content:center;text-align:center;color:#BAC6D0;font-style:normal;line-height:1.55;border-style:dashed}
 .output-box.is-generating{display:flex;align-items:center;justify-content:center;text-align:center;color:var(--toxin);font-weight:650;border-color:rgba(var(--toxin-rgb),.6)}
 .output-box:not(.empty):not(.error):not(.is-generating){line-height:1.7}
@@ -2406,7 +2378,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
 @media(max-width:560px){#scoutReleaseBanner{padding:15px;gap:12px}.scout-release-action{width:100%}#scoutReleaseLink{width:100%}#scoutReleaseBanner h2{font-size:19px}}
 </style>
 <link rel="stylesheet" href="assets/scout-integration.css?v=20261020">
-<link rel="stylesheet" href="assets/pending-inbox-premium.css?v=20261024c">
+<link rel="stylesheet" href="assets/pending-inbox-premium.css?v=20261024-scout-brand">
 </head>
 <body>
 <div class="wrap">
@@ -2446,13 +2418,13 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
     <div class="krisp-inbox-heading"><h2 id="krispInboxTitle">Pending transcripts</h2><button type="button" id="krispInboxClose" aria-label="Close pending transcripts" popovertarget="krispInboxPanel" popovertargetaction="hide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
     <p class="krisp-inbox-description">Review a lesson and import it into your notes.</p>
     <section class="source-pending-group" id="krispPendingGroup" aria-label="Krisp pending transcripts">
-      <h3 class="source-pending-title"><span class="source-pending-icon krisp-source-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 9v6m4-10v14m6-14v14m4-10v6"/></svg></span>Krisp <span id="krispSourcePendingCount">0</span></h3>
+      <h3 class="source-pending-title"><span class="source-pending-icon krisp-source-icon" aria-hidden="true"><img src="assets/logos/krisp-neutral.png" width="28" height="28" alt=""></span>Krisp <span id="krispSourcePendingCount">0</span></h3>
       <p id="krispInboxStatus" role="status" aria-live="polite"></p>
       <p id="krispInboxEmpty" hidden>No Krisp transcripts pending.</p>
       <div id="krispInboxContent"></div>
     </section>
     <section class="source-pending-group" id="radarVanPendingGroup" aria-label="Scout pending transcripts" hidden>
-      <h3 class="source-pending-title"><span class="source-pending-icon scout-source-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="m12 12 6-6"/></svg></span>Classbuster Scout <span id="radarVanPendingPopoverCount">0</span></h3>
+      <h3 class="source-pending-title"><span class="source-pending-icon scout-source-icon" aria-hidden="true"><img src="assets/brand/classbuster/apple-touch-icon.png" width="28" height="28" alt=""></span>Classbuster Scout <span id="radarVanPendingPopoverCount">0</span></h3>
       <p id="radarVanPendingPopoverStatus" class="radar-van-hint" role="status">No Scout transcripts pending.</p>
       <ul id="radarVanPendingPopoverList" class="radar-van-list" aria-label="Pending Scout transcripts"></ul>
     </section>
@@ -3050,6 +3022,7 @@ const KidbusterCore = (function(){
 • Credit the student only with words the student said. If a word or sentence appears only in a Teacher line, the student practised it with support — never write that the student said, repeated, built or knew it.
 • Never describe facial expressions, smiles, laughter, tone of voice, gestures, body language or feelings. A transcript cannot show them.
 • Transcript lines are labelled Teacher: and Student: from automatic speaker detection. A line labelled Unclear: holds words that speech-to-text placed at a speaker change; either speaker may have said them. Never credit Unclear words to the student (do not quote the student's sentence as if it included them), and never use them as evidence that the student failed to finish.
+• Scout media notes and lines labelled Media activity (not speech): are recording metadata, NEVER teacher or student utterances. Music/singing can originate from prerecorded media, a participant or the background; do not assign its words to either participant. The note establishes only that the classifier detected music in captured audio, not that a student listened, understood, enjoyed, repeated or learned lyrics. When the student discusses or answers a question about a song in a separate, credible Student line, describe only that demonstrated response. Do not quote song lyrics from Scout media notes. Never count a media note as teacher/student talk or achievement.
 • Homework, practice ideas and next steps are your recommendations. Never state they were assigned, agreed or completed unless the lesson evidence says so.
 • Never promise or guarantee results ("will definitely", "will click into place", "will soon master"). Recommend instead ("more practice with X would help").
 • Model correct, standard English. If the teacher used nonstandard phrasing (for example "very good" used as an adverb), never reproduce it as a model sentence, vocabulary note or grammar example; use the correct form.
@@ -3656,7 +3629,18 @@ Love, Teacher [Name]` + '\n\n─────────────────
   function buildMASystemPrompt(params){
     const runtimeParams = buildMARuntimeParams(params);
     const mediumOnly = params && params.lengthFormat === 'medium';
-    const mediumRules = mediumOnly ? '\n\nCLASSIC MEDIUM ONLY: Distinguish independent answers, guided answers, and teacher repetition. Recognize explicit teacher grammar and pronunciation corrections. In multi-student lessons do not attribute ambiguously diarized speech to an individual child. Focus on the most meaningful demonstrated learning instead of arbitrary lists. The last content must be exactly ten stars followed by the teacher signature, with no words or homework between or after them.' : '';
+    const mediumRules = mediumOnly ? [
+      '',
+      'CLASSIC MEDIUM ONLY — PRIVATE EVIDENCE-RANKING CHECK BEFORE WRITING (never print this check or its labels):',
+      '1. First identify 2–3 consequential student learning moments. For each, mentally distinguish who spoke (student, teacher, or genuinely uncertain) and what happened: spontaneous student idea, student answer to a question, guided attempt, reading aloud from materials, repetition of a teacher model, correction, or teacher explanation. Do not treat an assigned line of reading, copied grammar example, or teacher explanation as proof of independent comprehension or spontaneous grammar production.',
+      '2. Rank candidate moments by reliable student ownership, educational significance, and relevance to the actual lesson. Give priority to student explanations, specific conclusions, useful questions, mistakes addressed in teaching, and attempts to apply an idea; keep enjoyable personal conversation when it meaningfully characterizes the lesson. Length of a teacher monologue is not evidence of student achievement.',
+      '3. Calibrate each claim to its source. If the teacher helped, say the student worked through it with help. If the child read an answer directly from the passage, call it reading or finding information rather than independently discovering the idea. Avoid unsupported absolutes such as "straight through", "mastered", "fully understood", or "all by yourself". Remain warmly encouraging, specific, natural and age-appropriate, not clinical or stingy.',
+      '4. Anchor Today\'s Superpower in the strongest demonstrated student skill, not necessarily the longest task. Vocabulary Notes should distinguish independent use from repetition or guided practice. Grammar & Sentence Practice may include passage sentences, but do not claim the child created one that was only read. Prioritize pronunciation explicitly practiced or corrected in the lesson; peripheral proper names are optional, and never infer actual sounds or improvement from text alone.',
+      '5. For multiple children or noisy transcripts, do not transfer words from the teacher or an uncertain speaker to a named student. Use neutral wording or omit unverified details. Teacher Notes have precedence if they clarify speaker identity or lesson facts. Never invent past performance, recurring habits, or change over time from a single lesson.',
+      '6. Before the final output silently verify: who said each credited idea; independent versus prompted versus read; whether the two most meaningful moments are present; whether praise matches observed evidence; and whether every section remains useful without padding. Do not add any meta-analysis, rubric names, scores, or explanation of these checks to the report.',
+      '7. Preserve the existing Classic Medium template, tone, hard character ceiling, one homework mission and authorized stars. For eligible ratings the ten-star line must be followed immediately by the exact teacher signature with no content between or after. Homework stays before Total Stars Today. Do this in the existing single generation request; do not request a second evaluation or expand output length.',
+      ''
+    ].join('\n') : '';
     const classicSource = mediumOnly ? MA_PROTOCOL_V2_10_SOURCE.replace('[Positive closing sentence.]\n\n', '') : MA_PROTOCOL_V2_10_SOURCE;
     const combined = classicSource + mediumRules + '\n\n────────────────────────────────────────\n\n' + runtimeParams;
     const variantKey = pickClassicStyleVariant(params);
@@ -4027,6 +4011,18 @@ Love, Teacher [Name]` + '\n\n─────────────────
 
     lines = lines.map(line => {
       let l = line;
+      // Scout v1 uses an unlabelled parenthetical note because the server
+      // accepts only TEACHER/STUDENT headers. Keep its educational context
+      // but move it into a neutral, non-spoken category before any turn
+      // merging. Do not preserve possible lyric text or participant claims.
+      if(/^\s*\(Scout recording note:\s*(?:music detected|teacher marked listening-only activity)\b.*\)\s*$/i.test(l)){
+        const duration = (l.match(/\babout\s+(\d{1,3}m\s+\d{1,2}s)\b/i) || [])[1];
+        const marked = /Scout recording note:\s*teacher marked listening-only activity/i.test(l);
+        l = 'Media activity (not speech): ' +
+          (marked ? 'The teacher marked a listening-only activity' : 'Scout detected music in captured lesson audio') +
+          (duration ? ' for approximately ' + duration : '') +
+          '. This does not identify a speaker or establish student comprehension.';
+      }
       l = l.replace(leadingBracketedTimestampPattern, '');
       l = l.replace(systemNoiseInline, '');
       l = l.replace(speakerLabelPattern, (m, who) => speakerLabel(who));
@@ -8714,6 +8710,7 @@ function saveTeacherIdentity(){
       signoffEmoji: document.getElementById('teacherSignoffEmoji').value
     }));
   }catch(e){ /* storage unavailable */ }
+  document.dispatchEvent(new Event('classbuster:teacher-name-changed'));
 }
 function readTeacherIdentity(){
   try{ return JSON.parse(localStorage.getItem(TEACHER_IDENTITY_KEY)) || null; }catch(e){ return null; }
@@ -10001,7 +9998,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 
     var importBtn = document.createElement('button');
     importBtn.type = 'button';
-    importBtn.textContent = 'Import Comment';
+    importBtn.textContent = 'Import into notes';
     importBtn.className = 'btn-secondary krisp-insert-btn'; importBtn.style.border = '1px solid rgba(var(--toxin-rgb),0.55)'; importBtn.style.width = '100%';
     importBtn.addEventListener('click', function(){ handleImportClick(item.meetingId, importBtn, card); });
 
@@ -10854,6 +10851,8 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 <script src="assets/scout-release.js" defer></script>
 <script defer src="assets/owner-usage-stats.js?v=1"></script>
 <script defer src="assets/owner-activity.js?v=1"></script>
-<script src="assets/radar-van-client.js?v=20261024-scout-110"></script>
+<script src="assets/radar-van-client.js?v=20261024-scout120-names"></script>
+<link rel="stylesheet" href="assets/initial-workspace-fit.css?v=20261025-3">
+<script src="assets/initial-workspace-fit.js?v=20261025-3"></script>
 </body>
 </html>

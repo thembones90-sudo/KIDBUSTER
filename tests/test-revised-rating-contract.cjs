@@ -83,6 +83,7 @@ module.exports=async function run(){
  try{
   const page=await browser.newPage();
   await page.goto('file://'+path.join(__dirname,'..','index.html'));
+  await page.evaluate(async()=>{await document.fonts.ready;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));});
   for(const rating of levels){
    await page.click('#ratingTrack .rating-btn[data-lvl="'+rating+'"]');
    await new Promise(resolve=>setTimeout(resolve,160));

@@ -32,7 +32,7 @@ module.exports=async function run(){
     aria:elite?.getAttribute('aria-label'),
     title:elite?.title,
     background:style.backgroundImage,
-    height:elite?.getBoundingClientRect().height,
+    height:elite?.offsetHeight,
     tooltipCount:track.querySelectorAll('.rating-elite-tooltip').length
    };
   });
@@ -67,7 +67,7 @@ module.exports=async function run(){
   const critical=await page.$eval(criticalSelector,e=>({
     svg:e.querySelector('.rating-siren')?.namespaceURI,
     path:e.querySelector('.rating-siren path')?.getAttribute('d'),
-    title:e.title,height:e.getBoundingClientRect().height,
+    title:e.title,height:e.offsetHeight,
     decorative:e.querySelector('.rating-siren')?.getAttribute('aria-hidden'),
     idle:getComputedStyle(e.querySelector('.rating-siren')).animationName
   }));
@@ -97,14 +97,14 @@ module.exports=async function run(){
    await new Promise(resolve=>setTimeout(resolve,240));
    const baseline=await page.$eval(selector,e=>({
      shadow:getComputedStyle(e).boxShadow,
-     height:e.getBoundingClientRect().height,
+     height:e.offsetHeight,
      halo:getComputedStyle(e).getPropertyValue('--rating-halo').trim()
    }));
    await page.hover(selector);
    await new Promise(resolve=>setTimeout(resolve,240));
    const hovered=await page.$eval(selector,e=>({
      shadow:getComputedStyle(e).boxShadow,
-     height:e.getBoundingClientRect().height,
+     height:e.offsetHeight,
      halo:getComputedStyle(e).getPropertyValue('--rating-halo').trim()
    }));
    hoverChecks.push({level,baseline,hovered});
@@ -192,7 +192,7 @@ module.exports=async function run(){
     fastSwitch.rating==='6'&&fastSwitch.caption.includes('Legendary.')&&
     fastSwitch.caption.includes(KidbusterCore.LEVEL_TONE_DESC['6']));
 
-  await page.click('input[name="protocol"][value="OF"]');
+  await page.click('#protocolSelect label:has(input[value="OF"])');
   const of=await page.evaluate(()=>({
    of:document.getElementById('ratingTrack').classList.contains('rating-track-of'),
    numeric:document.getElementById('ratingTrack').classList.contains('rating-track-numeric'),
@@ -202,7 +202,7 @@ module.exports=async function run(){
   check('OF retains its original five qualitative tiers without any crowns',of.of&&!of.numeric&&of.count===5&&of.crowns===0);
   check('OF has no critical siren',await page.$eval('#ratingTrack',e=>!e.querySelector('.rating-siren')));
 
-  await page.click('input[name="protocol"][value="BEIDA"]');
+  await page.click('#protocolSelect label:has(input[value="BEIDA"])');
   const beida=await page.evaluate(()=>({
    beida:document.getElementById('ratingTrack').classList.contains('rating-track-beida'),
    numeric:document.getElementById('ratingTrack').classList.contains('rating-track-numeric'),
@@ -211,12 +211,12 @@ module.exports=async function run(){
   check('Beida retains its original two tier choices',beida.beida&&!beida.numeric&&beida.count===2);
   check('Beida has no critical siren',await page.$eval('#ratingTrack',e=>!e.querySelector('.rating-siren')));
 
-  await page.click('input[name="protocol"][value="PREPLY"]');
+  await page.click('#protocolSelect label:has(input[value="PREPLY"])');
   check('Preply still hides rating entirely',await page.evaluate(()=>
    document.getElementById('ratingField').style.display==='none'&&
    document.querySelectorAll('#ratingTrack .rating-btn').length===0));
 
-  await page.click('input[name="protocol"][value="MA"]');
+  await page.click('#protocolSelect label:has(input[value="MA"])');
   await page.setViewport({width:390,height:844});
   const mobile=await page.evaluate(()=>{
    const track=document.getElementById('ratingTrack');
@@ -226,7 +226,7 @@ module.exports=async function run(){
     scroll:document.documentElement.scrollWidth,
     count:track.querySelectorAll('.rating-btn').length,
     crown:!!track.querySelector('.rating-crown'),
-    heights:[...track.querySelectorAll('.rating-btn')].map(b=>b.getBoundingClientRect().height)};
+    heights:[...track.querySelectorAll('.rating-btn')].map(b=>b.offsetHeight)};
   });
   check('mobile retains five columns with visible crown and no horizontal overflow',
     mobile.columns===5&&mobile.count===10&&mobile.crown&&mobile.width<mobile.viewport&&mobile.scroll<=mobile.viewport+1&&mobile.heights.every(h=>h>=39&&h<=41));
