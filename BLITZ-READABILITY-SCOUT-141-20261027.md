@@ -41,3 +41,28 @@ Protected candidate and live smoke checks are recorded in the follow-up release
 receipt after promotion. No real customer reports/emails/payments are test data.
 
 Previous production rollback: dpl_CPrcefoSXDL6F37iv7niPKHgUVb3.
+
+## Published receipt
+
+- Runtime commit: d2953db, pushed to release/classbuster-legacy-safe-20261023.
+- Deployment: dpl_4uJzn6qYWdL7FfX3hBr6UzDrLMKq, promoted to classbuster.com.
+- Exact staged page and all four changed assets matched the committed export.
+- Candidate: 24/24 smoke checks plus five migration/pairing/monitoring probes.
+- classbuster.com: 24/24 plus the same five probes; exact deployed assets matched.
+- kidbuster.vercel.app: 24/24 plus the same five probes; exact assets matched;
+  legacy APIs remain available.
+- Real signed-in browser: Blitz Voice menu visibly opened with all three options;
+  the saved Simple value was left unchanged. Account still shows Owner Pro,
+  Full access forever, Unlimited, and the owner-only Download Scout control.
+- The exact release handler also issued a scoped 1.4.1 URL using synthetic
+  identity/in-memory KV and real private Blob authentication; downloaded all
+  116568848 bytes and verified the pinned checksum. No production account keys
+  or student data were read by that script.
+- A real browser Download Scout click was initiated, but subsequent browser
+  inspection timed out; no claim is made that this browser download completed.
+  The temporary browser verification tab was closed. The user's original tab and
+  running Scout were left untouched. No installer was executed.
+
+This release does not deploy the recovered Ascension website branch wholesale.
+Future work on that branch must integrate this live release first, preserving
+the sizing corrections and active private Scout 1.4.1 installer selection.
