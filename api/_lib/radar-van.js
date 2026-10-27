@@ -14,6 +14,7 @@
 //                                 every change a session view can show, so an
 //                                 idle poll is one MGET instead of a full read
 import crypto from 'node:crypto';
+import { scoutStudentLabel } from './scout-student-name.js';
 import { kv, acquirePaymentLock, releasePaymentLock, incrementWindowCounter } from './kv-client.js';
 import { isFounderLicenseKey } from './licensing.js';
 
@@ -431,7 +432,7 @@ function summary(record){
   return {
     meetingId: record.meetingId, lessonId: record.lessonId, title: record.title,
     startedAt: record.startedAt || null, durationSeconds: record.durationSeconds,
-    endedAt: record.endedAt || null, studentLabel: record.studentLabel || null, teacherLabel: record.teacherLabel || null,
+    endedAt: record.endedAt || null, studentLabel: scoutStudentLabel(record), teacherLabel: record.teacherLabel || null,
     fragmentCount: Number.isInteger(record.fragmentCount) ? record.fragmentCount : null,
     interruptionCount: Number.isInteger(record.interruptionCount) ? record.interruptionCount : null,
     receivedAt: record.receivedAt, source: 'RADAR VAN', restored: record.restored === true,
