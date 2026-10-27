@@ -1,5 +1,16 @@
 # Classbuster — Instructions for Coding Agents
 
+Latest web release 2026-10-27 18:21: runtime 84eb99a, deployment
+dpl_6wangLPv258VpmDaergr63kYkyWk on classbuster.com and legacy domain. Includes
+Scout student-name enrichment, the no-menu-resize fix, Copy suggestions and
+three-second Scout Dismiss/Undo. All 119 test files passed; both domains passed
+exact asset checks, five additional refusal probes and 24/24 smoke checks.
+See SCOUT-STUDENT-NAMES-20261027.md for limits and deployment incident: connected
+create_deployment did NOT honor top-level skipAutoAssignDomains and assigned live
+domains immediately. Never use that connector operation as a staging substitute.
+Owner Level 4 account/plan/report checks were not completed for this release.
+Rollback: dpl_3whb1tGibejwr7GzP6LUnJ5uKcXV. Preserve the current release lineage.
+
 Updated 2026-10-24. Read this first. Several agents (Claude, Codex, others) work on these
 projects at the same time: before changing anything, check `git status`, `git log` and the
 newest `*.md` notes in the folder you work in, and never overwrite newer work.
