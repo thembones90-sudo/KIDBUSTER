@@ -26,8 +26,10 @@ module.exports=async function(){
   },sample);
   assert.equal(await page.evaluate(()=>window.copiedParts.length),0,'split reports never auto-copy only one half');
   assert.equal(await page.$eval('#copyBtn',e=>e.hidden),true);
+  assert.deepEqual(await page.$eval('#copyOFFollowupBtn',e=>[e.textContent,e.dataset.defaultLabel]),['Copy suggestions','Copy suggestions'],'follow-up copy action has a specific label and reset label');
   await page.click('#copyOFStrengthsBtn');await page.click('#copyOFFollowupBtn');
   assert.deepEqual(await page.evaluate(()=>window.copiedParts),['Sam practised fruit vocabulary. He answered with support.','He needs more sentence practice.\n\nPractise naming fruit.\n\nCheers,\nTeacher Nora']);
+  await page.waitForFunction(()=>document.getElementById('copyOFFollowupBtn').textContent==='Copy suggestions');
   assert.ok(await page.$eval('#outputBox',e=>e.textContent.startsWith('Strengths')),'headings remain visible for navigation');
   assert.match(await page.$eval('#protocolBadge',e=>e.textContent),/Lingo Ace/);
   const cleaned=await page.evaluate(()=>({bold:cleanLingoAceCopy('**Strengths**:\r\n\r\nWe discussed Areas for Improvement in class.'),closing:cleanLingoAceCopy('Learning Suggestions\n\nPractise daily.\n\nCheers,\nTeacher Nora 🐺')}));
