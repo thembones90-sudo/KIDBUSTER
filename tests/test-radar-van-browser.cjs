@@ -242,7 +242,14 @@ module.exports = async function run(){
     await wait(page, () => document.querySelectorAll('#radarVanPendingPopoverList .radar-van-dismiss').length === 1);
     await page.evaluate(() => { const p = document.getElementById('krispInboxPanel'); if(!p.matches(':popover-open')) p.showPopover(); });
     await page.click('#radarVanPendingPopoverList .radar-van-dismiss');
-    check('dismiss removes the lesson (after confirmation)', await wait(page, () => document.querySelectorAll('#radarVanPendingPopoverList .radar-van-item').length === 0) && page.dialogs.some(d => /Dismiss/.test(d)) && (await status()).body.pendingCount === 0);
+    check('dismiss offers Undo without a confirmation or server removal', await text(page,'radarVanCount')==='1' && await page.$eval('.radar-van-dismiss',e=>e.textContent==='Undo') && !page.dialogs.some(d=>/Dismiss/.test(d)) && (await status()).body.pendingCount===1);
+    await page.click('#radarVanPendingPopoverList .radar-van-dismiss');
+    await sleep(3200);
+    check('Undo cancels dismissal after the full three-second window', await page.$eval('.radar-van-dismiss',e=>e.textContent==='Dismiss') && (await status()).body.pendingCount===1);
+    await page.click('#radarVanPendingPopoverList .radar-van-dismiss');
+    await sleep(1200);await poke(page);
+    check('polling preserves Undo and does not dismiss early', await page.$eval('.radar-van-dismiss',e=>e.textContent==='Undo') && (await status()).body.pendingCount===1);
+    check('dismiss removes the lesson only after the undo window and server confirmation', await wait(page, () => document.querySelectorAll('#radarVanPendingPopoverList .radar-van-item').length === 0) && !page.dialogs.some(d=>/Dismiss/.test(d)) && (await status()).body.pendingCount===0);
     check('retry after dismiss is a duplicate', (await ingest(token, lesson(4))).body.duplicate === true && (await status()).body.pendingCount === 0);
 
     // ---- disconnect ----

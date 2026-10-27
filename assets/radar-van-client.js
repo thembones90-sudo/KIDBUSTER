@@ -14,6 +14,7 @@
   var section = $('Section');
   if(!section) return;
   var state = { gen: 0, connected: false, armed: false, matchedCount: 0, failures: 0, disabled: false, inflight: false, timer: null, applied: {}, busy: false, retry: {}, acking: {}, scopeKey: null, scope: null, version: null, lastFull: 0 };
+  var pendingDismiss = Object.create(null), DISMISS_UNDO_MS = 3000;
 
   // Durable ACK receipts: "this meetingId is already in the notes, tell the server".
   // Browser-local, scoped to a one-way fingerprint of the access key, holding only
@@ -129,6 +130,8 @@
     announcePending(true,items.length);
   }
   function hideAll(){
+    Object.keys(pendingDismiss).forEach(function(id){ clearTimeout(pendingDismiss[id].timer); });
+    pendingDismiss = Object.create(null);
     section.hidden = true; hideToken(); say('');
     workspaceSay('');
     $('Count').textContent = '0';
@@ -215,7 +218,7 @@
       menu.hidden = !menu.hidden;
       menuButton.setAttribute('aria-expanded', String(!menu.hidden));
     });
-    dismissMenu.addEventListener('click', function(){ menu.hidden = true; dismissItem(item,dismissMenu); });
+    dismissMenu.addEventListener('click', function(){ menu.hidden = true; menuButton.setAttribute('aria-expanded','false'); dismissItem(item); });
     menu.append(previewToggle,dismissMenu);
     var closeMenu = function(event){
       if(!menu.hidden && !li.contains(event.target)){
@@ -240,7 +243,25 @@
     if(item.contentPreview) body.append(preview);
     body.append(expandedPreview);
     li.append(body, row);
+    updateDismissCard(li,item);
     return li;
+  }
+
+  function updateDismissCard(card,item){
+    var pending=pendingDismiss[item.meetingId];
+    var active=pending && pending.key===savedKey() && pending.gen===state.gen;
+    var dismiss=card.querySelector('.radar-van-dismiss');
+    dismiss.textContent=active ? (pending.committing ? 'Dismissing…' : 'Undo') : 'Dismiss';
+    dismiss.disabled=!!(active && pending.committing);
+    dismiss.setAttribute('aria-label',(active ? (pending.committing ? 'Dismissing ' : 'Undo dismissal of ') : 'Dismiss ') + lessonHeading(item));
+    dismiss.setAttribute('aria-live','polite');
+    card.querySelector('.radar-van-claim').disabled=!!active;
+    card.querySelector('.radar-van-item-menu button:last-child').disabled=!!active;
+  }
+  function updateDismissCards(item){
+    document.querySelectorAll('#radarVanPendingPopoverList .radar-van-item').forEach(function(card){
+      if(card.dataset.meetingId===item.meetingId)updateDismissCard(card,item);
+    });
   }
 
   function render(data){
@@ -341,6 +362,7 @@
 
   async function settleMatched(record){
     if(!record || !record.meetingId) return;
+    if(pendingDismiss[record.meetingId]) return;
     // Previously imported (this page or an earlier load): acknowledge only, never reapply.
     if(alreadyImported(record.meetingId)){ await acknowledge(record.meetingId); return; }
     if(!applyTranscript(record)) return; // notes busy: it stays on the server
@@ -350,6 +372,7 @@
   }
 
   async function claimItem(item, button){
+    if(pendingDismiss[item.meetingId]) return;
     if(alreadyImported(item.meetingId) && !item.restored){ await acknowledge(item.meetingId); await poll(); return; }
     if(!workspaceIdle()){
       say('Your notes or report already have content, so nothing was imported or overwritten. Press New Student (or clear the notes), then claim again.');
@@ -373,14 +396,34 @@
     }finally{ button.disabled = false; }
   }
 
-  async function dismissItem(item, button){
-    if(!window.confirm('Dismiss "' + lessonHeading(item) + '"? It will be removed from your PATHFINDER inbox without importing it or generating a report. This cannot be undone in PATHFINDER.')) return;
-    button.disabled = true;
+  function dismissItem(item){
+    var id=item.meetingId, pending=pendingDismiss[id];
+    if(pending){
+      if(!pending.committing && Date.now()<pending.until){
+        clearTimeout(pending.timer);delete pendingDismiss[id];updateDismissCards(item);
+      }
+      return;
+    }
+    var key=savedKey();if(!key)return;
+    pending={key:key,gen:state.gen,until:Date.now()+DISMISS_UNDO_MS,committing:false};
+    pendingDismiss[id]=pending;
+    pending.timer=setTimeout(function(){commitDismiss(item,pending);},DISMISS_UNDO_MS);
+    updateDismissCards(item);
+  }
+  async function commitDismiss(item,pending){
+    var id=item.meetingId;
+    if(pendingDismiss[id]!==pending)return;
+    if(pending.key!==savedKey() || pending.gen!==state.gen){delete pendingDismiss[id];updateDismissCards(item);return;}
+    pending.committing=true;updateDismissCards(item);
     try{
-      var r = await api('POST', { action: 'dismiss', meetingId: item.meetingId });
-      if(r && r.ok){ render(r.data); say('Lesson dismissed.'); } else if(r) say('Could not dismiss that lesson. Try again shortly.');
-    }catch(e){ say('Scout could not be reached. Nothing was changed.'); }
-    finally{ button.disabled = false; }
+      var r = await api('POST', { action: 'dismiss', meetingId: id });
+      if(r && r.ok){ render(r.data); say('Lesson dismissed.'); }
+      else if(r)say('Could not dismiss that lesson. Try again shortly.');
+    }catch(e){
+      if(pending.key===savedKey() && pending.gen===state.gen)say('Could not confirm dismissal. The lesson will be checked again shortly.');
+    }finally{
+      if(pendingDismiss[id]===pending){delete pendingDismiss[id];updateDismissCards(item);}
+    }
   }
 
   function schedule(){
@@ -408,7 +451,7 @@
     try{
       await currentScope();
       if(key !== savedKey()) return;
-      var r = await api('GET', null, !state.inboxOnly && workspaceIdle(), sinceVersion());
+      var r = await api('GET', null, !state.inboxOnly && workspaceIdle() && !Object.keys(pendingDismiss).length, sinceVersion());
       if(r === null) return;
       if(r.status === 404 || r.status === 403 || r.status === 401){ hideAll(); stopPolling(); state.failures = 0; state.disabled = true; maybePair(false); return; }
       if(!r.ok){ state.failures++; if(!section.hidden) say('Scout is temporarily unreachable. Retrying shortly.'); return; }
