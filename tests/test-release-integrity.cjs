@@ -51,7 +51,7 @@ module.exports = async function run(){
 
     await fails('approved workspace sizing JavaScript changes', d => edit(d, 'assets/initial-workspace-fit.js', s => s + '\n/* accidental change */'), /workspace sizing lock changed/);
     await fails('approved workspace sizing CSS changes', d => edit(d, 'assets/initial-workspace-fit.css', s => s + '\n.wrap { zoom: 1; }'), /workspace sizing lock changed/);
-    await fails('workspace sizing asset reference disappears', d => edit(d, 'index.html', s => s.replace('assets/initial-workspace-fit.js?v=20261027-readable', 'assets/missing.js')), /workspace sizing lock reference missing/);
+    await fails('workspace sizing asset reference disappears', d => edit(d, 'index.html', s => s.replace('assets/initial-workspace-fit.js?v=20261027-no-menu-resize', 'assets/missing.js')), /workspace sizing lock reference missing/);
 
     console.log('\n  Customer sign-in, recovery, registration, authentication email');
     await fails('the registration route is missing', rm('api/license-signup.js'), /registration/);

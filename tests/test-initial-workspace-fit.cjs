@@ -79,6 +79,37 @@ module.exports=async function(){
   assert.equal(account.zoom,beforeAccount.zoom);assert.equal(account.width,beforeAccount.width);assert.equal(account.title,'20px');assert.equal(account.fitted,true);
   await page.click('#accountBtn');await settle();
   assert(await page.evaluate(()=>document.body.classList.contains('initial-workspace-fit')),'closing Account restores only initial fitting');
+  // Final zoom equality missed the reset-to-1/refit inside a menu toggle.
+  // Forbid even transient sizing writes, and sample the actual controls each frame.
+  for(const [width,height] of [[1909,943],[1366,650],[390,844]]){
+   await page.setViewport({width,height,isMobile:width===390});await settle();
+   for(const [button,close] of [['krispPendingBtn','krispInboxClose'],['krispIntegrationBtn','krispPanelClose'],['helpBtn','helpModalCloseBtn']]){
+    await page.evaluate(id=>{
+     const trigger=document.getElementById(id);trigger.hidden=false;
+     if(id==='krispPendingBtn')trigger.setAttribute('popovertarget','krispInboxPanel');
+    },button);await settle();
+    const stable=await page.evaluate(async({button,close})=>{
+     const wrap=document.querySelector('.wrap');
+     const sample=()=>['.wrap','#krispNotes','#teacherName','#kbLogo'].map(selector=>{
+      const r=document.querySelector(selector).getBoundingClientRect();return [r.width,r.height];
+     });
+     const before=sample(),frames=[];let writes=0;
+     const observer=new MutationObserver(records=>writes+=records.length);
+     observer.observe(wrap,{attributes:true,attributeFilter:['style']});
+     const next=()=>new Promise(resolve=>requestAnimationFrame(()=>{frames.push(sample());resolve();}));
+     const trigger=document.getElementById(button);
+     trigger.click();
+     if(button==='krispPendingBtn'&&!document.getElementById('krispInboxPanel').matches(':popover-open'))throw Error('Pending inbox did not open in fixture');
+     for(let i=0;i<6;i++)await next();
+     document.getElementById(close).click();
+     for(let i=0;i<6;i++)await next();
+     observer.disconnect();return {before,frames,writes};
+    },{button,close});
+    assert.equal(stable.writes,0,button+' must never reset, remeasure or rewrite workspace sizing on open/close');
+    for(const frame of stable.frames)assert.deepEqual(frame,stable.before,button+' controls retain their exact size on every animation frame');
+   }
+  }
+  await page.setViewport({width:1909,height:943,isMobile:false});await settle();
   const beforePopover=await page.evaluate(()=>document.querySelector('.wrap').style.zoom);
   const popover=await page.evaluate(()=>{const p=document.getElementById('krispInboxPanel');window.testPopoverParent=p.parentElement;p.showPopover();return true;});
   await settle();

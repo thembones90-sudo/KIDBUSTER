@@ -10,6 +10,7 @@
   var marker='initial-workspace-fit';
   var scheduled=false;
   var workspaceSize=null;
+  var fittedViewport=null;
   function visible(element){return !element.hidden&&getComputedStyle(element).display!=='none';}
   function measure(){
     // Measure the Classic control slots for every protocol, then restore styles
@@ -56,8 +57,13 @@
     restored.forEach(function(item){if(item[2])item[0].style.setProperty(item[1],item[2]);else item[0].style.removeProperty(item[1]);});
     return size;
   }
-  function refresh(){
+  function refresh(force){
     scheduled=false;
+    // Opening a menu, changing its content, or focusing a control is not a
+    // viewport resize. Never reset zoom to 1 or remeasure the visible workspace
+    // for those events, even temporarily. Keep one fit per actual viewport.
+    var viewport=window.innerWidth+'x'+window.innerHeight;
+    if(force!==true&&workspaceSize&&fittedViewport===viewport)return;
     document.documentElement.classList.add(marker);
     document.body.classList.add(marker);
     // Keep the empty workspace's reference dimensions during generation and
@@ -76,6 +82,7 @@
     var fitted=String(Math.max(0.01,Math.floor(scale*10000)/10000));
     canvas.style.setProperty('--workspace-scale',fitted);
     canvas.style.zoom=fitted;
+    fittedViewport=viewport;
   }
   function schedule(){if(!scheduled){scheduled=true;requestAnimationFrame(refresh);}}
   // Menus/dialogs must not unscale the workspace underneath them.
@@ -84,11 +91,11 @@
   [account].concat(Array.from(document.querySelectorAll('.license-modal-overlay'))).forEach(function(panel){
     visibilityObserver.observe(panel,{attributes:true,attributeFilter:['style','hidden']});
   });
-  document.querySelectorAll('[popover]').forEach(function(panel){panel.addEventListener('toggle',refresh);});
+  // Top-layer popovers do not participate in workspace layout or fitting.
   document.addEventListener('change',schedule);
   window.addEventListener('resize',schedule);
   if(window.visualViewport)window.visualViewport.addEventListener('resize',schedule);
   if(window.ResizeObserver)new ResizeObserver(schedule).observe(canvas);
-  if(document.fonts)document.fonts.ready.then(schedule);
+  if(document.fonts)document.fonts.ready.then(function(){refresh(true);});
   refresh();
 })();

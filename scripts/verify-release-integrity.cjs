@@ -23,7 +23,7 @@ const { pathToFileURL } = require('node:url');
 const WORKSPACE_FIT_LOCK = [
   [
     "assets/initial-workspace-fit.js",
-    "ca0e8fb98f11aabaa9d309edb36c3230516c14eb5aa392acdacd9f16d15f9050"
+    "b2f003e80c01a6718587e8db482ee5be3533d20652ac4822b7aed54cc17e3baa"
   ],
   [
     "assets/initial-workspace-fit.css",
@@ -67,7 +67,7 @@ function checkRelease(root){
     const source = need(rel, 'owner-approved workspace sizing lock');
     const actual = require('node:crypto').createHash('sha256').update(source.replace(/\r\n/g, '\n')).digest('hex');
     if(actual !== expected) problems.push('workspace sizing lock changed: ' + rel + '; explicit owner approval is required before updating the baseline');
-    if(!(read('index.html') || '').includes(rel + '?v=20261027-readable')) problems.push('workspace sizing lock reference missing: ' + rel);
+    if(!(read('index.html') || '').includes(rel + '?v=20261027-no-menu-resize')) problems.push('workspace sizing lock reference missing: ' + rel);
   }
 
   // --- Customer sign-in, recovery and registration ---

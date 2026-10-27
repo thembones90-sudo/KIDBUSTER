@@ -6,6 +6,13 @@ newest `*.md` notes in the folder you work in, and never overwrite newer work.
 
 ## Owner-approved behavior lock — 2026-10-25
 
+2026-10-27 further owner correction: NO transient resizing when Pending
+transcripts or any other menu opens/closes. Fit once per actual browser viewport;
+same-viewport refreshes must not reset zoom, remeasure or rewrite sizing styles.
+Fonts may finalize the initial fit. Preserve all settled geometry and the 80%
+readability floor. The frame-by-frame regression and release fingerprints were
+updated together for this explicit owner instruction.
+
 2026-10-27 owner correction: do not shrink the desktop workspace below 80%
 solely to fit its height; use normal page scrolling instead. Narrow screens use
 the existing stacked layout at readable native size. Keep the Classic reference
