@@ -26,3 +26,11 @@ white native table/tab presentation and clipped recovery actions.
   visual QA and frozen recording/UI regressions passed.
 
 Rollback website deployment: dpl_4uJzn6qYWdL7FfX3hBr6UzDrLMKq.
+
+Published: runtime 988553a, deployment dpl_3whb1tGibejwr7GzP6LUnJ5uKcXV.
+Candidate, classbuster.com and legacy API domain each passed 24/24 smoke checks
+and all five additional migration/pairing/monitoring probes. Exact page/changed
+assets matched the committed export on each surface. Current master-only
+download is Scout 1.4.2; public release is still unavailable. Source repair and
+installation receipt pushed to the existing private Scout continuity repository,
+branch scout/leviathan-takeover-integration-20261026 (code 5204626, receipt 55d98ba).
