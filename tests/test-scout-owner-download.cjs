@@ -48,8 +48,8 @@ module.exports=async function run(){
     // The version stays private: the page says only "Download Scout".
     check('download button and status show no version',html.includes('>Download Scout</button>') && !/Download Scout \d|10Z[A-Z]/.test(html) && !/download is starting[^']*10Z/.test(ui));
     check('private Scout release points to the verified Windows installer',
-      ui.includes('/releases/scout-1.4.6-owner-20261028/ScoutSetup.exe') &&
-      downloadHandler.includes('releases/scout-1.4.6-owner-20261028/ScoutSetup.exe') &&
+      ui.includes('/releases/scout-1.4.7-owner-20261028/ScoutSetup.exe') &&
+      downloadHandler.includes('releases/scout-1.4.7-owner-20261028/ScoutSetup.exe') &&
       downloadHandler.includes("filename: 'ScoutSetup.exe'"));
     check('private Scout installer checksum is pinned to the verified artifact',
       downloadHandler.includes('4af74d957ce2ac83055001c50211788f3956c8323e31ca62afd1a9a7dbdf4b05'));

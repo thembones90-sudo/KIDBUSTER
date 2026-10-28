@@ -64,6 +64,40 @@ module.exports=async function run(){
     const puppeteer=require('puppeteer');
     const exe=['C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(fs.existsSync);
     browser=await puppeteer.launch({headless:true,...(exe?{executablePath:exe}:{}),args:['--no-sandbox']});
+    // Scout desktop receipt: authenticated, read-only, exact target, no import.
+    for(const [number,expectedFound] of [[1,true],[99,false]]){
+      const receiptPage=await browser.newPage();
+      receiptPage.on('pageerror',e=>console.error('receipt page error:',e.message));
+      await receiptPage.evaluateOnNewDocument(key=>localStorage.setItem('kidbuster_access_key',key),OWNER);
+      const target='rv:'+id(number);
+      await receiptPage.goto('http://127.0.0.1:'+server.address().port+'/?scout-receipt='+target,{waitUntil:'load'});
+      await receiptPage.waitForFunction(()=>!!document.getElementById('radarVanReceiptNotice'),{timeout:12000});
+      const result=await receiptPage.evaluate(target=>{
+        const notice=document.getElementById('radarVanReceiptNotice');
+        const card=Array.from(document.querySelectorAll('#radarVanPendingPopoverList li')).find(e=>e.dataset.meetingId===target);
+        return {message:notice.textContent,highlight:!!card&&card.classList.contains('radar-van-receipt-target'),
+          open:document.getElementById('krispInboxPanel').matches(':popover-open'),
+          query:window.location.search,notes:document.getElementById('krispNotes').value};
+      },target);
+      check('receipt URL query removed from browser history '+number,!result.query.includes('scout-receipt'));
+      check('receipt opens authenticated pending popover '+number,result.open);
+      check('receipt '+number+(expectedFound?' targets its exact lesson':' explains missing/expired lesson'),
+        expectedFound?result.highlight&&/Delivered lesson found/.test(result.message):/not available/.test(result.message));
+      check('receipt '+number+' never auto-imports notes',result.notes==='');
+      // Closing review restores normal future import behavior and removes
+      // temporary highlights. Sign out first to avoid claiming this fixture.
+      await receiptPage.evaluate(()=>{
+        localStorage.removeItem('kidbuster_access_key');
+        document.getElementById('krispInboxPanel').hidePopover();
+      });
+      await receiptPage.waitForFunction(()=>!document.getElementById('radarVanReceiptNotice'),{timeout:4000});
+      check('closing receipt review removes target highlights '+number,
+        await receiptPage.$$eval('.radar-van-receipt-target',els=>els.length)===0);
+      await receiptPage.close();
+    }
+    check('receipt inspection does not ACK or lease the lesson',(await invoke('GET',null,keyHeaders)).body.waitingCount===1);
+    check('receipt inspection never generates AI feedback',hits.generate===0);
+
     const page=await browser.newPage(),errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.evaluateOnNewDocument(key=>{localStorage.setItem('kidbuster_access_key',key);},OWNER);
