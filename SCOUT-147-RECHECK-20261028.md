@@ -32,3 +32,21 @@ remote updater: installed-version handover continues only when idle.
 
 Pre-release rollback web deployment: dpl_8duu2zkpEpUtoPcuyHJZgKrVnKWx.
 Candidate, live checks and installation outcome are recorded after verification.
+
+## Published
+
+- Website commit 18d9f43; immutable export .v2-tmp/deploy-18d9f43.
+- Production deployment dpl_9vaEYfvwLc1z7LXorNLxYpa38keQ.
+- Candidate URL kidbuster-mv03732kj-thembones90-sudos-projects.vercel.app.
+- Staging used native CLI --prod --skip-domain; classbuster.com was verified
+  unchanged until the explicit promotion command.
+- Candidate, classbuster.com and kidbuster.vercel.app each passed exact source
+  bytes, five additional refusal probes and 24/24 live smoke checks.
+- Real owner report generation was not repeated; the browser session was signed
+  out. Automated account/plan/generation regression coverage passed. No customer
+  data, email, checkout or real lesson was used for testing.
+- Native publisher selected 1.4.7; guarded idle handover completed. Native process
+  inspection and executable checksum confirmed 1.4.7 running. Profile untouched;
+  rollback remains installed 1.4.5.
+- Private storage and the exact owner download handler both returned the complete
+  installer with the recorded checksum. Anonymous/non-owner live requests refused.

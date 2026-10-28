@@ -1,5 +1,17 @@
 # Classbuster — Instructions for Coding Agents
 
+2026-10-28 latest release: 18d9f43, deployment
+dpl_9vaEYfvwLc1z7LXorNLxYpa38keQ, verified on classbuster.com and the legacy
+webhook domain. Private Scout download and running native installation are
+1.4.7; rollback desktop 1.4.5, web dpl_8duu2zkpEpUtoPcuyHJZgKrVnKWx.
+See SCOUT-147-RECHECK-20261028.md. The newer receipt web lineage at 2a5eb5d was
+merged into this release line. Do not deploy the older 1.4.6 Skynet desktop
+reconstruction: it regresses rejected status-banner behavior and its receipt
+action uses the legacy results screen. The actual installed-source baseline was
+recovered and bytecode-compared before 1.4.7. All 120 web files, 1039 source
+tests (one skip), 163 frozen tests, and staged/live/legacy smoke passed. An
+authenticated owner-generated report was not repeated in this pass.
+
 Latest web release 2026-10-27 18:21: runtime 84eb99a, deployment
 dpl_6wangLPv258VpmDaergr63kYkyWk on classbuster.com and legacy domain. Includes
 Scout student-name enrichment, the no-menu-resize fix, Copy suggestions and
