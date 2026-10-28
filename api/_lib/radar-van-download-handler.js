@@ -14,11 +14,6 @@ function reply(res, status, body) {
 
 export default async function handleScoutDownload(req, res) {
   if (!radarVanEnabled()) return reply(res, 404, { error: 'Scout is unavailable.' });
-  // Temporary SHA-protected release upload: reuses this function (Hobby 12-function cap).
-  if (req.method === 'POST') {
-    const { default: uploadRelease } = await import('./scout-146-release-upload.js');
-    return uploadRelease(req, res);
-  }
   if (req.method !== 'GET') return reply(res, 405, { error: 'Method not allowed.' });
   const identity = req.headers?.['x-app-key'];
   if (typeof identity !== 'string' || !identity) return reply(res, 401, { error: 'Access key required.' });
