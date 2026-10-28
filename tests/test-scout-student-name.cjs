@@ -24,7 +24,10 @@ module.exports = async function(){
   const lesson={lessonId:crypto.randomUUID(),title:'Classbuster Scout lesson 2026-10-27',
     startedAt:new Date().toISOString(),durationSeconds:120,
     transcript:'[00:01] TEACHER: Hello Kevin, nice to see you.',teacherLabel:'Layne'};
-  await rv.ingestRadarLesson('synthetic-scout-names',lesson,crypto.createHash('sha256').update(token).digest('hex'));
+  const receipt=await rv.ingestRadarLesson('synthetic-scout-names',lesson,crypto.createHash('sha256').update(token).digest('hex'));
+  assert.equal(receipt.studentLabel,'Kevin','delivery receipt uses the stored lesson identity');
+  const retry=await rv.ingestRadarLesson('synthetic-scout-names',{...lesson,studentLabel:'Wrong retry name'},crypto.createHash('sha256').update(token).digest('hex'));
+  assert.equal(retry.studentLabel,'Kevin','retry cannot replace the receipt with changed payload identity');
   const session=await rv.readRadarSession('synthetic-scout-names');
   assert.equal(session.pending[0].studentLabel,'Kevin','server enriches existing unlabelled inbox records');
   assert.equal(session.pending[0].title,lesson.title,'original lesson metadata remains intact');

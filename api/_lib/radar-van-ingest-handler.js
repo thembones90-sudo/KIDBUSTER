@@ -77,7 +77,7 @@ export default async function handleRadarIngest(req, res){
     if(result.restoreMissing) return reply(res, 409, { error: 'Only a previously delivered lesson can be restored.' });
     if(result.full) return reply(res, 503, { error: 'RADAR VAN inbox is full. Retry later.', reason: 'inbox_full' }, { 'Retry-After': '60' });
     await recordEvent('scout_delivery', { duplicate: !!result.duplicate });
-    return reply(res, result.duplicate ? 200 : 201, { stored: true, duplicate: result.duplicate, matched: result.matched, meetingId });
+    return reply(res, result.duplicate ? 200 : 201, { stored: true, duplicate: result.duplicate, matched: result.matched, meetingId, studentLabel: result.studentLabel || null });
   }catch(err){
     console.error('radar-van ingest unavailable:', err instanceof RadarBusyError ? 'busy' : (err && err.name) || 'error');
     return reply(res, 503, { error: 'RADAR VAN temporarily unavailable.', reason: err instanceof RadarBusyError ? 'busy' : 'unavailable' }, { 'Retry-After': '5' });

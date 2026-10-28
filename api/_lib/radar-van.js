@@ -477,7 +477,8 @@ export async function ingestRadarLesson(identity, lesson, tokenHash, { restore =
       if(!seen) await kv.set(seenKey, { at: iso, route }, { ex: RADAR_VAN_SEEN_TTL_SECONDS });
       // A sender retry after a lost bump repairs it; a spurious bump only costs one full read.
       await bumpVersion(identity);
-      return { duplicate: true, matched: route === 'matched' };
+      const stored = [...pending.items, ...matched.items].find(x => x.meetingId === meetingId);
+      return { duplicate: true, matched: route === 'matched', studentLabel: stored ? scoutStudentLabel(stored) : null };
     }
     let route = !settings.inboxOnly && (settings.automatic || settings.armed) ? 'matched' : 'pending';
     // A full matched queue falls back to pending (explicit, nothing evicted).
@@ -500,7 +501,7 @@ export async function ingestRadarLesson(identity, lesson, tokenHash, { restore =
     }
     await kv.set(K.last(identity), iso, { ex: RADAR_VAN_RETENTION_DAYS * 86400 }).catch(() => {});
     await bumpVersion(identity);
-    return { duplicate: false, matched: route === 'matched' };
+    return { duplicate: false, matched: route === 'matched', studentLabel: scoutStudentLabel(record) };
   }, 2000), 2000);
 }
 

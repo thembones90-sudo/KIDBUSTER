@@ -23,6 +23,31 @@
   var RECEIPT_KEY = 'radarvan_ack_receipts_v1', RECEIPT_TTL_MS = 24 * 60 * 60 * 1000, RECEIPT_MAX = 25, RECEIPT_SCOPES = 5;
   var ACK_RETRY_BASE_MS = 15000, ACK_RETRY_MAX_MS = 600000, ACK_RETRY_LIMIT = 8;
   var MEETING_ID = /^rv:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  var receiptTarget = new URLSearchParams(location.search).get('scout-lesson');
+  receiptTarget = receiptTarget && MEETING_ID.test('rv:' + receiptTarget) ? 'rv:' + receiptTarget : null;
+  var receiptView = !!receiptTarget;
+
+  function openDeliveryReceipt(){
+    if(!receiptTarget) return;
+    var panel=document.getElementById('krispInboxPanel');
+    var list=document.getElementById('radarVanPendingPopoverList');
+    if(!panel || !list || typeof panel.showPopover !== 'function') return;
+    var card=Array.from(list.children).find(function(el){return el.dataset.meetingId===receiptTarget;});
+    receiptTarget=null;
+    var url=new URL(location.href);url.searchParams.delete('scout-lesson');
+    history.replaceState(history.state,'',url.pathname+url.search+url.hash);
+    panel.showPopover();
+    requestAnimationFrame(function(){
+      if(card){
+        card.setAttribute('tabindex','-1');
+        card.focus({preventScroll:true});
+        card.scrollIntoView({block:'nearest',behavior:'instant'});
+      }else{
+        var status=document.getElementById('radarVanPendingPopoverStatus');
+        if(status)status.textContent='This lesson is no longer pending. It may have been imported, dismissed or expired.';
+      }
+    });
+  }
 
   function loadReceipts(){
     var data = null, now = Date.now();
@@ -128,6 +153,7 @@
       ?items.length+(items.length===1?' Scout transcript awaiting review.':' Scout transcripts awaiting review.')
       :'No Scout transcripts pending.';
     announcePending(true,items.length);
+    openDeliveryReceipt();
   }
   function hideAll(){
     Object.keys(pendingDismiss).forEach(function(id){ clearTimeout(pendingDismiss[id].timer); });
@@ -451,7 +477,7 @@
     try{
       await currentScope();
       if(key !== savedKey()) return;
-      var r = await api('GET', null, !state.inboxOnly && workspaceIdle() && !Object.keys(pendingDismiss).length, sinceVersion());
+      var r = await api('GET', null, !receiptView && !state.inboxOnly && workspaceIdle() && !Object.keys(pendingDismiss).length, sinceVersion());
       if(r === null) return;
       if(r.status === 404 || r.status === 403 || r.status === 401){ hideAll(); stopPolling(); state.failures = 0; state.disabled = true; maybePair(false); return; }
       if(!r.ok){ state.failures++; if(!section.hidden) say('Scout is temporarily unreachable. Retrying shortly.'); return; }
@@ -470,7 +496,7 @@
       // Empty notes and report: the leased lesson is imported automatically.
       // Occupied workspace: no lease is requested, nothing is overwritten and
       // the lesson stays in Pending transcripts for manual import.
-      if(r.data.matched) await settleMatched(r.data.matched);
+      if(r.data.matched && !receiptView) await settleMatched(r.data.matched);
       await retryReceipts(); // after settleMatched: a leased, already-imported record must not be re-applied
     }catch(e){
       state.failures++;
@@ -635,7 +661,7 @@
       );
       var url = new URL(data.downloadUrl);
       if (url.protocol !== 'https:' || !/^[a-z0-9]+\.private\.blob\.vercel-storage\.com$/i.test(url.hostname) ||
-          url.pathname !== '/releases/scout-1.4.2-owner-20261027/ScoutSetup.exe' || url.username || url.password) {
+          url.pathname !== '/releases/scout-1.4.6-owner-20261028/ScoutSetup.exe' || url.username || url.password) {
         throw new Error('The private download URL is invalid.');
       }
       if (status) status.textContent = 'Your download is starting. Run ScoutSetup.exe to install Classbuster Scout. Close Scout before upgrading; your lesson data is preserved.';
