@@ -52,7 +52,7 @@ module.exports=async function run(){
       downloadHandler.includes('releases/scout-1.4.7-owner-20261028/ScoutSetup.exe') &&
       downloadHandler.includes("filename: 'ScoutSetup.exe'"));
     check('private Scout installer checksum is pinned to the verified artifact',
-      downloadHandler.includes('4af74d957ce2ac83055001c50211788f3956c8323e31ca62afd1a9a7dbdf4b05'));
+      downloadHandler.includes('741e428ba4992ed5c7e571b1012b6988c2c7925177740a43d0590e1749b6b24f'));
     check('download guidance uses installer branding, not ZIP extraction or RadarVan',
       ui.includes('Run ScoutSetup.exe to install Classbuster Scout') &&
       !ui.includes('Extract the ZIP') && !ui.includes('RadarVan.exe'));
