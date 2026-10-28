@@ -2,9 +2,9 @@
 import { issueSignedToken, presignUrl } from '@vercel/blob';
 import { accountEntitlement, radarVanEnabled } from './radar-van.js';
 
-// Owner-authorized delivery receipt release, 2026-10-28. Private, unsigned 1.4.7.
-const PATHNAME = 'releases/scout-1.4.7-owner-20261028/ScoutSetup.exe';
-const SHA256 = '741e428ba4992ed5c7e571b1012b6988c2c7925177740a43d0590e1749b6b24f';
+// Owner-authorized delivery receipt release, 2026-10-28. Private, unsigned 1.4.8.
+const PATHNAME = 'releases/scout-1.4.8-owner-20261028/ScoutSetup.exe';
+const SHA256 = '439e24d54b250be9eeefceaf97b2036f51d9845a72eebf57d40306d6d41d6d57';
 
 function reply(res, status, body) {
   res.setHeader?.('Cache-Control', 'private, no-store');
@@ -33,7 +33,7 @@ export default async function handleScoutDownload(req, res) {
         !/^https:\/\/[a-z0-9]+\.private\.blob\.vercel-storage\.com\//i.test(presignedUrl))
       throw new Error('Bad private Blob URL');
     return reply(res, 200, {
-      version: '1.4.7', filename: 'ScoutSetup.exe',
+      version: '1.4.8', filename: 'ScoutSetup.exe',
       sha256: SHA256, downloadUrl: presignedUrl, expiresAt
     });
   } catch (err) {
