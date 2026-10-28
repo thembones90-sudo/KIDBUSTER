@@ -17,6 +17,7 @@ module.exports=async function run(){
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('file://'+path.join(__dirname,'..','index.html'));
   await page.setViewport({width:1280,height:900});
+  console.log('Royal browser capabilities',JSON.stringify(await page.evaluate(()=>({hover:matchMedia('(hover:hover)').matches,fine:matchMedia('(pointer:fine)').matches,reduced:matchMedia('(prefers-reduced-motion:reduce)').matches,visible:document.visibilityState}))),await browser.version());
 
   const initial=await page.evaluate(()=>{
    const track=document.getElementById('ratingTrack');
@@ -74,6 +75,7 @@ module.exports=async function run(){
   check('Critical has a decorative SVG siren, ordinary title, and exact 40px height',
     critical.svg==='http://www.w3.org/2000/svg'&&critical.path&&critical.decorative==='true'&&critical.title==='1/5'&&critical.height===40&&critical.idle==='none');
   await page.hover(criticalSelector);
+  console.log('Royal hover target',JSON.stringify(await page.$eval(criticalSelector,e=>({hover:e.matches(':hover'),top:e.getBoundingClientRect().top,bottom:e.getBoundingClientRect().bottom}))));
   const sirenStart=await page.$eval(criticalSelector+' .rating-siren',e=>({name:getComputedStyle(e).animationName,filter:getComputedStyle(e).filter}));
   await new Promise(resolve=>setTimeout(resolve,350));
   const sirenLater=await page.$eval(criticalSelector+' .rating-siren',e=>getComputedStyle(e).filter);

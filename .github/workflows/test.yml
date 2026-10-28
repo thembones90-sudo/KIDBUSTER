@@ -34,5 +34,8 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Verify desktop hover contract
+        run: node tests/test-royal-rating-ui.cjs
+
       - name: Run test suite
         run: npm test
