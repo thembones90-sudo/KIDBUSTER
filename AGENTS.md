@@ -1,3 +1,15 @@
+# Current release: Scout 1.4.9 morph polish
+
+2026-10-28 owner-requested animation polish is installed and published.
+Web runtime 85ec3bd; deployment dpl_95DgJhi9rppmekDwGzX9owE5dn2v.
+Classbuster and legacy webhook domain each pass exact bytes, five probes and
+24/24 smoke checks; all 120 website test files pass. Desktop 1049 tests (one
+skip), 173 frozen checks and CPU/media verification pass. Native current is
+scout-1.4.9-morph-polish-20261028-r3 with 1.4.8 rollback; profile unchanged.
+Private installer SHA256 b743fe70b195160912f710fc631e8c24faf198e79401b1fd70ba75a6612cffbb.
+See SCOUT-149-MORPH-POLISH-20261028.md. Preserve master-only authorization.
+Web rollback dpl_FVopodwpNGLgcfuHQ3zsMshhXo7h. Never interrupt an active class.
+
 # Classbuster — Instructions for Coding Agents
 
 2026-10-28 latest release: Scout compact morph installer 1.4.8, website commit

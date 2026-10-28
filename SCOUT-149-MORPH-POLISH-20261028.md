@@ -20,3 +20,15 @@ Source runtime 6e6340f, final Windows version resources 486d177.
 - Web rollback: dpl_FVopodwpNGLgcfuHQ3zsMshhXo7h.
 
 Final website suite, candidate and live release checks follow publication.
+
+## Completed publication
+
+- Clean full website suite: ALL 120 TEST FILES PASSED.
+- Web runtime commit 85ec3bd; immutable export .v2-tmp/deploy-85ec3bd.
+- Staged production candidate kidbuster-4s7zlzh6n-thembones90-sudos-projects.vercel.app.
+- Deployment dpl_95DgJhi9rppmekDwGzX9owE5dn2v, promoted after candidate checks.
+- Candidate, classbuster.com and legacy webhook domain each passed exact released
+  bytes, five additional refusal probes and 24/24 live smoke checks.
+- Previous production dpl_FVopodwpNGLgcfuHQ3zsMshhXo7h retained as rollback.
+- No real customer report, account changes, lesson capture or delivery was used
+  for verification. Owner account/plan/report generation was not repeated.
