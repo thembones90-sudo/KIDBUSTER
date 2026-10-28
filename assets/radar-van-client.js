@@ -23,6 +23,25 @@
   var RECEIPT_KEY = 'radarvan_ack_receipts_v1', RECEIPT_TTL_MS = 24 * 60 * 60 * 1000, RECEIPT_MAX = 25, RECEIPT_SCOPES = 5;
   var ACK_RETRY_BASE_MS = 15000, ACK_RETRY_MAX_MS = 600000, ACK_RETRY_LIMIT = 8;
   var MEETING_ID = /^rv:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  // Desktop receipt links carry only a lesson ID; remove it from address/history
+  // before looking up the lesson through the currently authenticated account.
+  var receiptTarget = (function(){
+    try {
+      var query = new URLSearchParams(window.location.search);
+      if(!query.has('scout-receipt')) return null;
+      var value = query.get('scout-receipt');
+      query.delete('scout-receipt');
+      window.history.replaceState(window.history.state, '', window.location.pathname +
+        (query.toString() ? '?' + query.toString() : '') + window.location.hash);
+      return MEETING_ID.test(value || '') ? value : null;
+    } catch(e) { return null; }
+  })();
+  state.receiptTarget = receiptTarget;
+  // In this tab, the receipt is read-only. No automatic lease/import may run.
+  state.receiptMode = !!receiptTarget;
+  state.receiptVisited = false;
+
+
 
   function loadReceipts(){
     var data = null, now = Date.now();
@@ -128,6 +147,31 @@
       ?items.length+(items.length===1?' Scout transcript awaiting review.':' Scout transcripts awaiting review.')
       :'No Scout transcripts pending.';
     announcePending(true,items.length);
+    focusReceiptLesson(items, group, list);
+  }
+  function focusReceiptLesson(items, group, list){
+    if(!state.receiptMode || !state.receiptTarget) return;
+    var target = state.receiptTarget;
+    var notice = document.getElementById('radarVanReceiptNotice');
+    if(!notice){
+      notice = document.createElement('p');
+      notice.id = 'radarVanReceiptNotice';
+      notice.className = 'radar-van-receipt-notice';
+      notice.setAttribute('role', 'status');
+      group.insertBefore(notice, list);
+    }
+    var found = items.some(function(item){ return item.meetingId === target; });
+    notice.textContent = found
+      ? 'Delivered lesson found. Review it below. Opening this receipt never imports into your notes.'
+      : 'This lesson is not available in this account\'s Pending transcripts. It may have been imported, expired, or delivered elsewhere. Your notes were not changed.';
+    var li = Array.prototype.find.call(list.children,function(el){ return el.dataset.meetingId === target; });
+    if(li) li.classList.add('radar-van-receipt-target');
+    if(!state.receiptVisited){
+      state.receiptVisited = true;
+      var panel = document.getElementById('krispInboxPanel');
+      try{ if(panel && !panel.matches(':popover-open')) panel.showPopover(); }catch(e){}
+      if(li){ try{ li.scrollIntoView({block:'nearest'}); }catch(e){} }
+    }
   }
   function hideAll(){
     Object.keys(pendingDismiss).forEach(function(id){ clearTimeout(pendingDismiss[id].timer); });
@@ -451,7 +495,7 @@
     try{
       await currentScope();
       if(key !== savedKey()) return;
-      var r = await api('GET', null, !state.inboxOnly && workspaceIdle() && !Object.keys(pendingDismiss).length, sinceVersion());
+      var r = await api('GET', null, !state.receiptMode && !state.inboxOnly && workspaceIdle() && !Object.keys(pendingDismiss).length, state.receiptMode ? null : sinceVersion());
       if(r === null) return;
       if(r.status === 404 || r.status === 403 || r.status === 401){ hideAll(); stopPolling(); state.failures = 0; state.disabled = true; maybePair(false); return; }
       if(!r.ok){ state.failures++; if(!section.hidden) say('Scout is temporarily unreachable. Retrying shortly.'); return; }
@@ -470,7 +514,7 @@
       // Empty notes and report: the leased lesson is imported automatically.
       // Occupied workspace: no lease is requested, nothing is overwritten and
       // the lesson stays in Pending transcripts for manual import.
-      if(r.data.matched) await settleMatched(r.data.matched);
+      if(r.data.matched && !state.receiptMode) await settleMatched(r.data.matched);
       await retryReceipts(); // after settleMatched: a leased, already-imported record must not be re-applied
     }catch(e){
       state.failures++;
@@ -553,6 +597,22 @@
   if(openPending) openPending.addEventListener('click', function(){
     var panel = document.getElementById('krispInboxPanel');
     try{ if(panel && !panel.matches(':popover-open')) panel.showPopover(); }catch(e){}
+  });
+
+  // Leaving receipt review restores automatic import for subsequent lessons.
+  // No automatic claim occurs while the receipt popover is being inspected.
+  var receiptPanel = document.getElementById('krispInboxPanel');
+  if(receiptPanel) receiptPanel.addEventListener('toggle', function(event){
+    if(!state.receiptMode || (event.newState !== 'closed' && receiptPanel.matches(':popover-open'))) return;
+    state.receiptMode = false;
+    state.receiptTarget = null;
+    state.receiptVisited = false;
+    var notice = document.getElementById('radarVanReceiptNotice');
+    if(notice) notice.remove();
+    receiptPanel.querySelectorAll('.radar-van-receipt-target').forEach(function(card){
+      card.classList.remove('radar-van-receipt-target');
+    });
+    if(savedKey()) pollSoon();
   });
 
   var pollSoonTimer = null;
