@@ -11,7 +11,7 @@ module.exports=async function run(){
  try{puppeteer=require('puppeteer');}
  catch(e){console.log('SKIPPED - no browser:',e.message);return 0;}
  const chrome='C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
- const browser=await puppeteer.launch({args:['--no-sandbox'],...(fs.existsSync(chrome)?{executablePath:chrome}:{})});
+ const browser=await puppeteer.launch({headless:process.env.CLASSBUSTER_TEST_HEADED!=='1',args:['--no-sandbox'],...(fs.existsSync(chrome)?{executablePath:chrome}:{})});
  try{
   const page=await browser.newPage();
   const errors=[];page.on('pageerror',e=>errors.push(e.message));

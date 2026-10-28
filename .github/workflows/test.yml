@@ -12,6 +12,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      CLASSBUSTER_TEST_HEADED: '1'
     steps:
       - uses: actions/checkout@v4
 
@@ -35,7 +37,7 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
 
       - name: Verify desktop hover contract
-        run: node tests/test-royal-rating-ui.cjs
+        run: xvfb-run --auto-servernum node tests/test-royal-rating-ui.cjs
 
       - name: Run test suite
-        run: npm test
+        run: xvfb-run --auto-servernum npm test

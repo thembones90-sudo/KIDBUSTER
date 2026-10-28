@@ -22,7 +22,9 @@ process.env.KIDBUSTER_TEST_KV = '1';
 // explicitly emulate both device themes and saved overrides independently.
 const puppeteer = require('puppeteer');
 const launchBrowser = puppeteer.launch.bind(puppeteer);
-puppeteer.launch = options => launchBrowser({...options,args:[...(options?.args||[]),'--force-dark-mode']});
+// CI uses a private Xvfb desktop: Linux headless advertises no hover/fine pointer.
+// Keep the real desktop-hover assertions active instead of bypassing their CSS.
+puppeteer.launch = options => launchBrowser({...options,...(process.env.CLASSBUSTER_TEST_HEADED==='1'?{headless:false}:{}),args:[...(options?.args||[]),'--force-dark-mode']});
 
 const TESTS_DIR = __dirname;
 
