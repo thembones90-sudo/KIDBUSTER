@@ -1,3 +1,17 @@
+# Current website hardening release — 2026-10-28
+
+Steps 1–2 of the owner-approved six-step plan are complete. Node 24/npm ci CI
+passes on GitHub (run 40765947366, source 08640f9). Linux browser tests use
+runner Chrome on an isolated Xvfb desktop; keep desktop-hover assertions and
+actual client-viewport sizing checks. The scoped @vercel/cli-config Zod 4.6.6
+override removes the production advisory without downgrading Blob 2.8.2.
+Runtime deployment source 08fad4d, dpl_HXofzYN6HGrwVJ8Q7oLXETSknJLw, is live
+on Classbuster and the legacy webhook domain. Both passed exact bytes, five
+probes and 24/24 smoke. Rollback dpl_95DgJhi9rppmekDwGzX9owE5dn2v.
+See PROJECT-HARDENING-20261028.md. Step 3 retention scope is awaiting owner
+input; no retention purge has run. Owner has no signing credential for step 4.
+Scout is still installed/selected 1.4.9. Steps 3–6 are not complete.
+
 # Current release: Scout 1.4.9 morph polish
 
 2026-10-28 owner-requested animation polish is installed and published.
