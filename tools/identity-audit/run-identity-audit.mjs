@@ -12,6 +12,7 @@
 // The output file holds masked emails, hashes and key fingerprints only.
 import { writeFileSync, readFileSync } from 'node:fs';
 import crypto from 'node:crypto';
+import { isAbsolute } from 'node:path';
 
 const args = process.argv.slice(2);
 const arg = (name, fallback = null) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : fallback; };
@@ -20,7 +21,7 @@ const out = arg('--out');
 const maxPages = Math.max(1, Math.min(500, Number(arg('--max-pages', '50')) || 50));
 const ownerKey = process.env.CLASSBUSTER_OWNER_KEY || '';
 if(!ownerKey) throw new Error('Set CLASSBUSTER_OWNER_KEY in the environment (never pass it as an argument).');
-if(!out || !/^[A-Z]:[\\/]/i.test(out)) throw new Error('--out must be an absolute A:\\ path.');
+if(!out || !isAbsolute(out)) throw new Error('--out must be an absolute path.');
 
 async function admin(body){
   const response = await fetch(base + '/api/admin-license-lookup', {

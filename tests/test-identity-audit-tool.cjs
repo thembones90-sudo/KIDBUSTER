@@ -62,13 +62,16 @@ module.exports = async function run(){
     await new Promise(r => server.listen(0, '127.0.0.1', r));
     const base = 'http://127.0.0.1:' + server.address().port;
 
-    const runTool = (extraArgs, env) => new Promise(resolve => {
-      const child = spawn(process.execPath, [path.join(ROOT, 'tools', 'identity-audit', 'run-identity-audit.mjs'), '--base', base, '--out', outFile, ...extraArgs],
+    const runTool = (extraArgs, env, targetOut = outFile) => new Promise(resolve => {
+      const child = spawn(process.execPath, [path.join(ROOT, 'tools', 'identity-audit', 'run-identity-audit.mjs'), '--base', base, '--out', targetOut, ...extraArgs],
         { env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
       let stdout = '', stderr = '';
       child.stdout.on('data', d => stdout += d); child.stderr.on('data', d => stderr += d);
       child.on('close', code => resolve({ code, stdout, stderr }));
     });
+
+    const relative = await runTool([], { CLASSBUSTER_OWNER_KEY: 'audit_tool_owner' }, 'relative-report.json');
+    check('relative audit output paths remain forbidden', relative.code !== 0 && relative.stderr.includes('absolute path'));
 
     const refused = await runTool([], { CLASSBUSTER_OWNER_KEY: 'not-the-owner' });
     check('the tool fails for a non-owner key', refused.code !== 0);

@@ -20,6 +20,14 @@ jobs:
           node-version: '24.x'
           cache: npm
 
+      - name: Select runner Chrome
+        shell: bash
+        run: |
+          chrome=$(command -v google-chrome || command -v google-chrome-stable)
+          test -n "$chrome"
+          echo "PUPPETEER_EXECUTABLE_PATH=$chrome" >> "$GITHUB_ENV"
+          "$chrome" --version
+
       - name: Install locked dependencies
         run: npm ci
 
