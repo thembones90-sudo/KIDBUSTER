@@ -11,9 +11,10 @@
 // stable license identity, resolved the same way, so pending imports
 // survive token regeneration and Krisp reconnects. See
 // _lib/krisp-token.js for the token<->identity design.
-import { isEntitledToKrisp, readImportQueue, writeImportQueue, krispRetentionDays } from './_lib/krisp-retention.js';
+import { isEntitledToKrisp, readImportQueue, writeImportQueue, krispRetentionDays, krispRetentionMs } from './_lib/krisp-retention.js';
 import { getOrCreateKrispToken, regenerateKrispToken, disconnectKrisp, KrispTokenBusyError } from './_lib/krisp-token.js';
 import crypto from 'crypto';
+import { rememberLegacyTranscript } from './_lib/transcript-retention.js';
 import { krispWebhookUrlForToken } from './_lib/krisp-webhook-url.js';
 import { kv, acquirePaymentLock, releasePaymentLock } from './_lib/kv-client.js';
 
@@ -164,6 +165,7 @@ export default async function handler(req, res){
       if(head){
         head.leasedUntil=nowMs+MATCHED_LEASE_MS;
         head.deliveryCount=(head.deliveryCount||0)+1;
+        await rememberLegacyTranscript(matchedQueueKey,head,krispRetentionMs(),nowMs);
         matched={...head};
         delete matched.leasedUntil;delete matched.deliveryCount;
       }
@@ -225,6 +227,7 @@ export default async function handler(req, res){
         const pending=await readImportQueue(pendingKey);
         const index=pending.findIndex(item=>item.meetingId===meetingId);
         if(index===-1)return null;
+        await rememberLegacyTranscript(pendingKey,pending[index],krispRetentionMs());
         const [claimed]=pending.splice(index,1);
         await writeImportQueue(pendingKey,pending);
         return {claimed,pendingCount:pending.length};

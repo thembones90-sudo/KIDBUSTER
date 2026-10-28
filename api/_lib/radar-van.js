@@ -14,6 +14,7 @@
 //                                 every change a session view can show, so an
 //                                 idle poll is one MGET instead of a full read
 import crypto from 'node:crypto';
+import { transcriptDeadline, readTranscriptQueue, writeTranscriptQueue } from './transcript-retention.js';
 import { scoutStudentLabel } from './scout-student-name.js';
 import { kv, acquirePaymentLock, releasePaymentLock, incrementWindowCounter } from './kv-client.js';
 import { isFounderLicenseKey } from './licensing.js';
@@ -410,22 +411,16 @@ export function serializedBodyBytes(body){
 }
 
 // ---------- queues ----------
-function receivedMs(item){ const ms = Date.parse(item && item.receivedAt); return Number.isFinite(ms) ? ms : null; }
 function prune(items, nowMs){
   if(!Array.isArray(items)) return [];
-  return items.filter(item => item && typeof item.meetingId === 'string' && receivedMs(item) !== null && receivedMs(item) > nowMs - RETENTION_MS);
+  return items.filter(item => item && typeof item.meetingId === 'string' && transcriptDeadline(item, RETENTION_MS) > nowMs);
 }
 async function readQueue(key, nowMs){
   const raw = await kv.get(key);
-  const live = prune(raw, nowMs);
-  return { items: live, pruned: Array.isArray(raw) ? raw.length !== live.length : false };
+  return readTranscriptQueue(key, raw, RETENTION_MS, nowMs);
 }
 async function writeQueue(key, items, nowMs){
-  const live = prune(items, nowMs);
-  if(!live.length){ await kv.del(key); return live; }
-  const newest = Math.max(...live.map(receivedMs));
-  await kv.set(key, live, { ex: Math.max(1, Math.ceil((newest + RETENTION_MS - nowMs) / 1000)) });
-  return live;
+  return writeTranscriptQueue(key, prune(items, nowMs), RETENTION_MS, nowMs);
 }
 
 function summary(record){

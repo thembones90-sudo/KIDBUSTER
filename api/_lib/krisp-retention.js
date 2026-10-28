@@ -17,6 +17,7 @@ import {
   getLicense, isFounderLicenseKey, isLicenseExpired, effectiveSubscriptionLicense
 } from './licensing.js';
 import { kv } from './kv-client.js';
+import { transcriptDeadline, readTranscriptQueue, writeTranscriptQueue } from './transcript-retention.js';
 
 export const DEFAULT_RETENTION_DAYS = 14;
 export const MAX_RETENTION_DAYS = 90;
@@ -30,49 +31,32 @@ export function krispRetentionMs(){
   return krispRetentionDays() * 24 * 60 * 60 * 1000;
 }
 
-function receivedMs(item){
-  const ms = Date.parse(item && item.receivedAt);
-  return Number.isFinite(ms) ? ms : null;
-}
 
 // Drops records past their retention window. A record whose receipt time
 // cannot be read is treated as expired: for privacy, unknown age is not
 // permitted to mean "keep forever".
 export function pruneExpiredImports(items, nowMs = Date.now()){
   if(!Array.isArray(items)) return [];
-  const cutoff = nowMs - krispRetentionMs();
   return items.filter(item => {
-    const ms = receivedMs(item);
-    return ms !== null && ms > cutoff;
+    return transcriptDeadline(item, krispRetentionMs()) > nowMs;
   });
 }
 
 // Seconds until the NEWEST remaining record expires (at least 1). The key
 // must outlive every record it still holds, so the newest one decides.
 export function queueTtlSeconds(items, nowMs = Date.now()){
-  let newest = null;
-  for(const item of items){
-    const ms = receivedMs(item);
-    if(ms !== null && (newest === null || ms > newest)) newest = ms;
-  }
-  if(newest === null) return 1;
-  return Math.max(1, Math.ceil((newest + krispRetentionMs() - nowMs) / 1000));
+  const deadlines = items.map(item => transcriptDeadline(item, krispRetentionMs())).filter(Number.isFinite);
+  return Math.max(1, Math.ceil(((deadlines.length ? Math.max(...deadlines) : nowMs) - nowMs) / 1000));
 }
 
 export async function readImportQueue(key, nowMs = Date.now()){
-  return pruneExpiredImports((await kv.get(key)) || [], nowMs);
+  return (await readTranscriptQueue(key, await kv.get(key), krispRetentionMs(), nowMs)).items;
 }
 
 // Writes an already-pruned queue with its storage-level expiry, or deletes
 // the key when nothing is left.
 export async function writeImportQueue(key, items, nowMs = Date.now()){
-  const live = pruneExpiredImports(items, nowMs);
-  if(live.length === 0){
-    await kv.del(key);
-    return live;
-  }
-  await kv.set(key, live, { ex: queueTtlSeconds(live, nowMs) });
-  return live;
+  return writeTranscriptQueue(key, pruneExpiredImports(items, nowMs), krispRetentionMs(), nowMs);
 }
 
 export async function isEntitledToKrisp(licenseKey){

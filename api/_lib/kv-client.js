@@ -40,8 +40,8 @@ const localKv = {
       const existing=localData[key];
       if(!existing.until || existing.until > Date.now()) return null;
     }
-    const until=Number.isInteger(options?.ex) && options.ex > 0
-      ? Date.now() + options.ex*1000 : null;
+    const until=Number.isSafeInteger(options?.pxat) ? options.pxat :
+      Number.isInteger(options?.ex) && options.ex > 0 ? Date.now() + options.ex*1000 : null;
     localData[key]={value,until};persistLocal();return 'OK';
   },
   async del(key){const found=Object.hasOwn(localData,key);delete localData[key];persistLocal();return found?1:0;},
@@ -108,7 +108,8 @@ const memoryKv = {
     }
     if(options?.nx === true && memoryStore.has(key)) return null;
     memoryStore.set(key, value);
-    if(Number.isInteger(options?.ex) && options.ex>0)
+    if(Number.isSafeInteger(options?.pxat)) memoryExpiry.set(key,options.pxat);
+    else if(Number.isInteger(options?.ex) && options.ex>0)
       memoryExpiry.set(key,Date.now()+options.ex*1000);
     else memoryExpiry.delete(key);
     return 'OK';
