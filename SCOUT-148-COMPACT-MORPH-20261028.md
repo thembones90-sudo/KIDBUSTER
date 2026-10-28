@@ -29,3 +29,18 @@ recording, lesson data or production customer report is used for verification.
 
 Pre-release web rollback dpl_9vaEYfvwLc1z7LXorNLxYpa38keQ; desktop rollback
 1.4.7. Candidate/live checks and the final source-suite result follow publication.
+
+## Completed publication
+
+- Clean full desktop suite on the isolated native desktop: 1046 tests, one skip,
+  PASS; no Tcl callback/traceback warnings. Seven morph/lifecycle tests included.
+- Web commit 843b416; immutable export .v2-tmp/deploy-843b416.
+- Production deployment dpl_FVopodwpNGLgcfuHQ3zsMshhXo7h.
+- Candidate kidbuster-pmf172mkl-thembones90-sudos-projects.vercel.app was staged
+  with --prod --skip-domain before promotion.
+- Candidate, classbuster.com and kidbuster.vercel.app each passed exact released
+  bytes, five extra refusal probes and 24/24 live checks.
+- Native 1.4.8 installation/current pointer and executable checksum verified.
+  Permanent profile preserved, rollback 1.4.7. Last process check still showed
+  1.4.7; no forced restart, pending the guarded idle handover.
+- No real owner-generated report or lesson was used during verification.

@@ -1,5 +1,14 @@
 # Classbuster — Instructions for Coding Agents
 
+2026-10-28 latest release: Scout compact morph installer 1.4.8, website commit
+843b416, deployment dpl_FVopodwpNGLgcfuHQ3zsMshhXo7h on Classbuster and the
+legacy webhook address. See SCOUT-148-COMPACT-MORPH-20261028.md. All 120 web
+files and staged/live/legacy exact bytes, five probes and 24/24 smoke passed.
+Desktop 1.4.8 is installed/selected, hash-verified, with 1.4.7 retained for
+rollback; last process check still showed 1.4.7, awaiting guarded idle handover.
+Do not interrupt a class to activate it. The private route/client cache tag
+both reference 1.4.8. Web rollback dpl_9vaEYfvwLc1z7LXorNLxYpa38keQ.
+
 2026-10-28 latest release: 18d9f43, deployment
 dpl_9vaEYfvwLc1z7LXorNLxYpa38keQ, verified on classbuster.com and the legacy
 webhook domain. Private Scout download and running native installation are
