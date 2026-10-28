@@ -417,7 +417,8 @@ function prune(items, nowMs){
 }
 async function readQueue(key, nowMs){
   const raw = await kv.get(key);
-  return readTranscriptQueue(key, raw, RETENTION_MS, nowMs);
+  const read = await readTranscriptQueue(key, prune(raw, nowMs), RETENTION_MS, nowMs);
+  return { items: read.items, pruned: Array.isArray(raw) && raw.length !== read.items.length };
 }
 async function writeQueue(key, items, nowMs){
   return writeTranscriptQueue(key, prune(items, nowMs), RETENTION_MS, nowMs);

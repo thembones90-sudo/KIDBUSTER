@@ -94,6 +94,10 @@ module.exports = async function(){
       assert.equal(sent.length,2);
       for(const command of sent){const i=command.findIndex(x=>String(x).toLowerCase()==='pxat');assert(i>0&&command[i+1]===now+HOUR,'real SDK must serialize the absolute expiry');}
     }finally{globalThis.fetch=oldFetch;}
+    const radar=await import('../api/_lib/radar-van.js');
+    const badQueue=radar.radarKeys.pending('synthetic-corrupt-index');
+    await kv.set(badQueue,[{receivedAt:new Date(now).toISOString(),transcript:'missing stable identity'}]);
+    assert.equal((await radar.readRadarSession('synthetic-corrupt-index')).waitingCount,0,'Scout still rejects corrupt legacy items without IDs');
     console.log('PASS independent body expiry, mixed legacy inbox, lease/move timing, account isolation and failed publication');
     return 0;
   }finally{kv.set=originalSet;Date.now=originalNow;__resetForTests();}
