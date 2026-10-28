@@ -33,7 +33,7 @@ function contentKey(queueKey, record){
 
 function legacyReceiptKey(queueKey, meetingId){
   const base = queueKey.replace(/:(pending|matched|matchedQueue)$/, '');
-  return base + ':legacy-retention:' + crypto.createHash('sha256').update(meetingId).digest('hex');
+  return base + ':legacy-retention:' + crypto.createHash('sha256').update(String(meetingId)).digest('hex');
 }
 
 // A legacy item consumed by a browser may be deferred back to the inbox.
@@ -48,7 +48,8 @@ export async function rememberLegacyTranscript(key, record, legacyMs, nowMs = Da
 }
 
 export async function prepareDeferredTranscript(key, record, legacyMs, nowMs = Date.now()){
-  const receipt = await kv.get(legacyReceiptKey(key, record.meetingId));
+  const receipt = record.retentionVersion === 1 ? null :
+    await kv.get(legacyReceiptKey(key, record.meetingId));
   if(receipt?.meetingId === record.meetingId && receipt.deadline > nowMs &&
       Date.parse(receipt.receivedAt) + legacyMs === receipt.deadline){
     return { ...record, receivedAt: receipt.receivedAt };
@@ -59,7 +60,7 @@ export async function prepareDeferredTranscript(key, record, legacyMs, nowMs = D
 
 export async function readTranscriptQueue(key, raw, legacyMs, nowMs = Date.now()){
   if(!Array.isArray(raw)) return { items: [], pruned: false };
-  const live = raw.filter(record => record && (record.retentionVersion === undefined || typeof record.meetingId === 'string') &&
+  const live = raw.filter(record => record && (record.retentionVersion === undefined || typeof record.meetingId === 'string' || Number.isFinite(record.meetingId)) &&
     transcriptDeadline(record, legacyMs) > nowMs);
   const refs = live.filter(record => record.retentionVersion === 1 && record.contentRef);
   const valid = refs.filter(record => record.contentRef === contentKey(key, record));

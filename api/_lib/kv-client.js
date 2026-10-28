@@ -30,7 +30,7 @@ const localKv = {
   async get(key){
     const item=localData[key];
     if(!item) return null;
-    if(item.until && item.until <= Date.now()){
+    if(item.until != null && item.until <= Date.now()){
       delete localData[key];persistLocal();return null;
     }
     return item.value;
@@ -38,7 +38,7 @@ const localKv = {
   async set(key,value,options){
     if(options?.nx === true && Object.hasOwn(localData,key)){
       const existing=localData[key];
-      if(!existing.until || existing.until > Date.now()) return null;
+      if(existing.until == null || existing.until > Date.now()) return null;
     }
     const until=Number.isSafeInteger(options?.pxat) ? options.pxat :
       Number.isInteger(options?.ex) && options.ex > 0 ? Date.now() + options.ex*1000 : null;
@@ -93,7 +93,7 @@ const memoryKv = {
   async get(key){
     failIfOutage();
     const expires=memoryExpiry.get(key);
-    if(expires && expires <= Date.now()){
+    if(expires !== undefined && expires <= Date.now()){
       memoryExpiry.delete(key);memoryStore.delete(key);
     }
     return memoryStore.has(key) ? memoryStore.get(key) : null;
@@ -103,7 +103,7 @@ const memoryKv = {
     // No await between checking and setting: this is the single-process
     // in-memory equivalent of Redis atomic SET NX.
     const priorExpiry=memoryExpiry.get(key);
-    if(priorExpiry && priorExpiry <= Date.now()){
+    if(priorExpiry !== undefined && priorExpiry <= Date.now()){
       memoryExpiry.delete(key);memoryStore.delete(key);
     }
     if(options?.nx === true && memoryStore.has(key)) return null;
@@ -121,6 +121,10 @@ const memoryKv = {
   },
   async getdel(key){
     failIfOutage();
+    const expires = memoryExpiry.get(key);
+    if(expires !== undefined && expires <= Date.now()){
+      memoryStore.delete(key);memoryExpiry.delete(key);return null;
+    }
     if(!memoryStore.has(key)) return null;
     const value = memoryStore.get(key);
     memoryStore.delete(key);

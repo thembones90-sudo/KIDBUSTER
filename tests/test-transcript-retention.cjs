@@ -16,6 +16,12 @@ module.exports = async function(){
     title:'Private lesson '+id,detectedStudentName:'Synthetic Student',transcript:'Private transcript '+id});
   try{
     __resetForTests();
+    await kv.set('synthetic-past-expiry',{text:'expired'},{pxat:0});
+    assert.equal(await kv.getdel('synthetic-past-expiry'),null,'absolute expiry also applies to atomic reads');
+    const numeric=markNewTranscript(record(42),now);
+    await writeTranscriptQueue(matched,[numeric],LEGACY,now);
+    assert.equal((await load(matched))[0].meetingId,42,'legacy numeric provider IDs keep their identity');
+    await kv.del(matched);
     const legacy = record('legacy',now-13*HOUR);
     await rememberLegacyTranscript(pending,legacy,LEGACY,now);
     const deferredOld=await prepareDeferredTranscript(pending,{...legacy,receivedAt:new Date(now).toISOString()},LEGACY,now);
@@ -23,6 +29,8 @@ module.exports = async function(){
     assert.equal(deferredOld.retentionVersion,undefined);
     const forgedOld=await prepareDeferredTranscript(pending,record('not-legacy'),LEGACY,now);
     assert.equal(forgedOld.retentionVersion,1,'client cannot declare a new transcript legacy');
+    const newlyReusedId=markNewTranscript({...legacy},now);
+    assert.equal((await prepareDeferredTranscript(pending,newlyReusedId,LEGACY,now)).retentionVersion,1,'new receipt cannot inherit an older legacy window');
     const first = markNewTranscript(record('first'),now);
     await writeTranscriptQueue(pending,[legacy,first],LEGACY,now);
     const raw = await kv.get(pending), ref = raw.find(x=>x.meetingId==='first');
@@ -72,6 +80,20 @@ module.exports = async function(){
     const bad=markNewTranscript(record('bad'),now);bad.retentionExpiresAt+=HOUR;
     await writeTranscriptQueue(pending,[bad],LEGACY,now);
     assert.equal(await kv.get(pending),null,'malformed expiry cannot extend retention');
+    const oldFetch=globalThis.fetch;
+    try{
+      const sent=[];
+      globalThis.fetch=async(_url,options)=>{
+        const body=JSON.parse(options.body);sent.push(...(Array.isArray(body[0])?body:[body]));
+        return new Response(JSON.stringify(Array.isArray(body[0])?body.map(()=>({result:'OK'})):{result:'OK'}),{headers:{'content-type':'application/json'}});
+      };
+      const {createClient}=await import('@vercel/kv');
+      const client=createClient({url:'https://synthetic-retention.invalid',token:'synthetic-not-a-secret',enableAutoPipelining:false});
+      await client.set('synthetic-direct',{value:true},{pxat:now+HOUR});
+      await client.pipeline().set('synthetic-pipeline',{value:true},{pxat:now+HOUR}).exec();
+      assert.equal(sent.length,2);
+      for(const command of sent){const i=command.findIndex(x=>String(x).toLowerCase()==='pxat');assert(i>0&&command[i+1]===now+HOUR,'real SDK must serialize the absolute expiry');}
+    }finally{globalThis.fetch=oldFetch;}
     console.log('PASS independent body expiry, mixed legacy inbox, lease/move timing, account isolation and failed publication');
     return 0;
   }finally{kv.set=originalSet;Date.now=originalNow;__resetForTests();}
