@@ -31,7 +31,7 @@ module.exports = async function(){
     assert.equal(forgedOld.retentionVersion,1,'client cannot declare a new transcript legacy');
     const newlyReusedId=markNewTranscript({...legacy},now);
     assert.equal((await prepareDeferredTranscript(pending,newlyReusedId,LEGACY,now)).retentionVersion,1,'new receipt cannot inherit an older legacy window');
-    const first = markNewTranscript(record('first'),now);
+    const first = markNewTranscript({...record('first'),assigned:true},now);
     await writeTranscriptQueue(pending,[legacy,first],LEGACY,now);
     const raw = await kv.get(pending), ref = raw.find(x=>x.meetingId==='first');
     assert(!JSON.stringify(ref).includes('Private')&&!JSON.stringify(ref).includes('Synthetic Student'));
@@ -56,7 +56,10 @@ module.exports = async function(){
     assert((await kv.get(secondRef.contentRef)).transcript===second.transcript,'later arrival retains its own window');
     const remaining=await load(pending);
     assert.deepEqual(remaining.map(x=>x.meetingId),['legacy','second']);
-    await writeTranscriptQueue(matched,[remaining[1]],LEGACY,now);
+    await writeTranscriptQueue(matched,[{...remaining[1],assigned:true}],LEGACY,now);
+    await writeTranscriptQueue(pending,[remaining[0],{...remaining[1],assigned:false,deferred:true}],LEGACY,now);
+    assert.equal((await load(matched))[0].assigned,true,'shared body keeps per-queue delivery metadata independent');
+    assert.equal((await load(pending))[1].assigned,false);
     const moved=(await kv.get(matched))[0];
     assert.equal(moved.contentRef,secondRef.contentRef,'queue moves retain account-scoped body identity');
     assert.equal(moved.retentionExpiresAt,second.retentionExpiresAt);

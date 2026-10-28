@@ -14,7 +14,7 @@
 import { isEntitledToKrisp, readImportQueue, writeImportQueue, krispRetentionDays, krispRetentionMs } from './_lib/krisp-retention.js';
 import { getOrCreateKrispToken, regenerateKrispToken, disconnectKrisp, KrispTokenBusyError } from './_lib/krisp-token.js';
 import crypto from 'crypto';
-import { rememberLegacyTranscript } from './_lib/transcript-retention.js';
+import { rememberLegacyTranscript, prepareDeferredTranscript, transcriptDeadline } from './_lib/transcript-retention.js';
 import { krispWebhookUrlForToken } from './_lib/krisp-webhook-url.js';
 import { kv, acquirePaymentLock, releasePaymentLock } from './_lib/kv-client.js';
 
@@ -90,6 +90,7 @@ function normalizeDeferredImport(record){
     startTime: record.startTime || record.meetingStartTime || null,
     durationSeconds: Number.isFinite(Number(record.durationSeconds)) ? Number(record.durationSeconds) : null,
     receivedAt: record.receivedAt || new Date(Date.now()).toISOString(),
+    ...(record.retentionVersion === 1 ? { retentionVersion: 1 } : {}),
     assigned: false,
     deferred: true
   };
@@ -246,13 +247,25 @@ export default async function handler(req, res){
       }
       const deferred=await withMutationLock(async()=>{
         const pending=await readImportQueue(pendingKey);
-        const existingIndex=pending.findIndex(item=>item.meetingId===record.meetingId);
-        if(existingIndex===-1)pending.unshift(record);else pending[existingIndex]={...pending[existingIndex],...record};
+        const matched=await readImportQueue(matchedQueueKey);
+        const prior=[...pending,...matched].find(item=>item.meetingId===record.meetingId);
+        if(prior && String(prior.transcript).trim() !== record.transcript) return { conflict:true };
+        let prepared;
+        if(prior){
+          const {leasedUntil,deliveryCount,...rest}=prior;
+          prepared={...rest,assigned:false,deferred:true};
+        }else prepared=await prepareDeferredTranscript(pendingKey,record,krispRetentionMs());
+        if(!prepared) return { conflict:true };
+        if(!(transcriptDeadline(prepared,krispRetentionMs())>Date.now())) return { expired:true };
+        const existingIndex=pending.findIndex(item=>item.meetingId===prepared.meetingId);
+        if(existingIndex===-1)pending.unshift(prepared);else pending[existingIndex]=prepared;
         if(pending.length>PENDING_LIST_MAX)pending.length=PENDING_LIST_MAX;
         await writeImportQueue(pendingKey,pending);
         return sortPendingByMeetingStart(pending);
       });
       if(deferred.busy)return res.status(409).json({error:'Krisp inbox changed. Please retry.'});
+      if(deferred.value.conflict)return res.status(409).json({error:'That transcript changed. Refresh the inbox before trying again.'});
+      if(deferred.value.expired)return res.status(410).json({error:'That transcript has expired.'});
       const sorted=deferred.value;
       return res.status(200).json({ deferred: true, pending: sorted, pendingCount: sorted.length });
     }

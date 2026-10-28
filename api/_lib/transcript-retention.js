@@ -7,7 +7,7 @@ import { kv } from './kv-client.js';
 export const NEW_TRANSCRIPT_RETENTION_HOURS = 12;
 const WINDOW_MS = NEW_TRANSCRIPT_RETENTION_HOURS * 3600000;
 const STORED_BODY = Symbol('stored transcript body');
-const STATE = ['leasedUntil', 'deliveryCount', 'claimedUntil', 'claimCount'];
+const STATE = ['leasedUntil', 'deliveryCount', 'claimedUntil', 'claimCount', 'assigned', 'deferred'];
 
 export function markNewTranscript(record, nowMs = Date.now()){
   return { ...record, receivedAt: new Date(nowMs).toISOString(),
@@ -48,14 +48,23 @@ export async function rememberLegacyTranscript(key, record, legacyMs, nowMs = Da
 }
 
 export async function prepareDeferredTranscript(key, record, legacyMs, nowMs = Date.now()){
+  const received = Date.parse(record.receivedAt);
+  const fresh = markNewTranscript(record, Number.isFinite(received) ? Math.min(received, nowMs) : nowMs);
+  const stored = await kv.get(contentKey(key, fresh));
+  if(stored?.meetingId === fresh.meetingId && stored.receivedAt === fresh.receivedAt &&
+      transcriptDeadline(stored, legacyMs) === fresh.retentionExpiresAt){
+    if(String(stored.transcript).trim() !== record.transcript.trim()) return null;
+    const prepared = { ...stored };
+    for(const field of STATE) if(field in record) prepared[field] = record[field];
+    return prepared;
+  }
   const receipt = record.retentionVersion === 1 ? null :
     await kv.get(legacyReceiptKey(key, record.meetingId));
   if(receipt?.meetingId === record.meetingId && receipt.deadline > nowMs &&
       Date.parse(receipt.receivedAt) + legacyMs === receipt.deadline){
     return { ...record, receivedAt: receipt.receivedAt };
   }
-  const received = Date.parse(record.receivedAt);
-  return markNewTranscript(record, Number.isFinite(received) ? Math.min(received, nowMs) : nowMs);
+  return fresh;
 }
 
 export async function readTranscriptQueue(key, raw, legacyMs, nowMs = Date.now()){
