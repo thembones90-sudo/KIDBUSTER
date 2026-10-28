@@ -29,9 +29,9 @@ module.exports=async function(){
    let classicGeometry;
    for(const protocol of ['MA','MS','FAIRY','BLITZ','BEIDA','OF','PREPLY']){
     await page.evaluate(p=>document.querySelector('input[name="protocol"][value="'+p+'"]').click(),protocol);await settle();
-    const before=await page.evaluate(()=>({zoom:document.querySelector('.wrap').style.zoom,width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight}));
+    const before=await page.evaluate(()=>({zoom:document.querySelector('.wrap').style.zoom,width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight,clientWidth:document.documentElement.clientWidth}));
     assert(before.width<=width,protocol+' workspace never overflows horizontally '+width+'x'+height+' '+JSON.stringify(before));
-    assert(+before.zoom>=(width<=860?1:Math.min(.8,(width-48)/1240))-.001,'workspace remains readable instead of fitting all form height');
+    assert(+before.zoom>=(width<=860?1:Math.min(.8,(before.clientWidth-48)/1240))-.001,'workspace remains readable instead of fitting all form height '+protocol+' '+width+'x'+height+' '+JSON.stringify(before));
     assert(+before.zoom>0&&+before.zoom<=1);
     const geometry=await page.evaluate(()=>{
      const box=s=>{const r=document.querySelector(s).getBoundingClientRect();return {width:r.width,height:r.height};};
