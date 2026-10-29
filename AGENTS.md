@@ -7,6 +7,19 @@ close was attempted; nothing was force-stopped. Activation is complete,
 superseding historical pending-handover notes below. Do not restart the
 current recorder again merely to apply the compact-waveform update.
 
+# Krisp navigation and Redis traffic repair LIVE — 2026-10-29
+
+Runtime5155acc, deployment dpl_8zGNr5WFS1Y9XpR6jYhtsEqVJtKA is live on
+classbuster.com and the legacy API address. Preserves hotfix7dfb0dc; adds hidden-tab,
+adaptive/backoff, single-flight and account-scoped cross-tab Krisp polling budgets.
+Transient startup failures keep navigation visible with an unavailable message;
+they never grant entitlement. Explicit401/403 and sign-out still clear/hide gated
+state. No backend authorization, retention or native Scout changes. Owner restored
+Redis capacity by upgrading the existing database; the agent did not change billing.
+Local128 files, GitHub40931169667, release integrity, exact candidate/live/legacy
+assets and24/24 probes on each host PASS. Rollback dpl_FqL6PuiuLSYo21nm3jazEW6UYxP9.
+See KRISP-OUTAGE-NAVIGATION-20261029.md and REDIS-QUOTA-AUDIT-20261029.md.
+
 # Native Scout1.4.10 installed — 2026-10-29
 
 After SKYNET reconnected, owner-authorized native installation completed. Current
