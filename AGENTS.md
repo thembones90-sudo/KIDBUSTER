@@ -1,3 +1,15 @@
+# Current retention release — 2026-10-29
+
+Step3 is complete and live: new Krisp/Scout transcripts expire independently
+12h after Classbuster receipt; EXISTING records remain under legacy retention.
+Runtime c9a65a7, deployment dpl_GmCY8pikpWJL1mP1HMjJfj45XKot. GitHub run
+40843122444 on56b9c57 and clean local suite pass all123 files. Candidate/live/
+legacy exact bytes, five probes and24/24 smoke pass. Reader-aware rollback:
+dpl_9AWVLeBB3tjSqQWUhsvmt8Xu9Sd4 (14351cd). Do not roll back to an older
+reader that cannot hydrate content12 references. No blanket purge/migration.
+See STEP3-TRANSCRIPT-RETENTION-20261028.md. Scout remains1.4.9 unchanged.
+Steps1–3 complete;4–6 outstanding. Owner has no signing credential forstep4.
+
 # Current website hardening release â€” 2026-10-28
 
 Steps 1â€“2 of the owner-approved six-step plan are complete. Node 24/npm ci CI
@@ -8,8 +20,7 @@ override removes the production advisory without downgrading Blob 2.8.2.
 Runtime deployment source 08fad4d, dpl_HXofzYN6HGrwVJ8Q7oLXETSknJLw, is live
 on Classbuster and the legacy webhook domain. Both passed exact bytes, five
 probes and 24/24 smoke. Rollback dpl_95DgJhi9rppmekDwGzX9owE5dn2v.
-See PROJECT-HARDENING-20261028.md. Step 3 retention scope is awaiting owner
-input; no retention purge has run. Owner has no signing credential for step 4.
+See PROJECT-HARDENING-20261028.md. Step 3 was subsequently completed for new arrivals only; see the current entry above. Owner has no signing credential for step 4.
 Scout is still installed/selected 1.4.9. Steps 3â€“6 are not complete.
 
 # Current release: Scout 1.4.9 morph polish
