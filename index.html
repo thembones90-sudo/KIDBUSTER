@@ -9561,10 +9561,23 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 @media (max-width:700px){#accountPanel .account-owner-tools .license-modal-inline,#accountPanel .account-owner-tools .license-modal-inline:not(:has(>input)){display:flex;flex-direction:column;align-items:stretch}#accountPanel .account-owner-tools .license-modal-inline:not(:has(>input))>.btn-secondary{flex:none;width:100%}}
 @media (prefers-reduced-motion:reduce){.header-actions>button,#accountPanel .btn-secondary{transition:none}}
 </style>
+<script src="assets/krisp-poll-budget.js"></script>
 <script>
 (function(){
   var ACCESS_KEY_STORAGE_KEY = 'kidbuster_access_key';
   var pollTimer = null;
+  var refreshInFlight = null;
+  var refreshKey = null;
+  var initInFlight = null;
+  var initKey = null;
+  var initializedKrispKey = null;
+  var pollBudget = window.ClassbusterKrispPollBudget.create({
+    key: getSavedKey,
+    armed: function(){ return krispServerArmed || krispRequestedArmed; },
+    enabled: function(){ return !krispDisconnected; },
+    hidden: function(){ return document.hidden; },
+    run: function(){ return initializedKrispKey === getSavedKey() ? refreshKrispSession() : initKrispPanel(); }
+  });
   var renderedPendingIds = {};
   var announcedIds = {};
   var pendingAccountKey = null;
@@ -9624,8 +9637,9 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 
   function ensurePolling(){
     if(pollTimer) return;
-    // Fallback discovery for webhook-delivered transcripts. Reduce idle Redis traffic.
-    pollTimer = setInterval(refreshKrispSession, 15000);
+    // Keep the 15s discovery heartbeat; budget gates hidden/disarmed/outage
+    // work and coordinates same-account tabs without sharing transcript data.
+    pollTimer = setInterval(pollBudget.tick, 15000);
   }
 
   // Buttons carry an icon/logo next to their label, so text changes go to
@@ -10197,12 +10211,25 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
   // --- Polling (always runs once the panel is visible, independent of
   // the waiting toggle, so pending imports surface without requiring
   // the teacher to click Wait first) -----------------------------------
-  async function refreshKrispSession(){
+  function refreshKrispSession(){
+    var key = getSavedKey();
+    if(initInFlight && initKey === key) return initInFlight;
+    if(refreshInFlight && refreshKey === key) return refreshInFlight;
+    refreshKey = key;
+    var request = fetchKrispSession();
+    refreshInFlight = request;
+    request.finally(function(){ if(refreshInFlight === request) refreshInFlight = null; });
+    return request;
+  }
+
+  async function fetchKrispSession(){
     if(krispDisconnected) return null;
     var key = getSavedKey();
     if(!key) return null;
+    var controller = new AbortController();
+    var timeout = setTimeout(function(){ controller.abort(); }, 20000);
     try{
-      var res = await fetch('/api/krisp-session', { headers: { 'x-app-key': key } });
+      var res = await fetch('/api/krisp-session', { headers: { 'x-app-key': key }, signal: controller.signal });
       if(!res.ok){ krispServiceError = true; renderKrispHealth(); showPendingRefreshError(); return null; }
       var json = await res.json();
       if(key !== getSavedKey()) return null;
@@ -10223,6 +10250,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
       }
       return json;
     }catch(e){ krispServiceError = true; renderKrispHealth(); showPendingRefreshError(); return null; }
+    finally{ clearTimeout(timeout); }
   }
 
   function showPendingRefreshError(){
@@ -10460,9 +10488,21 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 
   // --- Init: entitlement check IS the GET call itself. 403 (or any
   // failure) leaves the panel hidden -- fail safe, not fail open. -----
-  async function initKrispPanel(){
+  function initKrispPanel(){
+    var key = getSavedKey();
+    if(initInFlight && initKey === key) return initInFlight;
+    initKey = key;
+    var request = fetchKrispPanel();
+    initInFlight = request;
+    request.finally(function(){ if(initInFlight === request) initInFlight = null; });
+    return request;
+  }
+
+  async function fetchKrispPanel(){
     var key = getSavedKey();
     if(key !== pendingAccountKey){
+      pollBudget.reset();
+      initializedKrispKey = null;
       pendingAccountKey = key;
       renderedPendingIds = {}; announcedIds = {};
       document.getElementById('krispPendingItems').replaceChildren();
@@ -10470,9 +10510,15 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
       document.getElementById('krispInboxBadge').textContent = '…';
       setKrispHeaderButtonVisible(false);
     }
-    if(!key) return;
+    if(!key){
+      if(pollTimer) clearInterval(pollTimer);
+      pollTimer = null;
+      return;
+    }
+    var controller = new AbortController();
+    var timeout = setTimeout(function(){ controller.abort(); }, 20000);
     try{
-      var res = await fetch('/api/krisp-session?verify=1', { headers: { 'x-app-key': key } });
+      var res = await fetch('/api/krisp-session?verify=1', { headers: { 'x-app-key': key }, signal: controller.signal });
       if(!res.ok){
         // Not entitled (or key rejected): keep/return to hidden, fail safe.
         var hiddenPanel = document.getElementById('krispIntegrationPanel');
@@ -10482,6 +10528,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
       }
       var json = await res.json();
       if(key !== getSavedKey()) return;
+      initializedKrispKey = key;
       krispDisconnected = false;
       krispServerArmed = !!json.waiting;
       krispServiceError = false;
@@ -10512,12 +10559,21 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
         settleMatchedImport(json.matched);
       }
       wireButtons();
-      if(pollTimer) clearInterval(pollTimer);
-      pollTimer = null;
-      ensurePolling();
+      return json;
     }catch(e){ /* stays hidden on any error -- fail safe */ }
+    finally{
+      clearTimeout(timeout);
+      // An initial outage must recover without requiring a page reload.
+      // Failed verification stays hidden, and retries use the same backoff.
+      if(key === getSavedKey() && !krispDisconnected) ensurePolling();
+    }
   }
 
+  document.addEventListener('visibilitychange', function(){
+    // Returning to this tab is an explicit demand for a fresh view, even if
+    // another tab recently used the shared background discovery budget.
+    if(!document.hidden){ pollBudget.reset(); refreshKrispSession(); }
+  });
   document.addEventListener('kidbuster:workspace-reset', handleWorkspaceReset);
   // A key saved after page load (sign-in window) must reveal the Krisp
   // integration immediately -- previously it only appeared after a reload.

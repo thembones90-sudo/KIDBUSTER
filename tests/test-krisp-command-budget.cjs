@@ -5,7 +5,7 @@ const fs = require('node:fs');
 function run(){
   const html = fs.readFileSync('index.html','utf8');
   const session = fs.readFileSync('api/krisp-session.js','utf8');
-  assert.match(html,/setInterval\(refreshKrispSession,\s*15000\)/,
+  assert.match(html,/setInterval\(pollBudget.tick,\s*15000\)/,
     'Krisp polling must stay at 15-second reduced cadence');
   assert.doesNotMatch(html,/setInterval\(refreshKrispSession,\s*5000\)/,
     '5-second Redis polling must not return');
