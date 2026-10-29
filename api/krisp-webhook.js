@@ -21,6 +21,7 @@
 // that's a separate, heavier product meant for building full third-party
 // integrations, and nothing here needs it.
 import crypto from 'crypto';
+import { markNewTranscript } from './_lib/transcript-retention.js';
 import { kv, acquirePaymentLock, releasePaymentLock } from './_lib/kv-client.js';
 import { resolveKrispToken } from './_lib/krisp-token.js';
 import { isEntitledToKrisp, readImportQueue, writeImportQueue } from './_lib/krisp-retention.js';
@@ -226,7 +227,7 @@ export default async function handler(req, res){
     console.log('[krisp-webhook] accepted (id=' + dedupeKey + ')');
 
     const studentInfo = detectStudentInfo(normalized);
-    const record = {
+    const record = markNewTranscript({
       // The client queue uses meetingId as its stable item identity. Some
       // Krisp event variants only provide an event ID, so normalize either
       // provider identity into this required internal field.
@@ -246,7 +247,7 @@ export default async function handler(req, res){
       detectedContext: studentInfo.context,
       receivedAt: new Date(Date.now()).toISOString(),
       assigned: false
-    };
+    });
 
     const waitingKey = prefix + 'waitingSince';
     const matchedQueueKey = prefix + 'matchedQueue';

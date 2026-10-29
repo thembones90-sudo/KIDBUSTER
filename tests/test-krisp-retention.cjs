@@ -53,9 +53,12 @@ module.exports=async function run(){
     const first=await callSession(key);
     const token=new URL(first.jsonBody.webhookUrl).searchParams.get('token');
     check('GET reports the retention period',first.jsonBody.retentionDays===14);
-    check('first delivery is stored',(await deliver(token,'a')).jsonBody.stored===true);
+    await retention.writeImportQueue(pendingKeyFor(key),[{meetingId:'meeting-a',transcript:'Existing legacy A',receivedAt:new Date(now).toISOString()}]);
+    check('existing legacy delivery stays inline',(await kv.get(pendingKeyFor(key)))[0].retentionVersion===undefined);
     now+=10*DAY;
-    check('second delivery ten days later is stored',(await deliver(token,'b')).jsonBody.stored===true);
+    const previous=await retention.readImportQueue(pendingKeyFor(key));
+    await retention.writeImportQueue(pendingKeyFor(key),[...previous,{meetingId:'meeting-b',transcript:'Existing legacy B',receivedAt:new Date(now).toISOString()}]);
+    check('legacy reader preserves both historical arrivals',(await kv.get(pendingKeyFor(key))).length===2);
     let listed=await callSession(key);
     check('both records are visible inside the retention window',listed.jsonBody.pendingCount===2);
     now+=5*DAY; // first record is now 15 days old, second 5 days old

@@ -5,7 +5,7 @@
 //   rv:settings:<id>              durable, NO TTL: { tokenHash, armed, ... }
 //   rv:token:<sha256(token)>      reverse mapping { identity } - only honoured
 //                                 while rv:settings:<id>.tokenHash matches
-//   rv:data:<id>:pending|matched  queues, 24-hour retention, <= 20 items each
+//   rv:data:<id>:pending|matched  queues, legacy 24h / new 12h retention, <= 20 items each
 //   rv:data:<id>:seen:<lessonId>  durable dedupe marker (outlives the queues)
 //   rv:data:<id>:last             last received timestamp
 //   rv:data:<id>:lock             inbox mutation lock
@@ -14,7 +14,7 @@
 //                                 every change a session view can show, so an
 //                                 idle poll is one MGET instead of a full read
 import crypto from 'node:crypto';
-import { transcriptDeadline, readTranscriptQueue, writeTranscriptQueue } from './transcript-retention.js';
+import { NEW_TRANSCRIPT_RETENTION_HOURS, markNewTranscript, forgetTranscriptContent, transcriptDeadline, readTranscriptQueue, writeTranscriptQueue } from './transcript-retention.js';
 import { scoutStudentLabel } from './scout-student-name.js';
 import { kv, acquirePaymentLock, releasePaymentLock, incrementWindowCounter } from './kv-client.js';
 import { isFounderLicenseKey } from './licensing.js';
@@ -431,6 +431,7 @@ function summary(record){
     endedAt: record.endedAt || null, studentLabel: scoutStudentLabel(record), teacherLabel: record.teacherLabel || null,
     fragmentCount: Number.isInteger(record.fragmentCount) ? record.fragmentCount : null,
     interruptionCount: Number.isInteger(record.interruptionCount) ? record.interruptionCount : null,
+    ...(record.retentionVersion === 1 ? {retentionVersion:1,retentionExpiresAt:record.retentionExpiresAt} : {}),
     receivedAt: record.receivedAt, source: 'RADAR VAN', restored: record.restored === true,
     contentPreview: String(record.transcript || '').replace(/\s+/g, ' ').slice(0, 200)
   };
@@ -481,12 +482,12 @@ export async function ingestRadarLesson(identity, lesson, tokenHash, { restore =
     if(route === 'matched' && matched.items.length >= RADAR_VAN_MAX_ITEMS) route = 'pending';
     const target = route === 'matched' ? matched.items : pending.items;
     if(target.length >= RADAR_VAN_MAX_ITEMS) return { full: true };
-    const record = {
+    const record = markNewTranscript({
       meetingId, lessonId: lesson.lessonId, title: lesson.title, startedAt: lesson.startedAt,
       durationSeconds: lesson.durationSeconds, endedAt: lesson.endedAt || null, studentLabel: lesson.studentLabel || null,
       teacherLabel: lesson.teacherLabel || null, fragmentCount: lesson.fragmentCount ?? null, interruptionCount: lesson.interruptionCount ?? null,
       transcript: lesson.transcript, receivedAt: iso, source: 'RADAR VAN', restored: restore
-    };
+    }, nowMs);
     const queueKey = route === 'matched' ? K.matched(identity) : K.pending(identity);
     await writeQueue(queueKey, [...target, record], nowMs);
     try{
@@ -574,7 +575,7 @@ export async function readRadarSession(identity, { lease = false } = {}){
       teacherDisplayName: settings.teacherDisplayName || null,
       pending: visible, pendingCount: visible.length, inboxPending, matched: delivered, matchedCount: matched.items.length,
       waitingCount: pending.items.length + matched.items.length,
-      lastReceivedAt: lastReceivedAt || null, retentionDays: RADAR_VAN_RETENTION_DAYS, version
+      lastReceivedAt: lastReceivedAt || null, retentionDays: RADAR_VAN_RETENTION_DAYS, newTranscriptRetentionHours: NEW_TRANSCRIPT_RETENTION_HOURS, version
     };
   };
   // Leasing needs both locks, so first check without them that there is
@@ -635,6 +636,7 @@ async function inboxAction(identity, action, meetingId){
         await writeQueue(K.pending(identity), next, nowMs);
       if(nextMatched.length !== matched.items.length || matched.pruned)
         await writeQueue(K.matched(identity), nextMatched, nowMs);
+      await forgetTranscriptContent(K.pending(identity), [...pending.items,...matched.items].find(x=>x.meetingId===meetingId), [...next,...nextMatched]);
       return { dismissed: next.length !== pending.items.length || nextMatched.length !== matched.items.length };
     }
     if(action === 'ack-matched'){
@@ -645,6 +647,7 @@ async function inboxAction(identity, action, meetingId){
       const acked = nextMatched.length !== matched.items.length || nextPending.length !== pending.items.length;
       if(nextMatched.length !== matched.items.length || matched.pruned) await writeQueue(K.matched(identity), nextMatched, nowMs);
       if(nextPending.length !== pending.items.length || pending.pruned) await writeQueue(K.pending(identity), nextPending, nowMs);
+      await forgetTranscriptContent(K.pending(identity), [...pending.items,...matched.items].find(x=>x.meetingId===meetingId), [...nextPending,...nextMatched]);
       return { acked };
     }
     return { unknown: true };

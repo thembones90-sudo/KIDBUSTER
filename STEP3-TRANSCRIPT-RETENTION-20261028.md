@@ -20,3 +20,14 @@ Content-free delivery/deduplication receipts have independent lifetimes.
 Synthetic tests cover a mixed legacy/new inbox, idle body expiry without an inbox
 poll, later arrivals, original deadlines after queue moves/deferral, account
 isolation, invalid expiry and failed index publication. No real lessons are used.
+
+## Policy cutover implementation — 2026-10-29 (not promoted yet)
+
+New records accepted by both ingestion handlers use retentionVersion1 and an
+absolute receipt+12h deadline. Legacy defaults remain unchanged. API responses
+include newTranscriptRetentionHours alongside the old compatibility fields.
+ACK/dismiss/import cleanup runs only after the queue write commits, retaining
+shared pending copies; cleanup failures leave only individually expiring bodies.
+Synthetic handler tests verify delivery, mixed old/new queues, retries after
+expiry, later arrivals, connection continuity and cleanup failures. No existing
+production transcripts have been migrated or deleted.

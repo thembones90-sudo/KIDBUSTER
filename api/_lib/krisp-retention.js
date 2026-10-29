@@ -1,18 +1,8 @@
-// Retention and entitlement rules for stored Krisp transcripts.
-//
-// Pending and matched imports contain lesson transcripts (including
-// children's speech). They must not live forever:
-//   * every record expires KRISP_RETENTION_DAYS after it was received
-//     (default 14, configurable 1-90) and is removed whenever the queue is
-//     read or written after that point;
-//   * the whole queue key also carries a storage-level expiry equal to the
-//     remaining life of its NEWEST record, so an inbox nobody opens again is
-//     still deleted by the datastore itself. (Per-record deletion inside one
-//     stored list is not possible at storage level, so the worst-case age of
-//     an old record in an idle inbox is just under twice the retention
-//     period; it is normally removed far sooner by the first read or write.)
-//   * accounts that are no longer entitled to Krisp do not accumulate new
-//     transcripts at all (see isEntitledToKrisp).
+// New Krisp bodies expire independently twelve hours after server receipt.
+// Existing unmarked records retain KRISP_RETENTION_DAYS (default14,1-90).
+// Mixed indexes contain opaque references for new bodies; later arrivals and
+// delivery leases never extend their absolute deadlines. Lapsed accounts do
+// not accumulate new transcripts. See transcript-retention.js.
 import {
   getLicense, isFounderLicenseKey, isLicenseExpired, effectiveSubscriptionLicense
 } from './licensing.js';

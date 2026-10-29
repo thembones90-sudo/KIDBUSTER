@@ -126,3 +126,14 @@ export async function writeTranscriptQueue(key, items, legacyMs, nowMs = Date.no
   await kv.set(key, index, { pxat: deadline });
   return live;
 }
+
+// Call only after queue indexes commit under their shared mutation lock.
+// A matched delivery may also have a deferred pending copy: keep that body.
+export async function forgetTranscriptContent(key, record, survivors = []){
+  if(record?.retentionVersion !== 1 || !transcriptDeadline(record, WINDOW_MS)) return;
+  const ref = contentKey(key, record);
+  if(survivors.some(item => item.retentionVersion === 1 && contentKey(key, item) === ref)) return;
+  // Cleanup failure must not turn a successful import/ACK into a failed delivery.
+  // The independent absolute expiry still bounds any orphan's lifetime.
+  await kv.del(ref).catch(() => {});
+}

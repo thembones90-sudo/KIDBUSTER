@@ -14,7 +14,7 @@
 import { isEntitledToKrisp, readImportQueue, writeImportQueue, krispRetentionDays, krispRetentionMs } from './_lib/krisp-retention.js';
 import { getOrCreateKrispToken, regenerateKrispToken, disconnectKrisp, KrispTokenBusyError } from './_lib/krisp-token.js';
 import crypto from 'crypto';
-import { rememberLegacyTranscript, prepareDeferredTranscript, transcriptDeadline } from './_lib/transcript-retention.js';
+import { NEW_TRANSCRIPT_RETENTION_HOURS, forgetTranscriptContent, rememberLegacyTranscript, prepareDeferredTranscript, transcriptDeadline } from './_lib/transcript-retention.js';
 import { krispWebhookUrlForToken } from './_lib/krisp-webhook-url.js';
 import { kv, acquirePaymentLock, releasePaymentLock } from './_lib/kv-client.js';
 
@@ -184,6 +184,7 @@ export default async function handler(req, res){
       pending,
       pendingCount: pending.length,
       retentionDays: krispRetentionDays(),
+      newTranscriptRetentionHours: NEW_TRANSCRIPT_RETENTION_HOURS,
       lastReceivedAt,
       webhookLinkRepaired,
       webhookUrl: krispWebhookUrl(req, token)
@@ -207,7 +208,9 @@ export default async function handler(req, res){
         const queue=await readImportQueue(matchedQueueKey);
         const remaining=queue.filter(item=>item.meetingId!==meetingId);
         if(remaining.length===queue.length)return false;
+        const pending=await readImportQueue(pendingKey);
         await writeImportQueue(matchedQueueKey,remaining);
+        await forgetTranscriptContent(matchedQueueKey,queue.find(item=>item.meetingId===meetingId),[...remaining,...pending]);
         return true;
       });
       if(acked.busy)return res.status(409).json({error:'Krisp inbox changed. Please retry.'});
@@ -229,8 +232,10 @@ export default async function handler(req, res){
         const index=pending.findIndex(item=>item.meetingId===meetingId);
         if(index===-1)return null;
         await rememberLegacyTranscript(pendingKey,pending[index],krispRetentionMs());
+        const matched=await readImportQueue(matchedQueueKey);
         const [claimed]=pending.splice(index,1);
         await writeImportQueue(pendingKey,pending);
+        await forgetTranscriptContent(pendingKey,claimed,[...pending,...matched]);
         return {claimed,pendingCount:pending.length};
       });
       if(claim.busy)return res.status(409).json({error:'Krisp inbox changed. Please retry.'});
@@ -279,8 +284,10 @@ export default async function handler(req, res){
         const pending=await readImportQueue(pendingKey);
         const index=pending.findIndex(item=>item.meetingId===meetingId);
         if(index===-1)return null;
-        pending.splice(index,1);
+        const matched=await readImportQueue(matchedQueueKey);
+        const [removed]=pending.splice(index,1);
         await writeImportQueue(pendingKey,pending);
+        await forgetTranscriptContent(pendingKey,removed,[...pending,...matched]);
         return pending.length;
       });
       if(dismissed.busy)return res.status(409).json({error:'Krisp inbox changed. Please retry.'});
