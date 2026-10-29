@@ -17,6 +17,8 @@ module.exports=async function run(){
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('file://'+path.join(__dirname,'..','index.html'));
   await page.setViewport({width:1280,height:900});
+  await page.evaluate(()=>document.fonts.ready);
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   console.log('Royal browser capabilities',JSON.stringify(await page.evaluate(()=>({hover:matchMedia('(hover:hover)').matches,fine:matchMedia('(pointer:fine)').matches,reduced:matchMedia('(prefers-reduced-motion:reduce)').matches,visible:document.visibilityState}))),await browser.version());
 
   const initial=await page.evaluate(()=>{
@@ -83,8 +85,9 @@ module.exports=async function run(){
   await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
   check('reduced motion disables the siren pulse',await page.$eval(criticalSelector+' .rating-siren',e=>getComputedStyle(e).animationName==='none'));
   await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   await page.click(criticalSelector);
-  await new Promise(resolve=>setTimeout(resolve,190));
+  await page.waitForFunction(()=>state.rating==='1'&&document.querySelector('#ratingCaption .verdict')); 
   check('Critical selection preserves value, pressed state, and canonical caption without tooltip',await page.evaluate(description=>
     state.rating==='1'&&document.querySelector('#ratingTrack [data-lvl="1"]').getAttribute('aria-pressed')==='true'&&
     document.querySelector('#ratingCaption .verdict').textContent==='Critical.'&&
