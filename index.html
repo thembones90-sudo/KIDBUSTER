@@ -9622,10 +9622,37 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     }
   }
 
+  // Fallback discovery for webhook-delivered transcripts. The 15-second tick
+  // itself is free; only ticks that reach /api/krisp-session cost Redis.
+  // - hidden tab: no requests at all; becoming visible refreshes at once, and
+  //   anything that arrived meanwhile is waiting (leased/queued) on the server
+  // - armed: every tick (15 s), so automatic delivery keeps its cadence
+  // - not armed: transcripts can only land in Pending, so every 4th tick
+  // - repeated failures (outage, quota): 30 s, 60 s, then 120 s until a
+  //   success; a single failure still retries on the next tick
+  var KRISP_IDLE_TICKS = 4, KRISP_MAX_BACKOFF_TICKS = 8;
+  var krispTicksSincePoll = 0, krispPollFailures = 0, krispPollInFlight = null;
+  function krispPollTick(){
+    if(document.hidden || krispPollInFlight) return krispPollInFlight;
+    krispTicksSincePoll++;
+    var every = (krispRequestedArmed || krispServerArmed) ? 1 : KRISP_IDLE_TICKS;
+    if(krispPollFailures > 1) every = Math.max(every, Math.min(KRISP_MAX_BACKOFF_TICKS, Math.pow(2, krispPollFailures - 1)));
+    if(krispTicksSincePoll < every) return null;
+    return pollKrispNow();
+  }
+  function pollKrispNow(){
+    if(krispPollInFlight) return krispPollInFlight;
+    krispTicksSincePoll = 0;
+    krispPollInFlight = refreshKrispSession().finally(function(){ krispPollInFlight = null; });
+    return krispPollInFlight;
+  }
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden && pollTimer) pollKrispNow();
+  });
+
   function ensurePolling(){
     if(pollTimer) return;
-    // Fallback discovery for webhook-delivered transcripts. Reduce idle Redis traffic.
-    pollTimer = setInterval(refreshKrispSession, 15000);
+    pollTimer = setInterval(krispPollTick, 15000);
   }
 
   // Buttons carry an icon/logo next to their label, so text changes go to
@@ -10203,9 +10230,10 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     if(!key) return null;
     try{
       var res = await fetch('/api/krisp-session', { headers: { 'x-app-key': key } });
-      if(!res.ok){ krispServiceError = true; renderKrispHealth(); showPendingRefreshError(); return null; }
+      if(!res.ok){ krispPollFailures++; krispServiceError = true; renderKrispHealth(); showPendingRefreshError(); return null; }
       var json = await res.json();
       if(key !== getSavedKey()) return null;
+      krispPollFailures = 0;
       krispServiceError = false;
       krispServerArmed = !!json.waiting;
       if(krispServerArmed === krispRequestedArmed) krispActionError = false;
@@ -10222,7 +10250,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
         }
       }
       return json;
-    }catch(e){ krispServiceError = true; renderKrispHealth(); showPendingRefreshError(); return null; }
+    }catch(e){ krispPollFailures++; krispServiceError = true; renderKrispHealth(); showPendingRefreshError(); return null; }
   }
 
   function showPendingRefreshError(){

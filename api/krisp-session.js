@@ -11,7 +11,8 @@
 // stable license identity, resolved the same way, so pending imports
 // survive token regeneration and Krisp reconnects. See
 // _lib/krisp-token.js for the token<->identity design.
-import { isEntitledToKrisp, readImportQueue, writeImportQueue, krispRetentionDays, krispRetentionMs } from './_lib/krisp-retention.js';
+import { isEntitledToKrisp, isLicenseEntitledToKrisp, readImportQueue, readImportQueueFrom, writeImportQueue, krispRetentionDays, krispRetentionMs } from './_lib/krisp-retention.js';
+import { licenseKeyFor } from './_lib/licensing.js';
 import { getOrCreateKrispToken, regenerateKrispToken, disconnectKrisp, KrispTokenBusyError } from './_lib/krisp-token.js';
 import crypto from 'crypto';
 import { NEW_TRANSCRIPT_RETENTION_HOURS, forgetTranscriptContent, rememberLegacyTranscript, prepareDeferredTranscript, transcriptDeadline } from './_lib/transcript-retention.js';
@@ -96,11 +97,48 @@ function normalizeDeferredImport(record){
   };
 }
 
+// Everything an idle inbox poll needs, in ONE Redis command. The poll runs
+// every 15 seconds for every open Classbuster tab; it previously cost ten
+// commands (license, token mapping, lock, GETDEL, two queue reads, lock
+// release, waiting flag, last-received time and a queue rewrite).
+async function readInboxSnapshot(licenseKey){
+  const prefix = dataKeyPrefix(licenseKey);
+  const [license, mapping, legacyMatched, matchedQueue, pending, waitingSince, lastReceivedAt] = await kv.mget(
+    licenseKeyFor(licenseKey), 'krisp:user:' + licenseKey, prefix + 'matched', prefix + 'matchedQueue',
+    prefix + 'pending', prefix + 'waitingSince', prefix + 'lastReceivedAt');
+  return { license, mapping, legacyMatched, matchedQueue, pending, waitingSince, lastReceivedAt };
+}
+
 export default async function handler(req, res){
   const licenseKey = req.headers['x-app-key'];
-  const entitled = await isEntitledToKrisp(licenseKey);
+  // The connection-panel check (verify=1) keeps its full repair path.
+  const snapshot = req.method === 'GET' && req.query?.verify !== '1' && typeof licenseKey === 'string' && licenseKey
+    ? await readInboxSnapshot(licenseKey) : null;
+  const entitled = snapshot ? isLicenseEntitledToKrisp(licenseKey, snapshot.license) : await isEntitledToKrisp(licenseKey);
   if(!entitled){
     return res.status(403).json({ error: 'A Pro (or owner) account is required to use the Krisp import inbox.' });
+  }
+
+  // Nothing to lease, migrate or prune in the matched queue: answer from the
+  // snapshot without the mutation lock or any write. A webhook landing after
+  // the MGET is picked up by the next poll, exactly as if it had landed after
+  // a locked read. Any matched record (leased or not, live or expired) takes
+  // the locked path below, which owns leasing, redelivery limits and cleanup.
+  if(snapshot && snapshot.mapping?.token && snapshot.legacyMatched === null &&
+      !(Array.isArray(snapshot.matchedQueue) && snapshot.matchedQueue.length)){
+    const pending = sortPendingByMeetingStart(
+      await readImportQueueFrom(dataKeyPrefix(licenseKey) + 'pending', snapshot.pending, Date.now()));
+    return res.status(200).json({
+      matched: null,
+      waiting: !!snapshot.waitingSince,
+      pending,
+      pendingCount: pending.length,
+      retentionDays: krispRetentionDays(),
+      newTranscriptRetentionHours: NEW_TRANSCRIPT_RETENTION_HOURS,
+      lastReceivedAt: snapshot.lastReceivedAt,
+      webhookLinkRepaired: false,
+      webhookUrl: krispWebhookUrl(req, snapshot.mapping.token)
+    });
   }
 
   // regenerate/disconnect manage the token mapping themselves and don't
@@ -129,7 +167,7 @@ export default async function handler(req, res){
   // Only the initial connection-panel read validates both token mappings.
   // A migration can leave a visible forward URL with no working reverse
   // mapping, making Krisp receive 401 indefinitely despite a healthy server.
-  // Do not add this extra KV read to every 5-second inbox poll.
+  // Do not add this extra KV read to every inbox poll.
   const verifyConnection = req.method === 'GET' && req.query?.verify === '1';
   const previousMapping = verifyConnection ? await kv.get('krisp:user:' + licenseKey) : null;
   let token;

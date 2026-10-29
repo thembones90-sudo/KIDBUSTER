@@ -46,6 +46,7 @@ const localKv = {
   },
   async del(key){const found=Object.hasOwn(localData,key);delete localData[key];persistLocal();return found?1:0;},
   async getdel(key){const val=await this.get(key);delete localData[key];persistLocal();return val;},
+  async mget(...keys){const out=[];for(const key of keys)out.push(await this.get(key));return out;},
   async incr(key){const current=await this.get(key);const next=(Number(current)||0)+1;await this.set(key,next);return next;},
   async expire(key,seconds){
     if(!localData[key])return 0;
@@ -89,14 +90,22 @@ function failIfOutage(){
 }
 
 const memoryExpiry = new Map();
+function memoryRead(key){
+  const expires=memoryExpiry.get(key);
+  if(expires !== undefined && expires <= Date.now()){
+    memoryExpiry.delete(key);memoryStore.delete(key);
+  }
+  return memoryStore.has(key) ? memoryStore.get(key) : null;
+}
 const memoryKv = {
   async get(key){
     failIfOutage();
-    const expires=memoryExpiry.get(key);
-    if(expires !== undefined && expires <= Date.now()){
-      memoryExpiry.delete(key);memoryStore.delete(key);
-    }
-    return memoryStore.has(key) ? memoryStore.get(key) : null;
+    return memoryRead(key);
+  },
+  // One MGET is one Redis command however many keys it names.
+  async mget(...keys){
+    failIfOutage();
+    return keys.map(memoryRead);
   },
   async set(key, value, options){
     failIfOutage();

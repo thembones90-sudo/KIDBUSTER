@@ -5,9 +5,11 @@ const fs = require('node:fs');
 function run(){
   const html = fs.readFileSync('index.html','utf8');
   const session = fs.readFileSync('api/krisp-session.js','utf8');
-  assert.match(html,/setInterval\(refreshKrispSession,\s*15000\)/,
-    'Krisp polling must stay at 15-second reduced cadence');
-  assert.doesNotMatch(html,/setInterval\(refreshKrispSession,\s*5000\)/,
+  assert.match(html,/setInterval\(krispPollTick,\s*15000\)/,
+    'Krisp polling ticks no faster than the 15-second reduced cadence');
+  assert.doesNotMatch(html,/setInterval\(refreshKrispSession,/,
+    'the Krisp poll must go through the visibility/backoff tick, never straight to the server');
+  assert.doesNotMatch(html,/setInterval\((refreshKrispSession|krispPollTick),\s*5000\)/,
     '5-second Redis polling must not return');
   assert.match(session,/if\(JSON\.stringify\(queue\)!==queueBeforeMutation\)\{\s*await writeImportQueue\(/,
     'unchanged queues must not be rewritten on idle polls');
