@@ -1,4 +1,4 @@
-# Current retention release — 2026-10-29
+# Current retention release â€” 2026-10-29
 
 Step3 is complete and live: new Krisp/Scout transcripts expire independently
 12h after Classbuster receipt; EXISTING records remain under legacy retention.
@@ -8,7 +8,7 @@ legacy exact bytes, five probes and24/24 smoke pass. Reader-aware rollback:
 dpl_9AWVLeBB3tjSqQWUhsvmt8Xu9Sd4 (14351cd). Do not roll back to an older
 reader that cannot hydrate content12 references. No blanket purge/migration.
 See STEP3-TRANSCRIPT-RETENTION-20261028.md. Scout remains1.4.9 unchanged.
-Steps1–3 complete;4–6 outstanding. Owner has no signing credential forstep4.
+Steps1â€“3 complete;4â€“6 outstanding. Owner has no signing credential forstep4.
 
 # Current website hardening release â€” 2026-10-28
 

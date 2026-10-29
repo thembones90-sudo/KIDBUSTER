@@ -40,6 +40,10 @@ await probe('page loads with Classbuster branding, protocol engine and security 
   status(r, 200);
   expect(/<title>Classbuster<\/title>/.test(r.text), 'title is not Classbuster');
   expect(r.text.includes('const KidbusterCore = (function(){'), 'protocol engine missing from page');
+  if(r.text.includes('assets/protocol-presentation.js?v=20261029')){
+    const presentation=await call('GET','/assets/protocol-presentation.js');status(presentation,200);
+    expect(presentation.text.includes('root.ClassbusterPresentation=Object.freeze')&&presentation.text.includes('installBrandLogo'), 'presentation dependency missing or incorrect');
+  }
   for(const p of ['MA', 'MS', 'FAIRY', 'BLITZ', 'BEIDA', 'OF', 'PREPLY']) expect(r.text.includes('name="protocol" value="' + p + '"'), 'protocol ' + p + ' missing');
   expect(/default-src 'self'/.test(r.headers.get('content-security-policy') || ''), 'CSP header missing');
   expect((r.headers.get('x-content-type-options') || '') === 'nosniff', 'nosniff header missing');

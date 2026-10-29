@@ -112,6 +112,8 @@ function checkRelease(root){
   must(gen, /recordUsageStats/, 'api/generate.js no longer records usage statistics');
   need('api/_lib/server-generation.js', 'trusted prompt construction');
   const html = need('index.html', 'application page');
+  need('assets/protocol-presentation.js', 'protocol presentation module');
+  must(html, /<script src="assets\/protocol-presentation\.js\?v=20261029"><\/script>[\s\S]*const KidbusterCore/, 'protocol presentation module must load before application initialization');
   must(html, /const KidbusterCore = \(function\(\)\{/, 'index.html lost the protocol engine the server builds prompts from');
   for(const p of PROTOCOLS) if(html && !html.includes('name="protocol" value="' + p + '"')) problems.push('protocol ' + p + ' is missing from the page');
 

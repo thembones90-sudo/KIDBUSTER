@@ -59,7 +59,7 @@ transcripts, or new arrivals only. No retention purge or policy change has run.
 Owner confirmed no signing certificate/cloud signing account exists for step 4.
 Steps 3â€“6 remain outstanding; do not describe the entire hardening plan as done.
 
-## Step3 completed — 2026-10-29
+## Step3 completed â€” 2026-10-29
 
 New-arrivals-only twelve-hour policy is live. Existing records retain their
 original retention. Independent absolute body expiry survives idle queues,
@@ -67,4 +67,4 @@ lease/move/retry and cleanup failures; bodies are removed after consumption
 when no surviving queue copy needs them. Reader-aware rollback deployed first.
 All123 local files and GitHub40843122444 pass. Candidate/live/legacy checks
 pass. See STEP3-TRANSCRIPT-RETENTION-20261028.md for deployment IDs and limits.
-Steps4–6 remain outstanding; owner has no signing credential yet.
+Steps4â€“6 remain outstanding; owner has no signing credential yet.

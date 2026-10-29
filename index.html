@@ -2975,6 +2975,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
   </div>
 </div>
 
+<script src="assets/protocol-presentation.js?v=20261029"></script>
 <script>
 /* =========================================================================
    KIDBUSTER CORE — pure business logic, zero DOM/browser dependencies.
@@ -5948,12 +5949,7 @@ const caption = document.getElementById('ratingCaption');
 // regardless, masking how broken the JS side actually was).
 const copyBtn = document.getElementById('copyBtn');
 const kbLogo = document.getElementById('kbLogo');
-const LOGO_DEFAULT_SRC = kbLogo.src; // the original green lockup, captured before any swap
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-kbLogo.setAttribute('role', 'button');
-kbLogo.setAttribute('tabindex', '0');
-kbLogo.setAttribute('title', 'Reload Classbuster');
-kbLogo.setAttribute('aria-label', 'Reload Classbuster');
 function reloadPathfinder(){
   if(typeof window.__kidbusterReloadForTests === 'function'){
     window.__kidbusterReloadForTests();
@@ -5961,93 +5957,26 @@ function reloadPathfinder(){
   }
   window.location.reload();
 }
-kbLogo.addEventListener('click', reloadPathfinder);
-kbLogo.addEventListener('keydown', (e) => {
-  if(e.key === 'Enter' || e.key === ' '){
-    e.preventDefault();
-    reloadPathfinder();
-  }
-});
-function updateLogo(){
-  const key = currentProtocolKey();
-  const nextSrc = (key === 'MS' || key === 'FAIRY') ? kbLogo.dataset.logoMs
-                : key === 'OF' ? kbLogo.dataset.logoOf
-                : key === 'BLITZ' ? kbLogo.dataset.logoBlitz
-                : key === 'BEIDA' ? kbLogo.dataset.logoBeida
-                : key === 'PREPLY' ? kbLogo.dataset.logoPreply
-                : LOGO_DEFAULT_SRC;
-  // dataset values are relative file paths; kbLogo.src is always absolute, so resolve before comparing.
-  if(new URL(nextSrc, document.baseURI).href === kbLogo.src) return; // no actual change — skip the flourish
-  kbLogo.src = nextSrc;
-  if(prefersReducedMotion || typeof kbLogo.animate !== 'function') return;
-  // Soft "iris" bloom: logo dissolves in from a bright, slightly-scaled glow
-  // back to normal, echoing the coloration swap rather than a hard cut.
-  kbLogo.animate(
-    [
-      { opacity:0.15, filter:'brightness(2.4) saturate(1.6) blur(2px)', transform:'scale(0.96)' },
-      { opacity:1,    filter:'brightness(1) saturate(1) blur(0px)',     transform:'scale(1)' }
-    ],
-    { duration:480, easing:'ease-out' }
-  );
-}
-
-// The per-protocol logos are separate files now. Warm the browser cache once so
-// switching protocols swaps instantly instead of flashing an empty logo.
-Object.keys(kbLogo.dataset).filter(k => k.indexOf('logo') === 0).forEach(k => {
-  const warmImg = new Image();
-  warmImg.src = kbLogo.dataset[k];
-});
+const brandLogo=ClassbusterPresentation.installBrandLogo(kbLogo,reloadPathfinder,prefersReducedMotion);
+function updateLogo(){ brandLogo.update(currentProtocolKey()); }
 
 // Vivid, UI-only numeric rating palette. Leave KidbusterCore.ratingColor,
 // OF's qualitative palette, and Beida's two-tier colors untouched.
-const NUMERIC_RATING_UI_COLORS = Object.freeze({
-  '1':   '#FF4248',
-  '1.5': '#FF803D',
-  '2':   '#FFB13D',
-  '2.5': '#FFE33F',
-  '3':   '#F2FB44',
-  '3.5': '#C6FB48',
-  '4':   '#89F548',
-  '4.5': '#4EF144',
-  '5':   '#29EB4F'
-});
+const NUMERIC_RATING_UI_COLORS = ClassbusterPresentation.NUMERIC_RATING_UI_COLORS;
 
 // Short verdict word shown above the full tone description — cosmetic
 // only, never sent to the model. Purely to make the caption feel alive.
-const VERDICT_LABEL = {
-  "1": "Critical.",
-  "1.5": "Struggling.",
-  "2": "Below Expectations.",
-  "2.5": "Developing.",
-  "3": "Satisfactory.",
-  "3.5": "Promising.",
-  "4": "Very Good.",
-  "4.5": "Excellent.",
-  "5": "Outstanding.",
-  "6": "Legendary."
-};
+const VERDICT_LABEL = ClassbusterPresentation.VERDICT_LABEL;
 
 // OF's own verdict words, over its 5-tier scale. Same cosmetic role as
 // VERDICT_LABEL above — never sent to the model, just a short mood word
 // shown above the full tier description.
-const OF_TIER_VERDICT = {
-  'Low':         'Needs support.',
-  'Low/Medium':  'Developing.',
-  'Medium':      'Solid.',
-  'Medium/High': 'Strong.',
-  'High':        'Exceptional.'
-};
+const OF_TIER_VERDICT = ClassbusterPresentation.OF_TIER_VERDICT;
 
 // Short display labels for OF's rating buttons — the canonical tier name
 // ("Low/Medium") is what's stored in state and sent to the prompt; these
 // are purely a more compact on-button rendering of the same value.
-const OF_TIER_DISPLAY = {
-  'Low':         'Low',
-  'Low/Medium':  'Low/Med',
-  'Medium':      'Medium',
-  'Medium/High': 'Med/High',
-  'High':        'High'
-};
+const OF_TIER_DISPLAY = ClassbusterPresentation.OF_TIER_DISPLAY;
 
 function currentProtocolKey(){
   return document.querySelector('input[name="protocol"]:checked').value;
@@ -8052,8 +7981,7 @@ function escapeHtml(str){
 }
 
 function getProtocolLabel(protocolKey){
-  const protocol = KidbusterCore.PROTOCOLS[protocolKey];
-  return protocol ? protocol.label : (protocolKey || 'This protocol');
+  return ClassbusterPresentation.protocolLabel(KidbusterCore.PROTOCOLS,protocolKey);
 }
 
 function buildEntitlementNotice(err, protocolKey){

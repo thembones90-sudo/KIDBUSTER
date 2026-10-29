@@ -21,7 +21,7 @@ Synthetic tests cover a mixed legacy/new inbox, idle body expiry without an inbo
 poll, later arrivals, original deadlines after queue moves/deferral, account
 isolation, invalid expiry and failed index publication. No real lessons are used.
 
-## Policy cutover implementation — 2026-10-29
+## Policy cutover implementation â€” 2026-10-29
 
 New records accepted by both ingestion handlers use retentionVersion1 and an
 absolute receipt+12h deadline. Legacy defaults remain unchanged. API responses
