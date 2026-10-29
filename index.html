@@ -9628,14 +9628,24 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
   //   anything that arrived meanwhile is waiting (leased/queued) on the server
   // - armed: every tick (15 s), so automatic delivery keeps its cadence
   // - not armed: transcripts can only land in Pending, so every 4th tick
+  // - nobody at the keyboard: after 5 min without input or focus at most
+  //   every 60 s, after 30 min every 5 min. Coming back (focus, key, click,
+  //   pointer) refreshes at once, so a transcript that arrived while the
+  //   teacher was in their lesson app is there the moment they switch back
   // - repeated failures (outage, quota): 30 s, 60 s, then 120 s until a
   //   success; a single failure still retries on the next tick
   var KRISP_IDLE_TICKS = 4, KRISP_MAX_BACKOFF_TICKS = 8;
+  var KRISP_AWAY_MS = 5 * 60000, KRISP_LONG_AWAY_MS = 30 * 60000, KRISP_LONG_AWAY_TICKS = 20;
+  var KRISP_FOCUS_REFRESH_GAP_MS = 5000;
   var krispTicksSincePoll = 0, krispPollFailures = 0, krispPollInFlight = null;
+  var krispLastActivityAt = Date.now(), krispLastPollAt = 0;
   function krispPollTick(){
     if(document.hidden || krispPollInFlight) return krispPollInFlight;
     krispTicksSincePoll++;
     var every = (krispRequestedArmed || krispServerArmed) ? 1 : KRISP_IDLE_TICKS;
+    var away = Date.now() - krispLastActivityAt;
+    if(away >= KRISP_LONG_AWAY_MS) every = Math.max(every, KRISP_LONG_AWAY_TICKS);
+    else if(away >= KRISP_AWAY_MS) every = Math.max(every, KRISP_IDLE_TICKS);
     if(krispPollFailures > 1) every = Math.max(every, Math.min(KRISP_MAX_BACKOFF_TICKS, Math.pow(2, krispPollFailures - 1)));
     if(krispTicksSincePoll < every) return null;
     return pollKrispNow();
@@ -9643,11 +9653,24 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
   function pollKrispNow(){
     if(krispPollInFlight) return krispPollInFlight;
     krispTicksSincePoll = 0;
+    krispLastPollAt = Date.now();
     krispPollInFlight = refreshKrispSession().finally(function(){ krispPollInFlight = null; });
     return krispPollInFlight;
   }
   document.addEventListener('visibilitychange', function(){
     if(!document.hidden && pollTimer) pollKrispNow();
+  });
+  // Switching back from Zoom/Krisp focuses this window without any
+  // visibility change; refresh then too (once, not on every refocus burst).
+  function noteKrispActivity(event){
+    var wasAway = Date.now() - krispLastActivityAt >= KRISP_AWAY_MS;
+    krispLastActivityAt = Date.now();
+    if(!pollTimer || document.hidden) return;
+    if(wasAway || (event.type === 'focus' && Date.now() - krispLastPollAt >= KRISP_FOCUS_REFRESH_GAP_MS)) pollKrispNow();
+  }
+  window.addEventListener('focus', noteKrispActivity);
+  ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'].forEach(function(type){
+    document.addEventListener(type, noteKrispActivity, { passive: true, capture: true });
   });
 
   function ensurePolling(){

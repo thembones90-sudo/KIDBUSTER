@@ -54,6 +54,11 @@ is about 98 tab-hours, e.g. one tab open about 3.3 h a day for a month.
    60 s, since unarmed transcripts can only land in Pending); and after ≥2
    consecutive failures, backoff of 30/60/120 s (capped). Overlapping ticks share
    one in-flight request. Becoming visible refreshes immediately.
+3b. **Away from the keyboard** (`index.html`): with no input or window focus for
+   5 min the poll drops to at most every 60 s, after 30 min to every 5 min, even
+   while armed. Any key, click, pointer movement or window focus after being away
+   refreshes at once (a focus burst refreshes once), so a transcript that arrived
+   while the teacher was in Zoom/Krisp is applied the moment they switch back.
 4. Test doubles gained `mget` (one call = one counted command).
 
 Not changed: retention periods, locks on mutating paths, webhook, tokens,
@@ -71,6 +76,14 @@ Branch idle cadence: visible+armed 240/h, visible+unarmed 60/h, hidden 0.
 | 1 teacher, open 24 h, visible 8 h | same as above | same as above | 1,920/day (hidden = 0) |
 | 5 teachers, 8 h/day | 288 k/day · 8.64 M/mo | 86.4 k/day · 2.59 M/mo | 9,600/day · 288 k/mo |
 | 10 teachers, 8 h/day | 576 k/day · 17.3 M/mo | 173 k/day · 5.18 M/mo | 19,200/day · 576 k/mo |
+
+With the away cadence, a tab left open 24 h but used 8 h costs about
+1,920 + 16 h × 12 = 2,112 commands/day (≈ 63 k/month) instead of 5,760/day.
+
+**Current scale (4 accounts, estimate):** Krisp ≈ 4 × 57.6 k ≈ 230 k, owner
+Scout ≈ 78 k, lessons ≈ 42 k (10/teacher/day), generation and licence ≈ 20 k:
+≈ 370 k/month, inside the 500 k Free tier. Tabs left open around the clock
+would push that to ≈ 830 k without the away cadence, ≈ 390 k with it.
 
 Add about 35 commands per delivered lesson, plus generation and licence traffic.
 Those depend on events, not idle time.
@@ -112,6 +125,7 @@ during polling, concurrent tabs, lease/ack/retry, delayed transcripts, isolation
 10 simultaneous users, expiry, legacy migration, entitlement, verify repair,
 outage/recovery, daily budget) and `tests/test-krisp-adaptive-polling.cjs`
 (browser: unarmed cadence, armed cadence, hidden tab, delivery on return + ack,
-backoff pattern, recovery, single flight, duplicate hidden tab).
+backoff pattern, recovery, single flight, 5/30-minute away cadence, immediate
+delivery on returning input, one refresh per focus burst, duplicate hidden tab).
 Updated: `tests/test-krisp-command-budget.cjs` now asserts the tick at 15 s and
 forbids direct or 5 s polling (stricter than before).

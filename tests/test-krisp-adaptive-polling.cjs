@@ -40,6 +40,8 @@ module.exports=async function(){
       localStorage.setItem('kidbuster_access_key',k);
       // Deterministic tab visibility and a hand-cranked 15-second tick.
       window.__hidden=false;
+      // Controllable clock for "away from the keyboard" without real waiting.
+      const realNow=Date.now.bind(Date);window.__clockOffset=0;Date.now=()=>realNow()+window.__clockOffset;
       Object.defineProperty(Document.prototype,'hidden',{configurable:true,get(){return window.__hidden;}});
       Object.defineProperty(Document.prototype,'visibilityState',{configurable:true,get(){return window.__hidden?'hidden':'visible';}});
       const original=setInterval;window.setInterval=(fn,ms,...args)=>ms===15000?(window.testKrispTick=fn,424242):original(fn,ms,...args);
@@ -104,6 +106,37 @@ module.exports=async function(){
     state.delayMs=0;
     assert.equal(gets(A)-before,1,'overlapping ticks share one in-flight request');
 
+    // Away from the keyboard (armed, visible): 60 s after 5 min, 5 min after 30.
+    const advance=minutes=>page.evaluate(m=>{window.__clockOffset+=m*60000;},minutes);
+    const pattern=async n=>{const out=[];for(let i=0;i<n;i++){const g=gets(A);await ticks(page,1);out.push(gets(A)-g);}return out;};
+    await ticks(page,1); // align the tick counter on a fresh request
+    await advance(6);
+    assert.deepEqual(await pattern(8),[0,0,0,1,0,0,0,1],'away 5+ min: one request per minute even while armed');
+    await advance(30);
+    const longAway=await pattern(40);
+    assert.equal(longAway.reduce((x,y)=>x+y,0),2,'away 30+ min: one request per 5 minutes');
+    assert.deepEqual(longAway.slice(0,20),[...Array(19).fill(0),1],'the long-away gap is exactly 20 ticks');
+    // Coming back: a key press after being away refreshes at once...
+    state.matched={meetingId:'away-arrival',transcript:'Synthetic transcript delivered while away',title:'Fictional lesson',receivedAt:new Date().toISOString()};
+    await page.evaluate(()=>{document.getElementById('krispNotes').value='';document.getElementById('krispNotes').dispatchEvent(new Event('input',{bubbles:true}));});
+    let g=gets(A);
+    await page.evaluate(()=>document.dispatchEvent(new KeyboardEvent('keydown',{key:'Shift'})));
+    await page.waitForFunction(()=>document.getElementById('krispNotes').value.includes('delivered while away'),{timeout:5000});
+    assert.equal(gets(A)-g,1,'returning to the keyboard refreshes immediately and applies the waiting transcript');
+    await page.waitForNetworkIdle({idleTime:150});
+    assert.equal(state.matched,null,'and it is acknowledged');
+    // ...and normal armed cadence resumes; ordinary activity does not add requests.
+    g=gets(A);
+    for(let i=0;i<5;i++)await page.evaluate(()=>document.dispatchEvent(new PointerEvent('pointermove')));
+    assert.equal(gets(A)-g,0,'pointer movement while active never adds requests');
+    assert.deepEqual(await pattern(3),[1,1,1],'active again: every 15 seconds');
+    // Switching back from the lesson app focuses the window: one refresh.
+    await advance(40);
+    g=gets(A);
+    await page.evaluate(()=>{window.dispatchEvent(new Event('focus'));window.dispatchEvent(new Event('focus'));});
+    await page.waitForNetworkIdle({idleTime:150});
+    assert.equal(gets(A)-g,1,'window focus after being away refreshes once, not once per focus event');
+
     // Duplicate tabs: a background copy of Classbuster costs nothing. A separate
     // context gives it its own key, so requests are attributable per tab.
     const B='synthetic-adaptive-b';
@@ -117,7 +150,7 @@ module.exports=async function(){
     assert.equal(gets(B)-beforeB,0,'the hidden duplicate tab does not poll');
 
     assert.deepEqual(errors,[]);assert.deepEqual(second.errors,[]);
-    console.log('PASS Krisp adaptive polling: idle cadence, hidden tabs, return delivery, backoff, single flight, duplicate tabs');
+    console.log('PASS Krisp adaptive polling: idle cadence, hidden tabs, return delivery, backoff, single flight, away cadence, return on input/focus, duplicate tabs');
     return 0;
   }finally{if(browser)await browser.close();server.close();}
 };
