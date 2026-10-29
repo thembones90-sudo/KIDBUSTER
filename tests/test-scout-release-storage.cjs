@@ -36,6 +36,9 @@ module.exports=async()=>{
   assert.equal(removed,1);assert.deepEqual(await fs.readFile(archived.artifact),bytes);
   const receipt=JSON.parse(await fs.readFile(archived.receipt,'utf8'));
   assert.equal(receipt.sha256,crypto.createHash('sha256').update(bytes).digest('hex'));assert.equal(receipt.pathname,obsolete);
+  assert.equal(receipt.etag,info.etag);
+  const replaced={...blob,head:async()=>({...info,etag:'replacement-same-size'})};
+  await assert.rejects(archiveRelease({...options,blob:replaced}),/verification/);assert.equal(removed,1,'older receipt cannot authorize removing a newer same-size package');
   await fs.writeFile(archived.artifact,'corrupt');
   await assert.rejects(archiveRelease(options),/verification/);assert.equal(removed,1,'corrupt archive cannot authorize removal');
   // Changed remote metadata after a verified download must preserve remote.

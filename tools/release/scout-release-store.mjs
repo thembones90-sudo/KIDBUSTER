@@ -59,7 +59,7 @@ export async function archiveRelease({blob,pathname,archiveDir,policy,active,sou
  try{
   const existing=JSON.parse(await readFile(receipt,'utf8'));
   facts=await digestFile(artifact);
-  if(existing.pathname!==pathname||existing.size!==info.size||facts.size!==existing.size||facts.sha256!==existing.sha256)throw Error('Existing archive failed verification');
+  if(existing.pathname!==pathname||existing.etag!==info.etag||existing.size!==info.size||facts.size!==existing.size||facts.sha256!==existing.sha256)throw Error('Existing archive failed verification');
  }catch(error){
   if(error.code!=='ENOENT')throw error;
   if(typeof info.etag!=='string'||!info.etag)throw Error('Remote release has no conditional-read identity');
@@ -92,7 +92,7 @@ export async function archiveRelease({blob,pathname,archiveDir,policy,active,sou
   try{await stat(artifact);throw Error('Unreceipted archive exists; remote copy retained');}catch(e){if(e.code!=='ENOENT')throw e;}
   await rename(partial,artifact);
   const receiptHandle=await open(receipt,'wx');
-  try{await receiptHandle.writeFile(JSON.stringify({pathname,...facts,archivedAt:new Date().toISOString()},null,2));await receiptHandle.sync();}finally{await receiptHandle.close();}
+  try{await receiptHandle.writeFile(JSON.stringify({pathname,...facts,etag:info.etag,archivedAt:new Date().toISOString()},null,2));await receiptHandle.sync();}finally{await receiptHandle.close();}
  }
  // Re-read both archive and remote metadata immediately before removal.
  const verified=await digestFile(artifact),latest=await blob.head(pathname);
