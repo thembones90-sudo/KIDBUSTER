@@ -37,7 +37,7 @@ module.exports=async function(){
     await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
     await page.evaluateOnNewDocument(()=>{
       localStorage.setItem('kidbuster_access_key','synthetic-pending-header');
-      const original=setInterval;window.setInterval=(fn,ms,...args)=>ms===5000?(window.testKrispPoll=fn,987654):original(fn,ms,...args);
+      const original=setInterval;window.setInterval=(fn,ms,...args)=>ms===15000?(window.testKrispPoll=fn,987654):original(fn,ms,...args);
     });
     await page.setViewport({width:1440,height:1000});
     await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'load'});

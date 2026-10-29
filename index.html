@@ -9624,7 +9624,8 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 
   function ensurePolling(){
     if(pollTimer) return;
-    pollTimer = setInterval(refreshKrispSession, 5000);
+    // Fallback discovery for webhook-delivered transcripts. Reduce idle Redis traffic.
+    pollTimer = setInterval(refreshKrispSession, 15000);
   }
 
   // Buttons carry an icon/logo next to their label, so text changes go to
