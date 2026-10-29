@@ -1,3 +1,12 @@
+# Native Scout1.4.10 installed — 2026-10-29
+
+After SKYNET reconnected, owner-authorized native installation completed. Current
+selection1.4.10, previous1.4.9;1836 program files hash-verified, ProductVersion
+1.4.10 confirmed. Profile/recording untouched, older builds retained. Last native
+process check still showed1.4.9; guarded idle handover will activate1.4.10. Do
+not force-stop a class or treat older stale sandbox-pointer notes as current.
+The online download release remains7d1938d, dpl_FqL6PuiuLSYo21nm3jazEW6UYxP9.
+
 # Current Scout download1.4.10 — 2026-10-29
 
 Owner-approved compact widget waveforms:20% smaller height/pitch/thickness;
