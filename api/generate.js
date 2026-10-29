@@ -43,7 +43,7 @@ import crypto from 'node:crypto';
 import { reserveGeneration, releaseGeneration, commitGeneration } from './_lib/license-service.js';
 import { alertOwner } from './_lib/owner-alerts.js';
 import { keyFingerprint } from './_lib/identity-continuity.js';
-import { ALWAYS_FREE_PROTOCOLS, TRIAL_GENERATIONS_PER_PROTOCOL } from './_lib/licensing.js';
+import { ALWAYS_FREE_PROTOCOLS, TRIAL_GENERATIONS_PER_PROTOCOL, isPlausibleLicenseKey } from './_lib/licensing.js';
 import { buildServerGeneration, evaluateGeneratedOutput, buildRepairMessage, normalizeClassicEnding, GenerationRequestError } from './_lib/server-generation.js';
 import {beginGenerationRequest,completeGenerationRequest,releaseGenerationRequest} from './_lib/kv-client.js';
 import {acquireGenerateThrottle} from './_lib/generate-throttle.js';
@@ -156,6 +156,9 @@ function secondsUntilUtcMidnight(now = Date.now()) {
 async function generateHandler(req, res) {
   const licenseKey = req.method === 'POST' ? req.headers['x-app-key'] : '';
   if (!licenseKey) return runGeneration(req, res);
+  // Same answer the entitlement check gives a nonexistent key, but before the
+  // throttle and request-identity counters spend any Redis commands on it.
+  if (!isPlausibleLicenseKey(licenseKey)) return res.status(401).json({ error: 'Invalid license key.', reason: 'invalid_key' });
 
   let throttle;
   try {

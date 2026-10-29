@@ -285,6 +285,16 @@ const emailIndexFor = (email) => 'email:' + normalizeEmail(email);
 const paymentCustomerIndexFor = (customerId) => 'paymentCustomer:' + customerId;
 const usageKeyFor = (key, period) => 'usage:' + key + ':' + period;
 
+// Every key ever issued has generateLicenseKey()'s format (unchanged since
+// licensing began, 2026-07-08); owner keys come from the environment. Public
+// routes refuse any other string before spending Redis commands on it, so
+// junk-key traffic costs nothing on a pay-per-command plan. Internal paths
+// (webhooks, owner tools) keep calling getLicense directly.
+const LICENSE_KEY_FORMAT = /^kb_live_[0-9a-f]{48}$/;
+export function isPlausibleLicenseKey(licenseKey){
+  return typeof licenseKey === 'string' && (LICENSE_KEY_FORMAT.test(licenseKey) || isFounderLicenseKey(licenseKey));
+}
+
 export async function getLicense(licenseKey){
   if(!licenseKey) return null;
   return (await kv.get(licenseKeyFor(licenseKey))) || null;

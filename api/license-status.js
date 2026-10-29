@@ -19,7 +19,7 @@ import {
   getLicense,
   getUsageCount,
   getTrialUsageCount,
-  isFounderLicenseKey,
+  isFounderLicenseKey, isPlausibleLicenseKey,
   isLicenseExpired, effectiveSubscriptionLicense
 } from './_lib/licensing.js';
 import { claimManualLicenseForInstallation } from './_lib/license-service.js';
@@ -67,7 +67,7 @@ export default async function handler(req, res){
       });
     }
 
-    let license = await getLicense(licenseKey);
+    let license = isPlausibleLicenseKey(licenseKey) ? await getLicense(licenseKey) : null;
     if(!license){
       return res.status(401).json({ error: 'Invalid license key.' });
     }

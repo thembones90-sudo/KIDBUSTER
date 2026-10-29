@@ -130,6 +130,35 @@ module.exports=async function run(){
     const refundMessages=sent('refund');
     check('the sent refund alerts show the amounts',refundMessages.length===2&&refundMessages.some(m=>m.includes('Refunded: 2.00 of 12.00'))&&refundMessages.some(m=>m.includes('Refunded: 12.00 of 12.00')));
     check('refund alerts never contain the raw key or full email',refundMessages.every(m=>!m.includes(r)&&!m.includes('refund@example.test')&&/Customer: .*\*/.test(m)));
+
+    console.log('\n7) impossible keys are refused before Redis, with unchanged answers');
+    const kvc=await import('../api/_lib/kv-client.js');
+    const status=(await import('../api/license-status.js')).default;
+    const krisp=(await import('../api/krisp-session.js')).default;
+    const COUNTED=['get','set','del','getdel','mget','incr','expire','scan','eval'];
+    const originals={};let commands=0;
+    for(const n of COUNTED)if(kvc.kv[n]){originals[n]=kvc.kv[n];kvc.kv[n]=function(...x){commands++;return originals[n].apply(this,x);};}
+    const call=async(handler,req)=>{let code=200,body=null;const res={headers:{},setHeader(){},status(c){code=c;return res;},json(b){body=b;return res;}};await handler(req,res);return {code,body};};
+    try{
+      const junk=['PROBE-NOT-A-REAL-KEY','kb_live_short','kb_live_'+'g'.repeat(48),' kb_live_'+'a'.repeat(48),'x'.repeat(5000)];
+      for(const key of junk){
+        commands=0;
+        const g=await report(key);
+        const st=await call(status,{method:'GET',headers:{'x-app-key':key}});
+        const kr=await call(krisp,{method:'GET',query:{},headers:{'x-app-key':key,host:'t.example'}});
+        check('junk key '+JSON.stringify(key.slice(0,24))+': same refusals, zero Redis commands',
+          g.statusCode===401&&g.jsonBody.error==='Invalid license key.'&&st.code===401&&st.body.error==='Invalid license key.'&&kr.code===403&&commands===0);
+      }
+      const unknown='kb_live_'+'0'.repeat(48);
+      commands=0;
+      check('a well-formed but unknown key is still looked up and refused',(await call(status,{method:'GET',headers:{'x-app-key':unknown}})).code===401&&commands>0);
+      const real=await proKey('format-real@example.com');
+      check('a real key keeps working on every route',(await report(real)).statusCode===200&&
+        (await call(status,{method:'GET',headers:{'x-app-key':real}})).code===200&&
+        (await call(krisp,{method:'GET',query:{},headers:{'x-app-key':real,host:'t.example'}})).code===200);
+      check('owner keys in any format keep working',(await report('synthetic-owner-cost-guard')).statusCode===200&&
+        (await call(status,{method:'GET',headers:{'x-app-key':'synthetic-owner-cost-guard'}})).code===200);
+    }finally{for(const n of Object.keys(originals))kvc.kv[n]=originals[n];}
   }finally{
     Date.now=originalNow;global.fetch=priorFetch;
     for(const k of vars){if(previous[k]===undefined)delete process.env[k];else process.env[k]=previous[k];}
