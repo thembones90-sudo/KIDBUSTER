@@ -1,3 +1,19 @@
+# Current Scout download1.4.10 — 2026-10-29
+
+Owner-approved compact widget waveforms:20% smaller height/pitch/thickness;
+full-size waveforms, labels, percentages, geometry and live logic unchanged.
+Web7d1938d, dpl_FqL6PuiuLSYo21nm3jazEW6UYxP9. All124 local files, GitHub
+40852975387 and staged/live/legacy exact bytes, five probes,24/24 smoke PASS.
+Web rollback dpl_8khvT5Z4wwRrMCEMLfD2DH4w64Jd. Private installer1.4.10 is
+117188458 bytes, SHA256 cfe0e8e8d342d9d0319e1b58fd07d48334b6809d227879871c99714798228b12.
+Source1049 tests (one skip),173 frozen checks and CPU/media package PASS.
+Storage guard/full downloaded checksum/exact synthetic-owner handler PASS.
+The running/local installed Scout remains1.4.9. Native filesystem connector is
+offline; Codex sees stale1.4.2 pointers. Do not mutate that projected home or
+interrupt a class. Installing current download after class applies the change.
+Prior1.4.9 remains rollback; protected package list was advanced. No recordings,
+user profile or active process were modified. Signing still needs a credential.
+
 # Current hardening release — 2026-10-29
 
 Runtime dda4126, deployment dpl_8khvT5Z4wwRrMCEMLfD2DH4w64Jd is live on
