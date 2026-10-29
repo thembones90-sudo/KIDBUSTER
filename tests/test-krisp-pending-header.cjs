@@ -37,7 +37,10 @@ module.exports=async function(){
     await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
     await page.evaluateOnNewDocument(()=>{
       localStorage.setItem('kidbuster_access_key','synthetic-pending-header');
-      const original=setInterval;window.setInterval=(fn,ms,...args)=>ms===5000?(window.testKrispPoll=fn,987654):original(fn,ms,...args);
+      // Drive the real budget heartbeat after its longest possible cooldown,
+      // preserving all arrival/error assertions without real-time waits.
+      const realNow=Date.now;let clockOffset=0;Date.now=()=>realNow()+clockOffset;
+      const original=setInterval;window.setInterval=(fn,ms,...args)=>ms===15000?(window.testKrispPoll=()=>{clockOffset+=121000;return fn();},987654):original(fn,ms,...args);
     });
     await page.setViewport({width:1440,height:1000});
     await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'load'});
@@ -150,6 +153,23 @@ module.exports=async function(){
     state.entitled=true;
     await page.evaluate(()=>{localStorage.setItem('kidbuster_access_key','synthetic-returning-account');document.dispatchEvent(new Event('kidbuster:access-key-saved'));});
     await page.waitForFunction(()=>!document.getElementById('krispPendingBtn').hidden);
+    state.error=true;
+    const outageReply=page.waitForResponse(r=>r.url().includes('/api/krisp-session?verify=1')&&r.status()===503);
+    await page.evaluate(()=>{localStorage.setItem('kidbuster_access_key','synthetic-startup-outage');document.dispatchEvent(new Event('kidbuster:access-key-saved'));});
+    await outageReply;
+    await page.waitForFunction(()=>!document.getElementById('krispPendingBtn').hidden);
+    assert.equal(await page.$eval('#krispIntegrationBtn',e=>e.hidden),false,'temporary outage preserves Krisp navigation');
+    assert.equal(await page.evaluate(()=>window.__classbusterKrispEntitled),false,'visible unavailable controls never grant entitlement');
+    await page.click('#krispPendingBtn');
+    assert.equal(await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')),true,'unavailable inbox remains reachable');
+    assert.match(await page.$eval('#krispInboxStatus',e=>e.textContent),/Could not refresh/,'outage is explained inside inbox');
+    await page.click('#krispInboxClose');
+    await page.evaluate(()=>document.dispatchEvent(new CustomEvent('classbuster:scout-pending',{detail:{authorized:false,count:0}})));
+    assert.equal(await page.$eval('#krispPendingBtn',e=>e.hidden),false,'Scout events cannot hide unavailable Krisp controls');
+    state.error=false;
+    await page.evaluate(()=>window.testKrispPoll());
+    await page.waitForFunction(()=>!document.getElementById('krispPendingBtn').hidden);
+    assert.equal(await page.$eval('#krispWaitBtn',e=>e.dataset.waiting),'true','initial outage recovers authenticated persistent ARM without reload');
     await page.evaluate(()=>document.getElementById('accountSignOutBtn').click());
     assert.equal(await page.$eval('#krispPendingBtn',e=>e.hidden),true,'sign-out hides inbox entry');
     assert.equal(await page.$$eval('#krispPendingItems>*',els=>els.length),0,'sign-out clears old inbox');

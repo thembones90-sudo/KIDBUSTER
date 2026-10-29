@@ -156,6 +156,7 @@ export default async function handler(req, res){
       const nowMs=Date.now();
       const legacy=await kv.getdel(matchedKey);
       let queue=await readImportQueue(matchedQueueKey,nowMs);
+      const queueBeforeMutation=JSON.stringify(queue);
       if(legacy&&typeof legacy==='object'){
         if(!legacy.receivedAt)legacy.receivedAt=new Date(nowMs).toISOString();
         queue.unshift(legacy);
@@ -170,7 +171,11 @@ export default async function handler(req, res){
         matched={...head};
         delete matched.leasedUntil;delete matched.deliveryCount;
       }
-      await writeImportQueue(matchedQueueKey,queue,nowMs);
+      // An empty/unchanged queue needs no Redis write on each idle poll.
+      // Preserve lease, legacy-migration, and cleanup writes when data changed.
+      if(JSON.stringify(queue)!==queueBeforeMutation){
+        await writeImportQueue(matchedQueueKey,queue,nowMs);
+      }
       return {matched,pendingRaw:await readImportQueue(pendingKey,nowMs)};
     });
     if(read.busy)return res.status(503).json({error:'Krisp inbox is busy. Retry shortly.'});
