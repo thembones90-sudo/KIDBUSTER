@@ -134,8 +134,10 @@ module.exports=async function(){
   assert.equal(await page.$eval('html',e=>e.dataset.appearance),'dark');
   await page.evaluate(()=>localStorage.removeItem('kidbuster_access_key'));
   await page.waitForFunction(()=>!document.getAnimations().some(a=>a.animationName==='appearance-dissolve'));
-  await page.click('#accountBtn');
-  // Account opening awaits license state; wait for the actual sign-in control.
+  // Exercise signed-out access by keyboard after the theme transition.
+  // Browser view-transition snapshots can intercept a synthetic pointer click.
+  await page.focus('#accountBtn');await page.keyboard.press('Enter');
+  // Wait for the actual sign-in control before testing its appearance.
   await page.waitForSelector('#licenseModalOverlay [data-appearance-option="light"]',{visible:true});
   await page.click('#licenseModalOverlay [data-appearance-option="light"]');
   await page.waitForFunction(()=>document.documentElement.dataset.appearance==='light');
