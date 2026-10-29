@@ -157,7 +157,15 @@ module.exports=async function(){
     const outageReply=page.waitForResponse(r=>r.url().includes('/api/krisp-session?verify=1')&&r.status()===503);
     await page.evaluate(()=>{localStorage.setItem('kidbuster_access_key','synthetic-startup-outage');document.dispatchEvent(new Event('kidbuster:access-key-saved'));});
     await outageReply;
-    await page.waitForFunction(()=>document.getElementById('krispPendingBtn').hidden);
+    await page.waitForFunction(()=>!document.getElementById('krispPendingBtn').hidden);
+    assert.equal(await page.$eval('#krispIntegrationBtn',e=>e.hidden),false,'temporary outage preserves Krisp navigation');
+    assert.equal(await page.evaluate(()=>window.__classbusterKrispEntitled),false,'visible unavailable controls never grant entitlement');
+    await page.click('#krispPendingBtn');
+    assert.equal(await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')),true,'unavailable inbox remains reachable');
+    assert.match(await page.$eval('#krispInboxStatus',e=>e.textContent),/Could not refresh/,'outage is explained inside inbox');
+    await page.click('#krispInboxClose');
+    await page.evaluate(()=>document.dispatchEvent(new CustomEvent('classbuster:scout-pending',{detail:{authorized:false,count:0}})));
+    assert.equal(await page.$eval('#krispPendingBtn',e=>e.hidden),false,'Scout events cannot hide unavailable Krisp controls');
     state.error=false;
     await page.evaluate(()=>window.testKrispPoll());
     await page.waitForFunction(()=>!document.getElementById('krispPendingBtn').hidden);

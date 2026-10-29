@@ -9571,6 +9571,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
   var initInFlight = null;
   var initKey = null;
   var initializedKrispKey = null;
+  var krispTemporarilyUnavailable = false;
   var pollBudget = window.ClassbusterKrispPollBudget.create({
     key: getSavedKey,
     armed: function(){ return krispServerArmed || krispRequestedArmed; },
@@ -10214,6 +10215,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
   function refreshKrispSession(){
     var key = getSavedKey();
     if(initInFlight && initKey === key) return initInFlight;
+    if(key && initializedKrispKey !== key) return initKrispPanel();
     if(refreshInFlight && refreshKey === key) return refreshInFlight;
     refreshKey = key;
     var request = fetchKrispSession();
@@ -10367,18 +10369,35 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
   // The header button is shown only when the Krisp panel is (entitled
   // account). Showing or hiding it never changes the armed state.
   function setKrispHeaderButtonVisible(visible){
+    // A transient service failure is not an entitlement rejection. Keep the
+    // navigation available without claiming account authorization or content.
+    var unavailable = krispTemporarilyUnavailable && !!getSavedKey();
     var integrationBtn = document.getElementById('krispIntegrationBtn');
-    if(integrationBtn) integrationBtn.hidden = !visible;
+    if(integrationBtn) integrationBtn.hidden = !(visible || unavailable);
     var pendingBtn = document.getElementById('krispPendingBtn');
     window.__classbusterKrispEntitled = !!visible;
     var scoutVisible = !!window.__classbusterScoutPendingAuthorized;
-    if(pendingBtn) pendingBtn.hidden = !(visible || scoutVisible);
+    if(pendingBtn) pendingBtn.hidden = !(visible || unavailable || scoutVisible);
     var krispGroup = document.getElementById('krispPendingGroup');
-    if(krispGroup) krispGroup.hidden = !visible;
-    if(!visible && !scoutVisible){
+    if(krispGroup) krispGroup.hidden = !(visible || unavailable);
+    if(!visible && !unavailable && !scoutVisible){
       var inbox = document.getElementById('krispInboxPanel');
       if(inbox && inbox.matches(':popover-open')) inbox.hidePopover();
     }
+  }
+
+  function showKrispUnavailable(){
+    krispTemporarilyUnavailable = true;
+    krispServiceError = true;
+    setKrispHeaderButtonVisible(!!window.__classbusterKrispEntitled);
+    var panel = document.getElementById('krispIntegrationPanel');
+    if(panel) panel.style.display = '';
+    loadKrispLogo();
+    wireButtons();
+    renderKrispHealth();
+    showPendingRefreshError();
+    var badge = document.getElementById('krispInboxBadge');
+    if(badge && !initializedKrispKey) badge.textContent = '…';
   }
 
   // Owner-only Scout inbox participates in the same header, but never shares
@@ -10503,6 +10522,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     if(key !== pendingAccountKey){
       pollBudget.reset();
       initializedKrispKey = null;
+      krispTemporarilyUnavailable = false;
       pendingAccountKey = key;
       renderedPendingIds = {}; announcedIds = {};
       document.getElementById('krispPendingItems').replaceChildren();
@@ -10519,8 +10539,15 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     var timeout = setTimeout(function(){ controller.abort(); }, 20000);
     try{
       var res = await fetch('/api/krisp-session?verify=1', { headers: { 'x-app-key': key }, signal: controller.signal });
+      if(key !== getSavedKey()) return;
       if(!res.ok){
-        // Not entitled (or key rejected): keep/return to hidden, fail safe.
+        if(res.status !== 401 && res.status !== 403){
+          showKrispUnavailable();
+          return;
+        }
+        // Explicit account rejection still hides gated controls. Service
+        // failures above never masquerade as a Free/revoked account.
+        krispTemporarilyUnavailable = false;
         var hiddenPanel = document.getElementById('krispIntegrationPanel');
         if(hiddenPanel) hiddenPanel.style.display = 'none';
         setKrispHeaderButtonVisible(false);
@@ -10529,6 +10556,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
       var json = await res.json();
       if(key !== getSavedKey()) return;
       initializedKrispKey = key;
+      krispTemporarilyUnavailable = false;
       krispDisconnected = false;
       krispServerArmed = !!json.waiting;
       krispServiceError = false;
@@ -10560,7 +10588,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
       }
       wireButtons();
       return json;
-    }catch(e){ /* stays hidden on any error -- fail safe */ }
+    }catch(e){ if(key === getSavedKey()) showKrispUnavailable(); }
     finally{
       clearTimeout(timeout);
       // An initial outage must recover without requiring a page reload.
