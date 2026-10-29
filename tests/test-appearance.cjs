@@ -135,6 +135,8 @@ module.exports=async function(){
   await page.evaluate(()=>localStorage.removeItem('kidbuster_access_key'));
   await page.waitForFunction(()=>!document.getAnimations().some(a=>a.animationName==='appearance-dissolve'));
   await page.click('#accountBtn');
+  // Account opening awaits license state; wait for the actual sign-in control.
+  await page.waitForSelector('#licenseModalOverlay [data-appearance-option="light"]',{visible:true});
   await page.click('#licenseModalOverlay [data-appearance-option="light"]');
   await page.waitForFunction(()=>document.documentElement.dataset.appearance==='light');
   assert.equal(await page.$eval('html',e=>e.dataset.appearance),'light','appearance available before sign-in');
