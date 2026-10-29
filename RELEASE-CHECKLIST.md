@@ -4,6 +4,35 @@ Applies to every production release of the website (`classbuster.com`, Vercel pr
 
 Each level is a different kind of evidence. A lower level never substitutes for a higher one.
 
+## Scout software-package storage gate
+
+Before every installer upload, use `tools/release/scout-release-store.mjs inspect
+--incoming-bytes <verified-installer-size>` with the private release environment.
+The conservative store budget is 1,000,000,000 bytes plus a required 64 MiB free
+reserve. An upload that would exceed this budget fails. Use the tool's `upload`
+command rather than an ad hoc Blob upload; it refuses overwrites, checks capacity
+and verifies the complete downloaded installer checksum before publication.
+
+`tools/release/scout-storage-policy.json` must agree with the active download
+route and protect distinct current/rollback installers. Keep the additional
+recent recovery release listed there. Update this policy when promoting a new
+installer. Serialize software releases; the local preflight is not a global
+transaction against uploads from unrelated tools or machines.
+
+To free capacity, explicitly archive obsolete software with `archive --pathname
+<release-path> --archive-dir <absolute-directory-outside-checkout>`. It accepts
+only branded software packages, refuses protected paths, and removes the remote
+copy only after durable local bytes and a SHA-256 receipt have been re-read and
+verified. Interrupted/corrupt archives never authorize cloud removal. Keep the
+archive and receipt together; restore only after checking receipt size/SHA-256,
+using a private non-overwriting upload and verifying its downloaded checksum.
+This software policy never applies to lesson audio, transcripts or user data.
+
+Windows publisher signing remains a separate release requirement before wider
+Scout distribution. The current master-only 1.4.9 pilot is unsigned; the owner
+does not yet have a verified signing credential. Do not label it signed or
+replace verified publisher identity with a self-signed certificate.
+
 ## Level 1: static and synthetic gate (automatic, every build)
 `scripts/verify-release-integrity.cjs` is the Vercel `buildCommand`, so a failing gate stops the deployment from building. It checks structure (routes, signature checks, entitlement, customer-record key prefixes, Krisp, Scout fail-closed gate, report generation, seven protocols, routes, function budget). It also renders the real sign-in and recovery emails for the deployment's `PATHFINDER_APP_URL` and validates them against the deployed relay's rules.
 - [ ] Local: `node scripts/verify-release-integrity.cjs` prints `Release integrity OK`.

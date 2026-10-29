@@ -1,0 +1,62 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto');
+module.exports=async()=>{
+ const {validatePolicy,inventory,capacity,archiveRelease,uploadRelease}=await import('../tools/release/scout-release-store.mjs');
+ const current='releases/scout-current/ScoutSetup.exe',rollback='releases/scout-rollback/ScoutSetup.exe',obsolete='releases/scout-old/ScoutSetup.exe';
+ const policy={capacityBytes:1000,reserveBytes:100,current,rollback,protected:[]};
+ assert.throws(()=>validatePolicy(policy,'releases/scout-other/ScoutSetup.exe'),/disagrees/);
+ assert.throws(()=>validatePolicy({...policy,rollback:current},current),/distinct/);
+ assert.throws(()=>validatePolicy({...policy,current:'lessons/private.wav'},'lessons/private.wav'),/software-release/);
+ const pages=[{blobs:[{pathname:current,size:200}],hasMore:true,cursor:'next'},{blobs:[{pathname:'other-object',size:100}],hasMore:false}];
+ const listed=await inventory({list:async()=>pages.shift()});assert.equal(listed.length,2);
+ assert.equal(capacity(listed,policy,601).uploadAllowed,false,'all store objects count towards capacity');
+ assert.equal(capacity(listed,policy,600).uploadAllowed,true);
+ await assert.rejects(inventory({list:async()=>({blobs:[],hasMore:true})}),/pagination/);
+ const temp=await fs.mkdtemp(path.join(os.tmpdir(),'classbuster-software-archive-test-'));
+ const sourceRoot=path.join(temp,'source'),archiveDir=path.join(temp,'archive');
+ await fs.mkdir(sourceRoot);const bytes=Buffer.from('MZ synthetic installer fixture');let removed=0,gets=0;
+ const info={pathname:obsolete,size:bytes.length,uploadedAt:'synthetic-stable-date',etag:'synthetic-etag'};
+ const blob={head:async()=>({...info}),get:async()=>{gets++;return {statusCode:200,headers:new Headers({'content-range':`bytes 0-${bytes.length-1}/${bytes.length}`}),stream:require('node:stream').Readable.from([bytes])};},del:async(_name,options)=>{assert.equal(options.ifMatch,info.etag);removed++;}};
+ const options={blob,pathname:obsolete,archiveDir,policy,active:current,sourceRoot};
+ try{
+  await assert.rejects(archiveRelease({...options,pathname:current}),/protected/);
+  await assert.rejects(archiveRelease({...options,pathname:'lessons/private.txt'}),/software-release/);
+  await assert.rejects(archiveRelease({...options,archiveDir:sourceRoot}),/outside/);
+  await assert.rejects(archiveRelease({...options,archiveDir:'relative-archive'}),/absolute/);
+  assert.equal(gets,0);assert.equal(removed,0);
+  const short={...blob,get:async()=>({statusCode:200,stream:require('node:stream').Readable.from([Buffer.from('short')])})};
+  await assert.rejects(archiveRelease({...options,blob:short}),/Incomplete/);assert.equal(removed,0);
+  const unavailable={...blob,get:async()=>({statusCode:404})};
+  await assert.rejects(archiveRelease({...options,blob:unavailable}),/retrieve/);assert.equal(removed,0);
+  const failingDelete={...blob,del:async()=>{throw Error('Synthetic removal outage');}};
+  await assert.rejects(archiveRelease({...options,blob:failingDelete}),/removal outage/);
+  const downloaded=gets;
+  const archived=await archiveRelease(options);
+  assert.equal(gets,downloaded,'retry re-verifies durable archive instead of overwriting it');
+  assert.equal(removed,1);assert.deepEqual(await fs.readFile(archived.artifact),bytes);
+  const receipt=JSON.parse(await fs.readFile(archived.receipt,'utf8'));
+  assert.equal(receipt.sha256,crypto.createHash('sha256').update(bytes).digest('hex'));assert.equal(receipt.pathname,obsolete);
+  await fs.writeFile(archived.artifact,'corrupt');
+  await assert.rejects(archiveRelease(options),/verification/);assert.equal(removed,1,'corrupt archive cannot authorize removal');
+  // Changed remote metadata after a verified download must preserve remote.
+  let heads=0;const changed={...blob,head:async()=>({...info,uploadedAt:++heads===1?'before':'after'})};
+  await assert.rejects(archiveRelease({...options,blob:changed,archiveDir:path.join(temp,'changed')}),/changed/);assert.equal(removed,1);
+  const file=path.join(temp,'ScoutSetup.exe');await fs.writeFile(file,bytes);let puts=0;
+  const uploadBlob={list:async()=>({blobs:[{pathname:current,size:899},{pathname:rollback,size:1}],hasMore:false}),put:async()=>{puts++;return {pathname:'unused'};}};
+  await assert.rejects(uploadRelease({blob:uploadBlob,pathname:'releases/scout-next/ScoutSetup.exe',file,policy,active:current}),/Insufficient/);assert.equal(puts,0);
+  await assert.rejects(uploadRelease({blob:uploadBlob,pathname:current,file,policy,active:current}),/overwrite/);assert.equal(puts,0);
+  uploadBlob.list=async()=>({blobs:[{pathname:current,size:10},{pathname:rollback,size:10}],hasMore:false});
+  uploadBlob.put=async(name,stream,options)=>{for await(const _ of stream){};assert.equal(options.access,'private');assert.equal(options.allowOverwrite,false);assert.equal(options.addRandomSuffix,false);puts++;return {pathname:name};};
+  uploadBlob.get=blob.get;
+  const uploaded=await uploadRelease({blob:uploadBlob,pathname:'releases/scout-next/ScoutSetup.exe',file,policy,active:current});
+  assert.equal(uploaded.verified,true);assert.equal(uploaded.sha256,receipt.sha256);
+  uploadBlob.get=async()=>({statusCode:200,stream:require('node:stream').Readable.from([Buffer.from('incorrect')])});
+  await assert.rejects(uploadRelease({blob:uploadBlob,pathname:'releases/scout-bad/ScoutSetup.exe',file,policy,active:current}),/differs/);
+  console.log('PASS Scout release storage: protected current/rollback, capacity, private verified archives, interrupted retries, corruption, remote races and verified uploads');return 0;
+ }finally{
+  const target=path.resolve(temp),allowed=path.resolve(os.tmpdir())+path.sep;
+  if(!target.startsWith(allowed)||!path.basename(target).startsWith('classbuster-software-archive-test-'))throw Error('Unsafe test cleanup target');
+  await fs.rm(target,{recursive:true,force:true});
+ }
+};
+if(require.main===module)module.exports().then(n=>process.exitCode=n).catch(e=>{console.error(e);process.exitCode=1;});
