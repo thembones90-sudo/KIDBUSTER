@@ -102,6 +102,9 @@ module.exports=async function(){
     state.error=true;await page.evaluate(()=>window.testKrispPoll());
     assert.equal(await page.$eval('#krispInboxBadge',e=>e.textContent),'1','outage preserves last known count');
     assert.ok(await page.$eval('#krispInboxStatus',e=>e.textContent.includes('Could not refresh')));
+    await page.evaluate(()=>document.dispatchEvent(new CustomEvent('classbuster:scout-pending',{detail:{authorized:false,count:0}})));
+    assert.ok(await page.$eval('#krispInboxStatus',e=>e.textContent.includes('Could not refresh')),'Scout count update preserves unresolved Krisp refresh warning');
+    assert.ok(await page.$eval('#krispPendingBtn',e=>e.title.includes('refresh unavailable')));
     state.error=false;state.pending=[];await page.evaluate(()=>window.testKrispPoll());
     assert.equal(await page.$eval('#krispInboxBadge',e=>e.textContent),'0');
     assert.equal(await page.$eval('#krispInboxEmpty',e=>e.hidden),false);

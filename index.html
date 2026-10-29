@@ -9992,6 +9992,8 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     if(empty) empty.hidden = count > 0;
     var status = document.getElementById('krispInboxStatus');
     if(status) status.textContent = count ? count + (count === 1 ? ' transcript ready to import' : ' transcripts ready to import') : '';
+    // Scout count events must not clear an unresolved Krisp refresh warning.
+    if(krispServiceError) showPendingRefreshError();
     if(!count){ var wrap = document.getElementById('krispPendingWrap'); if(wrap) wrap.style.display = 'none'; }
     var el = document.getElementById('krispPendingCount');
     if(!el) return;
