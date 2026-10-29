@@ -139,7 +139,11 @@ module.exports=async function(){
   await page.focus('#accountBtn');await page.keyboard.press('Enter');
   // Wait for the actual sign-in control before testing its appearance.
   await page.waitForSelector('#licenseModalOverlay [data-appearance-option="light"]',{visible:true});
-  await page.click('#licenseModalOverlay [data-appearance-option="light"]');
+  // The newly opened modal can still be moving when it becomes visible.
+  // Activate its real control by keyboard so a transition snapshot cannot
+  // intercept the synthetic pointer; retain the resulting-theme assertion.
+  await page.focus('#licenseModalOverlay [data-appearance-option="light"]');
+  await page.keyboard.press('Enter');
   await page.waitForFunction(()=>document.documentElement.dataset.appearance==='light');
   assert.equal(await page.$eval('html',e=>e.dataset.appearance),'light','appearance available before sign-in');
   assert.equal(await page.$eval('#licenseModalOverlay .access-modal',e=>getComputedStyle(e).backgroundColor),'rgb(255, 255, 255)');
