@@ -68,3 +68,26 @@ when no surviving queue copy needs them. Reader-aware rollback deployed first.
 All123 local files and GitHub40843122444 pass. Candidate/live/legacy checks
 pass. See STEP3-TRANSCRIPT-RETENTION-20261028.md for deployment IDs and limits.
 Steps4–6 remain outstanding; owner has no signing credential yet.
+
+## Follow-through — 2026-10-29
+
+Step5 complete: obsolete10ZU ZIP and1.0.0/1.1.0 installers have verified durable
+software-only archives; current1.4.9, rollback1.4.8 and recovery1.4.7 stay in the
+private store. Capacity preflight now passes for a117,194,818-byte release plus
+64MiB reserve. The guarded private uploader and conditional archival procedure
+are committed; receipts bind later retries to the same remote object ETag.
+See SCOUT-RELEASE-STORAGE-20261029.md and RELEASE-CHECKLIST.md.
+
+Step6 initial bounded extraction complete/live: presentation/branding helpers
+moved to a module without changing the canonical prompt engine or layout.
+A repeated regression also exposed/fixed Scout count events clearing an
+unresolved Krisp refresh warning. Larger UI files remain technical debt.
+
+Runtime dda4126, dpl_8khvT5Z4wwRrMCEMLfD2DH4w64Jd. All124 clean local files
+and GitHub40847836586 pass. Staged/live/legacy exact bytes, five probes and
+24/24 smoke pass. Rollback dpl_GmCY8pikpWJL1mP1HMjJfj45XKot. Follow-up5c52acf
+changes only excluded release tooling/tests; its focused storage tests pass.
+No real teacher report, customer account/email/payment, microphone test,
+Scout process restart or profile mutation occurred. Private installer1.4.9
+is unchanged. Step4 cannot finish until a verified signing credential exists;
+master-only unsigned pilot status remains explicit.

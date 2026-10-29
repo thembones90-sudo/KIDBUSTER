@@ -1,3 +1,23 @@
+# Current hardening release — 2026-10-29
+
+Runtime dda4126, deployment dpl_8khvT5Z4wwRrMCEMLfD2DH4w64Jd is live on
+Classbuster and the legacy webhook domain. All124 local files and GitHub
+40847836586 pass. Candidate/live/legacy exact bytes (including the new protocol
+presentation asset), five extra probes and24/24 smoke pass. Web rollback is
+retention-aware dpl_GmCY8pikpWJL1mP1HMjJfj45XKot. No sizing fingerprints or
+canonical protocol engine changed. Preserve the cross-source error fix: Scout
+count events must not clear an unresolved Krisp refresh warning.
+
+Step5: recoverable software archival freed264,969,201 bytes; store now holds
+701,842,974 bytes. Protect1.4.9/current,1.4.8/rollback and1.4.7/recovery. Use
+scout-release-store.mjs and scout-storage-policy.json before future uploads;
+never mix software retention with lesson data. See SCOUT-RELEASE-STORAGE-20261029.md.
+Step6: first bounded UI presentation/branding extraction is live. Larger UI
+files remain and future refactors must stay incremental under behavior locks.
+See PRESENTATION-EXTRACTION-20261029.md. Step4 remains pending: owner has no
+verified signing credential. Do not claim signed distribution or all audit
+risks eliminated. Desktop Scout1.4.9, processes and profiles were untouched.
+
 # Current retention release — 2026-10-29
 
 Step3 is complete and live: new Krisp/Scout transcripts expire independently
