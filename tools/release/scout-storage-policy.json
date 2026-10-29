@@ -1,9 +1,10 @@
 {
   "capacityBytes": 1000000000,
   "reserveBytes": 67108864,
-  "current": "releases/scout-1.4.12-owner-20261029/ScoutSetup.exe",
-  "rollback": "releases/scout-1.4.10-owner-20261029/ScoutSetup.exe",
+  "current": "releases/scout-1.4.13-owner-20261029/ScoutSetup.exe",
+  "rollback": "releases/scout-1.4.12-owner-20261029/ScoutSetup.exe",
   "protected": [
+    "releases/scout-1.4.10-owner-20261029/ScoutSetup.exe",
     "releases/scout-1.4.9-owner-20261028-r3/ScoutSetup.exe",
     "releases/scout-1.4.8-owner-20261028/ScoutSetup.exe",
     "releases/scout-1.4.7-owner-20261028/ScoutSetup.exe"
