@@ -1,3 +1,7 @@
+# Scout1.4.13 installed and download LIVE — 2026-10-29
+
+Native current/running1.4.13 (PID41832), rollback1.4.12;1836 program files verified, profile untouched. Owner-approved completion receipt time/duration/exact transcript action and nonintrusive microphone-stall warnings are active. Quiet playback stays neutral; no automatic source/position change. Source runtime5aab77d, exact-baseline follow-upa1c1ae5, evidence d1884cb. All1076 source tests (one skip),194 frozen and CPU/media checks PASS. Web8388456 deployment dpl_Ado26bV1eZiQNLRoqf6FVqPMJbzX is live; all128 local files, CI40964634060, exact staged/live/legacy assets and24/24 probes each PASS. Private installer117209241 bytes SHA256ee8ebf63a5053ff0d69bf1e1a02f03597066cbb86cbc791c3bbb481f5293327b. See SCOUT-1.4.13-ASSURANCE-20261029.md. Website rollback dpl_Cx18ZhpSBAosFwobEgszgttZH2bT. No physical microphone tests or real transcript generation performed; signing credential still absent.
+
 # Scout1.4.12 installed and download LIVE — 2026-10-29
 
 Owner-approved semantic status colors/labels are implemented. Native current/running1.4.12 confirmed, rollback1.4.11;1836 program files hash-verified, profile unchanged. Private installer1.4.12 SHA2569526fd153b7545c4bbdc5b1e12cee2032906c113a919aa23898fd978d5cd71dc. Web656394f, deployment dpl_Cx18ZhpSBAosFwobEgszgttZH2bT live on Classbuster and legacy address; exact bytes and24/24 probes each PASS. Full128-file local suite and CI40957551052 PASS after browser-fixture-only389a75c;1062 source tests (one skip),180 frozen checks, CPU/media package PASS. See SCOUT-1.4.12-STATUS-POLISH-20261029.md. Preserve manual placement/source choices,1.4.11 morph/timer refinements and authoritative delivery status. Website rollback dpl_8zGNr5WFS1Y9XpR6jYhtsEqVJtKA. No active recorder interruption.
@@ -343,4 +347,5 @@ by hand, never start a second Scout while one runs.
 - Alerts go to the owner sheet and `OWNER_ALERT_EMAIL` (email needs the mail relay's owner-alert
   rule, `tools/mail-relay`, deployed in the ASOC Engine Railway project — owner approval needed).
 - Customer continuity report: `CLASSBUSTER-CUSTOMER-CONTINUITY-FINAL.md`.
+
 
