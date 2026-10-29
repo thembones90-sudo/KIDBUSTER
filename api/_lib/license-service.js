@@ -28,6 +28,7 @@ import {
   getUsageCount, incrementUsage, getTrialUsageCount, incrementTrialUsage,
   reserveMonthlyUsage, releaseMonthlyUsage, reserveTrialUsage, releaseTrialUsage,
   reserveUsageHold,commitUsageHold,releaseUsageHold,reclaimExpiredUsageHolds,
+  currentUsageDay, proDailyReportLimit,
   normalizeEmail, isFounderLicenseKey, ALWAYS_FREE_PROTOCOLS, expiresInDays,
   getManualClaim, tryCreateManualClaim, clearManualClaim,
   effectiveSubscriptionLicense
@@ -675,9 +676,8 @@ export async function reserveGeneration(licenseKey,protocol,installationId){
     if(refunded>0)entitlement=await checkEntitlement(licenseKey,protocol,installationId);
   }
   if(!entitlement.allowed)return {...entitlement,reservation:null};
-  if(isFounderLicenseKey(licenseKey)||entitlement.license?.plan==='pro'){
-    return {...entitlement,reservation:null};
-  }
+  if(isFounderLicenseKey(licenseKey))return {...entitlement,reservation:null};
+  if(entitlement.license?.plan==='pro')return await reserveProDailyReport(licenseKey,protocol,entitlement);
   const token=crypto.randomBytes(24).toString('hex');
   const count=await reserveUsageHold(licenseKey,{kind,period,protocol,token});
   if(count===null){
@@ -688,6 +688,23 @@ export async function reserveGeneration(licenseKey,protocol,installationId){
     ...entitlement,
     reservation:{licenseKey,protocol,kind,period:kind==='monthly'?period:null,count,token}
   };
+}
+
+// Pro: unlimited per month, at most proDailyReportLimit() delivered reports
+// per UTC day. A hold abandoned by a crashed worker is refunded before refusing.
+async function reserveProDailyReport(licenseKey,protocol,entitlement){
+  const day=currentUsageDay();
+  const token=crypto.randomBytes(24).toString('hex');
+  let count=await reserveUsageHold(licenseKey,{kind:'daily',period:day,token});
+  if(count===null&&await reclaimExpiredUsageHolds(licenseKey,{kind:'daily',period:day})>0){
+    count=await reserveUsageHold(licenseKey,{kind:'daily',period:day,token});
+  }
+  if(count===null){
+    return {...entitlement,allowed:false,reason:'daily_limit_reached',reservation:null,
+      dailyLimit:proDailyReportLimit(),
+      message:"You've reached today's limit of "+proDailyReportLimit()+' reports. It resets at midnight UTC. Your lesson notes are safe. If you need more, contact us.'};
+  }
+  return {...entitlement,reservation:{licenseKey,protocol,kind:'daily',period:day,count,token}};
 }
 
 export async function releaseGeneration(reservation){

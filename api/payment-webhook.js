@@ -10,6 +10,7 @@ import { hasProcessedWebhook, markWebhookProcessed } from './_lib/licensing.js';
 import { acquirePaymentLock, releasePaymentLock } from './_lib/kv-client.js';
 import { recordEvent } from './_lib/event-log.js';
 import { alertOwner } from './_lib/owner-alerts.js';
+import { keyFingerprint, maskEmail } from './_lib/identity-continuity.js';
 
 export const config = { api: { bodyParser: false } };
 export const MAX_WEBHOOK_BYTES = 256 * 1024;
@@ -39,6 +40,20 @@ function readRawBody(req){
       if(!finished){finished=true;reject(new Error('Webhook request interrupted'));}
     });
   });
+}
+
+// Refunds never change access automatically (partial and goodwill refunds
+// are normal), so the owner decides. Sent only after the event is committed;
+// replays are already stopped by the processed-webhook marker above.
+const money=value=>Number.isFinite(value)?(value/100).toFixed(2):'unknown';
+async function alertRefund(event,licenseKey){
+  await alertOwner({type:'refund',
+    title:(event.fullyRefunded===true?'Full':'Partial')+' refund received — Pro access unchanged, your decision',
+    details:['Customer: '+(event.email?maskEmail(event.email):'(no email on event)'),
+      'Key ref: '+keyFingerprint(licenseKey),
+      'Refunded: '+money(event.refundAmount)+' of '+money(event.invoiceTotal)+' (store currency)',
+      'Review it in Account → Owner tools (license lookup).'],
+    dedupeKey:'refund:'+keyFingerprint(licenseKey)+':'+String(event.invoiceId||event.orderId||'')+':'+String(event.eventAt||'')});
 }
 
 export default async function handler(req,res){
@@ -90,9 +105,10 @@ export default async function handler(req,res){
 
     // A newer state or another subscription may render the signed event
     // stale; still record it as handled so retries won't repeat work.
-    await applySubscriptionEvent({...event,licenseKey});
+    const outcome=await applySubscriptionEvent({...event,licenseKey});
     await markWebhookProcessed(bodyHash);
     await recordEvent('payment',{event:String(event.type)});
+    if(outcome?.reason==='refund_requires_review')await alertRefund(event,outcome.licenseKey||licenseKey);
     return res.status(200).json({received:true});
   }catch(err){
     console.error('payment-webhook: event could not be committed:',err.message);
