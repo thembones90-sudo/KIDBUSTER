@@ -1,3 +1,12 @@
+# Scout1.4.10 confirmed running — 2026-10-29
+
+Native process PID9864 executes the installed1.4.10 Scout.exe path and reports
+ProductVersion1.4.10. Current selection is1.4.10; rollback1.4.9 is retained.
+The former1.4.9 PID23268 had already exited when an owner-authorized guarded
+close was attempted; nothing was force-stopped. Activation is complete,
+superseding historical pending-handover notes below. Do not restart the
+current recorder again merely to apply the compact-waveform update.
+
 # Native Scout1.4.10 installed — 2026-10-29
 
 After SKYNET reconnected, owner-authorized native installation completed. Current
