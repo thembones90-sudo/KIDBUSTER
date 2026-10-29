@@ -96,6 +96,9 @@ module.exports=async function(){
     await page.waitForFunction(()=>document.getElementById('krispInboxBadge').textContent==='1');
     assert.ok(await page.$eval('#krispNotes',e=>e.value.includes('Synthetic notes')));
     assert.equal(state.waiting,true,'import does not disarm');
+    // Import updates the badge before its follow-up refresh settles. Let that
+    // earlier response finish before introducing a new synthetic outage.
+    await page.waitForNetworkIdle({idleTime:100});
     state.error=true;await page.evaluate(()=>window.testKrispPoll());
     assert.equal(await page.$eval('#krispInboxBadge',e=>e.textContent),'1','outage preserves last known count');
     assert.ok(await page.$eval('#krispInboxStatus',e=>e.textContent.includes('Could not refresh')));
