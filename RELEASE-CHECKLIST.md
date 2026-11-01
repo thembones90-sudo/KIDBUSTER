@@ -41,6 +41,35 @@ replace verified publisher identity with a self-signed certificate.
 - [ ] `npm test` all green, with `PUPPETEER_EXECUTABLE_PATH` set to the installed Chrome on Leviathan. Includes sign-in/recovery/registration, billing and webhooks, subscriptions, Krisp, Scout owner-only (`test-scout-owner-fingerprint.cjs`), relay contract (`test-mail-relay-contract.cjs`) and the gate's negative cases (`test-release-integrity.cjs`).
 - [ ] A flaky browser test is re-run in isolation and in a clean full run; it is never ignored.
 
+## Level 2.5: preview and payment-data isolation (before positive test runs)
+
+- [ ] Inspect Vercel environment variable **names and target scopes only**, without
+  decrypting any values; write sanitized metadata outside the repository as
+  `{"envs":[{"key":"KV_REST_API_URL","target":["production"]},...]}`.
+- [ ] Run `node tools/release/audit-preview-environment.cjs <scope-only-json>`.
+  Exit code 2 means **BLOCKED**: any Redis, payment provider, account key, or
+  sheet webhook environment entry shared between Preview and Production is
+  unsafe for positive integration testing. A passing scope check does not prove
+  that distinct entries point to different actual databases.
+- [ ] Verify with the owner's Upstash console that Preview and Production use
+  **separate Redis databases**, distinct endpoints and tokens, with no shared
+  user/license/subscription records. Compare in console only, never print secrets.
+- [ ] Verify that Preview uses Lemon Squeezy **test-mode** API key, test store,
+  test variant and separately configured signed webhook. API keys and webhook
+  events for Test and Live are isolated in Lemon Squeezy. Separate Vercel
+  variable target scopes alone do not establish test mode.
+- [ ] Ensure email and Google Sheets test callbacks cannot affect real customers.
+  Perform positive checkout, signed webhook, entitlement activation, cancellation,
+  refunds and recovery only after these isolation requirements all pass.
+- [ ] Never lower Vercel Deployment Protection to make a test pass. The
+  authenticated refusal-only smoke may run against protected previews before
+  positive tests because it is designed to create no records.
+
+**2026-11-01 audit finding:** currently shared Preview/Production scopes for
+`KV_REST_API_*`, `GOOGLE_SHEET_WEBHOOK_URL`, `APP_ACCESS_KEY` and
+`FOUNDER_LICENSE_KEYS`. The positive checkout acceptance gate is **NO-GO**
+until these are independently scoped and actual values verified.
+
 ## Level 3: live candidate checks (staged production candidate, not promoted)
 - [ ] Stage: `vercel deploy --prod --skip-domain` (or `tools/release/scout-owner-release.ps1 -Phase Stage`). The current production deployment stays live.
 - [ ] `node tools/release/candidate-smoke.mjs <candidate-url> --expect-scout enabled|disabled`, with `VERCEL_AUTOMATION_BYPASS_SECRET` set for the protected candidate. These are refusal-only and read-only: no emails, accounts, checkouts or reports.
