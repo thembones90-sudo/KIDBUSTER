@@ -139,8 +139,12 @@ module.exports=async function(){
   await page.focus('#accountBtn');await page.keyboard.press('Enter');
   // Wait for the actual sign-in control before testing its appearance.
   await page.waitForSelector('#licenseModalOverlay [data-appearance-option="light"]',{visible:true});
-  await page.click('#licenseModalOverlay [data-appearance-option="light"]');
-  await page.waitForFunction(()=>document.documentElement.dataset.appearance==='light');
+  // Chromium can intercept synthetic pointer clicks during the prior view
+  // transition under full-suite load; test the keyboard activation path.
+  await page.waitForFunction(()=>!document.getAnimations().some(a=>a.animationName==='appearance-dissolve'));
+  await page.focus('#licenseModalOverlay [data-appearance-option="light"]');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(()=>document.documentElement.dataset.appearance==='light',{timeout:12000});
   assert.equal(await page.$eval('html',e=>e.dataset.appearance),'light','appearance available before sign-in');
   assert.equal(await page.$eval('#licenseModalOverlay .access-modal',e=>getComputedStyle(e).backgroundColor),'rgb(255, 255, 255)');
   if(process.env.V2_APPEARANCE_SCREENSHOTS)await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'light-access-390.png')});

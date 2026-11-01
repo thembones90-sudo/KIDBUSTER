@@ -72,6 +72,8 @@ module.exports=async function run(){
       const target='rv:'+id(number);
       await receiptPage.goto('http://127.0.0.1:'+server.address().port+'/?scout-receipt='+target,{waitUntil:'load'});
       await receiptPage.waitForFunction(()=>!!document.getElementById('radarVanReceiptNotice'),{timeout:12000});
+      // Receipt notice and popover activation are asynchronous; await both.
+      await receiptPage.waitForFunction(()=>document.getElementById('krispInboxPanel')?.matches(':popover-open'),{timeout:12000});
       const result=await receiptPage.evaluate(target=>{
         const notice=document.getElementById('radarVanReceiptNotice');
         const card=Array.from(document.querySelectorAll('#radarVanPendingPopoverList li')).find(e=>e.dataset.meetingId===target);
