@@ -9572,11 +9572,16 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
   var initKey = null;
   var initializedKrispKey = null;
   var krispTemporarilyUnavailable = false;
+  // Last keyboard/pointer input or window focus in this tab. Drives only the
+  // away-from-keyboard discovery floor; never shared, never sent anywhere.
+  var KRISP_AWAY_MS = 5 * 60000;
+  var krispLastActivityAt = Date.now();
   var pollBudget = window.ClassbusterKrispPollBudget.create({
     key: getSavedKey,
     armed: function(){ return krispServerArmed || krispRequestedArmed; },
     enabled: function(){ return !krispDisconnected; },
     hidden: function(){ return document.hidden; },
+    away: function(){ return Date.now() - krispLastActivityAt; },
     run: function(){ return initializedKrispKey === getSavedKey() ? refreshKrispSession() : initKrispPanel(); }
   });
   var renderedPendingIds = {};
@@ -10537,6 +10542,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     }
     var controller = new AbortController();
     var timeout = setTimeout(function(){ controller.abort(); }, 20000);
+    var accountRejected = false;
     try{
       var res = await fetch('/api/krisp-session?verify=1', { headers: { 'x-app-key': key }, signal: controller.signal });
       if(key !== getSavedKey()) return;
@@ -10547,6 +10553,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
         }
         // Explicit account rejection still hides gated controls. Service
         // failures above never masquerade as a Free/revoked account.
+        accountRejected = true;
         krispTemporarilyUnavailable = false;
         var hiddenPanel = document.getElementById('krispIntegrationPanel');
         if(hiddenPanel) hiddenPanel.style.display = 'none';
@@ -10592,15 +10599,39 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     finally{
       clearTimeout(timeout);
       // An initial outage must recover without requiring a page reload.
-      // Failed verification stays hidden, and retries use the same backoff.
-      if(key === getSavedKey() && !krispDisconnected) ensurePolling();
+      // An explicit 401/403 is an account answer, not an outage: stop the
+      // background heartbeat instead of re-asking every two minutes for
+      // every signed-in Free/lapsed tab (a Redis command each, forever).
+      // A key change, sign-out, storage event or returning to the tab still
+      // re-checks through initKrispPanel.
+      if(key === getSavedKey()){
+        if(accountRejected){
+          if(pollTimer) clearInterval(pollTimer);
+          pollTimer = null;
+        }else if(!krispDisconnected) ensurePolling();
+      }
     }
   }
 
   document.addEventListener('visibilitychange', function(){
     // Returning to this tab is an explicit demand for a fresh view, even if
     // another tab recently used the shared background discovery budget.
-    if(!document.hidden){ pollBudget.reset(); refreshKrispSession(); }
+    if(!document.hidden){ krispLastActivityAt = Date.now(); pollBudget.reset(); refreshKrispSession(); }
+  });
+  // Switching back from Zoom/Krisp focuses this window without any
+  // visibility change, and input after a long absence means the teacher is
+  // back: refresh this tab's view at once (the budget allows at most one such
+  // read per 15 s per tab). Activity also lifts the away-from-keyboard floor.
+  function noteKrispActivity(event){
+    var nowMs = Date.now();
+    var wasAway = nowMs - krispLastActivityAt >= KRISP_AWAY_MS;
+    krispLastActivityAt = nowMs;
+    if(!pollTimer || document.hidden) return;
+    if(wasAway || event.type === 'focus') pollBudget.demand();
+  }
+  window.addEventListener('focus', noteKrispActivity);
+  ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'].forEach(function(type){
+    document.addEventListener(type, noteKrispActivity, { passive: true, capture: true });
   });
   document.addEventListener('kidbuster:workspace-reset', handleWorkspaceReset);
   // A key saved after page load (sign-in window) must reveal the Krisp

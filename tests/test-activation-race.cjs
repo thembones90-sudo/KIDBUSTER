@@ -104,12 +104,17 @@ module.exports=async function run(){
       afterReset.expiresAt===originalExpiry && afterReset.activatedAt!==null);
 
     // Previously activated licenses predate manualClaim:... markers.
+    // Dates are relative to the test's own clock: a fixed calendar expiry
+    // (formerly 2026-11-01T12:00Z) silently turned this into an expired-key
+    // test on that day and failed for a reason unrelated to browser binding.
     __resetForTests();
     const legacy=(await svc.createManualProLicense({})).licenseKey;
+    const legacyActivatedAt=new Date(Date.now()-DAY_MS*10).toISOString();
+    const legacyExpiresAt=new Date(Date.parse(legacyActivatedAt)+DAY_MS*30).toISOString();
     await lic.saveLicense(legacy,{...(await lic.getLicense(legacy)),
       activationPending:false,claimedInstallationId:'original-legacy-browser',
-      claimedAt:'2026-10-01T12:00:00.000Z',activatedAt:'2026-10-01T12:00:00.000Z',
-      expiresAt:'2026-11-01T12:00:00.000Z'});
+      claimedAt:legacyActivatedAt,activatedAt:legacyActivatedAt,
+      expiresAt:legacyExpiresAt});
     check('already-claimed pre-migration legacy code remains usable by its owner',
       (await statusOn(legacy,'original-legacy-browser')).code===200);
     check('legacy code still refuses a different browser',
@@ -119,8 +124,25 @@ module.exports=async function run(){
     const movedRecord=await lic.getLicense(legacy);
     check('legacy owner reset migrates to atomic claim with original expiry',
       legacyReset.ok && moved.code===200 &&
-      movedRecord.expiresAt==='2026-11-01T12:00:00.000Z' &&
+      movedRecord.expiresAt===legacyExpiresAt &&
       (await lic.getManualClaim(legacy)).installationId==='replacement-browser');
+
+    // An expired legacy code is only shown read-only (so the teacher sees the
+    // expiry); it is never re-bound to the other browser.
+    __resetForTests();
+    const lapsed=(await svc.createManualProLicense({})).licenseKey;
+    const lapsedActivatedAt=new Date(Date.now()-DAY_MS*40).toISOString();
+    const lapsedExpiresAt=new Date(Date.now()-DAY_MS*10).toISOString();
+    await lic.saveLicense(lapsed,{...(await lic.getLicense(lapsed)),
+      activationPending:false,claimedInstallationId:'lapsed-browser',
+      claimedAt:lapsedActivatedAt,activatedAt:lapsedActivatedAt,expiresAt:lapsedExpiresAt});
+    const lapsedView=await statusOn(lapsed,'other-browser');
+    const lapsedRecord=await lic.getLicense(lapsed);
+    check('expired legacy code is reported expired and never re-bound',
+      lapsedView.code===200 && lapsedView.body?.expired===true &&
+      lapsedRecord.claimedInstallationId==='lapsed-browser' &&
+      lapsedRecord.expiresAt===lapsedExpiresAt &&
+      (await lic.getManualClaim(lapsed))===null);
 
     // Paid subscription is not bound to a specific manual-license browser.
     __resetForTests();

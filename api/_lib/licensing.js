@@ -280,7 +280,7 @@ export function normalizeEmail(email){
 
 // ---------- Vercel KV I/O (thin wrappers, not unit-tested — see module comment) ----------
 
-const licenseKeyFor = (key) => 'license:' + key;
+export const licenseKeyFor = (key) => 'license:' + key;
 const emailIndexFor = (email) => 'email:' + normalizeEmail(email);
 const paymentCustomerIndexFor = (customerId) => 'paymentCustomer:' + customerId;
 const usageKeyFor = (key, period) => 'usage:' + key + ':' + period;

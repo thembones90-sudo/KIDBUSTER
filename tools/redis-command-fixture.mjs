@@ -42,9 +42,12 @@ let status=200,response;
 const res={status(code){status=code;return this;},json(body){response=body;return this;}};
 await handler({method:'GET',headers:{'x-app-key':'synthetic-pro'},query:{}},res);
 assert.equal(status,200);assert.equal(response.matched,null);assert.deepEqual(response.pending,[]);
-assert.equal(commands.length,9,'hotfix established-Pro idle poll outer command budget');
-assert.deepEqual(commands.slice().sort(),['EVAL','GET','GET','GET','GET','GET','GET','GETDEL','SET'].sort());
-console.log(JSON.stringify({fixture:'empty established Pro poll',outerCommands:commands.length,commands,additionalLuaLogicalOperations:2,productionRequests:0}));
+// 2026-11-01 integration: the idle poll answers from ONE MGET through the
+// real @vercel/kv SDK (was 9 on the 0be0baf hotfix: lock SET, GETDEL, six GETs
+// and the EVAL lock release). No lock, no write.
+assert.equal(commands.length,1,'established-Pro idle poll is one outer command');
+assert.deepEqual(commands,['MGET']);
+console.log(JSON.stringify({fixture:'empty established Pro poll',outerCommands:commands.length,commands,additionalLuaLogicalOperations:0,productionRequests:0}));
 const {writeImportQueue}=await import('../api/_lib/krisp-retention.js');
 const {markNewTranscript}=await import('../api/_lib/transcript-retention.js');
 const pendingKey='krisp:data:synthetic-pro:pending';
@@ -52,8 +55,9 @@ await writeImportQueue(pendingKey,[markNewTranscript({meetingId:'fixture-only',t
 commands.length=0;
 await handler({method:'GET',headers:{'x-app-key':'synthetic-pro'},query:{}},res);
 assert.equal(response.pending.length,1);
-assert.equal(commands.length,10,'new pending content adds one MGET, not one GET per body');
-assert.equal(commands.filter(c=>c==='MGET').length,1);
+assert.equal(commands.length,2,'new pending content adds one MGET, not one GET per body');
+assert.deepEqual(commands,['MGET','MGET']);
+assert.equal(response.pending[0].transcript,'Synthetic text only','body hydrated through the SDK MGET');
 console.log(JSON.stringify({fixture:'one new pending body',outerCommands:commands.length,commands,productionRequests:0}));
 const {default:licenseStatus}=await import('../api/license-status.js');
 commands.length=0;

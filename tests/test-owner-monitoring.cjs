@@ -82,8 +82,17 @@ module.exports = async function run(){
     const raw = Buffer.from(JSON.stringify(data));
     const sig = crypto.createHmac('sha256', process.env.LEMONSQUEEZY_WEBHOOK_SECRET).update(raw).digest('hex');
     const res = { status(c){ this.code = c; return this; }, json(b){ this.body = b; return this; }, setHeader(){} };
+    // The webhook records the provider-neutral NORMALIZED type (Lemon Squeezy
+    // subscription_created -> payment_succeeded, providers/lemonsqueezy.js).
+    // The old check matched the raw provider name, so it only ever passed on
+    // section 1's synthetic event and broke once that aged out of readEvents'
+    // 7-day window. Count before/after so only THIS webhook can satisfy it.
+    const paymentEvents = async () => (await log.readEvents({ type: 'payment' })).filter(e => e.event === 'payment_succeeded').length;
+    const before = await paymentEvents();
     await webhook({ method: 'POST', headers: { 'x-signature': sig }, on(n, cb){ if(n === 'data') cb(raw); if(n === 'end') cb(); return this; } }, res);
-    check('a processed payment is recorded', res.code === 200 && (await log.readEvents({ type: 'payment' })).some(e => e.event === 'subscription_created'));
+    const paidRecord = await lic.getLicense(key);
+    check('a processed payment is recorded once under its normalized event type', res.code === 200 && before === 0 && (await paymentEvents()) === 1);
+    check('the recorded payment actually activated Pro for the paying account', paidRecord?.plan === 'pro' && paidRecord?.paymentSubscriptionId === 'sub-monitoring');
     const view = await call(admin, { method: 'GET', query: { action: 'recent-events' }, headers: { 'x-app-key': 'monitor_owner_key' } });
     check('the owner can read recent activity', view.code === 200 && Array.isArray(view.body.events) && view.body.events.length > 0);
     check('recent activity contains no raw keys or customer emails', !/kb_live_|@example\.test/.test(JSON.stringify(view.body)));

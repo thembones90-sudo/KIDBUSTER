@@ -43,6 +43,12 @@ export async function readImportQueue(key, nowMs = Date.now()){
   return (await readTranscriptQueue(key, await kv.get(key), krispRetentionMs(), nowMs)).items;
 }
 
+// For a raw index value already fetched (e.g. by MGET). Bodies of new-format
+// records still cost one MGET of their own, exactly as readImportQueue does.
+export async function readImportQueueFrom(key, raw, nowMs = Date.now()){
+  return (await readTranscriptQueue(key, raw, krispRetentionMs(), nowMs)).items;
+}
+
 // Writes an already-pruned queue with its storage-level expiry, or deletes
 // the key when nothing is left.
 export async function writeImportQueue(key, items, nowMs = Date.now()){
@@ -52,7 +58,15 @@ export async function writeImportQueue(key, items, nowMs = Date.now()){
 export async function isEntitledToKrisp(licenseKey){
   if(!licenseKey) return false;
   if(isFounderLicenseKey(licenseKey)) return true;
-  const license = effectiveSubscriptionLicense(await getLicense(licenseKey));
+  return isLicenseEntitledToKrisp(licenseKey, await getLicense(licenseKey));
+}
+
+// Same rules for a license record the caller already read (the inbox poll's
+// single MGET), so the entitlement check costs no extra Redis command.
+export function isLicenseEntitledToKrisp(licenseKey, record){
+  if(!licenseKey) return false;
+  if(isFounderLicenseKey(licenseKey)) return true;
+  const license = effectiveSubscriptionLicense(record || null);
   if(!license) return false;
   if(license.plan !== 'pro' || license.status !== 'active') return false;
   // Stock keys cannot use Krisp before their first browser activation.

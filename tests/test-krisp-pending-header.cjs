@@ -40,7 +40,9 @@ module.exports=async function(){
       // Drive the real budget heartbeat after its longest possible cooldown,
       // preserving all arrival/error assertions without real-time waits.
       const realNow=Date.now;let clockOffset=0;Date.now=()=>realNow()+clockOffset;
-      const original=setInterval;window.setInterval=(fn,ms,...args)=>ms===15000?(window.testKrispPoll=()=>{clockOffset+=121000;return fn();},987654):original(fn,ms,...args);
+      const original=setInterval;window.__krispPollStarts=0;window.__krispPollStops=0;
+      window.setInterval=(fn,ms,...args)=>ms===15000?(window.__krispPollStarts++,window.testKrispPoll=()=>{clockOffset+=121000;return fn();},987654):original(fn,ms,...args);
+      const originalClear=clearInterval;window.clearInterval=id=>{if(id===987654)window.__krispPollStops++;return originalClear(id);};
     });
     await page.setViewport({width:1440,height:1000});
     await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'load'});
@@ -147,12 +149,17 @@ module.exports=async function(){
     assert.equal(await page.$eval('#krispPendingBtn',e=>document.activeElement===e),true);
     await page.keyboard.press('Enter');await page.keyboard.press('Escape');
     assert.equal(await page.$eval('#krispInboxPanel',e=>e.matches(':popover-open')),false);
+    const pollStarts=await page.evaluate(()=>window.__krispPollStarts),pollStops=await page.evaluate(()=>window.__krispPollStops);
     state.entitled=false;await page.evaluate(()=>{localStorage.setItem('kidbuster_access_key','synthetic-other-account');document.dispatchEvent(new Event('kidbuster:access-key-saved'));});
     await page.waitForFunction(()=>document.getElementById('krispPendingBtn').hidden);
     assert.equal(await page.$$eval('#krispPendingItems>*',els=>els.length),0,'account change clears old inbox');
+    // An explicit 403 is an account answer: background discovery stops
+    // instead of re-asking every two minutes forever (a Redis command each).
+    await page.waitForFunction(n=>window.__krispPollStops>n,{timeout:5000},pollStops);
     state.entitled=true;
     await page.evaluate(()=>{localStorage.setItem('kidbuster_access_key','synthetic-returning-account');document.dispatchEvent(new Event('kidbuster:access-key-saved'));});
     await page.waitForFunction(()=>!document.getElementById('krispPendingBtn').hidden);
+    await page.waitForFunction(n=>window.__krispPollStarts>n,{timeout:5000},pollStarts);
     state.error=true;
     const outageReply=page.waitForResponse(r=>r.url().includes('/api/krisp-session?verify=1')&&r.status()===503);
     await page.evaluate(()=>{localStorage.setItem('kidbuster_access_key','synthetic-startup-outage');document.dispatchEvent(new Event('kidbuster:access-key-saved'));});
