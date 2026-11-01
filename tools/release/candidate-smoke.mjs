@@ -85,8 +85,8 @@ await probe('owner license lookup refuses a non-owner', async () => status(await
 await probe('owner key creation refuses a non-owner', async () => status(await call('POST', '/api/admin-create-license', { headers: { 'x-app-key': 'release-smoke-not-a-key' }, body: {} }), 403));
 await probe('Krisp webhook refuses an invalid token', async () => status(await call('POST', '/api/krisp-webhook?token=invalid-release-smoke', { body: {} }), 401));
 
-await probe('private Scout installer refuses anonymous visitors', async () => status(await call('GET', '/api/radar-van-download'), 401));
-await probe('private Scout installer refuses non-owner keys', async () => status(await call('GET', '/api/radar-van-download', { headers: { 'x-app-key': 'release-smoke-not-a-key' } }), 403));
+await probe('private Scout installer refuses anonymous visitors', async () => status(await call('GET', '/api/radar-van-download'), expectScout === 'disabled' ? 404 : 401));
+await probe('private Scout installer refuses non-owner keys', async () => status(await call('GET', '/api/radar-van-download', { headers: { 'x-app-key': 'release-smoke-not-a-key' } }), expectScout === 'disabled' ? 404 : 403));
 
 // Scout: owner-only. Enabled -> 401 without a key, 403 for any non-owner key.
 if(expectScout === 'enabled'){
