@@ -83,7 +83,7 @@ module.exports=async function(){
   // Account switch (reset) clears the per-tab demand gap.
   now+=15000;await w.budget.demand();const beforeReset=w.calls;
   await w.budget.demand();assert.equal(w.calls,beforeReset,'demand gap still applies before reset');
-  w.reset();await w.budget.demand();assert.equal(w.calls,beforeReset+1,'reset clears the per-tab demand gap');
+  w.budget.reset();await w.budget.demand();assert.equal(w.calls,beforeReset+1,'reset clears the per-tab demand gap');
   // Returning within 15 s of a read made while away: the demand is refused,
   // but the away-length deadline is pulled back to the normal cadence.
   now+=120000;const r=awayTab('synthetic-return');

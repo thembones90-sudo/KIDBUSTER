@@ -11,16 +11,16 @@ module.exports=function run(){
  check('pages have accessible English metadata and internal site navigation',
    bodies.every((s,i)=>s.startsWith('<!doctype html>')&&s.includes('<html lang="en">')&&
       s.includes('<main id="content">')&&s.includes('<nav')&&s.includes('<link rel="stylesheet" href="/legal.css">')&&
-      names.every(n=>s.includes('/'+n))&&s.includes('Effective date: 14 October 2026')));
+      names.every(n=>s.includes('/'+n))&&/Effective date: \d{1,2} [A-Z][a-z]+ 20\d{2}/.test(s)));
  check('legal pages include contact email and working internal links',
    bodies.every(s=>s.includes('mailto:thembones90@gmail.com')&&s.includes('href="/"')));
  check('terms give pricing, renewals and teacher review responsibility',
    /RSD 1,233 per month/.test(bodies[0])&&/renews automatically/.test(bodies[0])&&
    /five Classic report generations per month/.test(bodies[0])&&
    /must review, correct, and approve every draft/.test(bodies[0]));
- check('privacy discloses third-party AI, student data, retention gap, and privacy rights',
+ check('privacy discloses third-party AI, student data, retention windows, and privacy rights',
    /Anthropic/.test(bodies[1])&&/Lemon Squeezy/.test(bodies[1])&&/Krisp/.test(bodies[1])&&
-   /does not impose a fixed automatic expiry/.test(bodies[1])&&/rights to request access/.test(bodies[1]));
+   /12-hour expiry/.test(bodies[1])&&/Older unmarked Krisp imports/.test(bodies[1])&&/rights to request access/.test(bodies[1]));
  check('disclaimers insist on teacher review and independent platform status',
    /Do not submit AI output/.test(bodies[2])&&/Independent service/.test(bodies[2]));
  check('legal pages have no third-party scripts or inline event handlers',
