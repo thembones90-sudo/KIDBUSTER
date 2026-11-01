@@ -18,6 +18,14 @@
   },
   "rewrites": [
     {
+      "source": "/privacy",
+      "destination": "/privacy-policy.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms-of-use.html"
+    },
+    {
       "source": "/api/radar-van-session",
       "destination": "/api/feedback?radar=session"
     },
