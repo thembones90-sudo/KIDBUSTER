@@ -1,3 +1,14 @@
+# Current release: Scout 1.4.14 public — 2026-11-02 evening
+
+release/scout-1414-20261102, dpl_4aB7CrLzFDZRnDhcZm7YvChCfDU2 on both domains
+(exact bytes, 26/26 smoke incl. installer link). Rollback
+dpl_A9ftNiGGMzjvNa2zz62tMcABPsKx. Public installer: GitHub release scout-1.4.14
+(1.4.13 assurance line + owner-requested 10-minute idle tray minimize), sha256
+bed2394a…b3b5a9, unsigned by owner decision. Merged back Codex 8388456 (private
+master download 1.4.13), which the 13:32Z testimonial release had dropped.
+Owner PC runs 1.4.14 natively (previous 1.4.13). Scout source:
+scout/idle-minimize-1414-20261102 (private continuity repo).
+
 # Current release: Scout public for Pro — 2026-11-02
 
 Owner-approved (mass public use; UNSIGNED by owner decision, no certificate).
