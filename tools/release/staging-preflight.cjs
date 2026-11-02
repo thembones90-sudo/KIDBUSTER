@@ -4,7 +4,7 @@ const fs = require('node:fs');
 
 const PROJECT = 'classbuster-isolated-staging';
 const PROJECT_ID = 'prj_nv9khsQRl2OMMTaw15lfdq8LXu8m';
-const REQUIRED = ['KV_REST_API_URL','KV_REST_API_TOKEN','LEMONSQUEEZY_API_KEY','LEMONSQUEEZY_STORE_ID','LEMONSQUEEZY_PRO_VARIANT_ID','LEMONSQUEEZY_WEBHOOK_SECRET'];
+const REQUIRED = ['KV_REST_API_URL','KV_REST_API_TOKEN','LEMONSQUEEZY_API_KEY','LEMONSQUEEZY_STORE_ID','LEMONSQUEEZY_PRO_VARIANT_ID','LEMONSQUEEZY_WEBHOOK_SECRET','LEMONSQUEEZY_MODE'];
 const FORBIDDEN = /(^|\/\/)(classbuster\.com|kidbuster\.vercel\.app)|googleapis\.com|sheets\.google/i;
 const PLACEHOLDER = /REDACTED|REPLACE_WITH|PLACEHOLDER|EXAMPLE|TEST_(?:STORE|VARIANT)|NONSECRET|PENDING|RECORD_/i;
 function preflight(input) {
@@ -27,7 +27,7 @@ function preflight(input) {
   }
   for (const [key, value] of Object.entries(vars)) if (JSON.stringify(value).match(FORBIDDEN)) errors.push('unsafe public/live destination in '+key);
   const a=m?.providerEvidence;
-  if (!a || a.status !== 'pass' || a.providerVerified !== true || a.attestedBy === undefined || !/^\d{4}-\d{2}-\d{2}$/.test(a.attestedAt||'')) errors.push('providerEvidence requires verified provider attestation with reviewer and ISO date');
+  if (!a || a.status !== 'pass' || a.providerVerified !== true || (typeof a.attestedBy !== 'string' || !a.attestedBy.trim()) || !/^\d{4}-\d{2}-\d{2}$/.test(a.attestedAt||'')) errors.push('providerEvidence requires verified provider attestation with reviewer and ISO date');
   return {ok: errors.length === 0, errors, secretValuesRead: false, cloudCallsMade: false};
 }
 function main() { try { const r=preflight(JSON.parse(fs.readFileSync(process.argv[2],'utf8'))); r.errors.forEach(e=>console.error('NO-GO: '+e)); console.log(r.ok?'PREFLIGHT PASS (local scaffolding only)':'PREFLIGHT BLOCKED'); process.exitCode=r.ok?0:2; } catch(e) { console.error('NO-GO: malformed manifest'); process.exitCode=1; } }

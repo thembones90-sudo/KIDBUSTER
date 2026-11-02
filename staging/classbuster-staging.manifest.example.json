@@ -14,7 +14,8 @@
     "LEMONSQUEEZY_API_KEY": {"name":"LEMONSQUEEZY_API_KEY","scopes":["preview"]},
     "LEMONSQUEEZY_STORE_ID": {"name":"LEMONSQUEEZY_STORE_ID","scopes":["preview"]},
     "LEMONSQUEEZY_PRO_VARIANT_ID": {"name":"LEMONSQUEEZY_PRO_VARIANT_ID","scopes":["preview"]},
-    "LEMONSQUEEZY_WEBHOOK_SECRET": {"name":"LEMONSQUEEZY_WEBHOOK_SECRET","scopes":["preview"]}
+    "LEMONSQUEEZY_WEBHOOK_SECRET": {"name":"LEMONSQUEEZY_WEBHOOK_SECRET","scopes":["preview"]},
+    "LEMONSQUEEZY_MODE": {"name":"LEMONSQUEEZY_MODE","scopes":["preview"]}
   },
   "providerEvidence": {"status":"pending-console-review"}
 }

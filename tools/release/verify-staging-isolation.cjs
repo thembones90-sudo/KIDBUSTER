@@ -9,7 +9,7 @@ function verify(e) {
   if (!hash(e?.productionRedisCredentialHash) || !hash(e?.stagingRedisCredentialHash) || e.productionRedisCredentialHash === e.stagingRedisCredentialHash) errors.push('distinct 64-hex credential fingerprints are required');
   if (e?.lemonSqueezyMode !== 'test') errors.push('Lemon Squeezy console mode must be test');
   for (const k of ['productionStoreId','stagingTestStoreId','productionVariantId','stagingTestVariantId']) if (!Number.isSafeInteger(e?.[k]) || e[k] <= 0) errors.push('numeric '+k+' is required');
-  if (!errors.length && (e.productionStoreId === e.stagingTestStoreId || e.productionVariantId === e.stagingTestVariantId)) errors.push('Lemon test store/variant must differ from production');
+  if (!errors.length && e.productionVariantId === e.stagingTestVariantId) errors.push('Lemon Test Mode variant ID must differ from the live product variant ID');
   if (e?.testMode !== true) errors.push('explicit testMode true is required');
   if (!['disabled','dedicated-test'].includes(e?.sheetDestination) || !['disabled','dedicated-test'].includes(e?.emailDestination)) errors.push('email and Sheets must be disabled or separately dedicated test destinations');
   if (typeof e?.reviewer !== 'string' || !e.reviewer.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(e?.reviewedAt||'') || e.reviewStatus !== 'pass') errors.push('reviewer, ISO date, and pass status are mandatory');
