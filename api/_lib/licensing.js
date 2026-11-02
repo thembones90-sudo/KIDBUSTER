@@ -252,7 +252,7 @@ export function isFounderLicenseKey(licenseKey){
     .split(',')
     .map(key => key.trim())
     .filter(Boolean)
-    .includes(licenseKey.trim());
+    .includes(String(licenseKey).trim());
 }
 
 /**

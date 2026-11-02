@@ -99,6 +99,15 @@ function checkRelease(root){
   must(ls, /x-signature/, 'Lemon Squeezy signature header check removed');
   must(ls, /createHmac\('sha256'/, 'Lemon Squeezy HMAC verification removed');
   must(ls, /timingSafeEqual/, 'Lemon Squeezy signature comparison is no longer constant-time');
+  // Payment acceptance policy (2026-11-02): a signature alone must not grant Pro.
+  must(ls, /mode === 'live' && testMode\) return 'test_mode_event_in_live'/, 'Lemon Squeezy test-mode events are no longer refused in live mode (a test card could grant production Pro)');
+  must(ls, /mode === 'test' && !testMode\) return 'live_event_in_test'/, 'staging (LEMONSQUEEZY_MODE=test) no longer refuses live-mode payment events');
+  must(ls, /if\(!WEBHOOK_MODES\.includes\(raw\)\)\{\s*throw/, 'an unrecognised LEMONSQUEEZY_MODE no longer fails closed');
+  must(ls, /return 'foreign_store'/, 'payment events from another Lemon Squeezy store are no longer refused');
+  must(ls, /return 'foreign_variant'/, 'new subscriptions to a non-Pro product variant are no longer refused');
+  must(ls, /policyRejection,/, 'the Lemon Squeezy adapter no longer reports acceptance-policy refusals');
+  must(webhook, /if\(event\.policyRejection\)\{[\s\S]*?return res\.status\(200\)/, 'payment webhook no longer stops at acceptance-policy refusals before changing an account');
+  must(webhook, /isFounderLicenseKey\(event\.licenseKey\)[\s\S]*resolveSubscriptionLicenseKey\(event\)[\s\S]*isFounderLicenseKey\(licenseKey\)/, 'payment webhook no longer refuses events targeting the owner account');
 
   // --- Krisp ---
   must(need('api/krisp-webhook.js', 'Krisp transcript delivery'), /resolveKrispToken[\s\S]*status\(401\)/, 'Krisp webhook no longer rejects invalid tokens');

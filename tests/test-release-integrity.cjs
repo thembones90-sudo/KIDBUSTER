@@ -79,6 +79,14 @@ module.exports = async function run(){
     await fails('signature verification is removed from the webhook', d => edit(d, 'api/payment-webhook.js', s => s.replace(/verifyAndNormalizeWebhook/g, 'normalizeWebhook')), /verifies signatures/);
     await fails('the HMAC check is removed from the provider', d => edit(d, 'api/_lib/providers/lemonsqueezy.js', s => s.replace(/createHmac\('sha256'/g, "createHash('sha256'")), /HMAC/);
     await fails('the signature comparison stops being constant-time', d => edit(d, 'api/_lib/providers/lemonsqueezy.js', s => s.replace(/timingSafeEqual/g, 'equals')), /constant-time/);
+    await fails('test-mode events stop being refused in live mode', d => edit(d, 'api/_lib/providers/lemonsqueezy.js', s => s.replace("if(mode === 'live' && testMode) return 'test_mode_event_in_live';", '')), /test card could grant production Pro/);
+    await fails('staging stops refusing live-mode events', d => edit(d, 'api/_lib/providers/lemonsqueezy.js', s => s.replace("if(mode === 'test' && !testMode) return 'live_event_in_test';", '')), /refuses live-mode/);
+    await fails('an invalid LEMONSQUEEZY_MODE silently falls back', d => edit(d, 'api/_lib/providers/lemonsqueezy.js', s => s.replace(/if\(!WEBHOOK_MODES\.includes\(raw\)\)\{\s*throw/, "if(!WEBHOOK_MODES.includes(raw)){ return 'live'; throw")), /fails closed/);
+    await fails('foreign-store events stop being refused', d => edit(d, 'api/_lib/providers/lemonsqueezy.js', s => s.replace("return 'foreign_store'", 'return null')), /another Lemon Squeezy store/);
+    await fails('non-Pro variants stop being refused', d => edit(d, 'api/_lib/providers/lemonsqueezy.js', s => s.replace("return 'foreign_variant'", 'return null')), /non-Pro product variant/);
+    await fails('the adapter stops reporting policy refusals', d => edit(d, 'api/_lib/providers/lemonsqueezy.js', s => s.replace(/\r?\n[ \t]*policyRejection,/, '')), /acceptance-policy refusals/);
+    await fails('the webhook ignores acceptance-policy refusals', d => edit(d, 'api/payment-webhook.js', s => s.replace('if(event.policyRejection){', 'if(false){')), /before changing an account/);
+    await fails('the webhook stops refusing the owner account', d => edit(d, 'api/payment-webhook.js', s => s.replace('if(isFounderLicenseKey(event.licenseKey))', 'if(false)')), /owner account/);
 
     console.log('\n  Krisp, Scout, usage statistics');
     await fails('the Krisp webhook stops rejecting bad tokens', d => edit(d, 'api/krisp-webhook.js', s => s.replace(/status\(401\)/g, 'status(200)')), /Krisp webhook/);

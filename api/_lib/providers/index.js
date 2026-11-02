@@ -28,7 +28,10 @@
 //     eventAt: string|null, endsAt: string|null,
 //     invoiceId: string|null, orderId: string|null,
 //     refundAmount: number|null, invoiceTotal: number|null,
-//     fullyRefunded: boolean
+//     fullyRefunded: boolean,
+//     policyRejection: string|null  // signed but must not change access
+//                                   // (wrong mode/store/product); the
+//                                   // route acknowledges and audits it
 //   }
 //     Throws only for a genuinely invalid/unverifiable webhook (bad
 //     signature, missing config). A validly-signed event of a type this

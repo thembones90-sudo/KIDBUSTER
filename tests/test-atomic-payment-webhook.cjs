@@ -4,11 +4,14 @@ const {createChecker}=require('./helpers/assert.cjs');
 module.exports=async function run(){
  const {check,getFailures}=createChecker();
  console.log('\n=== test-atomic-payment-webhook.cjs ===');
- const originalEnv=Object.fromEntries(['KIDBUSTER_TEST_KV','LEMONSQUEEZY_WEBHOOK_SECRET','PAYMENT_PROVIDER',
+ const originalEnv=Object.fromEntries(['KIDBUSTER_TEST_KV','LEMONSQUEEZY_WEBHOOK_SECRET','PAYMENT_PROVIDER','LEMONSQUEEZY_STORE_ID','LEMONSQUEEZY_PRO_VARIANT_ID','LEMONSQUEEZY_MODE',
    'GOOGLE_SHEET_WEBHOOK_URL'].map(k=>[k,process.env[k]]));
  process.env.KIDBUSTER_TEST_KV='1';
  process.env.LEMONSQUEEZY_WEBHOOK_SECRET='synthetic-atomic-webhook-secret';
  process.env.PAYMENT_PROVIDER='lemonsqueezy';
+ process.env.LEMONSQUEEZY_STORE_ID='429633';
+ process.env.LEMONSQUEEZY_PRO_VARIANT_ID='777001';
+ delete process.env.LEMONSQUEEZY_MODE;
  delete process.env.GOOGLE_SHEET_WEBHOOK_URL;
  const store=await import('../api/_lib/kv-client.js');
  const lic=await import('../api/_lib/licensing.js');
@@ -20,7 +23,7 @@ module.exports=async function run(){
  const payload=(key,kind,when,endsAt=null)=>({
    meta:{event_name:kind,custom_data:{license_key:key}},
    data:{type:'subscriptions',id:'subscription-atomic-test',
-     attributes:{customer_id:'cust-atomic',user_email:'atomic@example.test',
+     attributes:{store_id:'429633',variant_id:'777001',test_mode:false,customer_id:'cust-atomic',user_email:'atomic@example.test',
        created_at:when,updated_at:when,status:kind==='subscription_cancelled'?'cancelled':'active',
        ends_at:endsAt}}
  });

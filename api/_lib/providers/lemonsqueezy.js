@@ -137,6 +137,58 @@ export async function createCustomerPortalUrl({ subscriptionId, customerId, fetc
   return parsed.toString();
 }
 
+// Payment ACCEPTANCE policy (2026-11-02). A valid signature proves the event
+// came from Lemon Squeezy, not that it is a purchase of THIS product in THIS
+// environment. Test and live mode share one store ID, and a live webhook may
+// reuse a test webhook's signing secret, so each signed event is also checked:
+//   - mode: LEMONSQUEEZY_MODE is "live" (default) or "test". Live refuses
+//     events Lemon Squeezy flags test_mode=true (a test card must never grant
+//     production Pro); test (isolated staging) accepts ONLY flagged test events.
+//   - store: when LEMONSQUEEZY_STORE_ID is set, a different store_id is refused;
+//     a NEW subscription with no store_id is refused as provider data is incomplete.
+//   - product: a NEW subscription (subscription_created) grants Pro only for
+//     LEMONSQUEEZY_PRO_VARIANT_ID or LEMONSQUEEZY_ALLOWED_VARIANT_IDS (comma
+//     separated, for retained legacy variants); missing variant or policy is
+//     refused. Events for a subscription
+//     already on file are not variant-gated, so cancellation/expiry of an older
+//     variant can never be ignored into permanent Pro.
+// Real provider payloads always carry test_mode, store_id and variant_id; an
+// absent identifiers on new subscriptions are refused rather than treated as
+// synthetic proof of product ownership.
+export const WEBHOOK_MODES = ['live', 'test'];
+
+export function configuredWebhookMode(env = process.env){
+  const raw = String(env.LEMONSQUEEZY_MODE ?? '').trim().toLowerCase();
+  if(!raw) return 'live';
+  if(!WEBHOOK_MODES.includes(raw)){
+    throw new Error('LEMONSQUEEZY_MODE must be "live" or "test"');
+  }
+  return raw;
+}
+
+export function allowedProVariantIds(env = process.env){
+  return new Set([env.LEMONSQUEEZY_PRO_VARIANT_ID, env.LEMONSQUEEZY_ALLOWED_VARIANT_IDS]
+    .flatMap(value => String(value || '').split(','))
+    .map(value => value.trim())
+    .filter(Boolean));
+}
+
+export function acceptancePolicyRejection({ mode, testMode, storeId, variantId, type }, env = process.env){
+  if(mode === 'live' && testMode) return 'test_mode_event_in_live';
+  if(mode === 'test' && !testMode) return 'live_event_in_test';
+  const expectedStore = String(env.LEMONSQUEEZY_STORE_ID || '').trim();
+  const isNewSubscription = type === 'payment_succeeded';
+  if(isNewSubscription && expectedStore && storeId === null) return 'missing_store';
+  if(expectedStore && storeId !== null && storeId !== expectedStore) return 'foreign_store';
+  if(isNewSubscription){
+    if(variantId === null) return 'missing_variant';
+    const allowed = allowedProVariantIds(env);
+    if(!allowed.size) return 'variant_policy_unconfigured';
+    if(!allowed.has(variantId)) return 'foreign_variant';
+  }
+  return null;
+}
+
 /**
  * Verifies a webhook's signature and normalizes it into this app's
  * provider-agnostic event shape. Throws only for a genuinely invalid or
@@ -154,13 +206,21 @@ export async function verifyAndNormalizeWebhook({ rawBody, headers }){
     throw new Error('LEMONSQUEEZY_WEBHOOK_SECRET is not set');
   }
 
+  // Resolve the acceptance mode BEFORE trusting anything: an invalid
+  // setting must fail closed rather than silently fall back to a mode.
+  const mode = configuredWebhookMode();
+
   const signature = headers['x-signature'];
   if(!signature){
     throw new Error('Missing X-Signature header');
   }
+  // A duplicated header arrives as an array; never coerce it into a string.
+  if(typeof signature !== 'string' || !/^[0-9a-f]{64}$/i.test(signature.trim())){
+    throw new Error('Invalid webhook signature');
+  }
 
   const digest = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-  const signatureBuffer = Buffer.from(signature, 'utf8');
+  const signatureBuffer = Buffer.from(signature.trim().toLowerCase(), 'utf8');
   const digestBuffer = Buffer.from(digest, 'utf8');
   const isValid = signatureBuffer.length === digestBuffer.length
     && crypto.timingSafeEqual(signatureBuffer, digestBuffer);
@@ -196,8 +256,20 @@ export async function verifyAndNormalizeWebhook({ rawBody, headers }){
     }[state] || null;
   }
 
+  const testMode = payload?.meta?.test_mode === true || attributes.test_mode === true;
+  const storeId = attributes.store_id != null ? String(attributes.store_id) : null;
+  const rawVariant = order ? attributes.first_order_item?.variant_id : attributes.variant_id;
+  const variantId = rawVariant != null ? String(rawVariant) : null;
+  const policyRejection = type ? acceptancePolicyRejection({ mode, testMode, storeId, variantId, type }) : null;
+
   return {
     type,
+    // Set when a correctly SIGNED event must not change any entitlement
+    // (wrong mode, store or product). The route acknowledges and audits it.
+    policyRejection,
+    testMode,
+    storeId,
+    variantId,
     licenseKey: customData.license_key || null,
     email: attributes.user_email || null,
     paymentCustomerId: attributes.customer_id != null ? String(attributes.customer_id) : null,

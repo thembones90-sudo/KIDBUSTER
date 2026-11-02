@@ -8,6 +8,10 @@ module.exports=async function run(){
  process.env.KIDBUSTER_TEST_KV='1';
  process.env.LEMONSQUEEZY_WEBHOOK_SECRET='fake-secret-subscription-lifecycle';
  process.env.PAYMENT_PROVIDER='lemonsqueezy';
+ const savedAcceptanceEnv={store:process.env.LEMONSQUEEZY_STORE_ID,variant:process.env.LEMONSQUEEZY_PRO_VARIANT_ID,mode:process.env.LEMONSQUEEZY_MODE};
+ process.env.LEMONSQUEEZY_STORE_ID='429633';
+ process.env.LEMONSQUEEZY_PRO_VARIANT_ID='777001';
+ delete process.env.LEMONSQUEEZY_MODE;
  delete process.env.GOOGLE_SHEET_WEBHOOK_URL;
  const {__resetForTests}=await import('../api/_lib/kv-client.js');
  const license=await import('../api/_lib/licensing.js');
@@ -21,6 +25,7 @@ module.exports=async function run(){
  async function send(eventName,key,subscriptionId,when,{endsAt=null,invoice=false,statusValue=null,
     customerId='customer-main',email='paying@example.test',dropSub=false}={}){
    const attributes={
+     store_id:'429633',variant_id:'777001',test_mode:false,
      customer_id:customerId,user_email:email,
      updated_at:when,created_at:when,ends_at:endsAt,
      status:statusValue || (eventName==='subscription_cancelled'?'cancelled':
@@ -152,7 +157,9 @@ module.exports=async function run(){
   check('invoice without subscription_id is rejected, not treated as a new subscription',
     missingInvoice.code===500 && (await license.getLicense(second)).paymentSubscriptionId==='sub-updated');
  }finally{
-  // All tests operate on in-memory KV; no production account is involved.
+  for(const [name,value] of [['LEMONSQUEEZY_STORE_ID',savedAcceptanceEnv.store],['LEMONSQUEEZY_PRO_VARIANT_ID',savedAcceptanceEnv.variant],['LEMONSQUEEZY_MODE',savedAcceptanceEnv.mode]]){
+   if(value===undefined)delete process.env[name];else process.env[name]=value;
+  }
  }
  return getFailures();
 };

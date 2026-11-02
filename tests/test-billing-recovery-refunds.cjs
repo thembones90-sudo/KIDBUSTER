@@ -5,12 +5,15 @@ const {createChecker}=require('./helpers/assert.cjs');
 module.exports=async function run(){
  const {check,getFailures}=createChecker();
  console.log('\n=== test-billing-recovery-refunds.cjs ===');
- const vars=['KIDBUSTER_TEST_KV','LEMONSQUEEZY_WEBHOOK_SECRET','PAYMENT_PROVIDER','GOOGLE_SHEET_WEBHOOK_URL','OWNER_LICENSE_KEYS'];
+ const vars=['KIDBUSTER_TEST_KV','LEMONSQUEEZY_WEBHOOK_SECRET','PAYMENT_PROVIDER','GOOGLE_SHEET_WEBHOOK_URL','OWNER_LICENSE_KEYS','LEMONSQUEEZY_STORE_ID','LEMONSQUEEZY_PRO_VARIANT_ID','LEMONSQUEEZY_MODE'];
  const previous=Object.fromEntries(vars.map(k=>[k,process.env[k]]));
  process.env.KIDBUSTER_TEST_KV='1';
  process.env.LEMONSQUEEZY_WEBHOOK_SECRET='v2-billing-fixtures-only';
  process.env.PAYMENT_PROVIDER='lemonsqueezy';
  process.env.OWNER_LICENSE_KEYS='synthetic-owner-billing-only';
+ process.env.LEMONSQUEEZY_STORE_ID='429633';
+ process.env.LEMONSQUEEZY_PRO_VARIANT_ID='777001';
+ delete process.env.LEMONSQUEEZY_MODE;
  delete process.env.GOOGLE_SHEET_WEBHOOK_URL;
  const {__resetForTests}=await import('../api/_lib/kv-client.js');
  const svc=await import('../api/_lib/license-service.js');
@@ -38,6 +41,7 @@ module.exports=async function run(){
       eventName==='subscription_payment_failed'?'past_due':
       eventName==='subscription_payment_refunded'?(refunded?'refunded':'paid'):'active');
    const attributes={
+     store_id:'429633',variant_id:'777001',test_mode:false,
      customer_id:customerId,user_email:email,
      created_at:time(minutes),updated_at:time(minutes),
      status: statusValue,
