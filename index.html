@@ -1809,6 +1809,10 @@ body.protocol-beida .grid #outputBox.empty::before{height:25px;width:22px;backgr
 #accountPanel .account-actions{border-top:1px solid #364032;padding-top:16px;margin-top:18px;gap:10px}
 #accountPanel .account-about-link{margin-left:auto;color:inherit;font-size:13px;text-decoration:underline;text-underline-offset:3px;display:inline-flex;align-items:center;gap:4px;min-height:44px;padding:0 4px}
 #accountPanel .account-about-link:focus-visible{outline:2px solid currentColor;outline-offset:3px;border-radius:3px}
+#licenseModalOverlay .access-discovery{margin:-14px 0 16px;font-size:13px;line-height:1.5}
+#licenseModalOverlay .access-discovery a{color:#ADBCAF;text-decoration:underline;text-decoration-color:rgba(173,188,175,.45);text-underline-offset:3px;display:inline-block;padding:4px 0}
+#licenseModalOverlay .access-discovery a:hover{color:#D0DDC7;text-decoration-color:currentColor}
+#licenseModalOverlay .access-discovery a:focus-visible{outline:2px solid #A1C87D;outline-offset:3px;border-radius:3px}
 #accountPanel .btn-secondary{border-color:#48533E;background:#242D21;color:#D0DDC7;border-radius:10px}
 #accountPanel .btn-secondary:hover{border-color:#829775;background:#35432F}
 @media(max-width:560px){#licenseModalOverlay .access-modal,#accountPanel{padding:20px;border-radius:18px}#licenseModalOverlay .license-modal-title{font-size:24px}#licenseModalOverlay .license-modal-choice{padding:16px}.license-modal-choice-labels{flex-wrap:wrap}}
@@ -2908,6 +2912,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
     <p class="access-eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="12" cy="12" r="9"/><path d="m15.5 6.5-2 7-7 4 4-7Z"/></svg>Pathfinder · Your workspace</p>
     <h2 class="license-modal-title" id="accessModalTitle">Choose how to continue</h2>
     <p class="license-modal-subtitle" id="accessModalDescription">Start free, upgrade to Pro, or securely restore your access.</p>
+    <p class="access-discovery"><a id="accessWhyLink" href="/why-classbuster" target="_blank" rel="noopener" aria-label="New here? See why teachers use Classbuster (opens in a new tab)">New here? See why teachers use Classbuster <span aria-hidden="true">↗</span></a></p>
     <p class="legacy-transfer-choice"><a href="https://kidbuster.vercel.app/#classbuster_transfer_start">Already used the old site? Transfer my account</a></p>
 
     <div class="license-modal-options">
@@ -8315,6 +8320,38 @@ async function handleLegacyAccountTransfer(){
 
 handleLegacyAccountTransfer();
 completeEmailVerification().then(refreshAccountPanel);
+
+// Deep links from the public /why-classbuster page. They only OPEN the real
+// access window (or, when already signed in, the Account panel). They never
+// grant access, skip email verification or start checkout by themselves.
+//   #access      -> access window with "Start free" open
+//   #access-pro  -> access window with "Pathfinder Pro" open
+function handleAccessDeepLink(){
+  const hash = window.location.hash || '';
+  if(hash !== '#access' && hash !== '#access-pro') return false;
+  // A secure email sign-in link is being completed; let it finish untouched.
+  if(new URLSearchParams(window.location.search || '').has('access_token')) return false;
+  try{ window.history.replaceState({}, document.title, window.location.pathname + window.location.search); }catch(_err){}
+  if(getStoredAccessKey()){
+    if(hash === '#access-pro'){
+      const els = getAccountEls();
+      if(els.panel){
+        els.panel.style.display = '';
+        if(els.btn) els.btn.setAttribute('aria-expanded','true');
+        refreshAccountPanel();
+      }
+    }
+    return true;
+  }
+  void promptForAccessKey();
+  if(hash === '#access-pro'){
+    const overlay = document.getElementById('licenseModalOverlay');
+    overlay.querySelectorAll('.license-modal-section').forEach((section)=>{ section.open = section.classList.contains('pro'); });
+    requestAnimationFrame(()=>requestAnimationFrame(()=>document.getElementById('licenseModalProEmail')?.focus()));
+  }
+  return true;
+}
+handleAccessDeepLink();
 
 function renderCheckoutSuccess(key){
   outputBox.className = key ? 'output-box' : 'output-box error';

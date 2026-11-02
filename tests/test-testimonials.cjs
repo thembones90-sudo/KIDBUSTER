@@ -140,7 +140,9 @@ module.exports = async function run(){
   check('no fabricated stats, ratings, logos, prices or endorsements',
     !/\d+\s*%|\b\d{2,}[,.]?\d*\+?\s*(teachers|schools|reports|users)|★|☆|\d(\.\d)?\s*\/\s*5|trusted by|as seen|RSD|US\$|\$\d|€|per month|<img\b|<video\b|<iframe\b/i.test(page));
   check('page has no inline scripts, inline handlers, javascript: links or third-party URLs',
-    !/<script(?![^>]*\bsrc="\/assets\/why-classbuster\.js")/i.test(page) && !/\son[a-z]+=/i.test(page) && !/javascript:/i.test(page) && !/(src|href)="https?:/i.test(page));
+    !/<script(?![^>]*\bsrc="\/assets\/why-classbuster\.js")/i.test(page) && !/\son[a-z]+=/i.test(page) && !/javascript:/i.test(page) && !/(src|href)="https?:(?!\/\/classbuster\.com\/)/i.test(page) &&
+    // The only absolute first-party URL allowed as an href is the canonical link (social sharing metadata).
+    [...page.matchAll(/(src|href)="https?:[^"]*"/gi)].every(m => /^href="https:\/\/classbuster\.com\/why-classbuster"$/.test(m[0])));
   check('renderer never uses HTML sinks or eval', !/innerHTML|outerHTML|insertAdjacentHTML|document\.write|\beval\(|new Function/.test(js));
   check('renderer fetches only the same-origin data file without credentials',
     T.DATA_URL === '/assets/testimonials/testimonials.json' && (js.match(/fetchImpl\(/g) || []).length === 1 && /credentials: 'omit'/.test(js));
@@ -167,6 +169,7 @@ module.exports = async function run(){
   for(const file of ['why-classbuster.html', ...legal]){
     for(const href of hrefTargets(read(file))){
       if(/^mailto:/.test(href)) continue;
+      if(/^https:\/\/classbuster\.com\//.test(href)){ if(!resolvesLocally(href.slice('https://classbuster.com'.length))) broken.push(file + ' ' + href); continue; }
       if(/^https?:/.test(href)){ if(file === 'why-classbuster.html') broken.push(file + ' external ' + href); continue; }
       if(href.startsWith('#')){ if(!read(file).includes('id="' + href.slice(1) + '"')) broken.push(file + ' ' + href); continue; }
       if(!resolvesLocally(href)) broken.push(file + ' ' + href);
