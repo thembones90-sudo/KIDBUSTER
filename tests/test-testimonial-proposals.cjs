@@ -56,7 +56,10 @@ module.exports = async function run(){
     check('no key -> 401', (await call({ body: proposal(), query: T })).statusCode === 401);
     check('random key -> 401', (await call({ key: 'nope', body: proposal(), query: T })).statusCode === 401);
     check('shared legacy app key has no identity -> 401', (await call({ key: 'shared_app_key_test', body: proposal(), query: T })).statusCode === 401);
-    check('GET on proposal route -> 405', (await call({ method: 'GET', key: teacher, query: T })).statusCode === 405);
+    check('status check without a key -> 401', (await call({ method: 'GET', query: T })).statusCode === 401);
+    const before = await call({ method: 'GET', key: teacher, query: T });
+    check('status before any story: submitted false', before.statusCode === 200 && before.body.submitted === false);
+    check('PUT on proposal route -> 405', (await call({ method: 'PUT', key: teacher, query: T })).statusCode === 405);
 
     console.log('\n3) validation');
     const bad = async (body, label) => check(label, (await call({ key: teacher, body, query: T })).statusCode === 400);
@@ -90,9 +93,26 @@ module.exports = async function run(){
     check('retry with same proposalId returns the same record', again.statusCode === 200 && again.body.duplicate === true && again.body.id === ok.body.id);
     check('retry did not create a second record', (await store.listTestimonialProposals()).filter(i => i.account === item.account).length === 1);
 
-    console.log('\n6) daily limit');
-    await call({ key: teacher, body: proposal(), query: T });
-    await call({ key: teacher, body: proposal(), query: T });
+    console.log('\n6) one story per account (owner decision 2026-11-02)');
+    const status = await call({ method: 'GET', key: teacher, query: T });
+    check('status after a story: submitted true', status.statusCode === 200 && status.body.submitted === true);
+    const fresh = await svc.getOrCreateFreeLicense('teacher.fresh@example.com');
+    check('another account is unaffected', (await call({ method: 'GET', key: fresh, query: T })).body.submitted === false);
+    const recordsBefore = (await store.listTestimonialProposals()).length;
+    const secondP = proposal();
+    const second = await call({ key: teacher, body: secondP, query: T });
+    check('a different second story -> 409 already_submitted', second.statusCode === 409 && second.body.status === 'already_submitted');
+    check('the second story stored nothing', (await store.listTestimonialProposals()).length === recordsBefore);
+    check('the second story left no claim behind', !kvMod.__dumpForTests()['tp:idem:' + store.accountTag(teacher) + ':' + secondP.proposalId]);
+    const sameAgain = await call({ key: teacher, body: first, query: T });
+    check('a retry of the stored story still answers 200 duplicate, not refused', sameAgain.statusCode === 200 && sameAgain.body.duplicate === true && sameAgain.body.id === ok.body.id);
+    check('the marker holds only the story id and never expires', (() => { const m = kvMod.__dumpForTests()['tp:done:' + store.accountTag(teacher)]; return m && Number(m.value) === ok.body.id && !m.expiresAt; })());
+
+    console.log('\n6b) daily limit still bounds an account whose marker is missing');
+    const dropMarker = () => kvMod.kv.del('tp:done:' + store.accountTag(teacher));
+    await dropMarker(); await call({ key: teacher, body: proposal(), query: T });
+    await dropMarker(); await call({ key: teacher, body: proposal(), query: T });
+    await dropMarker();
     const limited = await call({ key: teacher, body: proposal(), query: T });
     check('fourth story in a day -> 429', limited.statusCode === 429);
 
@@ -108,23 +128,24 @@ module.exports = async function run(){
     check('store never touches the public testimonials file', !/testimonials\.json/.test(storeSrc.replace(/\/\/.*$/gm, '')) && !/from 'node:fs'|require\('fs'\)/.test(storeSrc));
     const clientSrc = fs.readFileSync(path.join(root, 'assets/testimonial-invite.js'), 'utf8');
     const fetches = clientSrc.match(/fetch\(/g) || [];
-    check('client sends stories only to the private endpoint', fetches.length === 1 && clientSrc.includes("fetch('/api/feedback?kind=testimonial'"));
+    check('client talks only to the private endpoint (status check + send)', fetches.length === 2 && clientSrc.split("fetch('/api/feedback?kind=testimonial'").length === 3);
     check('client has no third-party/analytics calls', !/https?:\/\/[a-z]|gtag\(|google-analytics|sendBeacon|dataLayer|XMLHttpRequest|new Image\(/i.test(clientSrc.replace(/\/\/.*$/gm, '')));
     const pub = JSON.parse(fs.readFileSync(publicFile, 'utf8'));
     check('no proposal text reached the public file', !JSON.stringify(pub).includes('report writing time'));
 
     console.log('\n9) store outage never fakes success and allows retry');
     const retry = proposal();
+    const other9 = await svc.getOrCreateFreeLicense('teacher.nine@example.com');
     kvMod.__simulateOutage(true);
-    const down = await call({ key: other, body: retry, query: T });
+    const down = await call({ key: other9, body: retry, query: T });
     kvMod.__simulateOutage(false);
     check('full outage -> 503, never 200', down.statusCode === 503);
     const realIncr = kvMod.kv.incr;
     kvMod.kv.incr = async () => { throw new Error('simulated mid-write failure'); };
     let mid;
-    try{ mid = await call({ key: other, body: retry, query: T }); }finally{ kvMod.kv.incr = realIncr; }
+    try{ mid = await call({ key: other9, body: retry, query: T }); }finally{ kvMod.kv.incr = realIncr; }
     check('mid-write failure -> 503, never 200', mid.statusCode === 503);
-    const after = await call({ key: other, body: retry, query: T });
+    const after = await call({ key: other9, body: retry, query: T });
     check('same proposal succeeds after recovery', after.statusCode === 200 && after.body.duplicate === false);
 
     // ---- hardening 2026-11-02: claims, races, stale recovery, command use ----
@@ -170,12 +191,14 @@ module.exports = async function run(){
     finally{ Date.now = realNow; }
     check('crashed worker claim recovers after its expiry', isOk(recovered) && recovered.body.duplicate === false);
     const legacyP = proposal();
-    await kvMod.kv.set(idem(t5, legacyP.proposalId), 'pending', { ex: 180 * 86400 });
-    const legacy = await call({ key: t5, body: legacyP, query: T });
+    const t5b = await svc.getOrCreateFreeLicense('teacher.five.b@example.com');
+    await kvMod.kv.set(idem(t5b, legacyP.proposalId), 'pending', { ex: 180 * 86400 });
+    const legacy = await call({ key: t5b, body: legacyP, query: T });
     check('legacy tokenless pending (180-day) claim is taken over and stored', isOk(legacy) && legacy.body.duplicate === false);
     const legacyNum = proposal();
-    await kvMod.kv.set(idem(t5, legacyNum.proposalId), 7, { ex: 180 * 86400 });
-    const legacyDup = await call({ key: t5, body: legacyNum, query: T });
+    const t5c = await svc.getOrCreateFreeLicense('teacher.five.c@example.com');
+    await kvMod.kv.set(idem(t5c, legacyNum.proposalId), 7, { ex: 180 * 86400 });
+    const legacyDup = await call({ key: t5c, body: legacyNum, query: T });
     check('legacy numeric stored claim still answers duplicate with its id', isOk(legacyDup) && legacyDup.body.duplicate === true && legacyDup.body.id === 7);
 
     console.log('\n13) a slow worker that lost its claim withdraws its copy and never deletes the new owner');
@@ -210,7 +233,8 @@ module.exports = async function run(){
     check('failure cleanup is token-guarded: it never deletes a committed claim', dump()[idem(t6, failP.proposalId)].value === 'stored:999');
     const quotaP = [proposal(), proposal(), proposal()];
     const quota = [];
-    for(const p of quotaP) quota.push(await call({ key: t6, body: p, query: T }));
+    // Clear the one-story marker so the daily limiter itself is what is tested.
+    for(const p of quotaP){ await kvMod.kv.del('tp:done:' + tag(t6)); quota.push(await call({ key: t6, body: p, query: T })); }
     check('failed attempts did not use up the daily limit', quota.every(isOk));
 
     console.log('\n14) owner listing is bounded and uses MGET, not one GET per proposal');

@@ -7960,6 +7960,7 @@ async function generate(){
     document.getElementById('copyBeidaPerformanceBtn').disabled = !isBeidaOutput;
     newStudentBtn.disabled = false;
     showFeedbackCard(form.protocol, form.rating, form.protocol === 'PREPLY' ? form.preplyModule : null, (form.protocol === 'PREPLY' && form.preplyModule === 'trial') ? form.preplyTrialPerson : null, generationRef);
+    document.dispatchEvent(new Event('classbuster:report-generated')); // testimonial invite
     document.getElementById('actionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
     renderLint(lint);
     if(isBeidaOutput){
@@ -10982,7 +10983,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 <link rel="stylesheet" href="assets/initial-workspace-fit.css?v=20261027-no-menu-resize">
 <script src="assets/blitz-voice-menu.js?v=20261027"></script>
 <link rel="stylesheet" href="assets/testimonial-invite.css?v=20261102b">
-<script src="assets/testimonial-invite.js?v=20261102b"></script>
+<script src="assets/testimonial-invite.js?v=20261102c"></script>
 <script src="assets/initial-workspace-fit.js?v=20261027-no-menu-resize"></script>
 </body>
 </html>

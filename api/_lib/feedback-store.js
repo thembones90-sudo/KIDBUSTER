@@ -112,6 +112,10 @@ const TP_SEQ_KEY = 'tp:seq';
 const tpItemKey = n => 'tp:item:' + n;
 const tpIdemKey = (account, id) => 'tp:idem:' + account + ':' + id;
 const tpRateKey = (account, day) => 'tp:rate:' + account + ':' + day;
+// One story per account (owner decision 2026-11-02). Holds only the one-way
+// account tag and the stored proposal id, so it carries no personal data and
+// is kept without expiry: a teacher who shared a story is never asked again.
+const tpDoneKey = account => 'tp:done:' + account;
 const PROPOSAL_ID = /^[a-f0-9]{16}$/;
 // Contact details must not travel inside a story that might later be quoted.
 // (Mentioning classbuster.com itself is fine; nine or more digits is a phone.)
@@ -191,6 +195,14 @@ export async function recordTestimonialProposal({ licenseKey, proposal, contactE
     }
     if(!owned) return { inProgress: true };
   }
+  // A different proposal from an account that already shared its story.
+  let done = null;
+  try{ done = await kv.get(tpDoneKey(account)); }
+  catch(err){ await releasePaymentLock(idemKey, marker).catch(() => {}); throw err; }
+  if(storedIdOf(done)){
+    try{ await releasePaymentLock(idemKey, marker); }catch(_e){ /* expires within the claim TTL */ }
+    return { alreadySubmitted: true, id: storedIdOf(done) };
+  }
   let rateKey = null, n = null, committed = false;
   const releaseRate = async () => {
     if(!rateKey) return;
@@ -238,6 +250,11 @@ export async function recordTestimonialProposal({ licenseKey, proposal, contactE
       const storedId = storedIdOf(now);
       return storedId ? { duplicate: true, id: storedId } : { inProgress: true };
     }
+    // Best effort: the story is already stored. The browser also remembers it,
+    // and the owner sees every proposal, so a failed marker costs at most one
+    // extra invitation on another device.
+    try{ await kv.set(tpDoneKey(account), n); }
+    catch(err){ console.error('testimonial done marker failed:', (err && err.name) || 'error'); }
     return { id: n, item };
   }catch(err){
     // Never report success. Release only OUR claim (token-guarded), so a
@@ -250,6 +267,11 @@ export async function recordTestimonialProposal({ licenseKey, proposal, contactE
     }
     throw err;
   }
+}
+
+// Whether this account already shared its one story (one GET).
+export async function hasSubmittedTestimonial(licenseKey){
+  return !!storedIdOf(await kv.get(tpDoneKey(accountTag(licenseKey))));
 }
 
 // Proposal ids come from one monotonic sequence (tp:seq), so the newest

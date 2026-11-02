@@ -80,3 +80,22 @@ permitted there): run `node tests/test-testimonial-proposals.cjs`,
 2. Approve storing the account email on a proposal (owner-only, 180 days) and
    update privacy-policy.html accordingly before release.
 3. Normal staged release + smoke per AGENTS.md. Nothing was deployed.
+
+## Owner decision 2026-11-02: invite every protocol user, one story per account — NOT DEPLOYED
+- **Trigger:** also 2.5 s after any successful report in any protocol
+  (`classbuster:report-generated`), besides saved feedback. Signed-in accounts
+  only. Skipped (retried at the next report or saved feedback) while the
+  teacher is typing, while another app dialog is visible, or when the status
+  check fails. Not now still rests 21 days (180 after three).
+- **One story per account:** after a story is stored the server sets
+  `tp:done:<account tag>` = proposal id (no expiry, no personal data). A
+  different later proposal answers **409 `already_submitted`** and stores
+  nothing; a retry of the SAME proposal still answers 200 duplicate. The browser
+  then never invites again (`sentAt` is now permanent).
+- **New device:** `GET /api/feedback?kind=testimonial` → `{submitted}` (one Redis
+  GET), asked only just before an invitation would open; a positive answer is
+  remembered locally, so a known sharer costs nothing afterwards.
+- Daily limit (3/day) kept as a backstop. Two different stories sent at the
+  same instant from two devices can both be stored (no per-account lock); the
+  owner sees both.
+- Privacy Section 7a discloses the report trigger and the marker.

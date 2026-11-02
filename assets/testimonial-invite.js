@@ -1,15 +1,22 @@
 // Optional testimonial invitation (owner-approved 2026-11-02).
 //
-// Appears only AFTER the existing post-report feedback has been confirmed as
-// saved by the server (index.html dispatches `classbuster:feedback-saved`
+// Every signed-in teacher who has used a protocol is invited: after a report
+// is generated (index.html dispatches `classbuster:report-generated`) and
+// after post-report feedback is confirmed saved (`classbuster:feedback-saved`,
 // only when /api/feedback answers stored:true). It never blocks generation,
 // copying or feedback, and it never publishes anything: a story is sent as a
 // PRIVATE proposal to POST /api/feedback?kind=testimonial for the owner to
 // review. Publication needs separately approved wording and consent.
 //
-// Frequency cap (this browser only, no content stored): after "Not now" the
-// invitation rests for 21 days; after three "Not now" answers, or after a
-// story was sent, it rests for 180 days. It appears at most once per page.
+// One story per account (owner decision 2026-11-02): once a story is sent,
+// or the server says this account already sent one, the invitation never
+// appears again. The server keeps that per account, so another browser or
+// device asks once (GET /api/feedback?kind=testimonial, one Redis read) just
+// before it would invite, then remembers the answer locally.
+//
+// Frequency cap for teachers who have not shared (this browser only, no
+// content stored): after "Not now" the invitation rests for 21 days; after
+// three "Not now" answers it rests for 180 days. At most once per page.
 (function(){
   'use strict';
   var STORE = 'classbuster.testimonialInvite.v1';
@@ -35,7 +42,7 @@
   function mayInvite(now){
     if(shownThisPage) return false;
     var p = readPrefs();
-    if(p.sentAt && now - p.sentAt < LONG_REST) return false;
+    if(p.sentAt) return false; // shared already: never again
     if(p.notNow >= 3 && now - (p.lastShown || 0) < LONG_REST) return false;
     if(p.lastShown && now - p.lastShown < REST_AFTER_NOT_NOW) return false;
     return true;
@@ -237,7 +244,7 @@
     var key = accessKey();
     if(!key){ setStatus('Please sign in to your Classbuster account first. Your story was not sent.', true); return; }
     state.sending = true; setBusy(true); setStatus('Sending privately…', false);
-    var ok = false, message = 'Could not send your story. Nothing was saved; please try again.';
+    var ok = false, alreadyShared = false, message = 'Could not send your story. Nothing was saved; please try again.';
     try{
       var body = JSON.stringify({ proposalId: state.proposalId, feedbackId: state.feedbackId, story: storyText, displayName: name, role: role, contactOk: true });
       // 409 in_progress means an earlier send of this SAME proposal is still
@@ -255,6 +262,7 @@
         // Success only when the server confirms a stored private record id.
         ok = !!(response.ok && data && data.status === 'received_private' && typeof data.id === 'number' && data.id > 0 && Math.floor(data.id) === data.id);
         if(ok) break;
+        if(response.status === 409 && data && data.status === 'already_submitted'){ alreadyShared = true; break; }
         var busy = response.status === 409 && data && data.status === 'in_progress';
         if(busy){ message = 'Your story is still being saved. Please try again in a moment.'; continue; }
         if(data && typeof data.error === 'string') message = data.error + ' Your story was not sent.';
@@ -265,11 +273,61 @@
     }
     if(!state) return;
     state.sending = false; setBusy(false);
-    if(!ok){ setStatus(message, true); return; }
+    if(alreadyShared){
+      // This account's one story is already with the owner (perhaps sent
+      // from another device). Nothing new was stored.
+      document.getElementById('tiDoneText').textContent = 'You have already shared your story with us. Thank you! Nothing new was sent.';
+    }else if(!ok){ setStatus(message, true); return; }
     state.sent = true;
-    var p = readPrefs(); p.sentAt = Date.now(); writePrefs(p);
+    markShared();
     step('tiDoneStep');
     document.getElementById('tiDoneText').focus();
+  }
+
+  function markShared(){
+    var p = readPrefs(); p.sentAt = Date.now(); writePrefs(p);
+  }
+
+  // true / false from the server; null when it cannot be checked (then the
+  // app simply does not invite this time).
+  async function accountAlreadyShared(key){
+    try{
+      var response = await fetch('/api/feedback?kind=testimonial', { method: 'GET', headers: { 'x-app-key': key } });
+      if(!response.ok) return null;
+      var data = await response.json();
+      return data && typeof data.submitted === 'boolean' ? data.submitted : null;
+    }catch(e){ return null; }
+  }
+
+  function teacherIsTyping(){
+    var a = document.activeElement;
+    return !!a && (a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || (a.tagName === 'INPUT' && a.type !== 'button' && a.type !== 'submit') || a.isContentEditable);
+  }
+
+  // The app keeps its sign-in and help dialogs in the page while hidden, so
+  // only a dialog that is actually rendered counts.
+  function otherDialogOpen(){
+    return Array.prototype.some.call(document.querySelectorAll('[aria-modal="true"], dialog[open]'), function(d){
+      return !(overlay && overlay.contains(d)) && d.getClientRects().length > 0;
+    });
+  }
+
+  function offer(detail, delay, avoidTyping){
+    if(state) return;
+    var key = accessKey();
+    // Only a signed-in account can share (and be remembered as having shared).
+    if(!key || !mayInvite(Date.now())) return;
+    shownThisPage = true; // one invitation attempt at a time per page
+    setTimeout(async function(){
+      var shared = await accountAlreadyShared(key);
+      if(shared === true){ markShared(); return; }
+      // Unknown status, another dialog, or the teacher is busy typing: try
+      // again at the next report or saved feedback instead.
+      if(shared !== false || state || (avoidTyping && teacherIsTyping()) || otherDialogOpen()){
+        shownThisPage = false; return;
+      }
+      show(detail);
+    }, delay);
   }
 
   document.addEventListener('classbuster:feedback-saved', function(event){
@@ -277,10 +335,14 @@
     // Every star rating and every idea is invited. A bug report is a moment
     // of friction, so it is not followed by a request for a story.
     if(detail.category === 'bug') return;
-    if(!mayInvite(Date.now())) return;
-    shownThisPage = true; // idempotent: a second save in the same page never re-invites
     // Let the "Thanks — feedback sent" confirmation render first.
-    setTimeout(function(){ if(!state) show(detail); }, 350);
+    offer(detail, 350, false);
+  });
+
+  // Every protocol counts: a teacher who just got a report is invited a few
+  // seconds later, once the report is on screen (and already auto-copied).
+  document.addEventListener('classbuster:report-generated', function(){
+    offer({}, 2500, true);
   });
 
   window.ClassbusterTestimonialInvite = { _mayInvite: mayInvite, _storeKey: STORE };

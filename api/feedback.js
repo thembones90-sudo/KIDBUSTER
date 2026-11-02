@@ -13,7 +13,7 @@
 import crypto from 'node:crypto';
 import { getLicense, isFounderLicenseKey } from './_lib/licensing.js';
 import { FEEDBACK_CATEGORIES, recordFeedback, listFeedback, summarizeFeedback,
-  validateTestimonialProposal, recordTestimonialProposal, listTestimonialProposals } from './_lib/feedback-store.js';
+  validateTestimonialProposal, recordTestimonialProposal, listTestimonialProposals, hasSubmittedTestimonial } from './_lib/feedback-store.js';
 
 async function ownerFeedback(req, res){
   if(!isFounderLicenseKey(req.headers['x-app-key'])){
@@ -48,8 +48,18 @@ function kindOf(req) {
 // for publication approval. Stored privately; never sent to the Sheet.
 async function testimonialProposal(req, res) {
   res.setHeader?.('Cache-Control', 'no-store');
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const providedKey = req.headers['x-app-key'];
+  if (req.method === 'GET') {
+    // Asked only just before the app would invite: has this account already
+    // shared its one story? One Redis GET; reveals nothing without the key.
+    if (typeof providedKey !== 'string' || !providedKey) return res.status(401).json({ error: 'Please sign in to your Classbuster account' });
+    try { return res.status(200).json({ submitted: await hasSubmittedTestimonial(providedKey) }); }
+    catch (err) {
+      console.error('testimonial status failed:', (err && err.name) || 'error');
+      return res.status(503).json({ error: 'Could not check right now' });
+    }
+  }
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   let license = null;
   const founder = isFounderLicenseKey(providedKey);
   if (!founder && providedKey) {
@@ -70,6 +80,9 @@ async function testimonialProposal(req, res) {
       contactEmail: license && typeof license.email === 'string' ? license.email : ''
     });
     if (result.limited) return res.status(429).json({ error: 'Thanks! You have already sent a few stories today.' });
+    if (result.alreadySubmitted) {
+      return res.status(409).json({ status: 'already_submitted', error: 'You have already shared your story. Thank you!' });
+    }
     if (result.inProgress) {
       // Another request for this same proposal is still storing it. Retryable;
       // never a 200 without a stored record.

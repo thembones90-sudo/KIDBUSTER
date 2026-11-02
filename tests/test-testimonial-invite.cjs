@@ -3,8 +3,9 @@
 // confirmed feedback save -> invitation; all ratings; bug reports skipped;
 // stored:false and failures never invite; Escape/Not now dismissal with a
 // persisted, content-free frequency cap; editable draft; consent required;
-// idempotent retry after a failure; focus trap and return; mobile fit; and
-// unchanged fitted-workspace geometry.
+// idempotent retry after a failure; focus trap and return; mobile fit;
+// unchanged fitted-workspace geometry; and (owner decision 2026-11-02) an
+// invitation after every protocol's report, one story per account.
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const { pathToFileURL } = require('node:url');
 module.exports = async function(){
@@ -15,26 +16,34 @@ module.exports = async function(){
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900 });
 
-    async function open(prefs){
+    async function open(prefs, opts){
       await page.goto(url);
-      await page.evaluate((STORE, prefs) => {
-        localStorage.setItem('kidbuster_access_key', 'synthetic-testimonial-test');
+      await page.evaluate((STORE, prefs, opts) => {
+        if(opts && opts.signedOut) localStorage.removeItem('kidbuster_access_key');
+        else localStorage.setItem('kidbuster_access_key', 'synthetic-testimonial-test');
         if(prefs) localStorage.setItem(STORE, JSON.stringify(prefs)); else localStorage.removeItem(STORE);
         window.fbStored = true; window.tpMode = 'ok'; window.fbRequests = []; window.tpRequests = [];
+        window.tpSubmitted = opts && opts.submitted !== undefined ? opts.submitted : false; window.tpStatusRequests = 0;
         window.fetch = async (u, o) => {
+          if(u === '/api/feedback?kind=testimonial' && o && o.method === 'GET'){
+            window.tpStatusRequests++;
+            if(window.tpSubmitted === 'error') return { ok: false, status: 503, json: async () => ({ error: 'Could not check right now' }) };
+            return { ok: true, status: 200, json: async () => ({ submitted: window.tpSubmitted }) };
+          }
           if(u === '/api/feedback'){ window.fbRequests.push(JSON.parse(o.body)); return { ok: true, json: async () => ({ status: 'ok', stored: window.fbStored, feedbackId: 41, sheet: 'not_configured' }) }; }
           if(u === '/api/feedback?kind=testimonial'){
             window.tpRequests.push({ headers: o.headers, body: JSON.parse(o.body) });
             if(window.tpMode === 'fail') return { ok: false, status: 503, json: async () => ({ error: 'Could not save your story right now' }) };
             if(window.tpMode === 'busy-once'){ window.tpMode = 'ok'; return { ok: false, status: 409, json: async () => ({ status: 'in_progress', retryable: true, error: 'Your story is still being saved. Please try again in a moment.' }) }; }
             if(window.tpMode === 'busy') return { ok: false, status: 409, json: async () => ({ status: 'in_progress', retryable: true, error: 'Your story is still being saved. Please try again in a moment.' }) };
+            if(window.tpMode === 'already') return { ok: false, status: 409, json: async () => ({ status: 'already_submitted', error: 'You have already shared your story. Thank you!' }) };
             if(window.tpMode === 'null-id') return { ok: true, status: 200, json: async () => ({ status: 'received_private', id: null, duplicate: true, published: false }) };
             return { ok: true, json: async () => ({ status: 'received_private', id: 9, duplicate: false, published: false }) };
           }
           return { ok: false, status: 404, json: async () => ({}) };
         };
         showFeedbackCard('MA', '4', null, null, '0123456789abcdef');
-      }, STORE, prefs || null);
+      }, STORE, prefs || null, opts || null);
     }
     const geometry = () => page.evaluate(() => { const w = document.querySelector('.wrap'); const r = w.getBoundingClientRect(); return [w.style.zoom, r.width, r.height, r.left].join('|'); });
     const visible = () => page.evaluate(() => { const o = document.getElementById('testimonialInviteOverlay'); return !!o && !o.hidden; });
@@ -84,9 +93,10 @@ module.exports = async function(){
     await open({ lastShown: Date.now() - 30 * 86400000, notNow: 3, sentAt: 0 });
     await rate(5); await settle();
     assert.equal(await visible(), false, 'three Not now answers rest for 180 days');
-    await open({ lastShown: Date.now() - 30 * 86400000, notNow: 0, sentAt: Date.now() - 30 * 86400000 });
+    await open({ lastShown: Date.now() - 400 * 86400000, notNow: 0, sentAt: Date.now() - 400 * 86400000 });
     await rate(5); await settle();
-    assert.equal(await visible(), false, 'no invitation after a story was sent');
+    assert.equal(await visible(), false, 'never again after a story was sent, even a year later');
+    assert.equal(await page.evaluate(() => window.tpStatusRequests), 0, 'a known sharer costs no status request');
 
     // 3) Never invited for a bug report or an unconfirmed save.
     await open();
@@ -192,7 +202,71 @@ module.exports = async function(){
       assert.equal(await visible(), false, 'Discard closes immediately');
       assert.equal(await page.evaluate(() => window.tpRequests.length), 0, 'Discard sends nothing');
     }
-    console.log('PASS testimonial invitation: confirmed-save trigger, all ratings, frequency cap, dismissal, editable draft, consent, idempotent retry, focus trap, mobile and unchanged geometry');
+    // 6) Every protocol's report invites (owner decision 2026-11-02).
+    await page.setViewport({ width: 1440, height: 900 });
+    const report = () => page.evaluate(() => { document.activeElement && document.activeElement.blur && document.activeElement.blur(); document.dispatchEvent(new CustomEvent('classbuster:report-generated', { detail: { protocol: 'PREPLY' } })); });
+    const waitReport = () => page.evaluate(() => new Promise(r => setTimeout(r, 2900)));
+    await open();
+    await report(); await waitReport();
+    assert.equal(await visible(), true, 'a generated report invites, without any feedback');
+    assert.equal(await page.evaluate(() => window.tpStatusRequests), 1, 'one status check just before inviting');
+    await page.click('#tiShareBtn');
+    assert.equal(await page.$eval('#tiStory', e => e.value), '', 'no feedback draft: empty story');
+    assert.match(await page.$eval('#tiStoryHint', e => e.textContent), /how has Classbuster helped you/);
+    await page.keyboard.press('Escape');
+    // Not now from a report trigger still rests for 21 days.
+    await report(); await waitReport();
+    assert.equal(await visible(), false, 'not twice in one page');
+
+    // The server already has this account's story (sent from another device).
+    await open(null, { submitted: true });
+    await report(); await waitReport();
+    assert.equal(await visible(), false, 'an account that already shared is never invited');
+    assert.ok((await prefs()).sentAt > 0, 'and this browser remembers it');
+    await report(); await waitReport();
+    await rate(5); await settle();
+    assert.equal(await page.evaluate(() => window.tpStatusRequests), 1, 'remembered: no further status requests');
+
+    // Status unknown (outage) or signed out: stay quiet, try again later.
+    await open(null, { submitted: 'error' });
+    await report(); await waitReport();
+    assert.equal(await visible(), false, 'no invitation when the status cannot be checked');
+    await page.evaluate(() => { window.tpSubmitted = false; });
+    await rate(4); await settle();
+    assert.equal(await visible(), true, 'the next saved feedback tries again');
+    await page.keyboard.press('Escape');
+    await open(null, { signedOut: true });
+    await report(); await waitReport();
+    assert.equal(await visible(), false, 'signed-out visitors are not invited');
+    assert.equal(await page.evaluate(() => window.tpStatusRequests), 0);
+
+    // Busy teacher: typing, or another dialog open, postpones to the next chance.
+    await open();
+    await page.evaluate(() => document.dispatchEvent(new CustomEvent('classbuster:report-generated', { detail: { protocol: 'MA' } })));
+    await page.focus('#feedbackComment');
+    await waitReport();
+    assert.equal(await visible(), false, 'not while the teacher is typing');
+    await page.evaluate(() => document.activeElement.blur());
+    await page.evaluate(() => { document.getElementById('helpModalOverlay').style.display = 'flex'; });
+    await report(); await waitReport();
+    assert.equal(await visible(), false, 'not over another open dialog');
+    await page.evaluate(() => { document.getElementById('helpModalOverlay').style.display = 'none'; });
+    await report(); await waitReport();
+    assert.equal(await visible(), true, 'hidden app dialogs do not block it; the next report invites');
+    await page.keyboard.press('Escape');
+
+    // Server says this account already sent a story when the teacher presses Send.
+    await open();
+    await rate(4, 'Reports take me minutes now instead of an hour');
+    await page.waitForFunction(() => { const o = document.getElementById('testimonialInviteOverlay'); return o && !o.hidden; });
+    await page.click('#tiShareBtn'); await page.click('#tiConsent');
+    await page.evaluate(() => { window.tpMode = 'already'; });
+    await page.click('#tiSendBtn');
+    await page.waitForFunction(() => !document.getElementById('tiDoneStep').hidden);
+    assert.match(await page.$eval('#tiDoneText', e => e.textContent), /already shared your story/);
+    assert.ok((await prefs()).sentAt > 0, 'already_submitted is remembered: never invited again');
+
+    console.log('PASS testimonial invitation: confirmed-save trigger, all ratings, frequency cap, dismissal, editable draft, consent, idempotent retry, focus trap, mobile, unchanged geometry, report trigger and one story per account');
     return 0;
   }finally{ await browser.close(); }
 };
