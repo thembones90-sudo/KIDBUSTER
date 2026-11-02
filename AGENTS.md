@@ -1,3 +1,15 @@
+# Current release: Scout public for Pro — 2026-11-02
+
+Owner-approved (mass public use; UNSIGNED by owner decision, no certificate).
+feature/scout-public-20261102 @ de266e6, dpl_A9ftNiGGMzjvNa2zz62tMcABPsKx on
+classbuster.com and kidbuster.vercel.app (exact bytes). Rollback:
+dpl_9ztVjYDdtbudCU8AT5D1ACueyt2H. Scout now follows the Krisp rule (master +
+active Pro + lifetime founder keys); Free/expired/unknown refused, malformed
+keys before Redis. Private Blob installer stays master-only. Public installer:
+GitHub release scout-1.4.11 on this repo, named by assets/scout-release.json
+(sha256 f125dd32…25b7c). 139/139 files, gate OK, 26/26 smoke incl. a HEAD of
+the installer link. Do not label the installer signed.
+
 # Current release: Redis savings, cost guards, one testimonial per account — 2026-11-02
 
 Owner-promoted release/combined-20261102 @ 2fff813, dpl_9ztVjYDdtbudCU8AT5D1ACueyt2H,
