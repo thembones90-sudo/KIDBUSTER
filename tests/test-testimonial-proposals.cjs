@@ -57,6 +57,9 @@ module.exports = async function run(){
     check('random key -> 401', (await call({ key: 'nope', body: proposal(), query: T })).statusCode === 401);
     check('shared legacy app key has no identity -> 401', (await call({ key: 'shared_app_key_test', body: proposal(), query: T })).statusCode === 401);
     check('status check without a key -> 401', (await call({ method: 'GET', query: T })).statusCode === 401);
+    const reads = { n: 0 }; const realGetS = kvMod.kv.get; kvMod.kv.get = async (...x) => { reads.n++; return realGetS.apply(kvMod.kv, x); };
+    let junkStatus; try{ junkStatus = await call({ method: 'GET', key: 'junk-key', query: T }); }finally{ kvMod.kv.get = realGetS; }
+    check('status check with an impossible key -> 401 and no Redis read', junkStatus.statusCode === 401 && reads.n === 0);
     const before = await call({ method: 'GET', key: teacher, query: T });
     check('status before any story: submitted false', before.statusCode === 200 && before.body.submitted === false);
     check('PUT on proposal route -> 405', (await call({ method: 'PUT', key: teacher, query: T })).statusCode === 405);

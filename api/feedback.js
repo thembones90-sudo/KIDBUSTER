@@ -11,7 +11,7 @@
 // deployment's serverless function budget.
 
 import crypto from 'node:crypto';
-import { getLicense, isFounderLicenseKey } from './_lib/licensing.js';
+import { getLicense, isFounderLicenseKey, isPlausibleLicenseKey } from './_lib/licensing.js';
 import { FEEDBACK_CATEGORIES, recordFeedback, listFeedback, summarizeFeedback,
   validateTestimonialProposal, recordTestimonialProposal, listTestimonialProposals, hasSubmittedTestimonial } from './_lib/feedback-store.js';
 
@@ -52,7 +52,7 @@ async function testimonialProposal(req, res) {
   if (req.method === 'GET') {
     // Asked only just before the app would invite: has this account already
     // shared its one story? One Redis GET; reveals nothing without the key.
-    if (typeof providedKey !== 'string' || !providedKey) return res.status(401).json({ error: 'Please sign in to your Classbuster account' });
+    if (!isPlausibleLicenseKey(providedKey)) return res.status(401).json({ error: 'Please sign in to your Classbuster account' });
     try { return res.status(200).json({ submitted: await hasSubmittedTestimonial(providedKey) }); }
     catch (err) {
       console.error('testimonial status failed:', (err && err.name) || 'error');
