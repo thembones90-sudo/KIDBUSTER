@@ -1,0 +1,20 @@
+{
+  "project": "classbuster-isolated-staging",
+  "projectId": "prj_nv9khsQRl2OMMTaw15lfdq8LXu8m",
+  "sourceSha": "0000000000000000000000000000000000000000",
+  "protected": true,
+  "noProductionChange": true,
+  "productionChangesAllowed": false,
+  "deploymentAllowed": false,
+  "publicAccess": false,
+  "lemonSqueezyMode": "test",
+  "environmentVariables": {
+    "KV_REST_API_URL": {"name":"KV_REST_API_URL","scopes":["preview"]},
+    "KV_REST_API_TOKEN": {"name":"KV_REST_API_TOKEN","scopes":["preview"]},
+    "LEMONSQUEEZY_API_KEY": {"name":"LEMONSQUEEZY_API_KEY","scopes":["preview"]},
+    "LEMONSQUEEZY_STORE_ID": {"name":"LEMONSQUEEZY_STORE_ID","scopes":["preview"]},
+    "LEMONSQUEEZY_PRO_VARIANT_ID": {"name":"LEMONSQUEEZY_PRO_VARIANT_ID","scopes":["preview"]},
+    "LEMONSQUEEZY_WEBHOOK_SECRET": {"name":"LEMONSQUEEZY_WEBHOOK_SECRET","scopes":["preview"]}
+  },
+  "providerEvidence": {"status":"pending-console-review"}
+}

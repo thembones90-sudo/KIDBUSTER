@@ -1,0 +1,17 @@
+{
+  "productionRedisId": "REPLACE_AFTER_INDEPENDENT_CONSOLE_REVIEW",
+  "stagingRedisId": "REPLACE_AFTER_INDEPENDENT_CONSOLE_REVIEW",
+  "productionRedisCredentialHash": "REPLACE_WITH_64_HEX_FINGERPRINT",
+  "stagingRedisCredentialHash": "REPLACE_WITH_64_HEX_FINGERPRINT",
+  "testMode": false,
+  "lemonSqueezyMode": "test",
+  "productionStoreId": 0,
+  "stagingTestStoreId": 0,
+  "productionVariantId": 0,
+  "stagingTestVariantId": 0,
+  "sheetDestination": "disabled",
+  "emailDestination": "disabled",
+  "reviewer": "REQUIRED",
+  "reviewedAt": "YYYY-MM-DD",
+  "reviewStatus": "pending-console-review"
+}
