@@ -9,11 +9,14 @@ const {createChecker}=require('./helpers/assert.cjs');
 module.exports=async function run(){
  const {check,getFailures}=createChecker();
  console.log('\n=== test-duplicate-subscription.cjs ===');
- const saved={secret:process.env.LEMONSQUEEZY_WEBHOOK_SECRET,provider:process.env.PAYMENT_PROVIDER};
+ const saved={secret:process.env.LEMONSQUEEZY_WEBHOOK_SECRET,provider:process.env.PAYMENT_PROVIDER,store:process.env.LEMONSQUEEZY_STORE_ID,variant:process.env.LEMONSQUEEZY_PRO_VARIANT_ID,mode:process.env.LEMONSQUEEZY_MODE};
  process.env.KIDBUSTER_TEST_KV='1';
  delete process.env.GOOGLE_SHEET_WEBHOOK_URL;
  process.env.LEMONSQUEEZY_WEBHOOK_SECRET='duplicate-subscription-test-secret';
  process.env.PAYMENT_PROVIDER='lemonsqueezy';
+ process.env.LEMONSQUEEZY_STORE_ID='429633';
+ process.env.LEMONSQUEEZY_PRO_VARIANT_ID='777001';
+ delete process.env.LEMONSQUEEZY_MODE;
  const {__resetForTests}=await import('../api/_lib/kv-client.js');
  const license=await import('../api/_lib/licensing.js');
  const service=await import('../api/_lib/license-service.js');
@@ -21,7 +24,7 @@ module.exports=async function run(){
  const date=d=>new Date(Date.now()+d*86400000).toISOString();
  async function send(eventName,key,subscriptionId,when,status='active',endsAt=null){
   const payload={meta:{event_name:eventName,custom_data:{license_key:key}},
-   data:{type:'subscriptions',id:subscriptionId,attributes:{customer_id:'cust-1',user_email:'twice@example.test',
+   data:{type:'subscriptions',id:subscriptionId,attributes:{store_id:'429633',variant_id:'777001',test_mode:false,customer_id:'cust-1',user_email:'twice@example.test',
     updated_at:when,created_at:when,ends_at:endsAt,status}}};
   const bytes=Buffer.from(JSON.stringify(payload));
   const sig=crypto.createHmac('sha256',process.env.LEMONSQUEEZY_WEBHOOK_SECRET).update(bytes).digest('hex');
@@ -59,6 +62,7 @@ module.exports=async function run(){
  }finally{
   if(saved.secret===undefined)delete process.env.LEMONSQUEEZY_WEBHOOK_SECRET;else process.env.LEMONSQUEEZY_WEBHOOK_SECRET=saved.secret;
   if(saved.provider===undefined)delete process.env.PAYMENT_PROVIDER;else process.env.PAYMENT_PROVIDER=saved.provider;
+  for(const [name,value] of [['LEMONSQUEEZY_STORE_ID',saved.store],['LEMONSQUEEZY_PRO_VARIANT_ID',saved.variant],['LEMONSQUEEZY_MODE',saved.mode]]){if(value===undefined)delete process.env[name];else process.env[name]=value;}
  }
  return getFailures();
 };

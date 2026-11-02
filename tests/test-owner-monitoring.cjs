@@ -9,10 +9,11 @@ module.exports = async function run(){
   const { check, getFailures } = createChecker();
   console.log('\n=== test-owner-monitoring.cjs ===');
   const vars = ['KIDBUSTER_TEST_KV', 'KIDBUSTER_TEST_EMAIL', 'OWNER_ALERT_EMAIL', 'CRON_SECRET', 'GOOGLE_SHEET_WEBHOOK_URL',
-    'LEMONSQUEEZY_WEBHOOK_SECRET', 'PAYMENT_PROVIDER', 'OWNER_LICENSE_KEYS'];
+    'LEMONSQUEEZY_WEBHOOK_SECRET', 'PAYMENT_PROVIDER', 'OWNER_LICENSE_KEYS', 'LEMONSQUEEZY_STORE_ID', 'LEMONSQUEEZY_PRO_VARIANT_ID', 'LEMONSQUEEZY_MODE'];
   const old = Object.fromEntries(vars.map(k => [k, process.env[k]]));
   Object.assign(process.env, { KIDBUSTER_TEST_KV: '1', KIDBUSTER_TEST_EMAIL: '1', LEMONSQUEEZY_WEBHOOK_SECRET: 'synthetic-monitoring-secret',
     PAYMENT_PROVIDER: 'lemonsqueezy', OWNER_LICENSE_KEYS: 'monitor_owner_key' });
+  process.env.LEMONSQUEEZY_STORE_ID = '429633'; process.env.LEMONSQUEEZY_PRO_VARIANT_ID = '777001'; delete process.env.LEMONSQUEEZY_MODE;
   delete process.env.GOOGLE_SHEET_WEBHOOK_URL; delete process.env.OWNER_ALERT_EMAIL; delete process.env.CRON_SECRET;
   try{
     const kvMod = await import('../api/_lib/kv-client.js'); kvMod.__resetForTests();
@@ -78,7 +79,7 @@ module.exports = async function run(){
     const webhook = (await import('../api/payment-webhook.js')).default;
     const key = await svc.getOrCreateFreeLicense('payer@example.test');
     const data = { meta: { event_name: 'subscription_created', custom_data: { license_key: key } },
-      data: { type: 'subscriptions', id: 'sub-monitoring', attributes: { customer_id: 'cust-mon', user_email: 'payer@example.test', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), status: 'active', ends_at: null } } };
+      data: { type: 'subscriptions', id: 'sub-monitoring', attributes: { store_id: '429633', variant_id: '777001', test_mode: false, customer_id: 'cust-mon', user_email: 'payer@example.test', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), status: 'active', ends_at: null } } };
     const raw = Buffer.from(JSON.stringify(data));
     const sig = crypto.createHmac('sha256', process.env.LEMONSQUEEZY_WEBHOOK_SECRET).update(raw).digest('hex');
     const res = { status(c){ this.code = c; return this; }, json(b){ this.body = b; return this; }, setHeader(){} };

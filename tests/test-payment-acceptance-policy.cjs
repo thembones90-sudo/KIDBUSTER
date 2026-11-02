@@ -104,6 +104,18 @@ module.exports=async function run(){
    {
      store.__resetForTests();
      const key=await svc.getOrCreateFreeLicense('policy@example.test');
+     const missingStorePayload=subscription(key); delete missingStorePayload.data.attributes.store_id;
+     const missingStore=await send(missingStorePayload);
+     check('a signed NEW subscription missing store_id is acknowledged and rejected',
+       missingStore.code===200 && missingStore.body.ignored===true && (await lic.getLicense(key)).plan==='free');
+     check('missing store_id is audited with reason missing_store',
+       (await ignoredEvents()).some(e=>e.reason==='missing_store'));
+     const missingVariantPayload=subscription(key); delete missingVariantPayload.data.attributes.variant_id;
+     const missingVariant=await send(missingVariantPayload);
+     check('a signed NEW subscription missing variant_id is acknowledged and rejected',
+       missingVariant.code===200 && missingVariant.body.ignored===true && (await lic.getLicense(key)).plan==='free');
+     check('missing variant_id is audited with reason missing_variant',
+       (await ignoredEvents()).some(e=>e.reason==='missing_variant'));
      const foreignStore=await send(subscription(key,{storeId:111}));
      check('a subscription from another store is refused and does not grant Pro',
        foreignStore.code===200 && foreignStore.body.ignored===true && (await lic.getLicense(key)).plan==='free');

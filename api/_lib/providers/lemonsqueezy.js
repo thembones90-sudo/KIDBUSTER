@@ -144,15 +144,17 @@ export async function createCustomerPortalUrl({ subscriptionId, customerId, fetc
 //   - mode: LEMONSQUEEZY_MODE is "live" (default) or "test". Live refuses
 //     events Lemon Squeezy flags test_mode=true (a test card must never grant
 //     production Pro); test (isolated staging) accepts ONLY flagged test events.
-//   - store: when LEMONSQUEEZY_STORE_ID is set, a different store_id is refused.
+//   - store: when LEMONSQUEEZY_STORE_ID is set, a different store_id is refused;
+//     a NEW subscription with no store_id is refused as provider data is incomplete.
 //   - product: a NEW subscription (subscription_created) grants Pro only for
 //     LEMONSQUEEZY_PRO_VARIANT_ID or LEMONSQUEEZY_ALLOWED_VARIANT_IDS (comma
-//     separated, for retained legacy variants). Events for a subscription
+//     separated, for retained legacy variants); missing variant or policy is
+//     refused. Events for a subscription
 //     already on file are not variant-gated, so cancellation/expiry of an older
 //     variant can never be ignored into permanent Pro.
 // Real provider payloads always carry test_mode, store_id and variant_id; an
-// absent identifier is only refused where its absence would itself grant
-// access in the wrong mode (test mode requires the explicit flag).
+// absent identifiers on new subscriptions are refused rather than treated as
+// synthetic proof of product ownership.
 export const WEBHOOK_MODES = ['live', 'test'];
 
 export function configuredWebhookMode(env = process.env){
@@ -175,8 +177,11 @@ export function acceptancePolicyRejection({ mode, testMode, storeId, variantId, 
   if(mode === 'live' && testMode) return 'test_mode_event_in_live';
   if(mode === 'test' && !testMode) return 'live_event_in_test';
   const expectedStore = String(env.LEMONSQUEEZY_STORE_ID || '').trim();
+  const isNewSubscription = type === 'payment_succeeded';
+  if(isNewSubscription && expectedStore && storeId === null) return 'missing_store';
   if(expectedStore && storeId !== null && storeId !== expectedStore) return 'foreign_store';
-  if(type === 'payment_succeeded' && variantId !== null){
+  if(isNewSubscription){
+    if(variantId === null) return 'missing_variant';
     const allowed = allowedProVariantIds(env);
     if(!allowed.size) return 'variant_policy_unconfigured';
     if(!allowed.has(variantId)) return 'foreign_variant';

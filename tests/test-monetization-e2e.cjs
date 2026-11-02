@@ -16,6 +16,7 @@ const { createChecker } = require('./helpers/assert.cjs');
 module.exports = async function run(){
   const { check, getFailures } = createChecker();
   console.log('\n=== test-monetization-e2e.cjs ===');
+  process.env.KIDBUSTER_TEST_KV = '1';
 
   const svc = await import('../api/_lib/license-service.js');
   const licensing = await import('../api/_lib/licensing.js');
@@ -23,8 +24,12 @@ module.exports = async function run(){
   const webhookHandler = (await import('../api/payment-webhook.js')).default;
   const { __resetForTests, __simulateOutage } = await import('../api/_lib/kv-client.js');
 
+  const acceptanceEnv = Object.fromEntries(['KIDBUSTER_TEST_KV','LEMONSQUEEZY_STORE_ID','LEMONSQUEEZY_PRO_VARIANT_ID','LEMONSQUEEZY_MODE'].map(k=>[k,process.env[k]]));
   process.env.LEMONSQUEEZY_WEBHOOK_SECRET = 'e2e_test_secret';
   process.env.PAYMENT_PROVIDER = 'lemonsqueezy';
+  process.env.LEMONSQUEEZY_STORE_ID = '429633';
+  process.env.LEMONSQUEEZY_PRO_VARIANT_ID = '777001';
+  delete process.env.LEMONSQUEEZY_MODE;
 
   // ---------- test harness: minimal fake req/res for calling route handlers directly ----------
   // Realistic fixture: provider state events carry subscription-object
@@ -41,6 +46,7 @@ module.exports = async function run(){
         type: invoice ? 'subscription-invoices' : 'subscriptions',
         id: invoice ? 'invoice_' + fixtureTick : String(subscriptionId),
         attributes: {
+          store_id: '429633', variant_id: '777001', test_mode: false,
           subscription_id: invoice ? subscriptionId : undefined,
           customer_id: customerId, user_email: email,
           status: expired ? 'expired' : cancelled ? 'cancelled' : 'active',
@@ -322,6 +328,9 @@ module.exports = async function run(){
     // since this test file doesn't spin up that route handler directly.
   }
 
+  for(const [name,value] of Object.entries(acceptanceEnv)){
+    if(value===undefined) delete process.env[name]; else process.env[name]=value;
+  }
   return getFailures();
 };
 
