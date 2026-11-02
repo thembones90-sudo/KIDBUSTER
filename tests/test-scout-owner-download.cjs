@@ -44,11 +44,11 @@ module.exports=async function run(){
     check('browser sends access key via header not query',ui.includes("fetch('/api/radar-van-download'") && ui.includes("'x-app-key': key"));
     check('download is rewritten to existing feedback function',vercel.rewrites.some(x=>x.source==='/api/radar-van-download' && x.destination==='/api/feedback?radar=download'));
     // Public release (owner approval 2026-11-02, unsigned by owner decision):
-    // exactly the verified 1.4.11 build, on the owner's public GitHub release.
-    check('public download is the verified 1.4.11 installer on the approved release',
-      manifest.available===true && manifest.platform==='Windows' && manifest.version==='1.4.11' &&
-      manifest.sha256==='f125dd32443f471f61ac54bc7fc05af291464515d82941ca9a6e1108fa025b7c' &&
-      manifest.downloadUrl==='https://github.com/thembones90-sudo/KIDBUSTER/releases/download/scout-1.4.11/ScoutSetup.exe');
+    // exactly the verified 1.4.14 build, on the owner's public GitHub release.
+    check('public download is the verified 1.4.14 installer on the approved release',
+      manifest.available===true && manifest.platform==='Windows' && manifest.version==='1.4.14' &&
+      manifest.sha256==='bed2394a6775fd6307c863f921309fdc72d10411b056ba8c6b1b84cb5bb3b5a9' &&
+      manifest.downloadUrl==='https://github.com/thembones90-sudo/KIDBUSTER/releases/download/scout-1.4.14/ScoutSetup.exe');
     const downloadHandler=fs.readFileSync(path.join(root,'api/_lib/radar-van-download-handler.js'),'utf8');
     // The version stays private: the page says only "Download Scout".
     check('download button and status show no version',html.includes('>Download Scout</button>') && !/Download Scout \d|10Z[A-Z]/.test(html) && !/download is starting[^']*10Z/.test(ui));
