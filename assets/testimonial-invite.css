@@ -17,6 +17,8 @@
 .ti-story{min-height:110px;resize:vertical}
 .ti-privacy{margin:14px 0 10px;padding:11px 13px;border:1px solid #ffffff17;border-radius:10px;background:#ffffff08;color:#b8c1c8;font-size:12.5px;line-height:1.55}
 .ti-privacy strong{color:#e8dcb8}
+.ti-privacy-link{color:#e8dcb8;text-decoration:underline;text-underline-offset:2px}
+.ti-privacy-link:focus-visible{outline:2px solid #e8dcb8;outline-offset:2px;border-radius:3px}
 .ti-consent{display:flex;gap:10px;align-items:flex-start;margin:4px 0 6px;color:#d0d7dc;font-size:13px;line-height:1.45;cursor:pointer}
 .ti-consent input{flex:none;width:20px;height:20px;margin:1px 0 0}
 .ti-status{min-height:1.4em;margin:6px 0 0;color:#b8c1c8;font-size:13px}

@@ -45,6 +45,36 @@ idempotence, rate limit, owner-only listing, no third-party/public publication,
 outage) and `tests/test-testimonial-invite.cjs` (browser flow, dismissal, cap,
 editable draft, consent, idempotent retry, focus trap, mobile, geometry).
 
+## Hardening 2026-11-02 (CLAUDE-HARDEN-TESTIMONIAL-20261102.md) — NOT DEPLOYED
+1. **Privacy policy:** new anchored Section 7a (`#testimonial-proposals`) plus a
+   Section 2 entry: exact contents (story, optional name/context, account email
+   read server-side, one-way account ref, own-feedback link), owner-only, no
+   Sheet/analytics/third party/public page, 180-day expiry, optional contact
+   only, publication only with separate consent to the exact quote and naming,
+   withdrawal. Effective date 2 November 2026. The form links to it.
+2. **Listing cost:** `listTestimonialProposals` reads the sequence-indexed
+   window with ONE MGET per ≤100 keys: default listing = 2 Redis commands
+   (was 100 GETs); limit capped at 200 (≤3 commands); bounded gap step-over
+   (max + 100 ids); fallback to small GET groups only if an adapter lacks MGET.
+   Keys are unchanged (`tp:item:<n>`), so earlier proposals are still read;
+   nothing is deleted.
+3. **Idempotency:** claim is `pending:<token>` with a 60 s expiry (stale-claim
+   recovery = expiry). Record is written first, then committed atomically
+   (`compareAndSetValue`, one Lua command) to `stored:<n>`. A pending claim
+   answers **409 `in_progress`, `retryable:true`, `Retry-After: 2`** — never 200.
+   200 is returned only with a positive stored id. A worker that lost its claim
+   withdraws its own copy; failure cleanup is token-guarded and never deletes a
+   newer claim or a committed value. Daily limit uses the atomic bounded
+   counter and is refunded on failure. Legacy c12ac39 values: a number is a
+   stored id; a tokenless `pending` is taken over atomically (it had a 180-day
+   expiry and could never recover). The browser retries a 409 twice (1.5 s)
+   with the same proposalId and accepts success only with a numeric id.
+Tests added to `tests/test-testimonial-proposals.cjs` (sections 10–15) and
+`tests/test-testimonial-invite.cjs` (4b). Asset tag bumped to `v=20261102b`.
+Tests could NOT be run in the hardening session (node execution not
+permitted there): run `node tests/test-testimonial-proposals.cjs`,
+`node tests/test-testimonial-invite.cjs` and `npm test` before staging.
+
 ## Owner approval required before release
 1. Approve the copy, the 21/180-day cap and inviting after ideas but not bugs.
 2. Approve storing the account email on a proposal (owner-only, 180 days) and

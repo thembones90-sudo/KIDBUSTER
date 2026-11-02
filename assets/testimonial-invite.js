@@ -17,6 +17,7 @@
   var REST_AFTER_NOT_NOW = 21 * DAY;
   var LONG_REST = 180 * DAY;
   var STORY_MAX = 800;
+  var IN_PROGRESS_RETRY_MS = 1500;
   var shownThisPage = false;
   var overlay = null, state = null;
 
@@ -87,8 +88,9 @@
     var privacy = el('div', { id: 'tiPrivacy', class: 'ti-privacy' });
     privacy.append(
       el('strong', null, 'Private until you approve. '),
-      document.createTextNode('Your story goes privately to the Classbuster owner and is kept for up to 180 days. It is not published, not shown to other users and not sent to analytics. Before anything appears on classbuster.com we will ask you to approve the exact wording and how you are named, and you can withdraw at any time. Please leave out student names, lesson details and transcript content.')
+      document.createTextNode('Your story goes privately to the Classbuster owner and is kept for up to 180 days. It is not published, not shown to other users and not sent to analytics. Before anything appears on classbuster.com we will ask you to approve the exact wording and how you are named, and you can withdraw at any time. Please leave out student names, lesson details and transcript content. ')
     );
+    privacy.append(el('a', { href: '/privacy-policy.html#testimonial-proposals', target: '_blank', rel: 'noopener', class: 'ti-privacy-link' }, 'How we handle stories (Privacy Policy)'));
     var consentRow = el('label', { class: 'ti-consent', for: 'tiConsent' });
     var consent = el('input', { id: 'tiConsent', type: 'checkbox' });
     consentRow.append(consent, el('span', null, 'Classbuster may email me at my account address to ask permission before publishing anything.'));
@@ -131,7 +133,7 @@
 
   function focusables(){
     return Array.prototype.filter.call(
-      overlay.querySelectorAll('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'),
+      overlay.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'),
       function(n){ return n.offsetParent !== null; });
   }
 
@@ -237,16 +239,27 @@
     state.sending = true; setBusy(true); setStatus('Sending privately…', false);
     var ok = false, message = 'Could not send your story. Nothing was saved; please try again.';
     try{
-      var response = await fetch('/api/feedback?kind=testimonial', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-app-key': key },
-        body: JSON.stringify({ proposalId: state.proposalId, feedbackId: state.feedbackId, story: storyText, displayName: name, role: role, contactOk: true })
-      });
-      var data = null;
-      try{ data = await response.json(); }catch(e){ data = null; }
-      // Success only when the server confirms a private record exists.
-      ok = !!(response.ok && data && data.status === 'received_private');
-      if(!ok && data && typeof data.error === 'string') message = data.error + ' Your story was not sent.';
+      var body = JSON.stringify({ proposalId: state.proposalId, feedbackId: state.feedbackId, story: storyText, displayName: name, role: role, contactOk: true });
+      // 409 in_progress means an earlier send of this SAME proposal is still
+      // being stored: wait briefly and ask again (same proposalId, idempotent).
+      for(var attempt = 0; attempt < 3; attempt++){
+        if(attempt) await new Promise(function(r){ setTimeout(r, IN_PROGRESS_RETRY_MS); });
+        if(!state) return;
+        var response = await fetch('/api/feedback?kind=testimonial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-app-key': key },
+          body: body
+        });
+        var data = null;
+        try{ data = await response.json(); }catch(e){ data = null; }
+        // Success only when the server confirms a stored private record id.
+        ok = !!(response.ok && data && data.status === 'received_private' && typeof data.id === 'number' && data.id > 0 && Math.floor(data.id) === data.id);
+        if(ok) break;
+        var busy = response.status === 409 && data && data.status === 'in_progress';
+        if(busy){ message = 'Your story is still being saved. Please try again in a moment.'; continue; }
+        if(data && typeof data.error === 'string') message = data.error + ' Your story was not sent.';
+        break;
+      }
     }catch(e){
       message = 'Could not reach Classbuster (network). Your story was not sent; please try again.';
     }

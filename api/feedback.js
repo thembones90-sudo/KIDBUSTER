@@ -70,6 +70,16 @@ async function testimonialProposal(req, res) {
       contactEmail: license && typeof license.email === 'string' ? license.email : ''
     });
     if (result.limited) return res.status(429).json({ error: 'Thanks! You have already sent a few stories today.' });
+    if (result.inProgress) {
+      // Another request for this same proposal is still storing it. Retryable;
+      // never a 200 without a stored record.
+      res.setHeader?.('Retry-After', '2');
+      return res.status(409).json({ status: 'in_progress', retryable: true, error: 'Your story is still being saved. Please try again in a moment.' });
+    }
+    if (!(Number.isSafeInteger(result.id) && result.id > 0)) {
+      console.error('testimonial proposal store returned no record id');
+      return res.status(503).json({ error: 'Could not save your story right now' });
+    }
     return res.status(200).json({ status: 'received_private', id: result.id, duplicate: !!result.duplicate, published: false });
   } catch (err) {
     console.error('testimonial proposal store failed:', (err && err.name) || 'error');

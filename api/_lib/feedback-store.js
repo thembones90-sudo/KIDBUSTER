@@ -11,7 +11,7 @@
 // key is stored here. The account is a one-way hash prefix. Only the teacher's
 // own optional comment is free text (capped). Records expire after 180 days.
 import { createHash, randomBytes } from 'node:crypto';
-import { kv } from './kv-client.js';
+import { kv, compareAndSetValue, releasePaymentLock, reserveBoundedCounter, releaseBoundedCounter } from './kv-client.js';
 
 export const FEEDBACK_TTL_SECONDS = 180 * 24 * 60 * 60;
 export const FEEDBACK_CATEGORIES = ['quality', 'bug', 'idea'];
@@ -142,32 +142,75 @@ export function validateTestimonialProposal(body){
   return { value: { proposalId, story, displayName, role, feedbackId } };
 }
 
+// Idempotency claim states stored under tp:idem:<account>:<proposalId>:
+//   'pending:<token>'  one worker is storing it right now. The claim has a
+//                      SHORT expiry, so a crashed worker's claim recovers on
+//                      its own; only the token holder can commit or release.
+//   'stored:<n>'       the record tp:item:<n> was written (180-day expiry).
+// Compatibility with the first, unreleased c12ac39 format: a bare number is a
+// stored id, and a bare 'pending' (written with a 180-day expiry and no
+// token, so it could never recover) is atomically taken over.
+export const TESTIMONIAL_CLAIM_TTL_SECONDS = 60;
+const LEGACY_PENDING = 'pending';
+const STORED_PREFIX = 'stored:';
+
+function storedIdOf(value){
+  if(typeof value === 'number') return Number.isSafeInteger(value) && value > 0 ? value : null;
+  if(typeof value === 'string'){
+    const m = /^(?:stored:)?([1-9][0-9]{0,15})$/.exec(value);
+    if(m && Number.isSafeInteger(Number(m[1]))) return Number(m[1]);
+  }
+  return null;
+}
+
+async function claimProposal(idemKey, marker){
+  const reply = await kv.set(idemKey, marker, { nx: true, ex: TESTIMONIAL_CLAIM_TTL_SECONDS });
+  return reply === 'OK' || reply === true;
+}
+
 // Stores one proposal for the authenticated account. Idempotent per
 // (account, proposalId): a retried or double-clicked submission returns the
-// original record instead of creating a second one. `contactEmail` is taken
-// from the server-side license record, never from the browser.
+// original record instead of creating a second one. While another request
+// for the same proposal is still storing it, the result is { inProgress }
+// (retryable) - never a success without a stored record id. `contactEmail`
+// is taken from the server-side license record, never from the browser.
 export async function recordTestimonialProposal({ licenseKey, proposal, contactEmail }){
   const account = accountTag(licenseKey);
   const idemKey = tpIdemKey(account, proposal.proposalId);
-  const claimed = await kv.set(idemKey, 'pending', { nx: true, ex: FEEDBACK_TTL_SECONDS });
-  if(!(claimed === 'OK' || claimed === true)){
+  const marker = 'pending:' + randomBytes(12).toString('hex');
+  let owned = await claimProposal(idemKey, marker);
+  if(!owned){
     const existing = await kv.get(idemKey);
-    return { duplicate: true, id: Number.isSafeInteger(Number(existing)) && Number(existing) > 0 ? Number(existing) : null };
+    const storedId = storedIdOf(existing);
+    if(storedId) return { duplicate: true, id: storedId };
+    if(existing === null || existing === undefined){
+      // The other claim expired or was released between our two reads.
+      owned = await claimProposal(idemKey, marker);
+    }else if(existing === LEGACY_PENDING){
+      owned = await compareAndSetValue(idemKey, LEGACY_PENDING, marker, TESTIMONIAL_CLAIM_TTL_SECONDS);
+    }
+    if(!owned) return { inProgress: true };
   }
+  let rateKey = null, n = null, committed = false;
+  const releaseRate = async () => {
+    if(!rateKey) return;
+    const key = rateKey; rateKey = null;
+    try{ await releaseBoundedCounter(key); }catch(_e){ /* best effort */ }
+  };
   try{
-    const rateKey = tpRateKey(account, new Date().toISOString().slice(0, 10));
-    const used = await kv.incr(rateKey);
-    if(used === 1) await kv.expire(rateKey, 2 * 24 * 60 * 60);
-    if(used > TESTIMONIAL_DAILY_LIMIT){
-      await kv.del(idemKey);
+    const dayKey = tpRateKey(account, new Date().toISOString().slice(0, 10));
+    // Atomic: concurrent workers cannot all pass a read-then-increment gap.
+    if(await reserveBoundedCounter(dayKey, TESTIMONIAL_DAILY_LIMIT, 2 * 24 * 60 * 60) === null){
+      await releasePaymentLock(idemKey, marker);
       return { limited: true };
     }
+    rateKey = dayKey;
     let linkedFeedback = null;
     if(proposal.feedbackId){
       const fb = await kv.get(itemKey(proposal.feedbackId));
       if(fb && fb.account === account) linkedFeedback = proposal.feedbackId;
     }
-    const n = await kv.incr(TP_SEQ_KEY);
+    n = await kv.incr(TP_SEQ_KEY);
     const item = {
       id: n,
       at: new Date().toISOString(),
@@ -182,25 +225,67 @@ export async function recordTestimonialProposal({ licenseKey, proposal, contactE
       contactEmail: clip(contactEmail, 254),
       feedbackId: linkedFeedback
     };
+    // The record is written BEFORE the claim says 'stored', so a duplicate
+    // answer always refers to a record that exists.
     await kv.set(tpItemKey(n), item, { ex: FEEDBACK_TTL_SECONDS });
-    await kv.set(idemKey, n, { ex: FEEDBACK_TTL_SECONDS });
+    committed = await compareAndSetValue(idemKey, marker, STORED_PREFIX + n, FEEDBACK_TTL_SECONDS);
+    if(!committed){
+      // Our claim expired (a very slow worker) and another request may now
+      // own this proposal. Withdraw our copy so only one record survives.
+      try{ await kv.del(tpItemKey(n)); }catch(_e){ /* best effort */ }
+      await releaseRate();
+      const now = await kv.get(idemKey);
+      const storedId = storedIdOf(now);
+      return storedId ? { duplicate: true, id: storedId } : { inProgress: true };
+    }
     return { id: n, item };
   }catch(err){
-    // Release the reservation so the teacher can retry; never report success.
-    try{ await kv.del(idemKey); }catch(_e){ /* best effort */ }
+    // Never report success. Release only OUR claim (token-guarded), so a
+    // newer claim or a committed 'stored:<n>' is never deleted. The record,
+    // if it was written, is kept: the commit may have succeeded remotely and
+    // losing a teacher's story is worse than a rare duplicate.
+    if(!committed){
+      await releaseRate();
+      try{ await releasePaymentLock(idemKey, marker); }catch(_e){ /* expires within the claim TTL */ }
+    }
     throw err;
   }
 }
 
+// Proposal ids come from one monotonic sequence (tp:seq), so the newest
+// proposals are always tp:item:<seq> downwards - the sequence is the index.
+// Reads use ONE MGET per chunk of up to 100 keys: listing 100 proposals costs
+// two Redis commands (GET + MGET), never one GET per proposal. The scan is
+// bounded to `max` ids plus one extra chunk to step over rare gaps (a write
+// that failed after allocating an id). Older proposals are untouched and stay
+// stored until their own 180-day expiry; they are simply not in this window.
+export const TESTIMONIAL_LIST_MAX = 200;
+const TP_READ_CHUNK = 100;
+
+async function readMany(keys){
+  if(typeof kv.mget === 'function') return kv.mget(...keys);
+  // Compatibility fallback for an adapter without MGET: small bounded groups.
+  const out = [];
+  for(let i = 0; i < keys.length; i += 10) out.push(...await Promise.all(keys.slice(i, i + 10).map(k => kv.get(k))));
+  return out;
+}
+
 export async function listTestimonialProposals({ limit = 100 } = {}){
-  const max = Math.max(1, Math.min(200, Number(limit) || 100));
-  const latest = Number(await kv.get(TP_SEQ_KEY)) || 0;
-  const ids = [];
-  for(let n = latest; n >= 1 && ids.length < max; n--) ids.push(n);
+  const max = Math.max(1, Math.min(TESTIMONIAL_LIST_MAX, Math.floor(Number(limit)) || 100));
+  const seq = Number(await kv.get(TP_SEQ_KEY));
+  const latest = Number.isSafeInteger(seq) && seq > 0 ? seq : 0;
+  const floor = Math.max(1, latest - (max + TP_READ_CHUNK) + 1);
   const items = [];
-  for(let i = 0; i < ids.length; i += 50){
-    const batch = await Promise.all(ids.slice(i, i + 50).map(n => kv.get(tpItemKey(n))));
-    for(const item of batch) if(item) items.push(item);
+  let next = latest;
+  while(next >= floor && items.length < max){
+    const size = Math.min(TP_READ_CHUNK, next - floor + 1, items.length === 0 ? max : TP_READ_CHUNK);
+    const ids = Array.from({ length: size }, (_v, i) => next - i);
+    const values = await readMany(ids.map(tpItemKey));
+    for(const value of values || []){
+      if(items.length >= max) break;
+      if(value && typeof value === 'object' && Number.isSafeInteger(value.id)) items.push(value);
+    }
+    next -= size;
   }
   return items;
 }

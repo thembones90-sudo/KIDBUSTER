@@ -26,6 +26,9 @@ module.exports = async function(){
           if(u === '/api/feedback?kind=testimonial'){
             window.tpRequests.push({ headers: o.headers, body: JSON.parse(o.body) });
             if(window.tpMode === 'fail') return { ok: false, status: 503, json: async () => ({ error: 'Could not save your story right now' }) };
+            if(window.tpMode === 'busy-once'){ window.tpMode = 'ok'; return { ok: false, status: 409, json: async () => ({ status: 'in_progress', retryable: true, error: 'Your story is still being saved. Please try again in a moment.' }) }; }
+            if(window.tpMode === 'busy') return { ok: false, status: 409, json: async () => ({ status: 'in_progress', retryable: true, error: 'Your story is still being saved. Please try again in a moment.' }) };
+            if(window.tpMode === 'null-id') return { ok: true, status: 200, json: async () => ({ status: 'received_private', id: null, duplicate: true, published: false }) };
             return { ok: true, json: async () => ({ status: 'received_private', id: 9, duplicate: false, published: false }) };
           }
           return { ok: false, status: 404, json: async () => ({}) };
@@ -136,6 +139,43 @@ module.exports = async function(){
     assert.equal(await visible(), false);
     assert.equal(await page.$eval('#tiStory', e => e.value), '', 'draft dropped from memory on close');
     assert.equal(await geometry(), before4, 'workspace geometry unchanged after the full flow');
+
+    // 4b) Hardening: an in-progress (409) answer is retried with the same id;
+    // a persistent 409 or a 200 without a stored id is never shown as success.
+    async function openForm(comment){
+      await open();
+      await rate(4, comment);
+      await page.waitForFunction(() => { const o = document.getElementById('testimonialInviteOverlay'); return o && !o.hidden; });
+      await page.click('#tiShareBtn');
+      await page.click('#tiConsent');
+    }
+    await openForm('Reports take me minutes now instead of an hour');
+    assert.ok(await page.$eval('#tiPrivacy a', a => a.getAttribute('href') === '/privacy-policy.html#testimonial-proposals' && a.rel === 'noopener'), 'privacy policy linked from the form');
+    await page.evaluate(() => { window.tpMode = 'busy-once'; });
+    await page.click('#tiSendBtn');
+    await page.waitForFunction(() => !document.getElementById('tiDoneStep').hidden, { timeout: 8000 });
+    const busyIds = await page.evaluate(() => window.tpRequests.map(r => r.body.proposalId));
+    assert.equal(busyIds.length, 2, 'one automatic retry after in_progress');
+    assert.equal(busyIds[1], busyIds[0], 'automatic retry reuses the proposal id');
+    await page.keyboard.press('Escape');
+
+    await openForm('Reports take me minutes now instead of an hour');
+    await page.evaluate(() => { window.tpMode = 'busy'; });
+    await page.click('#tiSendBtn');
+    await page.waitForFunction(() => document.getElementById('tiStatus').classList.contains('ti-error'), { timeout: 12000 });
+    assert.match(await page.$eval('#tiStatus', e => e.textContent), /still being saved/);
+    assert.equal(await page.$eval('#tiDoneStep', e => e.hidden), true, 'persistent in_progress is never success');
+    assert.equal(await page.evaluate(() => window.tpRequests.length), 3, 'bounded automatic retries');
+    assert.equal((await prefs()).sentAt, 0);
+    await page.keyboard.press('Escape');
+
+    await openForm('Reports take me minutes now instead of an hour');
+    await page.evaluate(() => { window.tpMode = 'null-id'; });
+    await page.click('#tiSendBtn');
+    await page.waitForFunction(() => document.getElementById('tiStatus').classList.contains('ti-error'));
+    assert.equal(await page.$eval('#tiDoneStep', e => e.hidden), true, 'a 200 without a stored id is never success');
+    assert.equal((await prefs()).sentAt, 0);
+    await page.keyboard.press('Escape');
 
     // 5) Not now button and mobile layout.
     for(const width of [390, 320]){

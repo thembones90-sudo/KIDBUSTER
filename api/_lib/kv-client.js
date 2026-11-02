@@ -293,6 +293,27 @@ export async function releaseGenerationRequest(key,token){
   return releasePaymentLock(key,'running:'+token);
 }
 
+// Atomically replaces a STRING value only while it still equals `expected`
+// (one Lua command on Redis), with a fresh expiry. Used to commit or take
+// over an idempotency claim without overwriting another worker's claim.
+export async function compareAndSetValue(key,expected,next,ttlSeconds){
+  if(typeof expected!=='string'||typeof next!=='string'||!Number.isInteger(ttlSeconds)||ttlSeconds<1)
+    throw new Error('compareAndSetValue: invalid arguments');
+  if(process.env.KIDBUSTER_TEST_KV==='1'){
+    failIfOutage();
+    if(memoryRead(key)!==expected)return false;
+    memoryStore.set(key,next);memoryExpiry.set(key,Date.now()+ttlSeconds*1000);return true;
+  }
+  if(useLocal){
+    const item=localData[key];
+    if(!item||(item.until&&item.until<=Date.now())||item.value!==expected)return false;
+    localData[key]={value:next,until:Date.now()+ttlSeconds*1000};persistLocal();return true;
+  }
+  return Number(await vercelKv.eval(
+    'if redis.call("GET",KEYS[1])~=ARGV[1] then return 0 end; redis.call("SET",KEYS[1],ARGV[2],"EX",ARGV[3]); return 1',
+    [key],[expected,next,String(ttlSeconds)]))===1;
+}
+
 // Atomically reserve one bounded use. A null result means the limit was
 // already reached. The production implementation is one Redis Lua command,
 // so concurrent serverless workers cannot all pass a read-then-increment gap.
