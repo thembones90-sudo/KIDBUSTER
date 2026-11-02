@@ -2411,7 +2411,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
     <div class="scout-release-copy">
       <p class="scout-release-eyebrow">CLASSBUSTER SCOUT · WINDOWS</p>
       <h2 id="scoutReleaseTitle">Your desktop lesson companion</h2>
-      <p class="scout-release-description">Install the verified Scout app to bring lesson transcription into your Classbuster workflow.</p>
+      <p class="scout-release-description">Scout records and transcribes your lessons on your PC and sends the transcripts to Classbuster. Included with Pro.</p>
     </div>
     <div class="scout-release-action">
       <a id="scoutReleaseLink" href="#" aria-label="Download Classbuster Scout for Windows">Download Scout for Windows</a>
@@ -2473,9 +2473,9 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
         <div><p class="radar-van-eyebrow">Scout</p><h3 class="radar-van-title" id="radarVanTitle">Lesson transcripts from Scout</h3></div>
         <span class="radar-van-state" id="radarVanState" data-state="off">Not connected</span>
       </div>
-      <div class="radar-van-row" role="group" aria-label="Private Scout desktop download">
+      <div class="radar-van-row" role="group" aria-label="Scout desktop download">
         <button type="button" class="btn-secondary" id="radarVanDownloadBtn">Download Scout</button>
-        <span class="radar-van-hint">117.2 MB · Owner-only release</span>
+        <span class="radar-van-hint">Windows · Included with Pro</span>
       </div>
       <p class="radar-van-status" id="radarVanDownloadStatus" role="status" aria-live="polite"></p>
       <p class="radar-van-hint">Separate from Krisp. Importing only fills your lesson notes: it never writes a report and never uses a generation.</p>
@@ -10485,7 +10485,7 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
     if(badge && !initializedKrispKey) badge.textContent = '…';
   }
 
-  // Owner-only Scout inbox participates in the same header, but never shares
+  // The Scout inbox participates in the same header, but never shares
   // transcript records with Krisp.
   document.addEventListener('classbuster:scout-pending', function(event){
     var info = event.detail || {}, authorized = info.authorized === true;

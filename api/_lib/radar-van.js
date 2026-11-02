@@ -17,7 +17,8 @@ import crypto from 'node:crypto';
 import { NEW_TRANSCRIPT_RETENTION_HOURS, markNewTranscript, forgetTranscriptContent, transcriptDeadline, readTranscriptQueue, writeTranscriptQueue } from './transcript-retention.js';
 import { scoutStudentLabel } from './scout-student-name.js';
 import { kv, acquirePaymentLock, releasePaymentLock, incrementWindowCounter } from './kv-client.js';
-import { isFounderLicenseKey } from './licensing.js';
+import { isFounderLicenseKey, isPlausibleLicenseKey, licenseKeyFor } from './licensing.js';
+import { isEntitledToKrisp, isLicenseEntitledToKrisp } from './krisp-retention.js';
 
 export const RADAR_VAN_RETENTION_DAYS = 1;
 export const RADAR_VAN_MAX_ITEMS = 20;
@@ -248,12 +249,14 @@ export async function enableRadarAutomatic(identity){
 }
 
 // ---------- entitlement ----------
-// PRIVATE OWNER-ONLY DEVELOPMENT LOCK (October 19, 2026).
-// This is not a public feature. Neither Free nor paid Pro accounts may
-// connect, poll, create tokens or ingest lessons until the owner explicitly
-// approves a separate public release. Do not replace this with a license-plan
-// check or an environment toggle; the lock must fail closed by default.
-// Owner-only pilot, FAIL CLOSED. Scout is open only to a key that passes the
+// PUBLIC RELEASE (owner approval 2026-11-02): Scout is open to the owner and
+// to accounts entitled to transcript import, the SAME rule as Krisp: an
+// active, unexpired Pro subscription (activated stock keys included). Free,
+// expired, cancelled-and-ended, unknown and malformed keys are refused, and
+// malformed keys are refused before any Redis read. Do not widen this to an
+// environment toggle; every path below fails closed.
+//
+// Owner check (unchanged from the October 19 pilot), FAIL CLOSED. Scout is open only to a key that passes the
 // server-side founder/master check AND whose SHA-256 fingerprint is listed in
 // RADAR_VAN_OWNER_SHA256. A missing, empty or malformed fingerprint denies
 // everyone; a paid Pro plan or any other founder key never qualifies. Every
@@ -270,14 +273,21 @@ function privateOwnerAllowed(identity){
   return match;
 }
 export async function accountEntitlement(identity){
-  if(!privateOwnerAllowed(identity)) return { allowed: false, plan: null };
-  return { allowed: true, plan: 'pro', founder: true };
+  if(privateOwnerAllowed(identity)) return { allowed: true, plan: 'pro', founder: true };
+  if(!validIdentity(identity) || !isPlausibleLicenseKey(identity)) return { allowed: false, plan: null };
+  if(!(await isEntitledToKrisp(identity))) return { allowed: false, plan: null };
+  return { allowed: true, plan: 'pro', founder: false };
 }
-// Cheap idle poll: reject nonowners before even reading their settings.
-// For the master account, only the change counter needs to be read.
+// Cheap idle poll. Owner: only the change counter is read. Pro: the license
+// record and the change counter in ONE MGET. Malformed keys: no read at all.
 export async function peekRadarVersion(identity){
-  if(!privateOwnerAllowed(identity)) return { allowed: false, version: null };
-  const version = await kv.get(K.version(identity));
+  if(privateOwnerAllowed(identity)){
+    const version = await kv.get(K.version(identity));
+    return { allowed: true, version: versionString(version) };
+  }
+  if(!validIdentity(identity) || !isPlausibleLicenseKey(identity)) return { allowed: false, version: null };
+  const [license, version] = await kv.mget(licenseKeyFor(identity), K.version(identity));
+  if(!isLicenseEntitledToKrisp(identity, license)) return { allowed: false, version: null };
   return { allowed: true, version: versionString(version) };
 }
 

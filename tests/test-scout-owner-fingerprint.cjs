@@ -1,7 +1,10 @@
 'use strict';
-// Scout master-only pilot: RADAR_VAN_OWNER_SHA256 is mandatory and fails closed.
-// Exercised through the real feedback-function dispatch, session and ingest
-// handlers on the in-memory KV. Synthetic keys only; no network.
+// Scout public release (owner approval 2026-11-02): the master account and
+// active Pro accounts use Scout; Free and unknown keys do not; each teacher
+// sees only their own lessons. RADAR_VAN_OWNER_SHA256 still gates the private
+// master installer and fails closed. Exercised through the real
+// feedback-function dispatch, session, ingest and download handlers on the
+// in-memory KV. Synthetic keys only; no network.
 const crypto = require('node:crypto');
 const { createChecker } = require('./helpers/assert.cjs');
 
@@ -27,8 +30,9 @@ module.exports = async function run(){
     kvMod.__resetForTests();
     const lic = await import('../api/_lib/licensing.js');
     const feedback = (await import('../api/feedback.js')).default;
-    await lic.saveLicense('kb_free_scout', { plan: 'free', status: 'active' });
-    await lic.saveLicense('kb_pro_scout', { plan: 'pro', status: 'active', source: 'subscription', subscriptionStatus: 'active' });
+    const FREE = 'kb_live_' + '1'.repeat(48), PRO = 'kb_live_' + '2'.repeat(48), PRO_B = 'kb_live_' + '3'.repeat(48);
+    await lic.saveLicense(FREE, { plan: 'free', status: 'active' });
+    for (const k of [PRO, PRO_B]) await lic.saveLicense(k, { plan: 'pro', status: 'active', source: 'subscription', subscriptionStatus: 'active' });
 
     const call = async (route, req) => {
       const res = { code: 200, headers: {}, body: null, setHeader(k, v){ this.headers[k.toLowerCase()] = v; }, status(c){ this.code = c; return this; }, json(b){ this.body = b; return this; } };
@@ -38,25 +42,49 @@ module.exports = async function run(){
     const session = (key, headers = {}) => call('session', { headers: { ...(key ? { 'x-app-key': key } : {}), ...headers } });
     const act = (key, action, extra = {}) => call('session', { method: 'POST', headers: { 'x-app-key': key, 'content-type': 'application/json' }, body: { action, ...extra } });
     const ingest = (token, n) => call('ingest', { method: 'POST', headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json' }, body: lesson(n) });
+    const download = key => call('download', { headers: key ? { 'x-app-key': key } : {} });
 
     console.log('\n1) Who may use Scout');
     check('correct master account: session granted', (await session(MASTER)).code === 200);
-    check('ordinary Free account: denied', (await session('kb_free_scout')).code === 403);
-    check('ordinary paid Pro account: denied', (await session('kb_pro_scout')).code === 403);
-    check('another founder/master account: denied', (await session(OTHER_FOUNDER)).code === 403);
+    check('paid Pro account: session granted', (await session(PRO)).code === 200);
+    check('lifetime founder account (full access, as for Krisp): granted', (await session(OTHER_FOUNDER)).code === 200);
+    check('ordinary Free account: denied', (await session(FREE)).code === 403);
+    check('unknown or malformed key: denied', (await session('kb_live_' + '9'.repeat(48))).code === 403 && (await session('kb_pro_scout')).code === 403);
     check('no key: denied', (await session(null)).code === 401);
-    for (const key of ['kb_free_scout', 'kb_pro_scout', OTHER_FOUNDER])
-      check('optimized version poll denied for ' + key, (await session(key, { 'x-radar-since': '0' })).code === 403);
+    check('optimized version poll: Pro granted, Free denied', (await session(PRO, { 'x-radar-since': '0' })).code === 200 && (await session(FREE, { 'x-radar-since': '0' })).code === 403);
     for (const action of ['connect', 'enable-automatic', 'disconnect'])
-      check('paid Pro cannot ' + action, (await act('kb_pro_scout', action)).code === 403);
-    check('paid Pro cannot claim/import', (await act('kb_pro_scout', 'claim', { meetingId: 'rv:' + uuid(1) })).code === 403);
+      check('Free cannot ' + action, (await act(FREE, action)).code === 403);
+    check('Free cannot claim/import', (await act(FREE, 'claim', { meetingId: 'rv:' + uuid(1) })).code === 403);
 
-    console.log('\n2) Fingerprint configuration fails closed');
+    console.log('\n1b) Each teacher sees only their own lessons');
+    const tokA = (await act(PRO, 'connect')).body.token, tokB = (await act(PRO_B, 'connect')).body.token;
+    check('two Pro teachers each mint their own device token', /^rv1_/.test(tokA || '') && /^rv1_/.test(tokB || '') && tokA !== tokB);
+    check('teacher A delivers a lesson', (await ingest(tokA, 101)).code === 201);
+    check('teacher B delivers a lesson', (await ingest(tokB, 102)).code === 201);
+    const inbox = async k => ((await session(k)).body.pending || []).map(p => p.meetingId);
+    const aIds = await inbox(PRO), bIds = await inbox(PRO_B), mIds = await inbox(MASTER);
+    check('A sees only A\'s lesson', aIds.includes('rv:' + uuid(101)) && !aIds.includes('rv:' + uuid(102)));
+    check('B sees only B\'s lesson', bIds.includes('rv:' + uuid(102)) && !bIds.includes('rv:' + uuid(101)));
+    check('the master inbox sees neither teacher\'s lessons', !mIds.includes('rv:' + uuid(101)) && !mIds.includes('rv:' + uuid(102)));
+    const stolen = await act(PRO_B, 'claim', { meetingId: 'rv:' + uuid(101) });
+    check('B cannot claim A\'s lesson', !(stolen.code === 200 && stolen.body.claimed && String(stolen.body.claimed.transcript || '').includes('Hi there 101')));
+    check('A\'s lesson is still waiting for A', (await inbox(PRO)).includes('rv:' + uuid(101)));
+    const mine = await act(PRO, 'claim', { meetingId: 'rv:' + uuid(101) });
+    check('A claims its own lesson', mine.code === 200 && mine.body.claimed && mine.body.claimed.transcript.includes('Hi there 101'));
+    await lic.saveLicense(PRO_B, { plan: 'pro', status: 'active', source: 'subscription', subscriptionStatus: 'active', expiresAt: new Date(Date.now() - 1000).toISOString() });
+    check('when B\'s subscription ends, B\'s device token stops delivering', (await ingest(tokB, 103)).code === 403);
+    check('and B\'s session is refused', (await session(PRO_B)).code === 403);
+
+    console.log('\n2) Private master installer: fingerprint fails closed');
+    // No BLOB_STORE_ID in tests: an authorized master gets 503 (storage), a
+    // refused caller gets 403 before storage is considered.
+    check('Pro cannot mint the private installer link', (await download(PRO)).code === 403);
+    check('lifetime founder cannot mint the private installer link', (await download(OTHER_FOUNDER)).code === 403);
     const withHash = async (value, label, expectMaster) => {
       if (value === undefined) delete process.env.RADAR_VAN_OWNER_SHA256; else process.env.RADAR_VAN_OWNER_SHA256 = value;
-      const master = (await session(MASTER)).code, poll = (await session(MASTER, { 'x-radar-since': '0' })).code;
-      check(label + (expectMaster ? ': master granted' : ': master denied (session and poll)'),
-        expectMaster ? master === 200 : master === 403 && poll === 403);
+      const code = (await download(MASTER)).code;
+      check(label + (expectMaster ? ': master passes the installer check' : ': master refused the private installer'),
+        expectMaster ? code === 503 : code === 403);
     };
     await withHash(undefined, 'missing fingerprint', false);
     await withHash('', 'empty fingerprint', false);
@@ -67,14 +95,14 @@ module.exports = async function run(){
     await withHash(sha(MASTER) + ',zz', 'one malformed entry poisons the list', false);
     await withHash(sha('kb_pro_scout'), 'fingerprint of a non-master key', false);
     await withHash(sha(MASTER).toUpperCase(), 'same fingerprint in upper case', true);
-    process.env.RADAR_VAN_OWNER_SHA256 = sha('kb_pro_scout');
-    check('a fingerprint never grants master status to a Pro key', (await session('kb_pro_scout')).code === 403);
+    process.env.RADAR_VAN_OWNER_SHA256 = sha(PRO);
+    check('a fingerprint never grants master status to a Pro key', (await download(PRO)).code === 403);
     process.env.RADAR_VAN_OWNER_SHA256 = sha(MASTER);
 
     console.log('\n3) Feature flag');
     for (const flag of [undefined, 'false', 'TRUE', '1']) {
       if (flag === undefined) delete process.env.RADAR_VAN_ENABLED; else process.env.RADAR_VAN_ENABLED = flag;
-      check('flag ' + JSON.stringify(flag) + ': Scout disabled even for the master (404)', (await session(MASTER)).code === 404);
+      check('flag ' + JSON.stringify(flag) + ': Scout disabled for master and Pro (404)', (await session(MASTER)).code === 404 && (await session(PRO)).code === 404);
     }
     process.env.RADAR_VAN_ENABLED = 'true';
 
@@ -86,9 +114,6 @@ module.exports = async function run(){
     check('duplicate delivery is acknowledged, not stored twice', (await ingest(token, 1)).code === 200);
     check('invalid token denied', (await ingest('rv1_' + 'A'.repeat(43), 2)).code === 401);
     check('malformed bearer denied', (await call('ingest', { method: 'POST', headers: { authorization: 'Bearer nope', 'content-type': 'application/json' }, body: lesson(3) })).code === 401);
-    process.env.RADAR_VAN_OWNER_SHA256 = sha(OTHER_FOUNDER);
-    check('master token stops working the moment the fingerprint no longer matches', (await ingest(token, 4)).code === 403);
-    process.env.RADAR_VAN_OWNER_SHA256 = sha(MASTER);
     const rotated = (await act(MASTER, 'connect')).body.token;
     check('rotated-out token denied', (await ingest(token, 5)).code === 401);
     check('new token works', (await ingest(rotated, 6)).code === 201);

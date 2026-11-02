@@ -675,23 +675,44 @@
 
   document.addEventListener('kidbuster:access-key-saved', resetForAccount);
   document.addEventListener('kidbuster:workspace-reset', pollSoon);
-  // Owner-only installer: a fresh, five-minute private Blob URL is minted
-  // only after the same server-side master fingerprint check as Scout itself.
-  // Never expose this via the public scout-release.json manifest.
+  // Public release first (assets/scout-release.json, same checks as the
+  // banner in scout-release.js). Only when no public release is published
+  // does the master account fall back to its private five-minute Blob URL,
+  // which the server mints after the master fingerprint check.
+  async function publicRelease(){
+    try{
+      var r = await fetch('/assets/scout-release.json', { cache: 'no-store', credentials: 'omit' });
+      if(!r.ok) return null;
+      var rel = await r.json();
+      if(rel.available !== true || !/^[0-9a-fA-F]{64}$/.test(rel.sha256 || '')) return null;
+      var u = new URL(rel.downloadUrl);
+      var ok = u.protocol === 'https:' && !u.username && !u.password && !u.search && !u.hash && !u.port &&
+        ((u.hostname === 'github.com' && /^\/thembones90-sudo\/[\w.-]+\/releases\/download\/[^/?#]+\/[^/?#]+\.(exe|msi|msix)$/i.test(u.pathname)) ||
+         (u.hostname === 'classbuster.com' && /^\/downloads\/[\w.-]+\.(exe|msi|msix)$/i.test(u.pathname)));
+      return ok ? u.href : null;
+    }catch(e){ return null; }
+  }
   var downloadButton = $('DownloadBtn');
   if (downloadButton) downloadButton.addEventListener('click', async function(){
     var key = savedKey(), status = $('DownloadStatus');
     if (!key || section.hidden) return;
     downloadButton.disabled = true;
-    if (status) status.textContent = 'Preparing your private Scout download…';
+    if (status) status.textContent = 'Preparing your Scout download…';
     try {
+      var published = await publicRelease();
+      if (key !== savedKey()) return;
+      if (published) {
+        if (status) status.textContent = 'Your download is starting. Run ScoutSetup.exe to install Classbuster Scout. Close Scout before upgrading; your lesson data is preserved.';
+        window.location.assign(published);
+        return;
+      }
       var res = await fetch('/api/radar-van-download', {
         method: 'GET', headers: { 'x-app-key': key }, cache: 'no-store'
       });
       var data = await res.json().catch(function(){ return {}; });
       if (key !== savedKey()) return;
       if (!res.ok || !data.downloadUrl) throw new Error(
-        res.status === 403 ? 'Scout is restricted to the master account.' : 'Private download is temporarily unavailable.'
+        res.status === 403 ? 'The Scout download is not available yet. Please try again later.' : 'The Scout download is temporarily unavailable.'
       );
       var url = new URL(data.downloadUrl);
       if (url.protocol !== 'https:' || !/^[a-z0-9]+\.private\.blob\.vercel-storage\.com$/i.test(url.hostname) ||

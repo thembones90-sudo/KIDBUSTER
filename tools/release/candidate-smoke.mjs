@@ -60,9 +60,18 @@ await probe('transcript inbox keeps the compact granite design', async () => {
   expect(!/Georgia|Times New Roman/.test(css.text), 'superseded serif inbox returned');
   return 'current markup, granite surfaces and compact sans-serif heading';
 });
-await probe('Scout download stays unpublished', async () => {
+// Public Scout download (owner approval 2026-11-02): unpublished, or a
+// complete release whose installer link really resolves (HEAD, no download).
+await probe('Scout download manifest is unpublished or complete', async () => {
   const r = await call('GET', '/assets/scout-release.json'); status(r, 200);
-  expect(JSON.parse(r.text).available === false, 'Scout download manifest is published'); return 'available:false';
+  const m = JSON.parse(r.text);
+  if(m.available === false) return 'available:false';
+  expect(m.available === true && m.platform === 'Windows' && /^[0-9a-f]{64}$/i.test(m.sha256 || ''), 'manifest is incomplete');
+  const u = new URL(m.downloadUrl);
+  expect(u.protocol === 'https:' && (u.hostname === 'github.com' || u.hostname === 'classbuster.com'), 'download host is not approved');
+  const head = await fetch(u.href, { method: 'HEAD', redirect: 'follow' });
+  expect(head.ok, 'installer link answers HTTP ' + head.status);
+  return 'published ' + m.version + ', installer link resolves';
 });
 await probe('health ping', async () => status(await call('GET', '/api/ping'), 200));
 
@@ -93,12 +102,12 @@ await probe('owner key creation refuses a non-owner', async () => status(await c
 await probe('Krisp webhook refuses an invalid token', async () => status(await call('POST', '/api/krisp-webhook?token=invalid-release-smoke', { body: {} }), 401));
 
 await probe('private Scout installer refuses anonymous visitors', async () => status(await call('GET', '/api/radar-van-download'), expectScout === 'disabled' ? 404 : 401));
-await probe('private Scout installer refuses non-owner keys', async () => status(await call('GET', '/api/radar-van-download', { headers: { 'x-app-key': 'release-smoke-not-a-key' } }), expectScout === 'disabled' ? 404 : 403));
+await probe('private Scout installer refuses keys other than the master', async () => status(await call('GET', '/api/radar-van-download', { headers: { 'x-app-key': 'release-smoke-not-a-key' } }), expectScout === 'disabled' ? 404 : 403));
 
-// Scout: owner-only. Enabled -> 401 without a key, 403 for any non-owner key.
+// Scout (Pro + master). Enabled -> 401 without a key, 403 for a key without Scout.
 if(expectScout === 'enabled'){
   await probe('Scout is enabled and asks for credentials', async () => status(await call('GET', '/api/radar-van-session'), 401));
-  await probe('Scout refuses a non-owner key', async () => status(await call('GET', '/api/radar-van-session', { headers: { 'x-app-key': 'release-smoke-not-a-key' } }), 403));
+  await probe('Scout refuses a key without Scout access', async () => status(await call('GET', '/api/radar-van-session', { headers: { 'x-app-key': 'release-smoke-not-a-key' } }), 403));
   await probe('Scout ingest refuses a missing device token', async () => status(await call('POST', '/api/radar-van-ingest', { body: {} }), 401));
 }else{
   await probe('Scout is disabled on this deployment', async () => status(await call('GET', '/api/radar-van-session'), 404));

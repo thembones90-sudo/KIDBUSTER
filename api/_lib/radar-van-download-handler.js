@@ -17,8 +17,9 @@ export default async function handleScoutDownload(req, res) {
   if (req.method !== 'GET') return reply(res, 405, { error: 'Method not allowed.' });
   const identity = req.headers?.['x-app-key'];
   if (typeof identity !== 'string' || !identity) return reply(res, 401, { error: 'Access key required.' });
-  // A valid paid subscription, another founder, or APP_ACCESS_KEY never qualifies.
-  if (!(await accountEntitlement(identity)).allowed)
+  // Private Blob copy stays master-only (Blob bandwidth is billed). Pro
+  // teachers download the public release named in assets/scout-release.json.
+  if ((await accountEntitlement(identity)).founder !== true)
     return reply(res, 403, { error: 'Only the authorized master account can download Scout.' });
   if (!process.env.BLOB_STORE_ID) return reply(res, 503, { error: 'Private Scout storage unavailable.' });
   try {

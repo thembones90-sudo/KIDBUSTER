@@ -126,12 +126,12 @@ function checkRelease(root){
   must(html, /const KidbusterCore = \(function\(\)\{/, 'index.html lost the protocol engine the server builds prompts from');
   for(const p of PROTOCOLS) if(html && !html.includes('name="protocol" value="' + p + '"')) problems.push('protocol ' + p + ' is missing from the page');
 
-  // --- Scout (owner-only pilot): backend, dispatch, routes, client ---
+  // --- Scout (public for active Pro since 2026-11-02; private installer master-only) ---
   const rv = need('api/_lib/radar-van.js', 'Scout backend');
   need('api/_lib/radar-van-session-handler.js', 'Scout session route');
   need('api/_lib/radar-van-ingest-handler.js', 'Scout device ingest');
   const privateDownload = need('api/_lib/radar-van-download-handler.js', 'private owner Scout installer');
-  must(privateDownload, /accountEntitlement\(identity\)/, 'Scout installer is missing master-only authorization');
+  must(privateDownload, /accountEntitlement\(identity\)\)\.founder\s*!==\s*true/, 'private Scout installer is no longer master-only');
   must(privateDownload, /issueSignedToken/, 'Scout installer does not mint private signed links');
   need('assets/radar-van-client.js', 'Scout browser client');
   need('assets/scout-integration.css', 'Scout inbox styles');
@@ -142,6 +142,9 @@ function checkRelease(root){
   must(rv, /if\(!configured\)\s*return\s+false/, 'Scout owner gate does not deny a missing fingerprint');
   must(rv, /isFounderLicenseKey\(identity\)/, 'Scout owner gate lost the server-side founder/master check');
   must(rv, /timingSafeEqual/, 'Scout owner gate lost its constant-time comparison');
+  must(rv, /isPlausibleLicenseKey\(identity\)/, 'Scout no longer refuses malformed keys before Redis');
+  must(rv, /isLicenseEntitledToKrisp\(identity,\s*license\)/, 'Scout idle poll no longer checks the Pro entitlement');
+  must(rv, /isEntitledToKrisp\(identity\)/, 'Scout no longer checks the Pro entitlement');
 
   // --- Owner usage statistics, download gate ---
   need('api/_lib/usage-stats.js', 'owner usage statistics');
@@ -149,7 +152,19 @@ function checkRelease(root){
   need('assets/owner-usage-stats.css', 'owner usage panel styles');
   const manifest = need('assets/scout-release.json', 'Scout download manifest');
   need('assets/scout-release.js', 'Scout download gate');
-  if(manifest){ try{ if(JSON.parse(manifest).available !== false) problems.push('Public Scout download must remain frozen'); }catch{ problems.push('assets/scout-release.json is not valid JSON'); } }
+  // Public download (owner approval 2026-11-02): either unpublished, or a
+  // complete Windows release on the owner's GitHub releases or classbuster.com.
+  if(manifest){ try{
+    const m = JSON.parse(manifest);
+    if(m.available !== false){
+      let u = null; try{ u = new URL(m.downloadUrl); }catch{}
+      const okUrl = u && u.protocol === 'https:' && !u.search && !u.hash && !u.username && !u.password && !u.port &&
+        ((u.hostname === 'github.com' && /^\/thembones90-sudo\/[\w.-]+\/releases\/download\/[^/?#]+\/[^/?#]+\.(exe|msi|msix)$/i.test(u.pathname)) ||
+         (u.hostname === 'classbuster.com' && /^\/downloads\/[\w.-]+\.(exe|msi|msix)$/i.test(u.pathname)));
+      if(m.available !== true || m.platform !== 'Windows' || !/^\d+\.\d+(?:\.\d+){0,2}$/.test(String(m.version)) || !/^[0-9a-f]{64}$/i.test(String(m.sha256)) || !okUrl)
+        problems.push('Public Scout download manifest is incomplete or points outside the approved hosts');
+    }
+  }catch{ problems.push('assets/scout-release.json is not valid JSON'); } }
   if(html && !html.includes('id="radarVanDownloadBtn"')) problems.push('Owner Scout download button is missing');
   for(const asset of ['assets/radar-van-client.js', 'assets/scout-integration.css', 'assets/owner-usage-stats.js', 'assets/owner-usage-stats.css', 'assets/scout-release.js'])
     if(html && !html.includes(asset)) problems.push('index.html does not load ' + asset);

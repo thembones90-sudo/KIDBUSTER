@@ -96,6 +96,11 @@ module.exports = async function run(){
     await fails('the Scout ingest route is missing', rm('api/_lib/radar-van-ingest-handler.js'), /device ingest/);
     await fails('the page stops loading the Scout client', d => edit(d, 'index.html', s => s.replaceAll('assets/radar-van-client.js', 'assets/x.js')), /radar-van-client/);
     await fails('the Scout owner gate fails open again', d => edit(d, 'api/_lib/radar-van.js', s => s.replace(/if\(!configured\)\s*return\s+false;/, 'if(configured === undefined) return true;')), /fails OPEN|missing fingerprint/);
+    await fails('the private Scout installer is opened beyond the master', d => edit(d, 'api/_lib/radar-van-download-handler.js', s => s.replace('.founder !== true', '.allowed !== true')), /master-only/);
+    await fails('Scout drops the Pro entitlement check', d => edit(d, 'api/_lib/radar-van.js', s => s.replace('isLicenseEntitledToKrisp(identity, license)', 'true')), /Pro entitlement/);
+    await fails('Scout stops refusing malformed keys first', d => edit(d, 'api/_lib/radar-van.js', s => s.replaceAll('isPlausibleLicenseKey(identity)', 'true')), /malformed keys/);
+    await fails('the public Scout download points to another host', d => fs.writeFileSync(path.join(d, 'assets/scout-release.json'), JSON.stringify({ available: true, platform: 'Windows', version: '1.4.11', sha256: 'a'.repeat(64), downloadUrl: 'https://example.com/ScoutSetup.exe' })), /approved hosts/);
+    await fails('the public Scout download has no checksum', d => fs.writeFileSync(path.join(d, 'assets/scout-release.json'), JSON.stringify({ available: true, platform: 'Windows', version: '1.4.11', downloadUrl: 'https://github.com/thembones90-sudo/KIDBUSTER/releases/download/scout-1.4.11/ScoutSetup.exe' })), /incomplete/);
     await fails('the Scout founder check is dropped', d => edit(d, 'api/_lib/radar-van.js', s => s.replace(/!isFounderLicenseKey\(identity\)/, 'false')), /founder/);
     await fails('owner usage statistics are missing', rm('api/_lib/usage-stats.js'), /usage statistics/);
     await fails('usage statistics keys are renamed', d => edit(d, 'api/_lib/usage-stats.js', s => s.replaceAll("'stats:v1:", "'stats:v2:")), /stats:v1/);
