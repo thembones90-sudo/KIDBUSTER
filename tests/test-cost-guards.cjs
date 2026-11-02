@@ -8,12 +8,15 @@ const {validReportForProviderBody}=require('./helpers/valid-reports.cjs');
 module.exports=async function run(){
   const {check,getFailures}=createChecker();
   console.log('\n=== test-cost-guards.cjs ===');
-  const vars=['KIDBUSTER_TEST_KV','LEMONSQUEEZY_WEBHOOK_SECRET','PAYMENT_PROVIDER','GOOGLE_SHEET_WEBHOOK_URL','OWNER_LICENSE_KEYS',
+  const vars=['KIDBUSTER_TEST_KV','LEMONSQUEEZY_WEBHOOK_SECRET','PAYMENT_PROVIDER','LEMONSQUEEZY_MODE','LEMONSQUEEZY_STORE_ID','LEMONSQUEEZY_PRO_VARIANT_ID','LEMONSQUEEZY_ALLOWED_VARIANT_IDS','GOOGLE_SHEET_WEBHOOK_URL','OWNER_LICENSE_KEYS',
     'ANTHROPIC_API_KEY','GENERATE_RATE_LIMIT_PER_MINUTE','GENERATE_MAX_CONCURRENT','PRO_DAILY_REPORT_LIMIT','OWNER_ALERT_EMAIL'];
   const previous=Object.fromEntries(vars.map(k=>[k,process.env[k]]));
   process.env.KIDBUSTER_TEST_KV='1';
   process.env.LEMONSQUEEZY_WEBHOOK_SECRET='cost-guard-fixtures-only';
   process.env.PAYMENT_PROVIDER='lemonsqueezy';
+  // Live-mode acceptance policy (2026-11-02): real payloads carry store and variant.
+  delete process.env.LEMONSQUEEZY_MODE;delete process.env.LEMONSQUEEZY_ALLOWED_VARIANT_IDS;
+  process.env.LEMONSQUEEZY_STORE_ID='429633';process.env.LEMONSQUEEZY_PRO_VARIANT_ID='777001';
   process.env.OWNER_LICENSE_KEYS='synthetic-owner-cost-guard';
   process.env.ANTHROPIC_API_KEY='isolated_test_key';
   process.env.GENERATE_RATE_LIMIT_PER_MINUTE='1000';
@@ -102,9 +105,9 @@ module.exports=async function run(){
     const fixture=(eventName,minutes,options={})=>{
       const invoice=eventName.startsWith('subscription_payment_');
       const at=new Date(now+minutes*60000).toISOString();
-      const attributes={customer_id:'customer-refund',user_email:'refund@example.test',created_at:at,updated_at:at,
+      const attributes={store_id:429633,customer_id:'customer-refund',user_email:'refund@example.test',created_at:at,updated_at:at,
         status:invoice?(options.refunded?'refunded':'paid'):'active',
-        ...(invoice?{subscription_id:'sub-refund',refunded:!!options.refunded,refunded_amount:options.amount??null,total:1200}:{order_id:'order-refund'})};
+        ...(invoice?{subscription_id:'sub-refund',refunded:!!options.refunded,refunded_amount:options.amount??null,total:1200}:{order_id:'order-refund',variant_id:777001})};
       return {meta:{event_name:eventName,custom_data:{license_key:r}},
         data:{type:invoice?'subscription-invoices':'subscriptions',id:invoice?(options.invoiceId||'inv-'+(++seq)):'sub-refund',attributes}};
     };
