@@ -23,6 +23,14 @@ the product benefits and the beta-feedback invitation, with no placeholder cards
 | `tests/test-testimonials.cjs` | No | Gate, escaping, empty/missing data, routes and browser checks |
 | Consent records | **Never in git or a deployment** | Owner's private storage |
 
+## Private story proposals (in-app invitation)
+
+After a teacher's feedback is saved, the app may invite them to share a story
+(see TESTIMONIAL-INVITE-AFTER-FEEDBACK-20261102.md). Those stories are PRIVATE
+proposals in the owner feedback view, never publishable as received. Treat one as
+a starting point for step 1 below: the teacher must still approve the exact
+wording, name form and website use before anything is added here.
+
 ## Adding an approved testimonial
 
 1. Get written consent outside this repository, from the owner, not an agent. Agents must

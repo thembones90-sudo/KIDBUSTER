@@ -98,6 +98,113 @@ export async function listFeedback({ limit = 200 } = {}){
   return items;
 }
 
+// ---------- private testimonial proposals ----------
+// A teacher may OPTIONALLY offer a short story after sending feedback. This is
+// a private proposal for the owner to review, never permission to publish:
+// publication needs separately approved exact wording, attribution and
+// website consent (TESTIMONIALS-GUIDE-20261102.md), and only the owner edits
+// the public assets/testimonials/testimonials.json. Proposals are never
+// mirrored to the Google Sheet or any other third party, are readable only
+// through the owner-authorized GET /api/feedback, and expire like feedback.
+export const TESTIMONIAL_STORY_MAX = 800;
+export const TESTIMONIAL_DAILY_LIMIT = 3;
+const TP_SEQ_KEY = 'tp:seq';
+const tpItemKey = n => 'tp:item:' + n;
+const tpIdemKey = (account, id) => 'tp:idem:' + account + ':' + id;
+const tpRateKey = (account, day) => 'tp:rate:' + account + ':' + day;
+const PROPOSAL_ID = /^[a-f0-9]{16}$/;
+// Contact details must not travel inside a story that might later be quoted.
+// (Mentioning classbuster.com itself is fine; nine or more digits is a phone.)
+const CONTACT_PATTERN = /[^\s@]+@[^\s@]+\.[a-z]{2,}|https?:\/\/|www\.|\b[a-z0-9-]+\.(?:com|net|org|io|cn|edu|co)\b|(?:\+?\d[\s().-]?){9,}/i;
+const hasContactDetails = text => CONTACT_PATTERN.test(String(text).replace(/\bclassbuster\.com\b/gi, 'Classbuster'));
+// Control and bidirectional-override characters are refused outright.
+const UNSAFE_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F‪-‮⁦-⁩]/;
+
+function cleanLine(value, max){
+  return String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
+}
+
+export function validateTestimonialProposal(body){
+  const b = body && typeof body === 'object' ? body : {};
+  const proposalId = String(b.proposalId || '');
+  if(!PROPOSAL_ID.test(proposalId)) return { error: 'Invalid proposal reference' };
+  const story = String(b.story ?? '').replace(/\r\n?/g, '\n').trim();
+  if(story.length < 10) return { error: 'Please write a sentence or two' };
+  if(story.length > TESTIMONIAL_STORY_MAX) return { error: 'Please keep your story under ' + TESTIMONIAL_STORY_MAX + ' characters' };
+  const displayName = cleanLine(b.displayName, 40);
+  const role = cleanLine(b.role, 60);
+  for(const text of [story, displayName, role]){
+    if(UNSAFE_CHARS.test(text)) return { error: 'Please remove unusual characters' };
+    if(hasContactDetails(text)) return { error: 'Please leave out email addresses, links and phone numbers' };
+  }
+  if(b.contactOk !== true) return { error: 'Please confirm we may ask you before anything is published' };
+  const feedbackId = Number.isSafeInteger(b.feedbackId) && b.feedbackId > 0 ? b.feedbackId : null;
+  return { value: { proposalId, story, displayName, role, feedbackId } };
+}
+
+// Stores one proposal for the authenticated account. Idempotent per
+// (account, proposalId): a retried or double-clicked submission returns the
+// original record instead of creating a second one. `contactEmail` is taken
+// from the server-side license record, never from the browser.
+export async function recordTestimonialProposal({ licenseKey, proposal, contactEmail }){
+  const account = accountTag(licenseKey);
+  const idemKey = tpIdemKey(account, proposal.proposalId);
+  const claimed = await kv.set(idemKey, 'pending', { nx: true, ex: FEEDBACK_TTL_SECONDS });
+  if(!(claimed === 'OK' || claimed === true)){
+    const existing = await kv.get(idemKey);
+    return { duplicate: true, id: Number.isSafeInteger(Number(existing)) && Number(existing) > 0 ? Number(existing) : null };
+  }
+  try{
+    const rateKey = tpRateKey(account, new Date().toISOString().slice(0, 10));
+    const used = await kv.incr(rateKey);
+    if(used === 1) await kv.expire(rateKey, 2 * 24 * 60 * 60);
+    if(used > TESTIMONIAL_DAILY_LIMIT){
+      await kv.del(idemKey);
+      return { limited: true };
+    }
+    let linkedFeedback = null;
+    if(proposal.feedbackId){
+      const fb = await kv.get(itemKey(proposal.feedbackId));
+      if(fb && fb.account === account) linkedFeedback = proposal.feedbackId;
+    }
+    const n = await kv.incr(TP_SEQ_KEY);
+    const item = {
+      id: n,
+      at: new Date().toISOString(),
+      // Never 'approved': approval happens outside this system, per quote.
+      status: 'received_private',
+      publishable: false,
+      account,
+      story: proposal.story,
+      displayName: proposal.displayName,
+      role: proposal.role,
+      contactOk: true,
+      contactEmail: clip(contactEmail, 254),
+      feedbackId: linkedFeedback
+    };
+    await kv.set(tpItemKey(n), item, { ex: FEEDBACK_TTL_SECONDS });
+    await kv.set(idemKey, n, { ex: FEEDBACK_TTL_SECONDS });
+    return { id: n, item };
+  }catch(err){
+    // Release the reservation so the teacher can retry; never report success.
+    try{ await kv.del(idemKey); }catch(_e){ /* best effort */ }
+    throw err;
+  }
+}
+
+export async function listTestimonialProposals({ limit = 100 } = {}){
+  const max = Math.max(1, Math.min(200, Number(limit) || 100));
+  const latest = Number(await kv.get(TP_SEQ_KEY)) || 0;
+  const ids = [];
+  for(let n = latest; n >= 1 && ids.length < max; n--) ids.push(n);
+  const items = [];
+  for(let i = 0; i < ids.length; i += 50){
+    const batch = await Promise.all(ids.slice(i, i + 50).map(n => kv.get(tpItemKey(n))));
+    for(const item of batch) if(item) items.push(item);
+  }
+  return items;
+}
+
 function bucket(map, key, item){
   const k = key || 'unknown';
   const b = map[k] || (map[k] = { count: 0, rated: 0, scoreSum: 0, bugs: 0, ideas: 0, low: 0 });

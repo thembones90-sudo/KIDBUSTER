@@ -12,7 +12,8 @@
 
 import crypto from 'node:crypto';
 import { getLicense, isFounderLicenseKey } from './_lib/licensing.js';
-import { FEEDBACK_CATEGORIES, recordFeedback, listFeedback, summarizeFeedback } from './_lib/feedback-store.js';
+import { FEEDBACK_CATEGORIES, recordFeedback, listFeedback, summarizeFeedback,
+  validateTestimonialProposal, recordTestimonialProposal, listTestimonialProposals } from './_lib/feedback-store.js';
 
 async function ownerFeedback(req, res){
   if(!isFounderLicenseKey(req.headers['x-app-key'])){
@@ -20,11 +21,59 @@ async function ownerFeedback(req, res){
   }
   try{
     const items = await listFeedback({ limit: req.query?.limit });
+    // Private testimonial proposals are owner-only review material. A failure
+    // here must not hide ordinary feedback from the owner.
+    let testimonialProposals = [];
+    try{ testimonialProposals = await listTestimonialProposals(); }
+    catch(err){ console.error('feedback: proposal listing failed:', (err && err.name) || 'error'); testimonialProposals = null; }
     res.setHeader?.('Cache-Control', 'no-store');
-    return res.status(200).json({ summary: summarizeFeedback(items), items });
+    return res.status(200).json({ summary: summarizeFeedback(items), items, testimonialProposals });
   }catch(err){
     console.error('feedback: owner listing failed:', err);
     return res.status(503).json({ error: 'Feedback store unavailable' });
+  }
+}
+
+function kindOf(req) {
+  let value = req.query?.kind;
+  if (value === undefined && req.query === undefined) {
+    try { value = new URL(req.url || '/', 'http://x').searchParams.get('kind'); } catch (_err) { value = null; }
+  }
+  return value === 'testimonial' ? value : null;
+}
+
+// POST /api/feedback?kind=testimonial — a signed-in teacher privately offers
+// a story after sending feedback. Requires a real account (an active license
+// or an owner/founder key): the shared legacy app key has no identity to ask
+// for publication approval. Stored privately; never sent to the Sheet.
+async function testimonialProposal(req, res) {
+  res.setHeader?.('Cache-Control', 'no-store');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  const providedKey = req.headers['x-app-key'];
+  let license = null;
+  const founder = isFounderLicenseKey(providedKey);
+  if (!founder && providedKey) {
+    try { license = await getLicense(providedKey); }
+    catch (err) {
+      console.error('testimonial license check failed:', (err && err.name) || 'error');
+      return res.status(503).json({ error: 'Could not verify your account right now' });
+    }
+  }
+  if (!founder && !(license && license.status === 'active')) {
+    return res.status(401).json({ error: 'Please sign in to your Classbuster account' });
+  }
+  const checked = validateTestimonialProposal(req.body);
+  if (checked.error) return res.status(400).json({ error: checked.error });
+  try {
+    const result = await recordTestimonialProposal({
+      licenseKey: providedKey, proposal: checked.value,
+      contactEmail: license && typeof license.email === 'string' ? license.email : ''
+    });
+    if (result.limited) return res.status(429).json({ error: 'Thanks! You have already sent a few stories today.' });
+    return res.status(200).json({ status: 'received_private', id: result.id, duplicate: !!result.duplicate, published: false });
+  } catch (err) {
+    console.error('testimonial proposal store failed:', (err && err.name) || 'error');
+    return res.status(503).json({ error: 'Could not save your story right now' });
   }
 }
 
@@ -90,6 +139,7 @@ export default async function handler(req, res) {
   if (taskOf(req)) return dailyTask(req, res);
   const radarRoute = radarRouteOf(req);
   if (radarRoute) return radarDispatch(radarRoute, req, res);
+  if (kindOf(req)) return testimonialProposal(req, res);
   if (req.method === 'GET') return ownerFeedback(req, res);
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -175,5 +225,7 @@ export default async function handler(req, res) {
   if (!stored && sheet !== 'sent') {
     return res.status(502).json({ error: 'Failed to record feedback' });
   }
-  return res.status(200).json({ status: 'ok', stored: !!stored, sheet });
+  // feedbackId lets the browser link an optional private testimonial proposal
+  // to this item; the server re-checks that it belongs to the same account.
+  return res.status(200).json({ status: 'ok', stored: !!stored, feedbackId: stored ? stored.id : null, sheet });
 }

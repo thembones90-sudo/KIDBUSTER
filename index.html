@@ -6982,6 +6982,32 @@ function fbList(title, items, emptyText, tone){
   if(items.length > 10) sec.appendChild(fbEl('p', 'fb-more', '+ ' + (items.length - 10) + ' more in the full dashboard'));
   return sec;
 }
+// Private testimonial proposals: review material only, never published from
+// here. Publishing needs the teacher's separately approved exact wording,
+// attribution and website consent (TESTIMONIALS-GUIDE-20261102.md).
+function fbProposals(list){
+  const items = Array.isArray(list) ? list : [];
+  const sec = fbEl('section', 'fb-section');
+  const h = fbEl('h4', 'fb-h');
+  h.appendChild(fbEl('span', null, 'Testimonial proposals (private, not published)'));
+  h.appendChild(fbEl('em', 'fb-count', String(items.length)));
+  sec.appendChild(h);
+  if(list === null){ sec.appendChild(fbEl('p', 'fb-empty', 'Proposals could not be loaded right now.')); return sec; }
+  sec.appendChild(fbEl('p', 'fb-empty', 'A proposal is not permission to publish. Ask the teacher to approve the exact wording, name form and website use first.'));
+  if(!items.length){ sec.appendChild(fbEl('p', 'fb-empty', 'No stories offered yet.')); return sec; }
+  const ul = fbEl('ul', 'fb-items');
+  items.slice(0, 20).forEach(it => {
+    const row = fbEl('li', 'fb-item');
+    const head = fbEl('div', 'fb-item-head');
+    head.appendChild(fbEl('span', 'fb-chip', 'private'));
+    head.appendChild(fbEl('span', 'fb-meta', [it.displayName || 'anonymous', it.role, it.contactEmail, it.at ? new Date(it.at).toLocaleDateString() : ''].filter(Boolean).join(' · ')));
+    row.appendChild(head);
+    row.appendChild(fbEl('p', 'fb-comment', it.story || ''));
+    ul.appendChild(row);
+  });
+  sec.appendChild(ul);
+  return sec;
+}
 function renderOwnerFeedback(output, data){
   const s = data.summary || {}, o = s.overall || {};
   const rated = (data.items || []).filter(i => Number.isInteger(i.score) && i.score >= 1 && i.score <= 5);
@@ -7046,6 +7072,7 @@ function renderOwnerFeedback(output, data){
   frag.appendChild(fbList('Bugs', s.bugs || [], 'No bug reports.', 'bad'));
   frag.appendChild(fbList('Low ratings', s.lowScores || [], 'No ratings of 1–2 stars.', 'warn'));
   frag.appendChild(fbList('Ideas', s.ideas || [], 'No ideas submitted yet.', 'idea'));
+  frag.appendChild(fbProposals(data.testimonialProposals));
   output.replaceChildren(frag);
 }
 async function showOwnerFeedback(){
@@ -7701,6 +7728,18 @@ async function submitFeedback(score){
       body: JSON.stringify(payload)
     });
     if(response.ok){
+      // Only a confirmed server-side save (stored:true) may lead to the
+      // optional testimonial invitation (assets/testimonial-invite.js).
+      let saved = null;
+      try{ saved = typeof response.json === 'function' ? await response.json() : null; }catch(e){ saved = null; }
+      if(saved && saved.stored === true){
+        try{
+          document.dispatchEvent(new CustomEvent('classbuster:feedback-saved', { detail: {
+            category: payload.category, score: payload.score, comment: payload.comment,
+            feedbackId: Number.isSafeInteger(saved.feedbackId) ? saved.feedbackId : null
+          }}));
+        }catch(e){ /* the invitation is optional; feedback is already saved */ }
+      }
       // Cleared so switching tabs can send a separate bug/idea without
       // resending this text; the sent confirmation stays until then.
       feedbackComment.value = '';
@@ -10942,6 +10981,8 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 <script src="assets/radar-van-client.js?v=20261029-scout-1410-waves"></script>
 <link rel="stylesheet" href="assets/initial-workspace-fit.css?v=20261027-no-menu-resize">
 <script src="assets/blitz-voice-menu.js?v=20261027"></script>
+<link rel="stylesheet" href="assets/testimonial-invite.css?v=20261102">
+<script src="assets/testimonial-invite.js?v=20261102"></script>
 <script src="assets/initial-workspace-fit.js?v=20261027-no-menu-resize"></script>
 </body>
 </html>
