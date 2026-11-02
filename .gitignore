@@ -7,6 +7,11 @@ node_modules
 .v2-cache/
 .v2-tmp/
 .v2-local/
+# Testimonial consent records are private and never belong in this repository
+# or a deployment (see TESTIMONIALS-GUIDE-20261102.md).
+testimonial-consent/
+*.consent.json
+*.consent.pdf
 # Local-only compatibility for an already running pre-change V2 preview.
 # The deployed V2 ping is a static /ping.json rewrite, not an API function.
 /api/ping.js

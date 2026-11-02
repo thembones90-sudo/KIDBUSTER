@@ -26,6 +26,14 @@
       "destination": "/terms-of-use.html"
     },
     {
+      "source": "/why-classbuster",
+      "destination": "/why-classbuster.html"
+    },
+    {
+      "source": "/testimonials",
+      "destination": "/why-classbuster.html"
+    },
+    {
       "source": "/api/radar-van-session",
       "destination": "/api/feedback?radar=session"
     },

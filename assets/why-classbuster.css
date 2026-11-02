@@ -1,0 +1,40 @@
+/* Public "Why Classbuster" page. Builds on /legal.css (same header, footer, palette). */
+.why-page main{max-width:1040px}
+.why-hero{padding:8px 0 18px}
+.why-hero h1{max-width:20ch}
+.why-cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
+.why-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 20px;border-radius:999px;border:1px solid #49603b;background:#1b2720;color:#e3f8cf;font-weight:700;text-decoration:none;font-size:.95rem}
+.why-btn:hover{border-color:var(--accent);color:#f2ffe6}
+.why-btn-primary{background:var(--accent);border-color:var(--accent);color:#11200a}
+.why-btn-primary:hover{background:#c2ff83;color:#0c1806}
+.why-btn:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.why-section{margin-top:56px}
+.why-section h2{font-size:1.55rem;margin-bottom:18px}
+.why-section[hidden]{display:none}
+.benefit-grid,.quote-grid{list-style:none;margin:0;padding:0;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr))}
+.benefit{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px;box-shadow:0 8px 28px rgba(0,0,0,.14)}
+.benefit h3{margin:0 0 8px;font-size:1.06rem;color:#f2fff2;letter-spacing:-.01em}
+.benefit p{margin:0;color:#d4e0d8}
+.steps{margin:0;padding:0;list-style:none;counter-reset:step;display:grid;gap:12px}
+.steps li{counter-increment:step;position:relative;padding:16px 20px 16px 64px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.steps li::before{content:counter(step);position:absolute;left:20px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;background:#344d24;color:#ecffdb;font-weight:800;display:grid;place-items:center;font-size:.9rem}
+.quote-card figure{margin:0;height:100%;display:flex;flex-direction:column;gap:16px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:14px;padding:22px 24px}
+.quote-card blockquote{margin:0;flex:1}
+.quote-card blockquote p{margin:0;font-size:1.04rem;color:#ebf1ed;overflow-wrap:anywhere;white-space:pre-line}
+.quote-card blockquote p::before{content:"\201C"}.quote-card blockquote p::after{content:"\201D"}
+.quote-card figcaption{display:flex;flex-direction:column;font-size:.88rem}
+.quote-name{font-weight:750;color:#f2fff2;overflow-wrap:anywhere}
+.quote-role{color:var(--muted);overflow-wrap:anywhere}
+.why-muted{color:var(--muted);margin-top:-8px}
+.beta-card{background:linear-gradient(160deg,#1f2d1c,#171e1b);border:1px solid #49603b;border-radius:18px;padding:30px 32px}
+.beta-card h2{margin-top:0}
+.why-note{border-left:3px solid var(--accent);padding:10px 14px;background:#1e2920;border-radius:0 10px 10px 0}
+.why-disclaimer{margin-top:44px;font-size:.84rem;color:var(--muted)}
+@media(max-width:600px){
+  .why-section{margin-top:40px}
+  .beta-card{padding:22px 18px}
+  .benefit,.quote-card figure{padding:18px}
+  .why-cta-row{flex-direction:column}
+  .why-btn{width:100%}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}

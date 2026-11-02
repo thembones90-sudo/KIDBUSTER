@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "/assets/testimonials/testimonials.schema.json",
+  "title": "Classbuster published testimonials",
+  "description": "Public display data only. Each entry needs written, website-scoped consent recorded PRIVATELY; this file carries only an opaque reference to that record. assets/why-classbuster.js enforces the same rules at runtime and drops any entry that fails them.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "testimonials"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "notice": { "type": "string" },
+    "testimonials": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "quote", "attribution", "consent"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,39}$" },
+          "quote": { "type": "string", "minLength": 20, "maxLength": 600, "description": "Exact approved wording. No student names, emails, links or phone numbers." },
+          "attribution": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["role"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1, "maxLength": 60, "description": "Only the form of name the teacher approved (e.g. first name). Omit for anonymous." },
+              "role": { "type": "string", "minLength": 2, "maxLength": 80 },
+              "context": { "type": "string", "minLength": 2, "maxLength": 80 }
+            }
+          },
+          "consent": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["status", "reference", "approvedOn", "channels"],
+            "properties": {
+              "status": { "const": "approved" },
+              "reference": { "type": "string", "pattern": "^CB-CONSENT-\\d{8}-[A-Z0-9]{4,12}$" },
+              "approvedOn": { "type": "string", "format": "date" },
+              "expiresOn": { "type": ["string", "null"], "format": "date" },
+              "channels": { "type": "array", "contains": { "const": "website" }, "items": { "type": "string" } },
+              "anonymous": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

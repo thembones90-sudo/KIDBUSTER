@@ -1807,6 +1807,8 @@ body.protocol-beida .grid #outputBox.empty::before{height:25px;width:22px;backgr
 #accountPanel .account-label{font-family:var(--font-body);font-size:12px;text-transform:none;letter-spacing:0;color:#ADBCAF}
 #accountPanel .account-value{font-family:var(--font-display);font-size:17px}
 #accountPanel .account-actions{border-top:1px solid #364032;padding-top:16px;margin-top:18px;gap:10px}
+#accountPanel .account-about-link{margin-left:auto;color:inherit;font-size:13px;text-decoration:underline;text-underline-offset:3px;display:inline-flex;align-items:center;gap:4px;min-height:44px;padding:0 4px}
+#accountPanel .account-about-link:focus-visible{outline:2px solid currentColor;outline-offset:3px;border-radius:3px}
 #accountPanel .btn-secondary{border-color:#48533E;background:#242D21;color:#D0DDC7;border-radius:10px}
 #accountPanel .btn-secondary:hover{border-color:#829775;background:#35432F}
 @media(max-width:560px){#licenseModalOverlay .access-modal,#accountPanel{padding:20px;border-radius:18px}#licenseModalOverlay .license-modal-title{font-size:24px}#licenseModalOverlay .license-modal-choice{padding:16px}.license-modal-choice-labels{flex-wrap:wrap}}
@@ -2553,6 +2555,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
       <button class="btn-secondary" id="accountUpgradeBtn" type="button">Upgrade to Pro</button>
       <button class="btn-secondary" id="accountManageBillingBtn" type="button" style="display:none;">Manage billing</button>
       <button class="btn-secondary" id="accountSignOutBtn" type="button">Sign out</button>
+      <a id="accountWhyLink" class="account-about-link" href="/why-classbuster.html" target="_blank" rel="noopener" aria-label="Why Classbuster: benefits and beta feedback (opens in a new tab)">Why Classbuster? <span aria-hidden="true">↗</span></a>
     </div>
   </div>
 
