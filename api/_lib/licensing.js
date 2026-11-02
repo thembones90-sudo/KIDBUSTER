@@ -150,7 +150,7 @@ export function evaluateEntitlement({ plan, status, protocol, monthlyUsageCount,
       return {
         allowed: false,
         reason: 'limit_reached',
-        message: 'You\'ve used all ' + limit + ' free reports this month. Upgrade to Pro for unlimited reports and every protocol.'
+        message: 'You\'ve used all ' + limit + ' free reports this month. Upgrade to Pro for up to 35 reports a day and every protocol.'
       };
     }
     return { allowed: true, reason: null, message: null };

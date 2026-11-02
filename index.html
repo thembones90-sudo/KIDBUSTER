@@ -2831,7 +2831,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
       </div>
       <div class="help-mini-card">
         <p class="help-mini-title">Pro</p>
-        <p class="help-mini-copy">Unlimited reports and every protocol. Checkout supports card or PayPal when available.</p>
+        <p class="help-mini-copy">Up to 35 reports a day and every protocol. Checkout supports card or PayPal when available.</p>
       </div>
       <div class="help-mini-card">
         <p class="help-mini-title">Manage billing</p>
@@ -2929,7 +2929,7 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
         <summary class="license-modal-choice">
           <span class="license-modal-choice-copy">
             <span class="license-modal-choice-labels"><svg class="access-path-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 4 4 5-7 5 7 4-4-2 12H5ZM5 22h14"/></svg><span class="license-modal-plan-name">Pathfinder Pro</span><span class="license-modal-pill">pro</span></span>
-            <span class="license-modal-plan-note">Unlimited reports and all seven teaching protocols.</span>
+            <span class="license-modal-plan-note">Up to 35 reports a day and all seven teaching protocols.</span>
           </span>
         </summary>
         <div class="license-modal-section-body">
@@ -6623,7 +6623,7 @@ async function refreshAccountPanel(){
             : (data.subscriptionStatus === 'paused' ? 'Billing paused'
               : formatAccountStatus(data.status || 'active')))));
     const usageLabel = isPro
-      ? 'Unlimited'
+      ? '35 a day'
       : (data.expired ? 'Renew needed' : String(data.usageCount || 0) + ' used - ' + String(data.remainingFreeReports) + ' left this month');
     const expiryLabel = data.expiresAt
       ? (data.expired ? ' Expired ' : ' Expires ') + formatExpiryDate(data.expiresAt) + '.'
@@ -7995,7 +7995,7 @@ function buildEntitlementNotice(err, protocolKey){
   if(err.reason === 'limit_reached'){
     return {
       title: 'Free monthly limit reached',
-      body: 'You have used your free Classic reports for this month. They come back on the 1st of next month. Any protocol trials you have left still work, or upgrade to Pro for unlimited reports in every protocol.'
+      body: 'You have used your free Classic reports for this month. They come back on the 1st of next month. Any protocol trials you have left still work, or upgrade to Pro for up to 35 reports a day in every protocol.'
     };
   }
   return {
