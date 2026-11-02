@@ -93,6 +93,7 @@ module.exports=async()=>{
    const isolated=await browser.createBrowserContext();
    try{
     const primary=await isolated.newPage();
+    await primary.bringToFront(); // Automatic polling intentionally pauses hidden pages.
     await primary.evaluateOnNewDocument(key=>localStorage.setItem('kidbuster_access_key',key),owner);
     await primary.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'load'});
     await primary.waitForFunction(()=>document.querySelector('#krispNotes').value.includes('Synthetic Krisp primary'));

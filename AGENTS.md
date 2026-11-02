@@ -25,6 +25,31 @@ index.html is ~54 bytes under the 600 KB test cap: slim it before adding more.
 Other agents deploy in parallel: hash the live index against your base before
 staging or promoting. See REDIS-COMMAND-AUDIT-20261029.md and
 TESTIMONIAL-INVITE-AFTER-FEEDBACK-20261102.md.
+# Scout1.4.12 installed and download LIVE — 2026-10-29
+
+Owner-approved semantic status colors/labels are implemented. Native current/running1.4.12 confirmed, rollback1.4.11;1836 program files hash-verified, profile unchanged. Private installer1.4.12 SHA2569526fd153b7545c4bbdc5b1e12cee2032906c113a919aa23898fd978d5cd71dc. Web656394f, deployment dpl_Cx18ZhpSBAosFwobEgszgttZH2bT live on Classbuster and legacy address; exact bytes and24/24 probes each PASS. Full128-file local suite and CI40957551052 PASS after browser-fixture-only389a75c;1062 source tests (one skip),180 frozen checks, CPU/media package PASS. See SCOUT-1.4.12-STATUS-POLISH-20261029.md. Preserve manual placement/source choices,1.4.11 morph/timer refinements and authoritative delivery status. Website rollback dpl_8zGNr5WFS1Y9XpR6jYhtsEqVJtKA. No active recorder interruption.
+
+# Scout1.4.10 confirmed running — 2026-10-29
+
+Native process PID9864 executes the installed1.4.10 Scout.exe path and reports
+ProductVersion1.4.10. Current selection is1.4.10; rollback1.4.9 is retained.
+The former1.4.9 PID23268 had already exited when an owner-authorized guarded
+close was attempted; nothing was force-stopped. Activation is complete,
+superseding historical pending-handover notes below. Do not restart the
+current recorder again merely to apply the compact-waveform update.
+
+# Krisp navigation and Redis traffic repair LIVE — 2026-10-29
+
+Runtime5155acc, deployment dpl_8zGNr5WFS1Y9XpR6jYhtsEqVJtKA is live on
+classbuster.com and the legacy API address. Preserves hotfix7dfb0dc; adds hidden-tab,
+adaptive/backoff, single-flight and account-scoped cross-tab Krisp polling budgets.
+Transient startup failures keep navigation visible with an unavailable message;
+they never grant entitlement. Explicit401/403 and sign-out still clear/hide gated
+state. No backend authorization, retention or native Scout changes. Owner restored
+Redis capacity by upgrading the existing database; the agent did not change billing.
+Local128 files, GitHub40931169667, release integrity, exact candidate/live/legacy
+assets and24/24 probes on each host PASS. Rollback dpl_FqL6PuiuLSYo21nm3jazEW6UYxP9.
+See KRISP-OUTAGE-NAVIGATION-20261029.md and REDIS-QUOTA-AUDIT-20261029.md.
 
 # Native Scout1.4.10 installed — 2026-10-29
 
@@ -345,3 +370,4 @@ by hand, never start a second Scout while one runs.
 - Alerts go to the owner sheet and `OWNER_ALERT_EMAIL` (email needs the mail relay's owner-alert
   rule, `tools/mail-relay`, deployed in the ASOC Engine Railway project — owner approval needed).
 - Customer continuity report: `CLASSBUSTER-CUSTOMER-CONTINUITY-FINAL.md`.
+
