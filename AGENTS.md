@@ -1,3 +1,19 @@
+# Current release: Redis savings, cost guards, one testimonial per account — 2026-11-02
+
+Owner-promoted release/combined-20261102 @ 2fff813, dpl_9ztVjYDdtbudCU8AT5D1ACueyt2H,
+live on classbuster.com and kidbuster.vercel.app (exact index bytes on both).
+Rollback: dpl_5gVAet4VSMMaUV3LdcyRVEirxKv9 (c8fd4e3, testimonials + payment
+hardening). Contains readiness-operations (one-MGET idle Krisp poll, away
+cadence, legal), Pro cap 35 reports/UTC day (PRO_DAILY_REPORT_LIMIT, copy "Up
+to 35 reports a day"), owner refund alerts, plausible-key guard (impossible keys
+refused before Redis), and the owner rule: invite after every report in any
+protocol, one testimonial per account (tp:done:<tag>, 409 already_submitted).
+138/138 test files, gate OK, 26/26 smoke on candidate and production.
+index.html is ~54 bytes under the 600 KB test cap: slim it before adding more.
+Other agents deploy in parallel: hash the live index against your base before
+staging or promoting. See REDIS-COMMAND-AUDIT-20261029.md and
+TESTIMONIAL-INVITE-AFTER-FEEDBACK-20261102.md.
+
 # Native Scout1.4.10 installed — 2026-10-29
 
 After SKYNET reconnected, owner-authorized native installation completed. Current
