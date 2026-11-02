@@ -12,7 +12,7 @@
 // survive token regeneration and Krisp reconnects. See
 // _lib/krisp-token.js for the token<->identity design.
 import { isEntitledToKrisp, isLicenseEntitledToKrisp, readImportQueue, readImportQueueFrom, writeImportQueue, krispRetentionDays, krispRetentionMs } from './_lib/krisp-retention.js';
-import { licenseKeyFor } from './_lib/licensing.js';
+import { licenseKeyFor, isPlausibleLicenseKey } from './_lib/licensing.js';
 import { getOrCreateKrispToken, regenerateKrispToken, disconnectKrisp, KrispTokenBusyError } from './_lib/krisp-token.js';
 import crypto from 'crypto';
 import { NEW_TRANSCRIPT_RETENTION_HOURS, forgetTranscriptContent, rememberLegacyTranscript, prepareDeferredTranscript, transcriptDeadline } from './_lib/transcript-retention.js';
@@ -112,9 +112,10 @@ async function readInboxSnapshot(licenseKey){
 export default async function handler(req, res){
   const licenseKey = req.headers['x-app-key'];
   // The connection-panel check (verify=1) keeps its full repair path.
-  const snapshot = req.method === 'GET' && req.query?.verify !== '1' && typeof licenseKey === 'string' && licenseKey
+  const snapshot = req.method === 'GET' && req.query?.verify !== '1' && isPlausibleLicenseKey(licenseKey)
     ? await readInboxSnapshot(licenseKey) : null;
-  const entitled = snapshot ? isLicenseEntitledToKrisp(licenseKey, snapshot.license) : await isEntitledToKrisp(licenseKey);
+  const entitled = snapshot ? isLicenseEntitledToKrisp(licenseKey, snapshot.license)
+    : isPlausibleLicenseKey(licenseKey) && await isEntitledToKrisp(licenseKey);
   if(!entitled){
     return res.status(403).json({ error: 'A Pro (or owner) account is required to use the Krisp import inbox.' });
   }

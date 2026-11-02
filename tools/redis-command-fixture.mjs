@@ -12,8 +12,8 @@ process.env.FOUNDER_LICENSE_KEYS='';
 const commands=[];
 const token='a'.repeat(64);
 const values=new Map([
-  ['license:synthetic-pro',JSON.stringify({plan:'pro',status:'active'})],
-  ['krisp:user:synthetic-pro',JSON.stringify({token,createdAt:new Date().toISOString()})]
+  ['license:kb_live_555555555555555555555555555555555555555555555555',JSON.stringify({plan:'pro',status:'active'})],
+  ['krisp:user:kb_live_555555555555555555555555555555555555555555555555',JSON.stringify({token,createdAt:new Date().toISOString()})]
 ]);
 globalThis.fetch=async function(url,init){
   assert.ok(String(url).startsWith(process.env.KV_REST_API_URL),'fixture cannot access network');
@@ -40,7 +40,7 @@ globalThis.fetch=async function(url,init){
 const {default:handler}=await import('../api/krisp-session.js');
 let status=200,response;
 const res={status(code){status=code;return this;},json(body){response=body;return this;}};
-await handler({method:'GET',headers:{'x-app-key':'synthetic-pro'},query:{}},res);
+await handler({method:'GET',headers:{'x-app-key':'kb_live_555555555555555555555555555555555555555555555555'},query:{}},res);
 assert.equal(status,200);assert.equal(response.matched,null);assert.deepEqual(response.pending,[]);
 // 2026-11-01 integration: the idle poll answers from ONE MGET through the
 // real @vercel/kv SDK (was 9 on the 0be0baf hotfix: lock SET, GETDEL, six GETs
@@ -50,10 +50,10 @@ assert.deepEqual(commands,['MGET']);
 console.log(JSON.stringify({fixture:'empty established Pro poll',outerCommands:commands.length,commands,additionalLuaLogicalOperations:0,productionRequests:0}));
 const {writeImportQueue}=await import('../api/_lib/krisp-retention.js');
 const {markNewTranscript}=await import('../api/_lib/transcript-retention.js');
-const pendingKey='krisp:data:synthetic-pro:pending';
+const pendingKey='krisp:data:kb_live_555555555555555555555555555555555555555555555555:pending';
 await writeImportQueue(pendingKey,[markNewTranscript({meetingId:'fixture-only',transcript:'Synthetic text only'})]);
 commands.length=0;
-await handler({method:'GET',headers:{'x-app-key':'synthetic-pro'},query:{}},res);
+await handler({method:'GET',headers:{'x-app-key':'kb_live_555555555555555555555555555555555555555555555555'},query:{}},res);
 assert.equal(response.pending.length,1);
 assert.equal(commands.length,2,'new pending content adds one MGET, not one GET per body');
 assert.deepEqual(commands,['MGET','MGET']);
@@ -61,12 +61,12 @@ assert.equal(response.pending[0].transcript,'Synthetic text only','body hydrated
 console.log(JSON.stringify({fixture:'one new pending body',outerCommands:commands.length,commands,productionRequests:0}));
 const {default:licenseStatus}=await import('../api/license-status.js');
 commands.length=0;
-await licenseStatus({method:'GET',headers:{'x-app-key':'synthetic-pro'}},res);
+await licenseStatus({method:'GET',headers:{'x-app-key':'kb_live_555555555555555555555555555555555555555555555555'}},res);
 assert.equal(status,200);assert.equal(response.plan,'pro');assert.equal(commands.length,2);
 console.log(JSON.stringify({fixture:'subscription Pro license-status',outerCommands:commands.length,commands,productionRequests:0}));
-values.set('license:synthetic-free',JSON.stringify({plan:'free',status:'active'}));
+values.set('license:kb_live_666666666666666666666666666666666666666666666666',JSON.stringify({plan:'free',status:'active'}));
 commands.length=0;
-await licenseStatus({method:'GET',headers:{'x-app-key':'synthetic-free'}},res);
+await licenseStatus({method:'GET',headers:{'x-app-key':'kb_live_666666666666666666666666666666666666666666666666'}},res);
 assert.equal(status,200);assert.equal(response.plan,'free');assert.equal(commands.length,8);
 console.log(JSON.stringify({fixture:'Free license-status with six protocol trials',outerCommands:commands.length,commands,productionRequests:0}));
 process.env.RADAR_VAN_ENABLED='true';
@@ -82,7 +82,7 @@ await scoutSession({method:'GET',headers:{'x-app-key':'synthetic-owner-fixture'}
 assert.equal(status,200);assert.equal(response.pendingCount,0);assert.equal(commands.length,5);
 console.log(JSON.stringify({fixture:'Scout full empty view without leasing',outerCommands:commands.length,commands,productionRequests:0}));
 const {buildUsageStatsPlan}=await import('../api/_lib/usage-stats.js');
-const plan=buildUsageStatsPlan({licenseKey:'synthetic-pro',generationId:'fixture',runToken:'fixture-run',protocol:'MA',delivered:true,attempts:[{kind:'generation',nano:123}]});
+const plan=buildUsageStatsPlan({licenseKey:'kb_live_555555555555555555555555555555555555555555555555',generationId:'fixture',runToken:'fixture-run',protocol:'MA',delivered:true,attempts:[{kind:'generation',nano:123}]});
 // Source-derived: three HINCRBYs per nonzero field, two SET NX markers,
 // HSETNX baseline, daily EXPIRE, and the outer EVAL. No script is executed.
 const statsCommands=3*(plan.always.length+plan.delivered.length)+5;

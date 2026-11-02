@@ -150,7 +150,7 @@ export function evaluateEntitlement({ plan, status, protocol, monthlyUsageCount,
       return {
         allowed: false,
         reason: 'limit_reached',
-        message: 'You\'ve used all ' + limit + ' free reports this month. Upgrade to Pro for unlimited reports and every protocol.'
+        message: 'You\'ve used all ' + limit + ' free reports this month. Upgrade to Pro for up to 35 reports a day and every protocol.'
       };
     }
     return { allowed: true, reason: null, message: null };
@@ -285,6 +285,16 @@ const emailIndexFor = (email) => 'email:' + normalizeEmail(email);
 const paymentCustomerIndexFor = (customerId) => 'paymentCustomer:' + customerId;
 const usageKeyFor = (key, period) => 'usage:' + key + ':' + period;
 
+// Every key ever issued has generateLicenseKey()'s format (unchanged since
+// licensing began, 2026-07-08); owner keys come from the environment. Public
+// routes refuse any other string before spending Redis commands on it, so
+// junk-key traffic costs nothing on a pay-per-command plan. Internal paths
+// (webhooks, owner tools) keep calling getLicense directly.
+const LICENSE_KEY_FORMAT = /^kb_live_[0-9a-f]{48}$/;
+export function isPlausibleLicenseKey(licenseKey){
+  return typeof licenseKey === 'string' && (LICENSE_KEY_FORMAT.test(licenseKey) || isFounderLicenseKey(licenseKey));
+}
+
 export async function getLicense(licenseKey){
   if(!licenseKey) return null;
   return (await kv.get(licenseKeyFor(licenseKey))) || null;
@@ -408,29 +418,47 @@ export async function releaseTrialUsage(licenseKey,protocol){
   return await releaseBoundedCounter(trialUsageKeyFor(licenseKey,protocol));
 }
 
+// ---------- Pro daily report ceiling (cost guard, 2026-10-29) ----------
+//
+// Pro has no monthly allowance, so without a ceiling a shared, leaked or
+// scripted Pro key could buy thousands of paid model calls a day. A teacher
+// has at most ~25 half-hour classes a day; the owner set 35 to leave room for
+// a few regenerations. Same hold/commit/release counter as the Free
+// allowance, so failed or abandoned reports never count. UTC calendar day.
+export const PRO_DAILY_REPORT_LIMIT_DEFAULT = 35;
+export function proDailyReportLimit(){
+  const value = Number.parseInt(process.env.PRO_DAILY_REPORT_LIMIT || '', 10);
+  return Number.isInteger(value) && value >= 1 && value <= 1000 ? value : PRO_DAILY_REPORT_LIMIT_DEFAULT;
+}
+export function currentUsageDay(date){
+  return (date || new Date(Date.now())).toISOString().slice(0, 10);
+}
+const proDailyKeyFor = (licenseKey, day) => 'proday:' + licenseKey + ':' + day;
+
+// kind: 'monthly' (Free allowance), 'trial' (per-protocol), 'daily' (Pro ceiling).
+function usageHoldKey(licenseKey,{kind,period,protocol}){
+  if(kind==='daily')return proDailyKeyFor(licenseKey,period||currentUsageDay());
+  return kind==='monthly'?usageKeyFor(licenseKey,period||currentUsagePeriod()):trialUsageKeyFor(licenseKey,protocol);
+}
+
 export async function reserveUsageHold(licenseKey,{kind,period,protocol,token,nowMs}={}){
+  const key=usageHoldKey(licenseKey,{kind,period,protocol});
+  if(kind==='daily'){
+    return await reserveCounterHold(key,token,proDailyReportLimit(),{counterTtlSeconds:2*86400,holdTtlSeconds:15*60,nowMs});
+  }
   const monthly=kind==='monthly';
-  const key=monthly?usageKeyFor(licenseKey,period||currentUsagePeriod()):trialUsageKeyFor(licenseKey,protocol);
   return await reserveCounterHold(key,token,monthly?FREE_MONTHLY_LIMIT:TRIAL_GENERATIONS_PER_PROTOCOL,{
     counterTtlSeconds:monthly?60*60*24*40:0,holdTtlSeconds:15*60,nowMs
   });
 }
 export async function reclaimExpiredUsageHolds(licenseKey,{kind,period,protocol,nowMs}={}){
-  const monthly=kind==='monthly';
-  const key=monthly?usageKeyFor(licenseKey,period||currentUsagePeriod()):trialUsageKeyFor(licenseKey,protocol);
-  return await reclaimExpiredCounterHolds(key,{nowMs});
+  return await reclaimExpiredCounterHolds(usageHoldKey(licenseKey,{kind,period,protocol}),{nowMs});
 }
 export async function commitUsageHold(reservation){
-  const key=reservation.kind==='monthly'
-    ? usageKeyFor(reservation.licenseKey,reservation.period)
-    : trialUsageKeyFor(reservation.licenseKey,reservation.protocol);
-  return await commitCounterHold(key,reservation.token);
+  return await commitCounterHold(usageHoldKey(reservation.licenseKey,reservation),reservation.token);
 }
 export async function releaseUsageHold(reservation){
-  const key=reservation.kind==='monthly'
-    ? usageKeyFor(reservation.licenseKey,reservation.period)
-    : trialUsageKeyFor(reservation.licenseKey,reservation.protocol);
-  return await releaseCounterHold(key,reservation.token);
+  return await releaseCounterHold(usageHoldKey(reservation.licenseKey,reservation),reservation.token);
 }
 
 // ---------- webhook duplicate/replay protection ----------

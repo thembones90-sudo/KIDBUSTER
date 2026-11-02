@@ -41,7 +41,9 @@ function buildCacheableSystemBlocks(systemPrompt) {
 
 import crypto from 'node:crypto';
 import { reserveGeneration, releaseGeneration, commitGeneration } from './_lib/license-service.js';
-import { ALWAYS_FREE_PROTOCOLS, TRIAL_GENERATIONS_PER_PROTOCOL } from './_lib/licensing.js';
+import { alertOwner } from './_lib/owner-alerts.js';
+import { keyFingerprint } from './_lib/identity-continuity.js';
+import { ALWAYS_FREE_PROTOCOLS, TRIAL_GENERATIONS_PER_PROTOCOL, isPlausibleLicenseKey } from './_lib/licensing.js';
 import { buildServerGeneration, evaluateGeneratedOutput, buildRepairMessage, normalizeClassicEnding, GenerationRequestError } from './_lib/server-generation.js';
 import {beginGenerationRequest,completeGenerationRequest,releaseGenerationRequest} from './_lib/kv-client.js';
 import {acquireGenerateThrottle} from './_lib/generate-throttle.js';
@@ -146,9 +148,17 @@ export default async function handler(req, res) {
   return generateHandler(req, res);
 }
 
+function secondsUntilUtcMidnight(now = Date.now()) {
+  const next = new Date(now); next.setUTCHours(24, 0, 0, 0);
+  return Math.max(1, Math.ceil((next.getTime() - now) / 1000));
+}
+
 async function generateHandler(req, res) {
   const licenseKey = req.method === 'POST' ? req.headers['x-app-key'] : '';
   if (!licenseKey) return runGeneration(req, res);
+  // Same answer the entitlement check gives a nonexistent key, but before the
+  // throttle and request-identity counters spend any Redis commands on it.
+  if (!isPlausibleLicenseKey(licenseKey)) return res.status(401).json({ error: 'Invalid license key.', reason: 'invalid_key' });
 
   let throttle;
   try {
@@ -256,6 +266,15 @@ async function runGenerationInner(req, res, run) {
   }
   if (!entitlement.allowed) {
     await releaseRequest();
+    if (entitlement.reason === 'daily_limit_reached') {
+      // Far beyond a real teaching day: tell the owner once per key per day.
+      await alertOwner({ type: 'pro_daily_limit', title: 'A Pro key reached its daily report limit',
+        details: ['Key ref: ' + keyFingerprint(licenseKey), 'Limit: ' + entitlement.dailyLimit + ' reports per UTC day',
+          'Possible key sharing or automation. Check Account → Owner tools.'],
+        dedupeKey: 'proday:' + keyFingerprint(licenseKey) });
+      if (typeof res.setHeader === 'function') res.setHeader('Retry-After', String(secondsUntilUtcMidnight()));
+      return res.status(429).json({ error: entitlement.message, reason: entitlement.reason });
+    }
     const status = entitlement.reason === 'invalid_key' ? 401 : 402;
     return res.status(status).json({ error: entitlement.message, reason: entitlement.reason });
   }
