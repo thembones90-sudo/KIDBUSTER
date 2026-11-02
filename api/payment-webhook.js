@@ -6,7 +6,9 @@ import { getActiveProvider } from './_lib/providers/index.js';
 import {
   applySubscriptionEvent, resolveSubscriptionLicenseKey
 } from './_lib/subscription-lifecycle.js';
-import { hasProcessedWebhook, markWebhookProcessed } from './_lib/licensing.js';
+import {
+  hasProcessedWebhook, markWebhookProcessed, isFounderLicenseKey
+} from './_lib/licensing.js';
 import { acquirePaymentLock, releasePaymentLock } from './_lib/kv-client.js';
 import { recordEvent } from './_lib/event-log.js';
 import { alertOwner } from './_lib/owner-alerts.js';
@@ -41,6 +43,14 @@ function readRawBody(req){
   });
 }
 
+async function refuseOwnerTarget(res,event,bodyHash){
+  await recordEvent('payment_ignored',{event:String(event.type),reason:'owner_account'});
+  await alertOwner({type:'payment_ignored',
+    title:'A signed payment event targeted the owner account and was refused',
+    details:['Event: '+String(event.type)],dedupeKey:'payignored:owner:'+bodyHash});
+  return res.status(200).json({received:true,ignored:true});
+}
+
 export default async function handler(req,res){
   if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});
 
@@ -65,13 +75,40 @@ export default async function handler(req,res){
   if(!event.type) return res.status(200).json({received:true,ignored:true});
 
   const bodyHash=crypto.createHash('sha256').update(rawBody).digest('hex');
+
+  // Signed, but not a purchase of this product in this environment (see the
+  // acceptance policy in the provider adapter). Acknowledge with 200 so it is
+  // not retried, change NOTHING, and tell the owner: a real buyer may have
+  // paid for something that cannot grant Pro, or a webhook is misconfigured.
+  if(event.policyRejection){
+    const reason=String(event.policyRejection);
+    console.warn('payment-webhook: signed event refused by acceptance policy:',reason);
+    await recordEvent('payment_ignored',{event:String(event.type),reason});
+    await alertOwner({type:'payment_ignored',
+      title:'A signed payment event was refused and did not change any account',
+      details:['Event: '+String(event.type),'Reason: '+reason,
+        'Store: '+String(event.storeId||'unknown'),'Variant: '+String(event.variantId||'n/a'),
+        'Test mode: '+(event.testMode?'yes':'no')],
+      // A misrouted test/live webhook can be noisy: one alert per reason per
+      // day. A refused store/product purchase may be a real buyer's money:
+      // alert once per distinct event.
+      dedupeKey:'payignored:'+reason+(/_in_(live|test)$/.test(reason)?'':':'+bodyHash)});
+    return res.status(200).json({received:true,ignored:true});
+  }
   let lockKey=null,lockToken=null,held=false;
   try{
     // Lock the ACCOUNT, not just the raw event hash, because distinct
     // cancellation/resume/renewal events must also have a serial order.
     // Events with a customer index but no custom key resolve identically.
+    // The owner key administers the service and must never become a
+    // provider-managed subscription (checkout already refuses it). Checked
+    // BEFORE resolution (shareable-link custom data naming the owner key,
+    // which may have no stored record and would otherwise retry as a 500)
+    // and AFTER it (an email/customer index pointing at the owner key).
+    if(isFounderLicenseKey(event.licenseKey))return await refuseOwnerTarget(res,event,bodyHash);
     const licenseKey=await resolveSubscriptionLicenseKey(event);
     if(!licenseKey)return res.status(200).json({received:true,ignored:true});
+    if(isFounderLicenseKey(licenseKey))return await refuseOwnerTarget(res,event,bodyHash);
     lockKey='paymentLock:'+crypto.createHash('sha256').update(licenseKey).digest('hex');
     lockToken=crypto.randomBytes(24).toString('hex');
     held=await acquirePaymentLock(lockKey,lockToken,PAYMENT_LOCK_TTL_SECONDS);

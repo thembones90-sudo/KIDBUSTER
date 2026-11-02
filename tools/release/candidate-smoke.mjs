@@ -75,6 +75,13 @@ await probe('email-link sign-in refuses an invalid token', async () => status(aw
 // Payments: checkout validates input; the webhook refuses unsigned requests.
 await probe('checkout refuses an invalid email before contacting the provider', async () => status(await call('POST', '/api/create-checkout-session', { body: { email: 'not-an-email' } }), 400));
 await probe('payment webhook refuses an unsigned request', async () => status(await call('POST', '/api/payment-webhook', { body: '{"meta":{"event_name":"subscription_created"}}' }), 400, 401));
+// A well-formed but forged HMAC proves the deployed route verifies the
+// signature itself, not merely the header's presence. Refused before any
+// datastore access: no account, lock or dedupe marker is touched.
+await probe('payment webhook refuses a well-formed forged signature', async () => status(await call('POST', '/api/payment-webhook', {
+  headers: { 'x-signature': '0'.repeat(64) },
+  body: '{"meta":{"event_name":"subscription_created","test_mode":false},"data":{"type":"subscriptions","id":"0","attributes":{}}}' }), 400));
+await probe('payment webhook refuses non-POST methods', async () => status(await call('GET', '/api/payment-webhook'), 405));
 
 // Report generation, owner tools, Krisp.
 // A well-formed request is built by the trusted protocol engine first (no AI
