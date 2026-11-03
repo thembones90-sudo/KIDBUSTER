@@ -33,8 +33,10 @@ module.exports=async function(){
    if(width===1440){assert.ok(layout.height<540,'collapsed desktop account stays compact');console.log(skin+' compact account height: '+layout.height+'px');}
    if(process.env.V2_ACCOUNT_SCREENSHOTS&&[1440,390].includes(width))await page.screenshot({path:path.join(process.env.V2_ACCOUNT_SCREENSHOTS,'account-'+skin+'-'+width+'.png'),fullPage:width===390});
   }
-  await page.setViewport({width:390,height:1000});await page.click('#accountPanel .account-support>summary');
-  await page.click('#accountPanel .owner-fold>summary');
+  await page.setViewport({width:390,height:1000});
+  // Keyboard activation targets the real summary while mobile reflow settles.
+  await page.focus('#accountPanel .account-support>summary');await page.keyboard.press('Enter');
+  await page.focus('#accountPanel .owner-fold>summary');await page.keyboard.press('Enter');
   assert.equal(await page.$eval('#accountPanel .owner-fold',e=>e.open),true);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'expanded owner controls fit mobile');
   assert.deepEqual(errors,[]);console.log('PASS compact account typography, 44px controls, owner/support expansion and both themes across desktop/tablet/mobile');return 0;

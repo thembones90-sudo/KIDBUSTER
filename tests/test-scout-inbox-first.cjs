@@ -96,6 +96,9 @@ module.exports=async()=>{
     await primary.bringToFront(); // Automatic polling intentionally pauses hidden pages.
     await primary.evaluateOnNewDocument(key=>localStorage.setItem('kidbuster_access_key',key),owner);
     await primary.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'load'});
+    // Exercise a foreground teacher workspace, not a background browser tab
+    // whose polling is intentionally suspended by the away budget.
+    await primary.bringToFront();await primary.click('#krispNotes');
     await primary.waitForFunction(()=>document.querySelector('#krispNotes').value.includes('Synthetic Krisp primary'));
     await primary.waitForFunction(()=>document.querySelector('#radarVanPendingPopoverCount').textContent==='1');
     assert.equal(await primary.$eval('#krispNotes',e=>e.value),krispPrimary?.transcript||'[00:00] TEACHER: Synthetic Krisp primary\n[00:02] STUDENT: Hello');
