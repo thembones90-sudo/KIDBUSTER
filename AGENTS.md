@@ -1,3 +1,15 @@
+# Current release: Scout 1.4.15 first-run clarity — 2026-11-03
+
+release/scout-first-run-20261103 (on Codex 763f123), dpl_D8PV48ypB2jVR7qkm5ftkoHq2zRJ.
+Rollback: Codex's dpl_97TXSjJB1R9cBFyc4ug8zEWAbLny. Public installer: GitHub
+release scout-1.4.15 (sha256 f615c5ff…1249a6, unsigned by owner decision).
+Scout shows "Not connected" + Connect, shows the pairing code, can start with
+Windows; installer ticks shortcut/open/startup. Web: three-step Scout panel,
+token method under Advanced, signed-out approval survives sign-in. 139/139
+files and 1104 Scout tests passed before release; owner asked to publish
+without further checks, so no post-release smoke beyond page, manifest and
+download link.
+
 # Current release: consumer Scout download card — 2026-11-03
 
 Runtime88ee4d8, test-only follow-upda2bbed, deployment dpl_97TXSjJB1R9cBFyc4ug8zEWAbLny live on classbuster.com and legacy webhook domain. Preserves the full public1.4.14 baselineff54246 and integrated payment/testimonial/Redis savings changes. Compact granite card, no visible version/hash, browser-local download-start preference and quiet setup/retry state. No runtime layout refit or workspace shift on download. Account downloads also quiet the card without focus theft. Release manifest/installer1.4.14 and entitlement rules unchanged; installed Scout untouched. All139 local files, CI41594748705, release gate, exact staged/live/legacy assets,26/26 probes each and actual live browser persistence/geometry PASS. See SCOUT-DOWNLOAD-CARD-20261103.md. Rollback dpl_4aB7CrLzFDZRnDhcZm7YvChCfDU2. Publish from the canonical release branch; check the live baseline before promotion. Sandbox CLI deployment auth failed while native authenticated CLI worked; never print tokens. index.html must retain LF as .gitattributes requires to stay under its600KiB guard.
