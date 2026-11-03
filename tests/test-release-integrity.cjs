@@ -13,7 +13,7 @@ const { createChecker } = require('./helpers/assert.cjs');
 
 const ROOT = path.resolve(__dirname, '..');
 const COPY = ['assets/protocol-presentation.js', 'assets/initial-workspace-fit.js', 'assets/initial-workspace-fit.css', 'index.html', 'vercel.json', '.vercelignore', 'api', 'scripts', 'assets/radar-van-client.js', 'assets/scout-integration.css',
-  'assets/owner-usage-stats.js', 'assets/owner-usage-stats.css', 'assets/scout-release.js', 'assets/scout-release.json'];
+  'assets/owner-usage-stats.js', 'assets/owner-usage-stats.css', 'assets/scout-release.js', 'assets/scout-release.css', 'assets/scout-release.json'];
 
 module.exports = async function run(){
   const { check, getFailures } = createChecker();

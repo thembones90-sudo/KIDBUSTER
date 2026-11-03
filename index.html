@@ -2369,20 +2369,7 @@ body.protocol-of #kbLogo,body:has(input[name="protocol"][value="OF"]:checked) #k
 body.protocol-preply #kbLogo,body:has(input[name="protocol"][value="PREPLY"]:checked) #kbLogo{filter:hue-rotate(155deg) saturate(1.2)}
 body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #kbLogo{filter:none}
 </style>
-<style id="scout-public-release-css">
-#scoutReleaseBanner[hidden]{display:none!important}
-#scoutReleaseBanner{display:flex;gap:18px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 18px;padding:17px 20px;border:1px solid rgba(var(--toxin-rgb),.45);border-radius:14px;background:linear-gradient(110deg,rgba(var(--toxin-rgb),.12),rgba(22,28,23,.95));box-shadow:inset 0 1px 0 rgba(255,255,255,.045)}
-.scout-release-copy{flex:1 1 340px;min-width:0}
-.scout-release-eyebrow{margin:0 0 5px;color:var(--toxin-bright);font:700 10px/1.3 var(--font-mono);letter-spacing:.1em;text-transform:uppercase}
-#scoutReleaseBanner h2{margin:0 0 3px;font:700 21px/1.3 var(--font-display);color:var(--text)}
-.scout-release-description{margin:0;color:var(--text-dim);font:400 13px/1.5 var(--font-body)}
-.scout-release-action{display:flex;flex-direction:column;gap:6px;align-items:flex-start;max-width:100%}
-#scoutReleaseLink{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 17px;border:1px solid var(--toxin);border-radius:10px;background:rgb(var(--toxin-rgb));color:#0c110d;text-decoration:none;font:700 13px/1.3 var(--font-body)}
-#scoutReleaseLink:hover{filter:brightness(1.14)}
-#scoutReleaseVersion{color:var(--text-dim);font:500 12px/1.5 var(--font-body)}
-#scoutReleaseChecksum{max-width:100%;overflow-wrap:anywhere;color:var(--text-dim);font:400 10px/1.5 var(--font-mono)}
-@media(max-width:560px){#scoutReleaseBanner{padding:15px;gap:12px}.scout-release-action{width:100%}#scoutReleaseLink{width:100%}#scoutReleaseBanner h2{font-size:19px}}
-</style>
+<link rel="stylesheet" href="assets/scout-release.css?v=20261103">
 <link rel="stylesheet" href="assets/scout-integration.css?v=20261020">
 <link rel="stylesheet" href="assets/pending-inbox-premium.css?v=20261024-scout-brand">
 </head>
@@ -2408,15 +2395,15 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
 
 
   <section id="scoutReleaseBanner" hidden aria-labelledby="scoutReleaseTitle">
-    <div class="scout-release-copy">
-      <p class="scout-release-eyebrow">CLASSBUSTER SCOUT · WINDOWS</p>
-      <h2 id="scoutReleaseTitle">Your desktop lesson companion</h2>
-      <p class="scout-release-description">Scout records and transcribes your lessons on your PC and sends the transcripts to Classbuster. Included with Pro.</p>
+    <div class="scout-release-state scout-release-promo">
+      <img class="scout-release-logo" src="assets/brand/classbuster/apple-touch-icon.png" width="44" height="44" alt="">
+      <div class="scout-release-copy"><span class="scout-release-name">Classbuster Scout</span><h2 id="scoutReleaseTitle">Your lessons, captured automatically.</h2><p>Records and transcribes your lessons, then sends transcripts straight to Classbuster.</p></div>
+      <div class="scout-release-action"><a id="scoutReleaseLink" href="#" aria-label="Download Classbuster Scout for Windows">Download for Windows <span aria-hidden="true">↓</span></a><small>Included with Pro · Windows 10 &amp; 11</small></div>
     </div>
-    <div class="scout-release-action">
-      <a id="scoutReleaseLink" href="#" aria-label="Download Classbuster Scout for Windows">Download Scout for Windows</a>
-      <span id="scoutReleaseVersion"></span>
-      <span id="scoutReleaseChecksum"></span>
+    <div class="scout-release-state scout-release-done" aria-hidden="true" inert>
+      <img class="scout-release-logo" src="assets/brand/classbuster/apple-touch-icon.png" width="44" height="44" alt="">
+      <div class="scout-release-copy"><h2 id="scoutReleaseSetupTitle">Scout setup</h2><p id="scoutReleaseMessage" role="status">Get the installer again whenever you need it.</p></div>
+      <a id="scoutReleaseAgain" href="#">Download again <span aria-hidden="true">↓</span></a>
     </div>
   </section>
 
@@ -10976,10 +10963,10 @@ button#krispPendingBtn:hover .pill-chip,button#accountBtn:hover .pill-chip,butto
 @media(max-width:700px){#feedbackCard{display:block;padding:12px}#feedbackCard .feedback-heading{margin-bottom:8px}#feedbackTabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:8px}#feedbackTabs .feedback-tab{min-width:0;padding:6px 4px;font-size:12px;white-space:normal}#feedbackStarsRow{gap:8px;margin-bottom:8px}#feedbackComment{margin-bottom:6px}#feedbackCard .feedback-submit-row{max-width:none;margin-top:8px;flex-direction:row;align-items:center}#feedbackSubmitBtn{width:auto}#feedbackStars .feedback-star{width:36px;height:36px;font-size:22px}}
 @media(prefers-reduced-motion:reduce){#feedbackCard button{transition:none!important}}
 </style>
-<script src="assets/scout-release.js" defer></script>
+<script src="assets/scout-release.js?v=20261103" defer></script>
 <script defer src="assets/owner-usage-stats.js?v=1"></script>
 <script defer src="assets/owner-activity.js?v=1"></script>
-<script src="assets/radar-van-client.js?v=20261029-scout-1410-waves"></script>
+<script src="assets/radar-van-client.js?v=20261103-download-card"></script>
 <link rel="stylesheet" href="assets/initial-workspace-fit.css?v=20261027-no-menu-resize">
 <script src="assets/blitz-voice-menu.js?v=20261027"></script>
 <link rel="stylesheet" href="assets/testimonial-invite.css?v=20261102b">

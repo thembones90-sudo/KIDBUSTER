@@ -152,6 +152,7 @@ function checkRelease(root){
   need('assets/owner-usage-stats.css', 'owner usage panel styles');
   const manifest = need('assets/scout-release.json', 'Scout download manifest');
   need('assets/scout-release.js', 'Scout download gate');
+  need('assets/scout-release.css', 'Scout download card styles');
   // Public download (owner approval 2026-11-02): either unpublished, or a
   // complete Windows release on the owner's GitHub releases or classbuster.com.
   if(manifest){ try{
@@ -166,7 +167,7 @@ function checkRelease(root){
     }
   }catch{ problems.push('assets/scout-release.json is not valid JSON'); } }
   if(html && !html.includes('id="radarVanDownloadBtn"')) problems.push('Owner Scout download button is missing');
-  for(const asset of ['assets/radar-van-client.js', 'assets/scout-integration.css', 'assets/owner-usage-stats.js', 'assets/owner-usage-stats.css', 'assets/scout-release.js'])
+  for(const asset of ['assets/radar-van-client.js', 'assets/scout-integration.css', 'assets/owner-usage-stats.js', 'assets/owner-usage-stats.css', 'assets/scout-release.js', 'assets/scout-release.css'])
     if(html && !html.includes(asset)) problems.push('index.html does not load ' + asset);
 
   // --- Routing and function budget ---

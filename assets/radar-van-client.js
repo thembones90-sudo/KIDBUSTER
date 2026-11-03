@@ -703,6 +703,7 @@
       if (key !== savedKey()) return;
       if (published) {
         if (status) status.textContent = 'Your download is starting. Run ScoutSetup.exe to install Classbuster Scout. If Windows says "Windows protected your PC", choose More info, then Run anyway. Close Scout before upgrading; your lesson data is preserved.';
+        window.dispatchEvent(new Event('classbuster:scout-download-started'));
         window.location.assign(published);
         return;
       }
@@ -720,6 +721,7 @@
         throw new Error('The private download URL is invalid.');
       }
       if (status) status.textContent = 'Your download is starting. Run ScoutSetup.exe to install Classbuster Scout. Close Scout before upgrading; your lesson data is preserved.';
+      window.dispatchEvent(new Event('classbuster:scout-download-started'));
       window.location.assign(url.href);
     } catch(err) {
       if (status) status.textContent = err.message || 'Could not start the Scout download.';

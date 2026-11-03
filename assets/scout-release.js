@@ -4,9 +4,8 @@
   async function mount() {
     const banner = document.getElementById('scoutReleaseBanner');
     const link = document.getElementById('scoutReleaseLink');
-    const version = document.getElementById('scoutReleaseVersion');
-    const checksum = document.getElementById('scoutReleaseChecksum');
-    if (!banner || !link || !version || !checksum) return;
+    const again = document.getElementById('scoutReleaseAgain');
+    if (!banner || !link || !again) return;
     try {
       const response = await fetch('/assets/scout-release.json',{cache:'no-store',credentials:'omit'});
       if (!response.ok) return;
@@ -21,11 +20,34 @@
         /^\/downloads\/[\w.-]+\.(exe|msi|msix)$/i.test(url.pathname);
       if (url.protocol !== 'https:' || url.username || url.password ||
           url.search || url.hash || url.port || !(github || owned)) return;
-      link.href = url.href;
-      link.rel = 'noopener noreferrer';
-      link.target = '_blank';
-      version.textContent = 'Windows · Version ' + release.version;
-      checksum.textContent = 'SHA-256: ' + release.sha256.toLowerCase();
+      // Release identity/hash remain validated above, never rendered as UI copy.
+      const preference = 'classbuster_scout_download_started_v1';
+      const promo = banner.querySelector('.scout-release-promo');
+      const done = banner.querySelector('.scout-release-done');
+      function quiet(startedNow,moveFocus=false) {
+        banner.dataset.downloaded = 'true';
+        banner.setAttribute('aria-labelledby','scoutReleaseSetupTitle');
+        promo.inert = true; promo.setAttribute('aria-hidden','true');
+        done.inert = false; done.removeAttribute('aria-hidden');
+        if (startedNow) {
+          document.getElementById('scoutReleaseMessage').textContent = 'Download started. Run the installer to finish setup.';
+          if(moveFocus)again.focus({preventScroll:true});
+        }
+      }
+      function started(moveFocus) {
+        try { localStorage.setItem(preference,'1'); } catch { /* Storage may be disabled. */ }
+        // Let the original link activation finish before making it inert.
+        setTimeout(() => quiet(true,moveFocus),0);
+      }
+      for (const action of [link,again]) {
+        action.href = url.href; action.rel = 'noopener noreferrer'; action.target = '_blank';
+        action.addEventListener('click', () => started(true));
+      }
+      window.addEventListener('classbuster:scout-download-started',()=>started(false));
+      try { if (localStorage.getItem(preference)==='1') quiet(false); } catch { /* Download still works. */ }
+      window.addEventListener('storage',event=>{
+        if(event.key===preference&&event.newValue==='1') quiet(false);
+      });
       banner.hidden = false;
     } catch {
       // A missing/unavailable release must not interrupt report generation.
