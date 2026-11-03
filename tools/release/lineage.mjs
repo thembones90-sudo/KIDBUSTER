@@ -47,8 +47,11 @@ export function blobId(relPath, bytes, cwd) {
 }
 
 export async function readLive({ origin = LIVE_ORIGIN, fetchImpl = fetch } = {}) {
+  // A unique query defeats edge caches: a stale stamp could otherwise vouch
+  // for an older release (seen 2026-11-03: a cached 404 outlived a release).
   const get = async p => {
-    const r = await fetchImpl(origin + '/' + p, { cache: 'no-store', redirect: 'follow' });
+    const fresh = (p.includes('?') ? '&' : '?') + 'lineage=' + Date.now() + Math.random().toString(36).slice(2);
+    const r = await fetchImpl(origin + '/' + p + fresh, { cache: 'no-store', redirect: 'follow', headers: { 'cache-control': 'no-cache' } });
     if (!r.ok) return null;
     return Buffer.from(await r.arrayBuffer());
   };
