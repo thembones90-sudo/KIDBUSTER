@@ -15,3 +15,7 @@ testimonial-consent/
 # Local-only compatibility for an already running pre-change V2 preview.
 # The deployed V2 ping is a static /ping.json rewrite, not an API function.
 /api/ping.js
+
+# Release stamp written into the upload only (tools/release/release.mjs)
+/release.json
+/.release-candidate.json

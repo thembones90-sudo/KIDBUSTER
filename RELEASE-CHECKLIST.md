@@ -1,6 +1,6 @@
 # Classbuster release checklist
 
-Applies to every production release of the website (`classbuster.com`, Vercel project `kidbuster`). Releases are built only from the protected line `feature/classbuster-scout-owner-restore-20261022` or a verified descendant. Never deploy an older branch: it would drop Scout, owner statistics, the Krisp self-heal and the authentication protections.
+Applies to every production release of the website (`classbuster.com`, Vercel project `kidbuster`). **One release line (owner rule, 2026-11-03):** every release must contain whatever is live on classbuster.com. Start from the live release (`node tools/release/release.mjs check` says which commit that is) and stage and promote only with `tools/release/release.mjs`, which refuses a candidate that does not contain the live release, both at staging and again at promotion. Never stage or promote with plain `vercel deploy`/`vercel promote`: twice on 2026-10-29..11-02 a release built from another branch silently removed live work (the Scout owner download fell back to 1.4.10). Original rule still applies: never deploy an older branch.
 
 Each level is a different kind of evidence. A lower level never substitutes for a higher one.
 
@@ -71,7 +71,7 @@ replace verified publisher identity with a self-signed certificate.
 until these are independently scoped and actual values verified.
 
 ## Level 3: live candidate checks (staged production candidate, not promoted)
-- [ ] Stage: `vercel deploy --prod --skip-domain` (or `tools/release/scout-owner-release.ps1 -Phase Stage`). The current production deployment stays live.
+- [ ] Stage: `node tools/release/release.mjs stage` (lineage guard, release stamp, `vercel deploy --prod --skip-domain`). The current production deployment stays live.
 - [ ] `node tools/release/candidate-smoke.mjs <candidate-url> --expect-scout enabled|disabled`, with `VERCEL_AUTOMATION_BYPASS_SECRET` set for the protected candidate. These are refusal-only and read-only: no emails, accounts, checkouts or reports.
 - [ ] Every check passes.
 
@@ -84,7 +84,7 @@ These need real credentials, so only the owner performs them, in their own brows
 
 ## Promotion (owner's explicit authorization required)
 - [ ] Record the current production deployment ID as the rollback.
-- [ ] `vercel promote <candidate-url>`.
+- [ ] `node tools/release/release.mjs promote <candidate-url>` (re-checks that nothing else went live meanwhile).
 - [ ] `node tools/release/candidate-smoke.mjs https://classbuster.com --expect-scout …` passes against production.
 - [ ] Keep `kidbuster.vercel.app` serving without a redirect: the Lemon Squeezy webhook, Krisp webhook links and installed Scout clients still use it.
 
@@ -93,6 +93,7 @@ These need real credentials, so only the owner performs them, in their own brows
 - Scout only: remove or change the production `RADAR_VAN_ENABLED` value, then redeploy (env changes need a new deployment), or roll back.
 
 ## Never
+- Stage or promote with plain `vercel` commands, or from a branch that does not contain the live release.
 - Promote a candidate that failed any level.
 - Bypass or edit the gate to make a release pass.
 - Deploy unfinished Scout functionality to non-owner accounts. The public Scout release stays frozen.

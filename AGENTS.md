@@ -1,3 +1,11 @@
+# RULE FOR EVERY AGENT: one release line (owner, 2026-11-03)
+
+Before changing the website, start from what is LIVE: run
+`node tools/release/release.mjs check` (it names the live commit). Release only with
+`node tools/release/release.mjs stage` then `... promote <candidate-url>`; both refuse
+a candidate that does not contain the live release. Never use plain `vercel deploy`
+or `vercel promote` for production. See RELEASE-CHECKLIST.md.
+
 # Current release: Scout 1.4.15 first-run clarity — 2026-11-03
 
 release/scout-first-run-20261103 (on Codex 763f123), dpl_D8PV48ypB2jVR7qkm5ftkoHq2zRJ.
