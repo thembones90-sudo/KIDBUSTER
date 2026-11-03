@@ -1,3 +1,6 @@
+# Current release: consumer Scout download card — 2026-11-03
+
+Runtime88ee4d8, test-only follow-upda2bbed, deployment dpl_97TXSjJB1R9cBFyc4ug8zEWAbLny live on classbuster.com and legacy webhook domain. Preserves the full public1.4.14 baselineff54246 and integrated payment/testimonial/Redis savings changes. Compact granite card, no visible version/hash, browser-local download-start preference and quiet setup/retry state. No runtime layout refit or workspace shift on download. Account downloads also quiet the card without focus theft. Release manifest/installer1.4.14 and entitlement rules unchanged; installed Scout untouched. All139 local files, CI41594748705, release gate, exact staged/live/legacy assets,26/26 probes each and actual live browser persistence/geometry PASS. See SCOUT-DOWNLOAD-CARD-20261103.md. Rollback dpl_4aB7CrLzFDZRnDhcZm7YvChCfDU2. Publish from the canonical release branch; check the live baseline before promotion. Sandbox CLI deployment auth failed while native authenticated CLI worked; never print tokens. index.html must retain LF as .gitattributes requires to stay under its600KiB guard.
 # Current release: Scout 1.4.14 public — 2026-11-02 evening
 
 release/scout-1414-20261102, dpl_4aB7CrLzFDZRnDhcZm7YvChCfDU2 on both domains
@@ -381,4 +384,5 @@ by hand, never start a second Scout while one runs.
 - Alerts go to the owner sheet and `OWNER_ALERT_EMAIL` (email needs the mail relay's owner-alert
   rule, `tools/mail-relay`, deployed in the ASOC Engine Railway project — owner approval needed).
 - Customer continuity report: `CLASSBUSTER-CUSTOMER-CONTINUITY-FINAL.md`.
+
 
