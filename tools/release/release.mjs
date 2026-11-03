@@ -35,7 +35,8 @@ async function guard(){
 }
 
 function vercel(args){
-  return execFileSync(VERCEL, args, { cwd: root, encoding: 'utf8', shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  // Quoted: the default CLI path contains a space and runs through cmd.exe.
+  return execFileSync('"' + VERCEL + '"', args, { cwd: root, encoding: 'utf8', shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
 const [command, arg] = process.argv.slice(2);
