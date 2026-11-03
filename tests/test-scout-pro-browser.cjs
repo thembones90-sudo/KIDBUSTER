@@ -89,6 +89,14 @@ module.exports = async function run(){
     check('Pro teacher: Scout panel appears', await sectionVisible(pro.page));
     check('panel says Scout is included with Pro', /Included with Pro/.test(await pro.page.$eval('#radarVanSection', s=>s.textContent)));
     check('panel no longer says owner-only', !/owner-only|master account/i.test(await pro.page.$eval('#radarVanSection', s=>s.textContent)));
+    // First-run clarity (2026-11-03): three plain steps; token method folded away.
+    const guide = await pro.page.evaluate(() => {
+      const steps = document.getElementById('radarVanSteps'), adv = document.getElementById('radarVanAdvanced');
+      return { steps: steps && !steps.hidden ? [...steps.querySelectorAll('li')].map(li => li.textContent) : [],
+        advancedClosed: !!adv && !adv.open, tokenButtonVisible: document.getElementById('radarVanConnectBtn').getClientRects().length > 0 };
+    });
+    check('not connected: three plain steps, starting in Scout', guide.steps.length === 3 && /Connect to Classbuster/.test(guide.steps[1]) && /Approve the code/.test(guide.steps[2]));
+    check('the device-token method is folded under Advanced', guide.advancedClosed && !guide.tokenButtonVisible);
 
     // Before the public release: a clear message, and no private installer.
     await pro.page.evaluate(()=>document.getElementById('radarVanDownloadBtn').click());

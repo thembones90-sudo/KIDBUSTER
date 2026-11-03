@@ -2465,20 +2465,22 @@ body.protocol-ma #kbLogo,body:has(input[name="protocol"][value="MA"]:checked) #k
         <span class="radar-van-hint">Windows · Included with Pro</span>
       </div>
       <p class="radar-van-status" id="radarVanDownloadStatus" role="status" aria-live="polite"></p>
-      <p class="radar-van-hint">Separate from Krisp. Importing only fills your lesson notes: it never writes a report and never uses a generation.</p>
+      <ol class="radar-van-hint" id="radarVanSteps"><li>Download Scout and install it.</li><li>Open Scout and click <b>Connect to Classbuster</b>.</li><li>Approve the code that appears on this page.</li></ol>
       <p class="radar-van-status" id="radarVanStatus" role="status" aria-live="polite"></p>
+      <details id="radarVanAdvanced"><summary class="radar-van-hint">Advanced: connect with a device token</summary>
       <div class="radar-van-token" id="radarVanTokenBox" role="group" aria-labelledby="radarVanTokenTitle" hidden>
         <p class="radar-van-token-title" id="radarVanTokenTitle">Your device token (shown only once)</p>
         <p class="radar-van-warning" id="radarVanTokenWarning">Copy it now and paste it into Scout. It cannot be shown again, and anyone who has it can add lessons to your inbox. If you lose it, replace it with a new one.</p>
         <input type="text" id="radarVanTokenField" class="radar-van-token-field" readonly spellcheck="false" autocomplete="off" aria-labelledby="radarVanTokenTitle" aria-describedby="radarVanTokenWarning">
         <div class="radar-van-row"><button type="button" class="btn-secondary" id="radarVanCopyBtn">Copy token</button><button type="button" class="btn-secondary" id="radarVanTokenDoneBtn">I have saved it, hide token</button></div>
       </div>
+      <button type="button" class="btn-secondary" id="radarVanConnectBtn">Create device token</button>
+      </details>
       <div class="radar-van-row" role="group" aria-label="Scout connection controls">
-        <button type="button" class="btn-secondary" id="radarVanConnectBtn">Connect Scout</button>
         <button type="button" class="btn-secondary" id="radarVanDisconnectBtn" aria-describedby="radarVanDisconnectHint" hidden>Disconnect Scout</button>
       </div>
-      <p class="radar-van-hint" id="radarVanImportPolicy">Connected Scout sends finished transcripts automatically. Open Pending transcripts → Classbuster Scout to choose a lesson and import it into your notes. No report is generated automatically.</p>
-      <p class="radar-van-hint" id="radarVanDisconnectHint">Disconnect revokes the device token on our server. Clearing the token inside the Scout desktop app only forgets it on that computer and does not revoke it.</p>
+      <p class="radar-van-hint" id="radarVanImportPolicy" hidden></p>
+      <p class="radar-van-hint" id="radarVanDisconnectHint" hidden>Disconnect stops Scout sending lessons to this account.</p>
       <div class="radar-van-inbox" id="radarVanInboxWrap">
         <h4 class="radar-van-inbox-title" id="radarVanInboxTitle">Pending Scout lessons: <span id="radarVanCount">0</span></h4>
         <p class="radar-van-hint" id="radarVanWaiting" hidden></p>

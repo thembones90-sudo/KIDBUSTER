@@ -158,6 +158,8 @@ module.exports = async function run(){
     // ---- connect: token shown once ----
     console.log('\n2) Token shown once, copy errors handled, no leak');
     await openAccount(page);
+    // The token method lives under Advanced since 2026-11-03.
+    await page.evaluate(() => { document.getElementById('radarVanAdvanced').open = true; });
     await page.click('#radarVanConnectBtn');
     check('token box becomes visible', await wait(page, () => !document.getElementById('radarVanTokenBox').hidden));
     const token = await page.evaluate(() => document.getElementById('radarVanTokenField').value);
@@ -261,7 +263,7 @@ module.exports = async function run(){
     await page.click('#radarVanDisconnectBtn');
     check('disconnect state shown', await wait(page, () => document.getElementById('radarVanState').dataset.state === 'off'));
     check('confirmation warns that the server credential is revoked and desktop-only clearing is not enough', page.dialogs.some(d => /revokes the device token on our server/.test(d) && /does not revoke/.test(d)));
-    check('status text says the token was revoked on the server', /revoked on the server/i.test(await text(page, 'radarVanStatus')));
+    check('status text says Scout no longer sends lessons to this account', /no longer sends lessons to this account/i.test(await text(page, 'radarVanStatus')));
     check('old token now fails (401)', (await ingest(token, lesson(6))).code === 401);
     check('queued lessons survive the disconnect', (await status()).body.waitingCount === 1 && (await status()).body.automatic === false);
     check('ARM remains absent after disconnect', await page.evaluate(() => !document.getElementById('radarVanArmBtn')));
@@ -289,7 +291,7 @@ module.exports = async function run(){
     };
     const setup = async (key, clearDraft) => {
       const p = await open({ key, clearDraft }); await control(p);
-      await openAccount(p); await p.click('#radarVanConnectBtn');
+      await openAccount(p); await p.evaluate(() => { document.getElementById('radarVanAdvanced').open = true; }); await p.click('#radarVanConnectBtn');
       await wait(p, () => !document.getElementById('radarVanTokenBox').hidden);
       const tok = await p.evaluate(() => document.getElementById('radarVanTokenField').value);
       await wait(p, () => /automatic/.test(document.getElementById('radarVanState').textContent));
@@ -390,6 +392,7 @@ module.exports = async function run(){
     check('mobile: section reachable from the account popover', await wait(mobile, () => !document.getElementById('radarVanSection').hidden));
     await mobile.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
     const geometry = await mobile.evaluate(() => {
+      document.getElementById('radarVanAdvanced').open = true;
       const ids = ['radarVanConnectBtn'];
       const rects = ids.map(i => document.getElementById(i).getBoundingClientRect());
       return { overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
@@ -397,7 +400,7 @@ module.exports = async function run(){
         tall: ids.every(id => document.getElementById(id).offsetHeight >= 40) };
     });
     check('mobile: no horizontal overflow, controls inside the viewport and touch-sized', !geometry.overflow && geometry.inside && geometry.tall);
-    await mobile.evaluate(() => document.getElementById('radarVanConnectBtn').scrollIntoView({ block: 'center' }));
+    await mobile.evaluate(() => { document.getElementById('radarVanAdvanced').open = true; document.getElementById('radarVanConnectBtn').scrollIntoView({ block: 'center' }); });
     await mobile.click('#radarVanConnectBtn');
     check('mobile: token reveal fits the screen', await wait(mobile, () => !document.getElementById('radarVanTokenBox').hidden) && await mobile.evaluate(() => { const r = document.getElementById('radarVanTokenField').getBoundingClientRect(); const p = document.getElementById('accountPanel').getBoundingClientRect(); if (r.right > window.innerWidth || r.left < 0) console.log('GEOM field', r.left, r.right, 'panel', p.left, p.right, 'vw', window.innerWidth); return r.right <= window.innerWidth && r.left >= 0; }));
     await mobile.close();

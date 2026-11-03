@@ -93,7 +93,19 @@ module.exports = async function run(){
     check('no browser errors on the owner page', errors.length === 0);
     const other = await open('synthetic-pro-key', sha(newToken()));
     await other.page.waitForSelector('#scoutPairCard', { timeout: 12000 });
-    check('a non-owner sees a sign-in message and no Approve button', await other.page.$eval('#scoutPairApprove', e => e.hidden) && /owns Scout/.test(await other.page.$eval('#scoutPairCard', e => e.textContent)));
+    check('an account without Scout is told it comes with Pro, with no Approve button', await other.page.$eval('#scoutPairApprove', e => e.hidden) && /included with Classbuster Pro/.test(await other.page.$eval('#scoutPairCard', e => e.textContent)));
+    // Signed out (2026-11-03): the link is kept, and approval appears after sign-in.
+    const outToken = newToken(), outHash = sha(outToken);
+    const out = await (await browser.createBrowserContext()).newPage(); // no saved sign-in
+    await out.goto(base + '/?scout-pair=' + outHash, { waitUntil: 'load' });
+    await out.waitForSelector('#scoutPairCard', { timeout: 12000 });
+    check('a signed-out teacher is asked to sign in, not to start again', await out.$eval('#scoutPairApprove', e => e.hidden) && /appear here as soon as you are signed in/.test(await out.$eval('#scoutPairCard', e => e.textContent)));
+    await out.evaluate(k => { localStorage.setItem('kidbuster_access_key', k); document.dispatchEvent(new Event('kidbuster:access-key-saved')); }, OWNER);
+    await out.waitForFunction(() => { const b = document.getElementById('scoutPairApprove'); return b && !b.hidden; }, { timeout: 12000 });
+    check('after signing in, the same link shows Approve with the matching code', await out.$eval('#scoutPairCode', (e, c) => e.textContent === c, (outHash.slice(0, 4) + '-' + outHash.slice(4, 8)).toUpperCase()));
+    await out.click('#scoutPairApprove');
+    await out.waitForFunction(() => /connected/i.test(document.getElementById('scoutPairStatus').textContent), { timeout: 12000 });
+    check('and Approve connects that Scout', (await credCheck(outToken)).code === 200);
     const plain = await browser.newPage();
     await plain.evaluateOnNewDocument(k => { localStorage.setItem('kidbuster_access_key', k); }, OWNER);
     await plain.goto(base + '/', { waitUntil: 'load' });

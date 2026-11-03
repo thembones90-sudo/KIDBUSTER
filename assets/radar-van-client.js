@@ -317,8 +317,15 @@
     badge.dataset.state = !state.connected ? 'off' : 'connected';
     badge.textContent = !state.connected ? 'Not connected' : 'Connected · automatic';
     var policy = $('ImportPolicy');
-    if(policy) policy.textContent = state.inboxOnly ? 'Scout sends completed transcripts automatically to Pending transcripts → Classbuster Scout. Choose a lesson to import into your notes; nothing is imported or generated without your choice.' : 'Connected Scout automatically adds finished transcripts to empty lesson notes. If your notes or report already have content, nothing is overwritten: the lesson waits in Pending transcripts until you import it. No report is generated automatically.';
-    $('ConnectBtn').textContent = state.connected ? 'Replace device token' : 'Connect Scout';
+    // Plain words for non-technical teachers (owner request 2026-11-03):
+    // steps until connected, then what happens to finished lessons.
+    if(policy){
+      policy.hidden = !state.connected;
+      policy.textContent = state.inboxOnly ? 'Finished lessons wait in Pending transcripts. Nothing is imported until you choose one. Scout never writes a report for you.' : 'Finished lessons go straight into your notes when they are empty. Otherwise they wait in Pending transcripts. Scout never writes a report for you.';
+    }
+    $('Steps').hidden = state.connected;
+    $('DisconnectHint').hidden = !state.connected;
+    $('ConnectBtn').textContent = state.connected ? 'Replace device token' : 'Create device token';
     $('DisconnectBtn').hidden = !state.connected;
     var items = Array.isArray(data.inboxPending) ? data.inboxPending :
       (Array.isArray(data.pending) ? data.pending : []);
@@ -497,7 +504,7 @@
       if(key !== savedKey()) return;
       var r = await api('GET', null, !state.receiptMode && !state.inboxOnly && workspaceIdle() && !Object.keys(pendingDismiss).length, state.receiptMode ? null : sinceVersion());
       if(r === null) return;
-      if(r.status === 404 || r.status === 403 || r.status === 401){ hideAll(); stopPolling(); state.failures = 0; state.disabled = true; maybePair(false); return; }
+      if(r.status === 404 || r.status === 403 || r.status === 401){ hideAll(); stopPolling(); state.failures = 0; state.disabled = true; maybePair(r.status === 403 ? 'not-entitled' : r.status === 404 ? 'unavailable' : 'signed-out'); return; }
       if(!r.ok){ state.failures++; if(!section.hidden) say('Scout is temporarily unreachable. Retrying shortly.'); return; }
       state.failures = 0;
       if(r.data.unchanged){ await retryReceipts(); return; }
@@ -553,6 +560,7 @@
     var card = document.getElementById('scoutPairCard');
     if(card) return card;
     card = document.createElement('div'); card.id = 'scoutPairCard'; card.className = 'scout-pair-card';
+    if(blockedMessage) card.dataset.blocked = '1';
     card.setAttribute('role', 'dialog'); card.setAttribute('aria-labelledby', 'scoutPairTitle');
     var title = document.createElement('h3'); title.id = 'scoutPairTitle'; title.textContent = 'Connect Classbuster Scout?';
     var text = document.createElement('p');
@@ -586,11 +594,20 @@
     document.body.appendChild(card);
     return card;
   }
-  function maybePair(authorized){
+  // Signed out: the link is kept, so the approval appears as soon as the
+  // teacher signs in here; no need to start again in Scout.
+  var PAIR_BLOCKED = {
+    'signed-out': 'Sign in to Classbuster in this window. This approval will appear here as soon as you are signed in.',
+    'not-entitled': 'Scout is included with Classbuster Pro. Upgrade to Pro in Account, then click Connect to Classbuster in Scout again.',
+    'unavailable': 'Scout cannot be connected right now. Please try again later.'
+  };
+  function maybePair(status){
     var hash = pairParam();
     if(!hash) return;
-    if(authorized) pairCard(hash);
-    else pairCard(hash, 'Sign in with the Classbuster account that owns Scout, then click Connect in Scout again.');
+    var existing = document.getElementById('scoutPairCard');
+    if(existing && existing.dataset.blocked) existing.remove();
+    if(status === true) pairCard(hash);
+    else pairCard(hash, PAIR_BLOCKED[status] || PAIR_BLOCKED['signed-out']);
   }
 
   var openPending = document.getElementById('radarVanOpenPending');
@@ -621,7 +638,7 @@
   function resetForAccount(){
     state.gen++; state.applied = {}; state.retry = {}; state.acking = {}; state.scopeKey = null; state.scope = null; state.failures = 0; state.disabled = false; state.version = null; state.lastFull = 0;
     hideAll(); stopPolling();
-    if(savedKey()) poll();
+    if(savedKey()) poll(); else maybePair('signed-out');
   }
 
   async function connect(){
@@ -662,7 +679,7 @@
     try{
       var r = await api('POST', { action: 'disconnect' });
       if(r === null) return;
-      if(r.ok){ hideToken(); render(r.data); say('Disconnected. The device token was revoked on the server. Automatic import is stopped.'); }
+      if(r.ok){ hideToken(); render(r.data); say('Disconnected. Scout no longer sends lessons to this account.'); }
       else say(r.status === 409 ? 'Scout is busy, so the token was NOT revoked. Try again.' : 'Could not confirm the disconnect, so the token may still be active. Try again.');
     }catch(e){ say('Scout could not be reached. The token was NOT revoked. Try again.'); }
     finally{ button.disabled = false; }
@@ -702,7 +719,7 @@
       var published = await publicRelease();
       if (key !== savedKey()) return;
       if (published) {
-        if (status) status.textContent = 'Your download is starting. Run ScoutSetup.exe to install Classbuster Scout. If Windows says "Windows protected your PC", choose More info, then Run anyway. Close Scout before upgrading; your lesson data is preserved.';
+        if (status) status.textContent = 'Your download is starting. Open ScoutSetup.exe. If Windows says "Windows protected your PC", click More info, then Run anyway. Then click Connect to Classbuster in Scout.';
         window.dispatchEvent(new Event('classbuster:scout-download-started'));
         window.location.assign(published);
         return;
@@ -739,5 +756,5 @@
   // Emptied notes: check now and switch to the fast automatic cadence.
   if(notes) notes.addEventListener('input', function(){ if((state.matchedCount || (state.connected && state.armed)) && workspaceIdle()) pollSoon(); });
 
-  if(savedKey()) poll();
+  if(savedKey()) poll(); else maybePair('signed-out');
 })();

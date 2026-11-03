@@ -30,7 +30,7 @@
         promo.inert = true; promo.setAttribute('aria-hidden','true');
         done.inert = false; done.removeAttribute('aria-hidden');
         if (startedNow) {
-          document.getElementById('scoutReleaseMessage').textContent = 'Download started. Run the installer to finish setup.';
+          document.getElementById('scoutReleaseMessage').textContent = 'Download started. Open ScoutSetup.exe. If Windows says it protected your PC, click More info, then Run anyway. Then click Connect to Classbuster in Scout.';
           if(moveFocus)again.focus({preventScroll:true});
         }
       }
