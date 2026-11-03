@@ -5,6 +5,7 @@ Before changing the website, start from what is LIVE: run
 `node tools/release/release.mjs stage` then `... promote <candidate-url>`; both refuse
 a candidate that does not contain the live release. Never use plain `vercel deploy`
 or `vercel promote` for production. See RELEASE-CHECKLIST.md.
+Latest handoff from Claude: HANDOFF-CLAUDE-TO-CODEX-20261103.md.
 
 # Current release: Scout 1.4.15 first-run clarity — 2026-11-03
 
