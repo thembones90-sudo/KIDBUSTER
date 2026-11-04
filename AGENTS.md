@@ -7,6 +7,10 @@ a candidate that does not contain the live release. Never use plain `vercel depl
 or `vercel promote` for production. See RELEASE-CHECKLIST.md.
 Latest handoff from Claude: HANDOFF-CLAUDE-TO-CODEX-20261103.md.
 
+# Current release: hide Scout promotion after setup — 2026-11-04
+
+Runtime `8f0806e`, live `dpl_2kWfS9bMWqyNBJTKPeCXvrhLTyrh`, contains `dc6c151` and Claude's handoff. Guarded stage/promote only. Banner fully removed after download, verified connection or manual “Already have Scout?” dismissal; remembered browser preference; no replacement strip/reserved height. Account Scout controls retained, workspace width/scale unchanged. All140 local test files and CI41804946113 pass; release gate, authenticated candidate 26/26 and browser, public26/26 and browser, legacy26/26 pass. Rollback `dpl_CfLnk8mi3ok3FNHHKiRt4jxNRSiE`. Scout native1.4.15 unchanged. See SCOUT-BANNER-DISMISSAL-20261104.md. Older quiet-setup strip geometry contract is superseded by the owner's explicit full-removal request.
+
 # Current release: Scout 1.4.15 first-run clarity — 2026-11-03
 
 release/scout-first-run-20261103 (on Codex 763f123), dpl_D8PV48ypB2jVR7qkm5ftkoHq2zRJ.
