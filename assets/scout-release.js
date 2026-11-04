@@ -4,8 +4,30 @@
   async function mount() {
     const banner = document.getElementById('scoutReleaseBanner');
     const link = document.getElementById('scoutReleaseLink');
-    const again = document.getElementById('scoutReleaseAgain');
-    if (!banner || !link || !again) return;
+    const dismiss = document.getElementById('scoutReleaseDismiss');
+    if (!banner || !link || !dismiss) return;
+    // Browser-local setup preference, never proof of installation or entitlement.
+    // The HTML starts hidden: remembered dismissal never flashes or reserves space.
+    const preference = 'classbuster_scout_download_started_v1';
+    let dismissed = false;
+    try { dismissed = localStorage.getItem(preference) === '1'; } catch { /* Memory-only fallback. */ }
+    function hide(remember = true) {
+      dismissed = true;
+      const ownsFocus = banner.contains(document.activeElement);
+      banner.hidden = true;
+      if (remember) {
+        try { localStorage.setItem(preference, '1'); } catch { /* Still hide in this page. */ }
+      }
+      if (ownsFocus) document.getElementById('krispNotes')?.focus({preventScroll:true});
+    }
+    // Account downloads and verified connections use their existing flows.
+    window.addEventListener('classbuster:scout-download-started', () => hide());
+    window.addEventListener('classbuster:scout-connected', () => hide());
+    window.addEventListener('storage', event => {
+      if (event.key === preference && event.newValue === '1') hide(false);
+    });
+    dismiss.addEventListener('click', () => hide());
+    if (document.getElementById('radarVanState')?.dataset.state === 'connected') hide();
     try {
       const response = await fetch('/assets/scout-release.json',{cache:'no-store',credentials:'omit'});
       if (!response.ok) return;
@@ -21,34 +43,13 @@
       if (url.protocol !== 'https:' || url.username || url.password ||
           url.search || url.hash || url.port || !(github || owned)) return;
       // Release identity/hash remain validated above, never rendered as UI copy.
-      const preference = 'classbuster_scout_download_started_v1';
-      const promo = banner.querySelector('.scout-release-promo');
-      const done = banner.querySelector('.scout-release-done');
-      function quiet(startedNow,moveFocus=false) {
-        banner.dataset.downloaded = 'true';
-        banner.setAttribute('aria-labelledby','scoutReleaseSetupTitle');
-        promo.inert = true; promo.setAttribute('aria-hidden','true');
-        done.inert = false; done.removeAttribute('aria-hidden');
-        if (startedNow) {
-          document.getElementById('scoutReleaseMessage').textContent = 'Download started. Open ScoutSetup.exe. If Windows says it protected your PC, click More info, then Run anyway. Then click Connect to Classbuster in Scout.';
-          if(moveFocus)again.focus({preventScroll:true});
-        }
-      }
-      function started(moveFocus) {
-        try { localStorage.setItem(preference,'1'); } catch { /* Storage may be disabled. */ }
-        // Let the original link activation finish before making it inert.
-        setTimeout(() => quiet(true,moveFocus),0);
-      }
-      for (const action of [link,again]) {
-        action.href = url.href; action.rel = 'noopener noreferrer'; action.target = '_blank';
-        action.addEventListener('click', () => started(true));
-      }
-      window.addEventListener('classbuster:scout-download-started',()=>started(false));
-      try { if (localStorage.getItem(preference)==='1') quiet(false); } catch { /* Download still works. */ }
-      window.addEventListener('storage',event=>{
-        if(event.key===preference&&event.newValue==='1') quiet(false);
+      link.href = url.href; link.rel = 'noopener noreferrer'; link.target = '_blank';
+      link.addEventListener('click', () => {
+        // Let the original link activation finish before removing its layout box.
+        setTimeout(() => hide(), 0);
       });
-      banner.hidden = false;
+      banner.hidden = dismissed;
+
     } catch {
       // A missing/unavailable release must not interrupt report generation.
     }

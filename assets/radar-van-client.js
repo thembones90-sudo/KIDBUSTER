@@ -313,6 +313,7 @@
     if(typeof data.version === 'string'){ state.version = data.version; state.lastFull = Date.now(); }
     section.hidden = false;
     state.connected = !!data.connected; state.armed = !!data.automatic; state.inboxOnly = !!data.inboxOnly; state.matchedCount = data.waitingCount ?? data.matchedCount ?? 0;
+    if(state.connected) window.dispatchEvent(new Event('classbuster:scout-connected'));
     var badge = $('State');
     badge.dataset.state = !state.connected ? 'off' : 'connected';
     badge.textContent = !state.connected ? 'Not connected' : 'Connected · automatic';

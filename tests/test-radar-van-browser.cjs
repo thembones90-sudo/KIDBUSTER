@@ -166,6 +166,7 @@ module.exports = async function run(){
     check('token is an rv1_ device credential, visibly displayed in a field (not clipboard-only)', /^rv1_[A-Za-z0-9_-]{43}$/.test(token) && await visible(page, 'radarVanTokenField'));
     check('one-time warning is on screen', /only once/i.test(await text(page, 'radarVanTokenTitle')) && /cannot be shown again/i.test(await text(page, 'radarVanTokenWarning')));
     check('after connect the UI shows automatic import', await page.evaluate(() => document.getElementById('radarVanState').dataset.state === 'connected' && /automatic/.test(document.getElementById('radarVanState').textContent)));
+    check('verified session connection removes the download banner and remembers setup', await page.evaluate(() => document.getElementById('scoutReleaseBanner').hidden && localStorage.getItem('classbuster_scout_download_started_v1') === '1'));
     await page.evaluate(() => { document.execCommand = () => false; Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: () => Promise.reject(new Error('denied')) } }); });
     await page.click('#radarVanCopyBtn');
     await sleep(200);

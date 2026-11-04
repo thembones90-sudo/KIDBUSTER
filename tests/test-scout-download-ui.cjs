@@ -59,23 +59,14 @@ module.exports=async function run() {
    // Keep the test offline while exercising the actual download click handler.
    await page.$eval('#scoutReleaseLink',e=>e.addEventListener('click',event=>event.preventDefault(),{once:true}));
    await page.click('#scoutReleaseLink');
-   await page.waitForFunction(()=>document.querySelector('#scoutReleaseBanner').dataset.downloaded==='true');
-   const done=await page.evaluate(()=>({
-    promo:getComputedStyle(document.querySelector('.scout-release-promo')).visibility,
-    done:getComputedStyle(document.querySelector('.scout-release-done')).visibility,
-    copy:document.querySelector('#scoutReleaseMessage').textContent,
-    focus:document.activeElement.id,
-    again:document.querySelector('#scoutReleaseAgain').href,
-    inert:document.querySelector('.scout-release-promo').inert
-   }));
-   check(width+'px download becomes quiet setup with honest copy and accessible retry',done.promo==='hidden'&&done.done==='visible'&&done.inert&&done.focus==='scoutReleaseAgain'&&done.copy.includes('Download started')&&!done.copy.includes('installed')&&done.again===view.url);
+   await page.waitForFunction(()=>document.querySelector('#scoutReleaseBanner').hidden);
    const after=await geometry();
-   if(JSON.stringify(before)!==JSON.stringify(after))console.log('Geometry mismatch',JSON.stringify({before,after}));
-   check(width+'px download never resizes/refits or shifts the workspace',JSON.stringify(before)===JSON.stringify(after));
-   if(process.env.SCOUT_CARD_PREVIEW)await (await page.$('#scoutReleaseBanner')).screenshot({path:path.join(process.env.SCOUT_CARD_PREVIEW,'scout-setup-'+width+'.png')});
+   check(width+'px download removes the entire banner and its layout space',after.banner[2]===0&&after.banner[3]===0&&after.grid[1]<before.grid[1]);
+   check(width+'px hiding the banner keeps workspace width and scale',before.grid[2]===after.grid[2]&&before.zoom===after.zoom);
+   check(width+'px keyboard focus moves to notes after removing the focused download',await page.evaluate(()=>document.activeElement.id==='krispNotes'));
    await page.reload({waitUntil:'load'});
-   await page.waitForFunction(()=>document.querySelector('#scoutReleaseBanner').dataset.downloaded==='true');
-   check(width+'px next visit remembers quiet setup instead of promoting again',await page.$eval('.scout-release-promo',e=>e.inert&&getComputedStyle(e).visibility==='hidden'));
+   await page.waitForNetworkIdle({idleTime:100});
+   check(width+'px next visit has no banner or replacement strip',await page.$eval('#scoutReleaseBanner',e=>e.hidden&&e.offsetHeight===0)&&!(await page.$('.scout-release-done')));
    await page.evaluate(()=>localStorage.removeItem('classbuster_scout_download_started_v1'));
   }
   const valid={available:true,platform:'Windows',version:'1.4.14',sha256:'a'.repeat(64),downloadUrl:'https://github.com/thembones90-sudo/KIDBUSTER/releases/download/scout-1.4.14/ScoutSetup.exe'};
@@ -83,13 +74,43 @@ module.exports=async function run() {
   await page.waitForFunction(()=>!document.querySelector('#scoutReleaseBanner').hidden);
   await page.focus('#accountBtn');
   await page.evaluate(()=>window.dispatchEvent(new Event('classbuster:scout-download-started')));
-  await page.waitForFunction(()=>document.querySelector('#scoutReleaseBanner').dataset.downloaded==='true');
-  check('account download also quiets the card without stealing focus',await page.evaluate(()=>document.activeElement.id==='accountBtn'&&localStorage.getItem('classbuster_scout_download_started_v1')==='1'));
+  check('account download removes the banner without stealing focus',await page.evaluate(()=>document.querySelector('#scoutReleaseBanner').hidden&&document.activeElement.id==='accountBtn'&&localStorage.getItem('classbuster_scout_download_started_v1')==='1'));
+  await page.evaluate(()=>localStorage.removeItem('classbuster_scout_download_started_v1'));
+  await page.reload({waitUntil:'load'});
+  await page.waitForFunction(()=>!document.querySelector('#scoutReleaseBanner').hidden);
+  await page.click('#scoutReleaseDismiss');
+  check('existing users can dismiss and remember the banner',await page.evaluate(()=>document.querySelector('#scoutReleaseBanner').hidden&&localStorage.getItem('classbuster_scout_download_started_v1')==='1'));
+  await page.evaluate(()=>localStorage.removeItem('classbuster_scout_download_started_v1'));
+  await page.reload({waitUntil:'load'});
+  await page.waitForFunction(()=>!document.querySelector('#scoutReleaseBanner').hidden);
+  await page.evaluate(()=>window.dispatchEvent(new Event('classbuster:scout-connected')));
+  check('verified Scout connection hides and remembers the banner',await page.evaluate(()=>document.querySelector('#scoutReleaseBanner').hidden&&localStorage.getItem('classbuster_scout_download_started_v1')==='1'));
+  await page.evaluate(()=>localStorage.removeItem('classbuster_scout_download_started_v1'));
+  await page.reload({waitUntil:'load'});
+  await page.waitForFunction(()=>!document.querySelector('#scoutReleaseBanner').hidden);
+  const peer=await browser.newPage();await peer.goto(url,{waitUntil:'load'});
+  await peer.evaluate(()=>localStorage.setItem('classbuster_scout_download_started_v1','1'));
+  await page.waitForFunction(()=>document.querySelector('#scoutReleaseBanner').hidden);
+  check('dismissal is shared with another open tab',await page.$eval('#scoutReleaseBanner',e=>e.offsetHeight===0));
+  await peer.close();
+  await page.evaluate(()=>localStorage.removeItem('classbuster_scout_download_started_v1'));
+  // A delayed manifest cannot resurrect a banner hidden by a connection event.
+  const earlyConnection=await page.evaluateOnNewDocument(()=>window.addEventListener('DOMContentLoaded',()=>window.dispatchEvent(new Event('classbuster:scout-connected'))));
+  await page.reload({waitUntil:'load'});await page.waitForNetworkIdle({idleTime:100});
+  check('connection before manifest completion never resurrects the banner',await page.$eval('#scoutReleaseBanner',e=>e.hidden));
+  await page.removeScriptToEvaluateOnNewDocument(earlyConnection.identifier);
+  await page.evaluate(()=>localStorage.removeItem('classbuster_scout_download_started_v1'));
   for(const invalid of [{sha256:'broken'},{version:'<script>'},{downloadUrl:'https://evil.example/ScoutSetup.exe'},{downloadUrl:valid.downloadUrl+'?token=secret'},{available:false}]){
    override={...valid,...invalid};await page.reload({waitUntil:'load'});
    await page.waitForNetworkIdle({idleTime:100});
    check('invalid release remains unavailable: '+Object.keys(invalid)[0],await page.$eval('#scoutReleaseBanner',e=>e.hidden));
   }
+  override=null;
+  await page.evaluateOnNewDocument(()=>Object.defineProperty(Storage.prototype,'setItem',{value(){throw new Error('Storage disabled');}}));
+  await page.reload({waitUntil:'load'});
+  await page.waitForFunction(()=>!document.querySelector('#scoutReleaseBanner').hidden);
+  await page.click('#scoutReleaseDismiss');
+  check('blocked browser storage still allows immediate dismissal',await page.$eval('#scoutReleaseBanner',e=>e.hidden&&e.offsetHeight===0));
  } finally {if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
  return getFailures();
 };
