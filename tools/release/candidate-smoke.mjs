@@ -12,7 +12,12 @@
 // Owner-only Scout access and real sign-in/payment journeys need the owner and
 // are listed in RELEASE-CHECKLIST.md; this script cannot and does not cover them.
 
+import { execFileSync } from 'node:child_process';
+
 const args = process.argv.slice(2);
+const authenticatedVercel = args.includes('--authenticated-vercel');
+const vercelCliEntry = process.env.VERCEL_CLI_JS ||
+  'A:\\PATHFINDER V2\\.v2-local\\vercel-cli\\node_modules\\vercel\\dist\\vc.js';
 const base = String(args[0] || '').replace(/\/+$/, '');
 if(!/^https:\/\/[a-z0-9.-]+$/i.test(base)){ console.error('usage: candidate-smoke.mjs https://<host> [--expect-scout enabled|disabled]'); process.exit(2); }
 const expectScout = args.includes('--expect-scout') ? args[args.indexOf('--expect-scout') + 1] : 'enabled';
@@ -24,6 +29,30 @@ async function call(method, path, { headers = {}, body } = {}){
   if(bypass) h['x-vercel-protection-bypass'] = bypass;
   let payload;
   if(body !== undefined){ payload = typeof body === 'string' ? body : JSON.stringify(body); if(!h['content-type']) h['content-type'] = 'application/json'; }
+  if(authenticatedVercel) {
+    // Protected production candidates require the owner's existing CLI login.
+    // Call the CLI JavaScript entrypoint directly: no shell quoting, no long-lived
+    // bypass secret and no changes to Vercel Deployment Protection.
+    const cliArgs = [vercelCliEntry,'curl',base+path,'-i','--silent','--show-error','-X',method];
+    for(const [name,value] of Object.entries(h)) cliArgs.push('-H',name+': '+value);
+    if(payload !== undefined) cliArgs.push('--data-raw',payload);
+    const raw = execFileSync(process.execPath,cliArgs,{
+      encoding:'utf8',windowsHide:true,maxBuffer:16*1024*1024,
+      stdio:['ignore','pipe','pipe'],timeout:30000
+    });
+    const separator = raw.includes('\r\n\r\n') ? '\r\n\r\n' : '\n\n';
+    const split = raw.indexOf(separator);
+    if(split<0) throw Error('Authenticated Vercel response has no HTTP headers');
+    const headerBlock = raw.slice(0,split);
+    const match = /^HTTP\/\S+\s+(\d{3})/.exec(headerBlock);
+    if(!match) throw Error('Authenticated Vercel response has no HTTP status');
+    const responseHeaders = new Headers();
+    for(const line of headerBlock.split(/\r?\n/).slice(1)) {
+      const p=line.indexOf(':');
+      if(p>0) responseHeaders.append(line.slice(0,p),line.slice(p+1).trim());
+    }
+    return {status:Number(match[1]),headers:responseHeaders,text:raw.slice(split+separator.length)};
+  }
   const res = await fetch(base + path, { method, headers: h, body: payload, redirect: 'manual', signal: AbortSignal.timeout(20000) });
   const text = await res.text().catch(() => '');
   return { status: res.status, headers: res.headers, text };

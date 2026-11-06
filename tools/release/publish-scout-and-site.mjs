@@ -120,7 +120,7 @@ async function main() {
   const staged=execute('node',['tools/release/release.mjs','stage']);
   const candidate=staged.match(/https:\/\/kidbuster-[a-z0-9]+-thembones90-sudos-projects\.vercel\.app/g)?.at(-1);
   if(!candidate) throw Error('Stage gave no protected candidate URL. Do not promote');
-  execute('node',['tools/release/candidate-smoke.mjs',candidate,'--expect-scout','enabled']);
+  execute('node',['tools/release/candidate-smoke.mjs',candidate,'--expect-scout','enabled','--authenticated-vercel']);
   execute('node',['tools/release/release.mjs','promote',candidate]);
   execute('node',['tools/release/candidate-smoke.mjs','https://classbuster.com','--expect-scout','enabled']);
   await verifyLive(expected);

@@ -21,7 +21,7 @@ module.exports=function run(){
    lock.includes("manifest.downloadUrl")&&lock.includes("manifest.version"));
  check('one publication command links GitHub and Classbuster with verification',
    publisher.includes("release','create")&&
-   publisher.includes("candidate-smoke.mjs")&&publisher.includes("'promote'")&&
+   publisher.includes("candidate-smoke.mjs")&&publisher.includes("--authenticated-vercel")&&publisher.includes("'promote'")&&
    publisher.includes("await verifyLive(expected)"));
  check('owner policy binds future app updates to website downloads',
    native.includes('ABSOLUTE OWNER RULE: native Scout release = live Classbuster installer'));
