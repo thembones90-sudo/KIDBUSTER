@@ -43,12 +43,13 @@ module.exports=async function run(){
       html.indexOf('id="radarVanDownloadBtn"')<html.indexOf('</section>',html.indexOf('id="radarVanSection"')));
     check('browser sends access key via header not query',ui.includes("fetch('/api/radar-van-download'") && ui.includes("'x-app-key': key"));
     check('download is rewritten to existing feedback function',vercel.rewrites.some(x=>x.source==='/api/radar-van-download' && x.destination==='/api/feedback?radar=download'));
-    // Critical customer recovery release (2026-11-06), unsigned by owner decision:
-    // exactly the independently hashed 1.4.16 installer on the public release.
-    check('public download is the verified 1.4.16 installer on the approved release',
-      manifest.available===true && manifest.platform==='Windows' && manifest.version==='1.4.16' &&
-      manifest.sha256==='b714f00aa986e4e10aa358babe2818cdf45d67f75b8c8543276022f515d2cb0b' &&
-      manifest.downloadUrl==='https://github.com/thembones90-sudo/KIDBUSTER/releases/download/scout-1.4.16/ScoutSetup.exe');
+    // The public download is versioned with the native release. Never hardcode
+    // yesterday's version: the release lock compares the exact GitHub asset digest.
+    check('public Scout installer always matches the manifest version tag',
+      manifest.available===true && manifest.platform==='Windows' &&
+      /^\d+\.\d+\.\d+$/.test(manifest.version) &&
+      /^[0-9a-f]{64}$/i.test(manifest.sha256) &&
+      manifest.downloadUrl==='https://github.com/thembones90-sudo/KIDBUSTER/releases/download/scout-'+manifest.version+'/ScoutSetup.exe');
     const downloadHandler=fs.readFileSync(path.join(root,'api/_lib/radar-van-download-handler.js'),'utf8');
     // The version stays private: the page says only "Download Scout".
     check('download button and status show no version',html.includes('>Download Scout</button>') && !/Download Scout \d|10Z[A-Z]/.test(html) && !/download is starting[^']*10Z/.test(ui));

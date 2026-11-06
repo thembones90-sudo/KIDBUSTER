@@ -1,3 +1,18 @@
+# ABSOLUTE OWNER RULE: native Scout release = live Classbuster installer (2026-11-06)
+
+NEVER ship a standalone Scout update and leave the website on an older installer.
+ONE CURRENT VERSION means the native app's version, published GitHub release
+asset, SHA-256, public Classbuster manifest and live Download Scout link agree.
+The only approved publication path is `node tools/release/publish-scout-and-site.mjs
+publish --version X.Y.Z --source <verified-native-source> --installer <verified-ScoutSetup.exe>`.
+For a release already published, use the same tool's `sync --version X.Y.Z`.
+It builds the public manifest from the GitHub release's verified binary digest,
+runs website tests, commits the manifest, and uses the guarded stage/smoke/promote
+path. The guarded deploy refuses any older version/hash even for unrelated site
+changes. Verify the LIVE site manifest, not just local source, before declaring
+success. If any step fails, the release is INCOMPLETE, never 'done'.
+Never interrupt active lessons or auto-start an installer on customer machines.
+
 # RULE FOR EVERY AGENT: one release line (owner, 2026-11-03)
 
 Before changing the website, start from what is LIVE: run

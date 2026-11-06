@@ -43,6 +43,8 @@ const [command, arg] = process.argv.slice(2);
 if(command === 'check'){
   await guard();
 }else if(command === 'stage'){
+  // Never deploy a website advertising a previous Scout after a newer native release.
+  execFileSync('node', ['tools/release/verify-scout-release.mjs'], {cwd:root, stdio:'inherit'});
   if(git(['status', '--porcelain', '--untracked-files=no'], { cwd: root })) fail('Commit or discard local changes first: only committed code is released.');
   const live = await guard();
   const commit = git(['rev-parse', 'HEAD'], { cwd: root });
@@ -57,6 +59,7 @@ if(command === 'check'){
   console.log('Staged ' + commit.slice(0, 7) + ' as ' + url + ' (classbuster.com unchanged).');
   console.log('Next: node tools/release/candidate-smoke.mjs ' + url + ' --expect-scout enabled');
 }else if(command === 'promote'){
+  execFileSync('node', ['tools/release/verify-scout-release.mjs'], {cwd:root, stdio:'inherit'});
   if(!CANDIDATE_URL.test(arg || '')) fail('Give the candidate URL printed by stage.');
   let staged = null;
   try{ staged = JSON.parse(fs.readFileSync(STAGED, 'utf8')); }catch{ /* checked below */ }
