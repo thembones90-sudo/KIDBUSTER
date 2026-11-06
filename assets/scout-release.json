@@ -1,7 +1,7 @@
 {
   "available": true,
   "platform": "Windows",
-  "version": "1.4.17",
-  "sha256": "da9233a3519bb75488e23f7d15d20de8cfac079c3779855d42db6467d2e38afe",
-  "downloadUrl": "https://github.com/thembones90-sudo/KIDBUSTER/releases/download/scout-1.4.17/ScoutSetup.exe"
+  "version": "1.4.18",
+  "sha256": "07ccd6afd826f53949da51e22e86675565068562a2269ac8c9bc9ce15ec0ee8e",
+  "downloadUrl": "https://github.com/thembones90-sudo/KIDBUSTER/releases/download/scout-1.4.18/ScoutSetup.exe"
 }
