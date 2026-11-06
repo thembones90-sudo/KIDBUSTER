@@ -42,7 +42,9 @@
         /^\/downloads\/[\w.-]+\.(exe|msi|msix)$/i.test(url.pathname);
       if (url.protocol !== 'https:' || url.username || url.password ||
           url.search || url.hash || url.port || !(github || owned)) return;
-      // Release identity/hash remain validated above, never rendered as UI copy.
+      // Show the verified build beside Account's download, without exposing hashes.
+      const releaseInfo = document.getElementById('radarVanReleaseInfo');
+      if (releaseInfo) releaseInfo.textContent = 'Scout ' + release.version + ' · Windows · Included with Pro';
       link.href = url.href; link.rel = 'noopener noreferrer'; link.target = '_blank';
       link.addEventListener('click', () => {
         // Let the original link activation finish before removing its layout box.

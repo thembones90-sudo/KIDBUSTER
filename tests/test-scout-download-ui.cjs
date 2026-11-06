@@ -47,6 +47,7 @@ module.exports=async function run() {
      technical:/SHA-256|Version \d|abcdef/.test(card.innerText),
      btnHeight:link.offsetHeight,overflow:document.documentElement.scrollWidth>innerWidth};
    });
+   check(width+'px Account names the verified manifest build',await page.$eval('#radarVanReleaseInfo',el=>el.textContent==='Scout 1.0.2 · Windows · Included with Pro'));
    check(width+'px verified release presents working download CTA without overflow',
     view.visible&&view.label.includes('Download for Windows')&&view.url.includes('/releases/download/v1.0.2/ScoutSetup.exe')&&
     view.rel.includes('noopener')&&!view.technical&&view.btnHeight>=44&&!view.overflow);
