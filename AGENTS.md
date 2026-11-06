@@ -13,6 +13,10 @@ changes. Verify the LIVE site manifest, not just local source, before declaring
 success. If any step fails, the release is INCOMPLETE, never 'done'.
 Never interrupt active lessons or auto-start an installer on customer machines.
 
+# Current website: Account Scout build label — 2026-11-06
+
+Runtime `8d4f52d`, live `dpl_5qA2VL9p1GsMKs4bAAoSinBhXVRX`, contains4299666. Account → Scout now names the verified release as “Scout 1.4.17 · Windows · Included with Pro”, populated from the existing validated manifest fetch in scout-release.js. No extra API request, hash display or installer change. Owner explicitly requested this version label, superseding older instructions to hide all version information. Combined sync completed with141 website files passing, release integrity/lock/lineage passing, candidate and production26/26 each. Independent actual live browser checks confirm label and unchanged Download Scout button at1440px/390px. GitHub CI42215182154 was still running at publication; do not label it passed without checking. Native1.4.17 unchanged; its Settings skin dropdown is the top bar labeled “Skin: Classbuster Scout ▾”.
+
 # Current public Scout: 1.4.17 — 2026-11-06
 
 Owner selected 1.4.17 over the original1.4.16 emergency request. Live `dpl_BLG2sQTeHamTDxWqBt5hK1yejfU1`, stamp/runtime4299666, verified installer SHA256 `da9233a3519bb75488e23f7d15d20de8cfac079c3779855d42db6467d2e38afe`,116633177bytes. Combined sync tool completed; latest-release lock/lineage passed at stage and promotion;141 website files and CI42213384308 passed; candidate/live/legacy26/26 each; independent live download-handler and full checksum checks passed. Native source4b8635f includes1.4.16 recovery plus persistent Settings → Skin (Scout/Bloom/Toxin);101 native skin/UI and4 installer tests independently pass. Native installer remains unsigned. No customer restart/install was performed. See SCOUT-1.4.17-PRODUCTION-20261106.md for the actual validation limits and customer/import-guard follow-up. Use the combined release tool for all subsequent Scout publication.
