@@ -5,6 +5,8 @@ module.exports=async()=>{
  const browser=await require('puppeteer').launch({headless:true,executablePath:process.env.PUPPETEER_EXECUTABLE_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',args:['--no-sandbox']});
  try{
   const page=await browser.newPage();
+  // Receipt auto-open runs only in a visible tab, matching the real link journey.
+  await page.bringToFront();
   await page.evaluateOnNewDocument(()=>localStorage.setItem('kidbuster_access_key','synthetic-card-preview'));
   for(const [id,found] of [['00000000-0000-4000-8000-000000000001',true],['00000000-0000-4000-8000-000000000099',false]]){
    await page.goto(fixture.url+'/?scout-receipt=rv%3A'+id,{waitUntil:'load'});
