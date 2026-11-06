@@ -13,6 +13,10 @@ changes. Verify the LIVE site manifest, not just local source, before declaring
 success. If any step fails, the release is INCOMPLETE, never 'done'.
 Never interrupt active lessons or auto-start an installer on customer machines.
 
+# Current Scout: 1.4.18 visible skin choices — 2026-11-06
+
+Owner rejected the hard-to-see dropdown. Native80ac704 now has **Choose skin** plus three visible Scout/Bloom/Toxin buttons, active check/accent border and saved live selection. Native1188 tests OK(1skip),259 frozen checks+8 packaged skin checks pass; CPU/media package verified. Combined publication completed: public117222926-byte installer SHA25607ccd6afd826f53949da51e22e86675565068562a2269ac8c9bc9ce15ec0ee8e; website runtime98ffa9d live as `dpl_E1c2FQnYM9qrPbqH8MJYWPaPQ9HR`;141 website files, release guards, candidate/live/legacy26/26 each and actual live version-label browser checks pass. Owner's installed app was not restarted/replaced; apply1.4.18 only when idle. Older notes describing the skin dropdown are superseded. See SCOUT-1.4.18-VISIBLE-SKINS-20261106.md.
+
 # Current website: Account Scout build label — 2026-11-06
 
 Runtime `8d4f52d`, live `dpl_5qA2VL9p1GsMKs4bAAoSinBhXVRX`, contains4299666. Account → Scout now names the verified release as “Scout 1.4.17 · Windows · Included with Pro”, populated from the existing validated manifest fetch in scout-release.js. No extra API request, hash display or installer change. Owner explicitly requested this version label, superseding older instructions to hide all version information. Combined sync completed with141 website files passing, release integrity/lock/lineage passing, candidate and production26/26 each. Independent actual live browser checks confirm label and unchanged Download Scout button at1440px/390px. GitHub CI42215182154 was still running at publication; do not label it passed without checking. Native1.4.17 unchanged; its Settings skin dropdown is the top bar labeled “Skin: Classbuster Scout ▾”.
