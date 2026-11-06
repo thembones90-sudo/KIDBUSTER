@@ -13,6 +13,10 @@ changes. Verify the LIVE site manifest, not just local source, before declaring
 success. If any step fails, the release is INCOMPLETE, never 'done'.
 Never interrupt active lessons or auto-start an installer on customer machines.
 
+# Current public Scout: 1.4.17 — 2026-11-06
+
+Owner selected 1.4.17 over the original1.4.16 emergency request. Live `dpl_BLG2sQTeHamTDxWqBt5hK1yejfU1`, stamp/runtime4299666, verified installer SHA256 `da9233a3519bb75488e23f7d15d20de8cfac079c3779855d42db6467d2e38afe`,116633177bytes. Combined sync tool completed; latest-release lock/lineage passed at stage and promotion;141 website files and CI42213384308 passed; candidate/live/legacy26/26 each; independent live download-handler and full checksum checks passed. Native source4b8635f includes1.4.16 recovery plus persistent Settings → Skin (Scout/Bloom/Toxin);101 native skin/UI and4 installer tests independently pass. Native installer remains unsigned. No customer restart/install was performed. See SCOUT-1.4.17-PRODUCTION-20261106.md for the actual validation limits and customer/import-guard follow-up. Use the combined release tool for all subsequent Scout publication.
+
 # RULE FOR EVERY AGENT: one release line (owner, 2026-11-03)
 
 Before changing the website, start from what is LIVE: run
