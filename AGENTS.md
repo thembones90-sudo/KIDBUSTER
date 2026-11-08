@@ -1,4 +1,8 @@
-# Current website: Graphite Studio background — 2026-11-08
+# Current website: visible graphite correction — 2026-11-08
+
+Owner found the first graphite trial imperceptible. Runtimeb92100b supersedes0c2d94b: brighter graphite base#171a1e, visible static grain, broad neutral light, darker outer vignette, stronger restrained header accent. Cache key graphite-studio2. Guarded release promoted kidbuster-6rj18yns5-thembones90-sudos-projects.vercel.app. Appearance suite and all141 local files pass; geometry unchanged at3840x2024/2560x1440/1440x900/390x844, before/after reviewed at3840px. Candidate/live/legacy26/26 and exact index/CSS/manifest/stamp pass. Native1.4.19 untouched. See updated GRAPHITE-STUDIO-20261108.md. Preserve this correction; earlier nearly invisible trial is rejected.
+
+# Earlier website: Graphite Studio background — 2026-11-08
 
 Owner-approved trial, isolated paint-only change. Runtime0c2d94b on codex/graphite-studio-20261108, staged/promoted with guarded release.mjs as kidbuster-hdfpd1ysv-thembones90-sudos-projects.vercel.app. Dark appearance has fine static grain, neutral central light and restrained header accent; light appearance and workspace geometry unchanged. All141 local test files and GitHub42452467159 pass. Appearance suite and geometry comparisons at2560x1440,1440x900,390x844 pass. Candidate/live/legacy26/26 each and exact index/CSS/Scout manifest/release stamp checks pass. Native Scout/public installer remains1.4.19. To undo only this visual trial, revert0c2d94b on the latest live lineage and use guarded stage/promote; do not deploy an obsolete branch. See GRAPHITE-STUDIO-20261108.md.
 

@@ -1,5 +1,25 @@
 # Graphite Studio background — 2026-11-08
 
+## Owner correction: first trial too subtle
+
+Owner rejected the initial visual impact. Corrected runtime `b92100b` is live,
+promoted from `https://kidbuster-6rj18yns5-thembones90-sudos-projects.vercel.app`.
+It increases material grain opacity to .085, uses graphite #171a1e, broad neutral
+illumination at .13, a dark outer vignette and header accent at .09. The existing
+appearance assertion for the dark base was updated to this intended color;
+all other behavior assertions remain. Cache key is graphite-studio2.
+
+Appearance suite and all141 local test files passed. Geometry comparisons passed
+at3840x2024,2560x1440,1440x900,390x844. Before/after images at3840px reviewed;
+the graphite material and edge contrast are visibly stronger. Authenticated candidate,
+classbuster.com and compatibility host each passed26/26 probes and exact
+index/CSS/Scout manifest/release stamp checks. Native Scout unchanged.
+GitHub run42461898835 was pending at the last check; do not claim it passed
+without independently checking. Revert only the background commits on the latest
+lineage if requested; do not roll back unrelated live work.
+
+## Earlier trial record
+
 The owner approved trying the proposed graphite background, with reversal if disliked.
 
 Runtime: `0c2d94b9754ac2f2c7a4edac205b1b5531ae7643`.
