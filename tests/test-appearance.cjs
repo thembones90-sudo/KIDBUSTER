@@ -38,7 +38,7 @@ module.exports=async function(){
   assert.equal(await page.$eval('.mode-badge',e=>getComputedStyle(e).color),'rgb(135, 243, 22)','dark Classic badge retains its neon green');
   await page.waitForFunction(()=>!document.body.getAnimations().some(a=>a.transitionProperty==='--workspace-wash'));
   const darkCanvas=await page.$eval('body',e=>{const s=getComputedStyle(e);return {base:s.backgroundColor,wash:s.getPropertyValue('--workspace-wash'),layers:(s.backgroundImage.match(/radial-gradient/g)||[]).length,animation:s.animationName};});
-  assert.equal(darkCanvas.base,'rgb(16, 17, 19)');assert.equal(darkCanvas.layers,2);assert.equal(darkCanvas.animation,'none','ambient canvas has no perpetual animation');
+  assert.equal(darkCanvas.base,'rgb(23, 26, 30)');assert.equal(darkCanvas.layers,2);assert.equal(darkCanvas.animation,'none','ambient canvas has no perpetual animation');
   assert.match(darkCanvas.wash,/135, 243, 22/,'dark canvas follows Classic identity');
   if(process.env.V2_APPEARANCE_SCREENSHOTS){await page.click('#accountBtn');await page.setViewport({width:2560,height:1440});await page.screenshot({path:path.join(process.env.V2_APPEARANCE_SCREENSHOTS,'ambient-dark-wide.png')});await page.setViewport({width:1440,height:1100});}
   await page.reload();assert.equal(await page.$eval('html',e=>e.dataset.appearance),'dark','manual choice survives reload');
