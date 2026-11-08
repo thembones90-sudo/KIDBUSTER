@@ -1,3 +1,7 @@
+# Current website: Graphite Studio background — 2026-11-08
+
+Owner-approved trial, isolated paint-only change. Runtime0c2d94b on codex/graphite-studio-20261108, staged/promoted with guarded release.mjs as kidbuster-hdfpd1ysv-thembones90-sudos-projects.vercel.app. Dark appearance has fine static grain, neutral central light and restrained header accent; light appearance and workspace geometry unchanged. All141 local test files and GitHub42452467159 pass. Appearance suite and geometry comparisons at2560x1440,1440x900,390x844 pass. Candidate/live/legacy26/26 each and exact index/CSS/Scout manifest/release stamp checks pass. Native Scout/public installer remains1.4.19. To undo only this visual trial, revert0c2d94b on the latest live lineage and use guarded stage/promote; do not deploy an obsolete branch. See GRAPHITE-STUDIO-20261108.md.
+
 # ABSOLUTE OWNER RULE: native Scout release = live Classbuster installer (2026-11-06)
 
 NEVER ship a standalone Scout update and leave the website on an older installer.
